@@ -24,7 +24,7 @@ ENV/
 .pytest_cache/
 .coverage
 htmlcov/
-
+git 
 # IDE
 .vscode/
 .idea/
