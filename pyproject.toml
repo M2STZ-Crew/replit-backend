@@ -1,0 +1,56 @@
+[project]
+name = "replit-backend"
+version = "0.1.0"
+description = "RepLiT — Pasay City Fire Volunteer Coordination Platform (FastAPI backend)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "pydantic>=2.7.0",
+    "pydantic-settings>=2.3.0",
+    "structlog>=24.1.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2.0",
+    "pytest-asyncio>=0.23.0",
+    "httpx>=0.27.0",
+    "ruff>=0.5.0",
+    "mypy>=1.10.0",
+]
+
+[tool.uv]
+# This is an application, not a library: do not build/install the project itself,
+# only resolve and install its dependencies into the managed virtual environment.
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+# E/F = pyflakes+pycodestyle, I = isort, B = bugbear, UP = pyupgrade, ASYNC = async checks
+select = ["E", "F", "I", "B", "UP", "ASYNC"]
+
+[tool.ruff.lint.per-file-ignores]
+# Allow unused imports in package markers (re-exports added in later phases).
+"__init__.py" = ["F401"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+# Third-party packages without bundled type stubs; relax import-time errors.
+module = ["structlog.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-ra -q"
