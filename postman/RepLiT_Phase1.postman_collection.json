@@ -1,0 +1,112 @@
+{
+  "info": {
+    "name": "RepLiT Backend — Phase 1 (Foundation)",
+    "description": "Health and meta endpoints for the RepLiT FastAPI backend scaffold (Phase 1). Set the collection variable {{baseUrl}} to your running server (default http://127.0.0.1:8000).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Service Index — GET /",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/",
+          "host": ["{{baseUrl}}"],
+          "path": [""]
+        },
+        "description": "Returns service metadata (name, version, environment, docs/health links). Public, no auth."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"has X-Request-ID header\", function () {",
+              "    pm.expect(pm.response.headers.has(\"X-Request-ID\")).to.be.true;",
+              "});",
+              "pm.test(\"body has service fields\", function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.have.property(\"service\");",
+              "    pm.expect(json).to.have.property(\"version\");",
+              "    pm.expect(json).to.have.property(\"environment\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Liveness — GET /health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Liveness probe. Public, no auth. Returns status=ok and build metadata."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"status field is ok\", function () {",
+              "    pm.expect(pm.response.json().status).to.eql(\"ok\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Readiness — GET /health/ready",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health/ready",
+          "host": ["{{baseUrl}}"],
+          "path": ["health", "ready"]
+        },
+        "description": "Readiness probe. Public, no auth. Returns status=ready with an (empty in Phase 1) checks map."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"status is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"status field is ready\", function () {",
+              "    pm.expect(pm.response.json().status).to.eql(\"ready\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
