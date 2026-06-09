@@ -1,11 +1,8 @@
 """RepLiT backend application entrypoint.
 
-Builds and configures the FastAPI application: logging, CORS, request-correlation
-middleware, global exception handlers, and the mounted API router. Import target for
-Uvicorn as ``app.main:app``.
-
-v8 master context references: Section 8 (Architecture — FastAPI server), Section 13
-(Code Style — structured logging, correlation IDs, no raw dicts in/out of endpoints).
+Builds and configures the FastAPI application: logging, shared resources (HTTP
+client + database pool), CORS, request-correlation middleware, global exception
+handlers, and the mounted API router. Import target for Uvicorn as ``app.main:app``.
 """
 
 from __future__ import annotations
@@ -15,6 +12,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
+import httpx
 import structlog
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,6 +21,7 @@ from app.api.routes import api_router
 from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
+from app.db.session import database
 
 log = get_logger(__name__)
 
@@ -32,16 +31,24 @@ _QUIET_PATHS = {"/health", "/health/ready"}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Application lifespan: configure logging on startup, log lifecycle events."""
+    """Application lifespan: configure logging, open shared resources, log lifecycle."""
     configure_logging()
     settings = get_settings()
+
+    app.state.http_client = httpx.AsyncClient(timeout=httpx.Timeout(15.0))
+    await database.connect()
+
     log.info(
         "application_startup",
         app_name=settings.app_name,
         version=settings.app_version,
         environment=settings.environment,
+        database_connected=database.is_connected,
     )
     yield
+
+    await database.disconnect()
+    await app.state.http_client.aclose()
     log.info("application_shutdown")
 
 
@@ -88,8 +95,6 @@ def create_app() -> FastAPI:
             response = await call_next(request)
         except Exception:
             duration_ms = round((time.perf_counter() - start) * 1000, 2)
-            # Re-raise so the registered global handlers build the response; the
-            # bound request_id remains in context for that handler's logs.
             log.exception("request_failed", duration_ms=duration_ms)
             raise
 
@@ -116,5 +121,5 @@ if __name__ == "__main__":
         host=_settings.host,
         port=_settings.port,
         reload=_settings.is_development,
-        access_log=False,  # request logging is handled by request_context_middleware
+        access_log=False,
     )

@@ -1,14 +1,14 @@
 """Service index, health, and readiness endpoints.
 
-These are public (no authentication) and consumed by the Docker health check, the
-nginx upstream probe, and UptimeRobot (configured in Phase 17). v8 master context
-Section 11 (Phase 1 deliverables) — health check endpoints.
+Public (no authentication), consumed by Docker, nginx, and UptimeRobot (Phase 17).
+Readiness now probes the database pool (master context Section 11).
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Response, status
 
+from app.api.deps import DatabaseDep
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.schemas.health import HealthResponse, ReadinessResponse, ServiceInfoResponse
@@ -26,10 +26,7 @@ router = APIRouter()
     summary="Service index",
 )
 async def root() -> ServiceInfoResponse:
-    """Return basic service metadata and useful links.
-
-    Public endpoint hit when browsing the API base URL.
-    """
+    """Return basic service metadata and useful links. Public."""
     settings = get_settings()
     return ServiceInfoResponse(
         service=settings.app_name,
@@ -48,11 +45,7 @@ async def root() -> ServiceInfoResponse:
     summary="Liveness probe",
 )
 async def health() -> HealthResponse:
-    """Return liveness and build metadata.
-
-    Public endpoint. Confirms the FastAPI process is running and able to serve
-    requests; performs no dependency checks.
-    """
+    """Return liveness and build metadata. Public; no dependency checks."""
     settings = get_settings()
     return HealthResponse(
         app_name=settings.app_name,
@@ -68,11 +61,16 @@ async def health() -> HealthResponse:
     tags=["health"],
     summary="Readiness probe",
 )
-async def readiness() -> ReadinessResponse:
-    """Return readiness to accept traffic.
+async def readiness(db: DatabaseDep, response: Response) -> ReadinessResponse:
+    """Return readiness to accept traffic, probing the database pool.
 
-    Public endpoint. In Phase 1 there are no external dependencies, so this always
-    reports ``ready``. Later phases add database/Redis/external-service checks and
-    may return ``not_ready`` with details.
+    Returns HTTP 200 when ready and HTTP 503 when a dependency is unavailable.
+    Public endpoint.
     """
-    return ReadinessResponse(status="ready", checks={})
+    db_ok = db.is_connected and await db.healthcheck()
+    if db_ok:
+        return ReadinessResponse(status="ready", checks={"database": "ok"})
+
+    response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    db_status = "unavailable" if not db.is_connected else "error"
+    return ReadinessResponse(status="not_ready", checks={"database": db_status})

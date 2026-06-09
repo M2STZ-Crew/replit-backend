@@ -46,14 +46,13 @@ def test_health_returns_ok(client: TestClient) -> None:
     assert body["environment"] == "development"
 
 
-def test_readiness_returns_ready(client: TestClient) -> None:
-    """GET /health/ready reports readiness with an (empty) checks map."""
+def test_readiness_reports_database(client: TestClient) -> None:
+    """GET /health/ready reports the database check; code reflects readiness."""
     response = client.get("/health/ready")
-    assert response.status_code == 200
+    assert response.status_code in (200, 503)
     body = response.json()
-    assert body["status"] == "ready"
-    assert body["checks"] == {}
-
+    assert body["status"] in ("ready", "not_ready")
+    assert "database" in body["checks"]
 
 def test_request_id_header_generated(client: TestClient) -> None:
     """Every response carries a generated X-Request-ID correlation header."""

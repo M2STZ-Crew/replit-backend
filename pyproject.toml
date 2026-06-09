@@ -10,20 +10,23 @@ dependencies = [
     "pydantic>=2.7.0",
     "pydantic-settings>=2.3.0",
     "structlog>=24.1.0",
+    "httpx>=0.27.0",
+    "asyncpg>=0.30.0",
+    "pyjwt[crypto]>=2.8.0",
+    "twilio>=9.0.0",
+    "email-validator>=2.1.0",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=8.2.0",
     "pytest-asyncio>=0.23.0",
-    "httpx>=0.27.0",
     "ruff>=0.5.0",
     "mypy>=1.10.0",
 ]
 
 [tool.uv]
-# This is an application, not a library: do not build/install the project itself,
-# only resolve and install its dependencies into the managed virtual environment.
+# Application, not a library: manage dependencies only, don't build/install the project.
 package = false
 
 [tool.ruff]
@@ -31,11 +34,9 @@ line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
-# E/F = pyflakes+pycodestyle, I = isort, B = bugbear, UP = pyupgrade, ASYNC = async checks
 select = ["E", "F", "I", "B", "UP", "ASYNC"]
 
 [tool.ruff.lint.per-file-ignores]
-# Allow unused imports in package markers (re-exports added in later phases).
 "__init__.py" = ["F401"]
 
 [tool.mypy]
@@ -46,11 +47,16 @@ warn_redundant_casts = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-# Third-party packages without bundled type stubs; relax import-time errors.
-module = ["structlog.*"]
+# Third-party packages without bundled type stubs.
+module = ["structlog.*", "twilio.*", "asyncpg.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 addopts = "-ra -q"
+filterwarnings = [
+    # Starlette 1.x deprecation steering its TestClient toward a future httpx —
+    # harmless for our tests. Suppress for clean output; revisit in Phase 16/17.
+    "ignore:Using .httpx. with .starlette.testclient.:Warning",
+]
