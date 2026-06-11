@@ -56,11 +56,17 @@ class TwilioVerifyClient:
         try:
             return await asyncio.to_thread(_send)
         except TwilioRestException as exc:
-            if getattr(exc, "status", None) == 400:
-                raise BadRequestError("Invalid phone number.") from exc
-            log.error("twilio_start_failed", error=str(exc))
-            raise ExternalServiceError("Could not send verification code.") from exc
-
+            twilio_code = getattr(exc, "code", None)
+            twilio_msg = getattr(exc, "msg", None) or "Twilio Verify request failed."
+            log.error("twilio_start_failed", twilio_code=twilio_code, twilio_msg=twilio_msg)
+            # 21608 = unverified trial number; 21211/21614/60200 = invalid/ineligible number.
+            if twilio_code in (21608, 21211, 21614, 60200) or getattr(exc, "status", None) == 400:
+                raise BadRequestError(
+                    str(twilio_msg), details={"twilio_code": twilio_code}
+                    ) from exc
+            raise ExternalServiceError(
+                "Could not send verification code.", details={"twilio_code": twilio_code}
+            ) from exc
     async def check_verification(self, phone: str, code: str) -> bool:
         """Check a submitted code; returns True if Twilio reports 'approved'."""
 
@@ -75,9 +81,18 @@ class TwilioVerifyClient:
         try:
             return await asyncio.to_thread(_check)
         except TwilioRestException as exc:
+            twilio_code = getattr(exc, "code", None)
+            twilio_msg = getattr(exc, "msg", None) or "Phone verification failed."
+            log.error("twilio_check_failed", twilio_code=twilio_code, twilio_msg=twilio_msg)
             if getattr(exc, "status", None) == 404:
                 raise BadRequestError(
-                    "Verification code expired or not found; request a new one."
+                    "Verification code expired or not found; request a new one.",
+                    details={"twilio_code": twilio_code},
                 ) from exc
-            log.error("twilio_check_failed", error=str(exc))
-            raise ExternalServiceError("Phone verification failed.") from exc
+            if getattr(exc, "status", None) == 400 or twilio_code in (60200, 60202):
+                raise BadRequestError(
+                    str(twilio_msg), details={"twilio_code": twilio_code}
+                    ) from exc
+            raise ExternalServiceError(
+                "Phone verification failed.", details={"twilio_code": twilio_code}
+            ) from exc

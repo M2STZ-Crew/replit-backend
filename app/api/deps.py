@@ -18,6 +18,7 @@ from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.core.security import decode_access_token
 from app.db.session import Database, database
 from app.integrations.supabase_auth import SupabaseAuthClient
+from app.integrations.twilio_verify import TwilioVerifyClient
 from app.schemas.auth import AuthenticatedUser
 
 
@@ -38,10 +39,14 @@ def get_auth_client(request: Request) -> SupabaseAuthClient:
     """Return a Supabase Auth (GoTrue) client bound to the shared HTTP client."""
     return SupabaseAuthClient(cast(httpx.AsyncClient, request.app.state.http_client))
 
+def get_twilio_verify() -> TwilioVerifyClient:
+    """Return a Twilio Verify client (reads Twilio settings)."""
+    return TwilioVerifyClient()
 
 DatabaseDep = Annotated[Database, Depends(get_database)]
 HttpClientDep = Annotated[httpx.AsyncClient, Depends(get_http_client)]
 AuthClientDep = Annotated[SupabaseAuthClient, Depends(get_auth_client)]
+TwilioVerifyDep = Annotated[TwilioVerifyClient, Depends(get_twilio_verify)]
 
 # --------------------------------------------------------------------------- #
 # Authentication

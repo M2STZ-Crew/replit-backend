@@ -25,7 +25,8 @@ class ErrorResponse(BaseModel):
         description="Correlation id of the originating request, when available.",
     )
 
-    class MessageResponse(BaseModel):
-        """Simple message envelope for endpoints that return a status string."""
 
-        message: str = Field(description="Human-readable result message.")
+class MessageResponse(BaseModel):
+    """Simple message envelope for endpoints that return a status string."""
+
+    message: str = Field(description="Human-readable result message.")
