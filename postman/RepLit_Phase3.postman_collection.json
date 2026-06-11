@@ -1,0 +1,133 @@
+{
+  "info": {
+    "name": "RepLiT Backend — Phase 3 (Auth, Verification, Admin)",
+    "description": "Auth (signup/login/refresh/me/logout), phone OTP verification (+40%), and admin-creates-user. Set {{baseUrl}}; Login/Signup auto-capture {{accessToken}} and {{refreshToken}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "refreshToken", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Signup",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test(\"201 created\", function () { pm.response.to.have.status(201); });",
+            "var j = pm.response.json();",
+            "if (j.access_token) { pm.collectionVariables.set(\"accessToken\", j.access_token); }",
+            "if (j.refresh_token) { pm.collectionVariables.set(\"refreshToken\", j.refresh_token); }"
+          ] } } ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"citizen3@example.com\",\n  \"password\": \"Test1234!\",\n  \"full_name\": \"Ana Cruz\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/signup", "host": ["{{baseUrl}}"], "path": ["auth","signup"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test(\"200 ok\", function () { pm.response.to.have.status(200); });",
+            "var j = pm.response.json();",
+            "pm.collectionVariables.set(\"accessToken\", j.access_token);",
+            "pm.collectionVariables.set(\"refreshToken\", j.refresh_token);"
+          ] } } ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"citizen1@example.com\",\n  \"password\": \"Test1234!\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh",
+          "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "var j = pm.response.json();",
+            "if (j.access_token) { pm.collectionVariables.set(\"accessToken\", j.access_token); }",
+            "if (j.refresh_token) { pm.collectionVariables.set(\"refreshToken\", j.refresh_token); }"
+          ] } } ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/refresh", "host": ["{{baseUrl}}"], "path": ["auth","refresh"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth","me"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+            "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth","logout"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Verification",
+      "item": [
+        {
+          "name": "Phone - Request OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+639309897051\"\n}" },
+            "url": { "raw": "{{baseUrl}}/verification/phone/request", "host": ["{{baseUrl}}"], "path": ["verification","phone","request"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Phone - Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"code\": \"123456\"\n}" },
+            "url": { "raw": "{{baseUrl}}/verification/phone/verify", "host": ["{{baseUrl}}"], "path": ["verification","phone","verify"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Create User (Sub-Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"firevol2@example.com\",\n  \"password\": \"Test1234!\",\n  \"full_name\": \"Jose Lim\",\n  \"role\": \"sub_admin\",\n  \"agency_type\": \"fire_volunteer\"\n}" },
+            "url": { "raw": "{{baseUrl}}/admin/users", "host": ["{{baseUrl}}"], "path": ["admin","users"] }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
