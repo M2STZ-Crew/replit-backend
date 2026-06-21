@@ -1,0 +1,102 @@
+{
+  "info": {
+    "name": "RepLiT Backend — Phase 4 (KYC + Email)",
+    "description": "National ID KYC (Didit session/refresh/manual), email verification (+10%), and the Admin manual-review queue. Login captures {{accessToken}}; Admin Pending captures {{verificationId}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "verificationId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Login (admin)",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+      ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"citizen1@example.com\",\n  \"password\": \"Test1234!\"\n}" },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
+      },
+      "response": []
+    },
+    {
+      "name": "National ID - Start (Didit)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/verification/national-id/start", "host": ["{{baseUrl}}"], "path": ["verification","national-id","start"] }
+      },
+      "response": []
+    },
+    {
+      "name": "National ID - Refresh (poll)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/verification/national-id/refresh", "host": ["{{baseUrl}}"], "path": ["verification","national-id","refresh"] }
+      },
+      "response": []
+    },
+    {
+      "name": "National ID - Manual Upload",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "body": { "mode": "formdata", "formdata": [
+          { "key": "id_image", "type": "file", "src": [] },
+          { "key": "selfie_image", "type": "file", "src": [] }
+        ] },
+        "url": { "raw": "{{baseUrl}}/verification/national-id/manual", "host": ["{{baseUrl}}"], "path": ["verification","national-id","manual"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Email - Request (+10%)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/verification/email/request", "host": ["{{baseUrl}}"], "path": ["verification","email","request"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Admin - Pending Verifications",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "var arr = pm.response.json();",
+        "if (Array.isArray(arr) && arr.length) { pm.collectionVariables.set(\"verificationId\", arr[0].id); }"
+      ] } } ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/admin/verifications/pending", "host": ["{{baseUrl}}"], "path": ["admin","verifications","pending"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Admin - Approve (+50%)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/admin/verifications/{{verificationId}}/approve", "host": ["{{baseUrl}}"], "path": ["admin","verifications","{{verificationId}}","approve"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Admin - Reject",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"notes\": \"ID photo is unreadable\"\n}" },
+        "url": { "raw": "{{baseUrl}}/admin/verifications/{{verificationId}}/reject", "host": ["{{baseUrl}}"], "path": ["admin","verifications","{{verificationId}}","reject"] }
+      },
+      "response": []
+    }
+  ]
+}

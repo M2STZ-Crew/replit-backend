@@ -24,6 +24,10 @@ class AuthenticatedUser(BaseModel):
     verified_percent: int = Field(
         default=0, ge=0, le=100, description="Progressive verification %."
     )
+    badge: str = Field(
+        default="yellow",
+        description="Verification badge: yellow | light_green | green | green_check.",
+    )
     full_name: str | None = Field(default=None, description="Display name.")
     primary_org_id: UUID | None = Field(default=None, description="Primary organization, if any.")
 

@@ -1,7 +1,8 @@
-"""Admin user-management schemas (Section 6 RBAC)."""
+"""Admin user-management and verification-review schemas (Section 6 RBAC)."""
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
@@ -30,3 +31,24 @@ class AdminCreateUserRequest(BaseModel):
         if not is_staff_role and self.agency_type is not None:
             raise ValueError("agency_type must be empty for admin and general_user roles.")
         return self
+
+
+class PendingVerification(BaseModel):
+    """A verification awaiting Admin manual review."""
+
+    id: UUID
+    user_id: UUID
+    email: str | None = None
+    full_name: str | None = None
+    type: str
+    status: str
+    provider: str | None = None
+    submitted_at: datetime
+    id_image_url: str | None = None
+    selfie_image_url: str | None = None
+
+
+class VerificationReviewRequest(BaseModel):
+    """Optional notes when rejecting a verification."""
+
+    notes: str | None = Field(default=None, max_length=1000)

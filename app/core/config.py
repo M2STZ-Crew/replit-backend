@@ -85,6 +85,32 @@ class Settings(BaseSettings):
         default="", description="Twilio Verify Service SID (VA...)."
     )
 
+    # ----- Didit.me KYC (Phase 4) -----
+    didit_api_key: str = Field(default="", description="Didit.me API key (x-api-key).")
+    didit_base_url: str = Field(
+        default="https://verification.didit.me",
+        description="Didit.me verification API base URL.",
+    )
+    didit_workflow_id: str = Field(
+        default="", description="Didit.me workflow id for the National ID + selfie flow."
+    )
+
+    didit_webhook_secret: str = Field(
+        default="", description="Didit.me webhook shared secret (HMAC signature verification)."
+    )
+
+    # ----- Brevo email (Phase 4) -----
+    brevo_smtp_host: str = Field(default="smtp-relay.brevo.com", description="Brevo SMTP host.")
+    brevo_smtp_port: int = Field(default=587, ge=1, le=65535, description="Brevo SMTP port.")
+    brevo_smtp_user: str = Field(default="", description="Brevo SMTP login.")
+    brevo_smtp_key: str = Field(default="", description="Brevo SMTP key (password).")
+    email_from: str = Field(default="", description="Verified sender email address.")
+    email_from_name: str = Field(default="RepLiT", description="Sender display name.")
+    public_base_url: str = Field(
+        default="http://localhost:8000",
+        description="Public base URL of this backend (used to build email verification links).",
+    )
+
     # ----- Verification percents (Sections 2, 3.2, 3.3) -----
     phone_verification_percent: int = Field(default=40, ge=0, le=100)
     email_verification_percent: int = Field(default=10, ge=0, le=100)
@@ -152,6 +178,16 @@ class Settings(BaseSettings):
         return bool(
             self.twilio_account_sid and self.twilio_auth_token and self.twilio_verify_service_sid
         )
+    
+    @property
+    def didit_configured(self) -> bool:
+        """True when Didit.me KYC credentials are present."""
+        return bool(self.didit_api_key and self.didit_workflow_id)
+
+    @property
+    def brevo_configured(self) -> bool:
+        """True when Brevo SMTP credentials and sender are present."""
+        return bool(self.brevo_smtp_user and self.brevo_smtp_key and self.email_from)
 
 
 @lru_cache(maxsize=1)
