@@ -1,0 +1,53 @@
+{
+  "info": {
+    "name": "RepLiT Backend — Phase 6 (Incident Reporting)",
+    "description": "SOS submit (multipart: photo/video + device GPS + agencies) and list-own-reports. Login captures {{accessToken}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Login",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+      ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"citizen1@example.com\",\n  \"password\": \"Test1234!\"\n}" },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Submit Report",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "body": { "mode": "formdata", "formdata": [
+          { "key": "device_lat", "value": "14.5378", "type": "text" },
+          { "key": "device_lng", "value": "120.9947", "type": "text" },
+          { "key": "selected_agencies", "value": "fire_volunteer,bfp", "type": "text" },
+          { "key": "compass_bearing", "value": "90", "type": "text" },
+          { "key": "notes", "value": "Smoke seen from 2nd floor", "type": "text" },
+          { "key": "photo", "type": "file", "src": [] },
+          { "key": "video", "type": "file", "src": [], "disabled": true }
+        ] },
+        "url": { "raw": "{{baseUrl}}/reports/submit", "host": ["{{baseUrl}}"], "path": ["reports","submit"] }
+      },
+      "response": []
+    },
+    {
+      "name": "My Reports",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/reports/mine", "host": ["{{baseUrl}}"], "path": ["reports","mine"] }
+      },
+      "response": []
+    }
+  ]
+}

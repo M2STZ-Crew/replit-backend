@@ -22,6 +22,7 @@ from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
 from app.db.session import database
+from app.integrations.fcm import init_fcm, shutdown_fcm
 
 log = get_logger(__name__)
 
@@ -37,7 +38,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     app.state.http_client = httpx.AsyncClient(timeout=httpx.Timeout(15.0))
     await database.connect()
-
+    init_fcm()
+    
     log.info(
         "application_startup",
         app_name=settings.app_name,
@@ -47,6 +49,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     yield
 
+    shutdown_fcm()
     await database.disconnect()
     await app.state.http_client.aclose()
     log.info("application_shutdown")

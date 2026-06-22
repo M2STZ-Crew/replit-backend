@@ -1,0 +1,70 @@
+{
+  "info": {
+    "name": "RepLiT Backend — Phase 5 (Device Tokens / FCM)",
+    "description": "Register/list/unregister FCM device tokens and send a test push. Login captures {{accessToken}}; Register captures {{fcmToken}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "fcmToken", "value": "demo-token-replace-with-real", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Login",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+      ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"citizen1@example.com\",\n  \"password\": \"Test1234!\"\n}" },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Register Device",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.collectionVariables.set(\"fcmToken\", pm.response.json().fcm_token);"
+      ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"fcm_token\": \"{{fcmToken}}\",\n  \"platform\": \"android\",\n  \"device_name\": \"Test Phone\"\n}" },
+        "url": { "raw": "{{baseUrl}}/devices", "host": ["{{baseUrl}}"], "path": ["devices"] }
+      },
+      "response": []
+    },
+    {
+      "name": "List Devices",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/devices", "host": ["{{baseUrl}}"], "path": ["devices"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Test Push",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/devices/test", "host": ["{{baseUrl}}"], "path": ["devices","test"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Unregister Device",
+      "request": {
+        "method": "DELETE",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/devices/{{fcmToken}}", "host": ["{{baseUrl}}"], "path": ["devices","{{fcmToken}}"] }
+      },
+      "response": []
+    }
+  ]
+}

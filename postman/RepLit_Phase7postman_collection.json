@@ -1,0 +1,81 @@
+{
+  "info": {
+    "name": "RepLiT Backend — Phase 7 (Area Clustering)",
+    "description": "List/get areas and resolve overlaps (Merge / Keep-Separate). Login captures {{accessToken}}; List Areas captures {{areaId}}; Pending Overlaps captures {{overlapId}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "areaId", "value": "", "type": "string" },
+    { "key": "overlapId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Login",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+      ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"citizen1@example.com\",\n  \"password\": \"Test1234!\"\n}" },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
+      },
+      "response": []
+    },
+    {
+      "name": "List Areas",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "var a = pm.response.json();",
+        "if (Array.isArray(a) && a.length) { pm.collectionVariables.set(\"areaId\", a[0].id); }"
+      ] } } ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/areas?active_only=true", "host": ["{{baseUrl}}"], "path": ["areas"], "query": [ { "key": "active_only", "value": "true" } ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Area",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/areas/{{areaId}}", "host": ["{{baseUrl}}"], "path": ["areas","{{areaId}}"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Pending Overlaps",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "var o = pm.response.json();",
+        "if (Array.isArray(o) && o.length) { pm.collectionVariables.set(\"overlapId\", o[0].id); }"
+      ] } } ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/areas/overlaps/pending", "host": ["{{baseUrl}}"], "path": ["areas","overlaps","pending"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Overlap - Keep Separate",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/areas/overlaps/{{overlapId}}/keep-separate", "host": ["{{baseUrl}}"], "path": ["areas","overlaps","{{overlapId}}","keep-separate"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Overlap - Merge",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/areas/overlaps/{{overlapId}}/merge", "host": ["{{baseUrl}}"], "path": ["areas","overlaps","{{overlapId}}","merge"] }
+      },
+      "response": []
+    }
+  ]
+}

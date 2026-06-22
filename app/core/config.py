@@ -111,6 +111,22 @@ class Settings(BaseSettings):
         description="Public base URL of this backend (used to build email verification links).",
     )
 
+    # ----- Firebase Cloud Messaging (Phase 5) -----
+    fcm_credentials_file: str = Field(
+        default="", description="Path to the Firebase service-account JSON file."
+    )
+    fcm_credentials_json: str = Field(
+        default="", description="Raw service-account JSON (alternative to a file, for deploys)."
+    )
+
+    # ----- Incident reporting (Phase 6) -----
+    report_max_photo_bytes: int = Field(default=5_242_880, gt=0)   # 5 MB
+    report_max_video_bytes: int = Field(default=1_572_864, gt=0)   # 1.5 MB
+    gps_discrepancy_threshold_m: float = Field(
+        default=100.0, gt=0, description=
+        "Device-vs-EXIF distance that flags a discrepancy (Section 3.1)."
+    )
+
     # ----- Verification percents (Sections 2, 3.2, 3.3) -----
     phone_verification_percent: int = Field(default=40, ge=0, le=100)
     email_verification_percent: int = Field(default=10, ge=0, le=100)
@@ -189,6 +205,10 @@ class Settings(BaseSettings):
         """True when Brevo SMTP credentials and sender are present."""
         return bool(self.brevo_smtp_user and self.brevo_smtp_key and self.email_from)
 
+    @property
+    def fcm_configured(self) -> bool:
+        """True when an FCM service-account (file or JSON) is configured."""
+        return bool(self.fcm_credentials_file or self.fcm_credentials_json)
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

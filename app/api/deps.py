@@ -19,6 +19,7 @@ from app.core.security import decode_access_token
 from app.db.session import Database, database
 from app.integrations.brevo_email import BrevoEmailClient
 from app.integrations.didit_kyc import DiditKYCClient
+from app.integrations.fcm import PushService
 from app.integrations.supabase_auth import SupabaseAuthClient
 from app.integrations.supabase_storage import SupabaseStorageClient
 from app.integrations.twilio_verify import TwilioVerifyClient
@@ -52,6 +53,10 @@ def get_didit_client(request: Request) -> DiditKYCClient:
     """Return a Didit.me KYC client bound to the shared HTTP client."""
     return DiditKYCClient(cast(httpx.AsyncClient, request.app.state.http_client))
 
+def get_push_service() -> PushService:
+    """Return the FCM push service (uses the app initialized at startup)."""
+    return PushService()
+
 def get_email_client() -> BrevoEmailClient:
     """Return a Brevo email client (uses SMTP settings)."""
     return BrevoEmailClient()
@@ -65,6 +70,7 @@ HttpClientDep = Annotated[httpx.AsyncClient, Depends(get_http_client)]
 AuthClientDep = Annotated[SupabaseAuthClient, Depends(get_auth_client)]
 StorageClientDep = Annotated[SupabaseStorageClient, Depends(get_storage_client)]
 DiditClientDep = Annotated[DiditKYCClient, Depends(get_didit_client)]
+PushServiceDep = Annotated[PushService, Depends(get_push_service)]
 EmailClientDep = Annotated[BrevoEmailClient, Depends(get_email_client)]
 TwilioVerifyDep = Annotated[TwilioVerifyClient, Depends(get_twilio_verify)]
 

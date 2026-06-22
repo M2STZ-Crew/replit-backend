@@ -18,6 +18,10 @@ dependencies = [
     "tenacity>=8.3.0",
     "aiosmtplib>=3.0.0",
     "python-multipart>=0.0.32",
+    "firebase-admin>=7.4.0",
+    "exifread>=3.5.1",
+    "pillow>=12.2.0",
+    "apscheduler>=3.10,<4",
 ]
 
 [dependency-groups]
@@ -51,7 +55,7 @@ plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 # Third-party packages without bundled type stubs.
-module = ["structlog.*", "twilio.*", "asyncpg.*"]
+module = ["structlog.*", "twilio.*", "asyncpg.*", "firebase_admin.*", "exifread.*", "apscheduler.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

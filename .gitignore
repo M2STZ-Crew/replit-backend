@@ -53,3 +53,7 @@ Desktop.ini
 # ===== Supabase CLI =====
 supabase/.branches/
 supabase/.temp/
+
+
+# ===== Secrets =====
+secrets/
