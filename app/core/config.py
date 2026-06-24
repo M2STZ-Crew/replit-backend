@@ -132,7 +132,21 @@ class Settings(BaseSettings):
     email_verification_percent: int = Field(default=10, ge=0, le=100)
     id_verification_percent: int = Field(default=50, ge=0, le=100)
 
+ # ----- Anthropic (Claude Haiku) AI summarization (Phase 11, Section 3.6) -----
+    anthropic_api_key: str = Field(
+        default="", description="Anthropic API key (Claude); server-only."
+    )
+    anthropic_model: str = Field(
+        default="claude-haiku-4-5",
+        description="Claude model id for post-incident summaries (text-only).",
+    )
+    anthropic_max_tokens: int = Field(
+        default=1024, ge=1, le=8192, description="Max output tokens per summary."
+    )
+
+
     @field_validator("log_level", mode="before")
+
     @classmethod
     def _normalize_log_level(cls, value: object) -> object:
         """Uppercase/trim the log level so values like ``"info"`` are accepted."""
@@ -209,6 +223,11 @@ class Settings(BaseSettings):
     def fcm_configured(self) -> bool:
         """True when an FCM service-account (file or JSON) is configured."""
         return bool(self.fcm_credentials_file or self.fcm_credentials_json)
+    
+    @property
+    def anthropic_configured(self) -> bool:
+        """True when an Anthropic API key is present."""
+        return bool(self.anthropic_api_key)
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
@@ -218,3 +237,5 @@ def get_settings() -> Settings:
     per process. Tests may call ``get_settings.cache_clear()`` to force a reload.
     """
     return Settings()
+
+    

@@ -17,6 +17,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.core.security import decode_access_token
 from app.db.session import Database, database
+from app.integrations.anthropic_ai import AnthropicClient
 from app.integrations.brevo_email import BrevoEmailClient
 from app.integrations.didit_kyc import DiditKYCClient
 from app.integrations.fcm import PushService
@@ -65,6 +66,10 @@ def get_twilio_verify() -> TwilioVerifyClient:
     """Return a Twilio Verify client (reads Twilio settings)."""
     return TwilioVerifyClient()
 
+def get_anthropic_client() -> AnthropicClient:
+    """Return a Claude (Anthropic) summarization client."""
+    return AnthropicClient()
+
 DatabaseDep = Annotated[Database, Depends(get_database)]
 HttpClientDep = Annotated[httpx.AsyncClient, Depends(get_http_client)]
 AuthClientDep = Annotated[SupabaseAuthClient, Depends(get_auth_client)]
@@ -73,6 +78,7 @@ DiditClientDep = Annotated[DiditKYCClient, Depends(get_didit_client)]
 PushServiceDep = Annotated[PushService, Depends(get_push_service)]
 EmailClientDep = Annotated[BrevoEmailClient, Depends(get_email_client)]
 TwilioVerifyDep = Annotated[TwilioVerifyClient, Depends(get_twilio_verify)]
+AnthropicClientDep = Annotated[AnthropicClient, Depends(get_anthropic_client)]
 
 # --------------------------------------------------------------------------- #
 # Authentication

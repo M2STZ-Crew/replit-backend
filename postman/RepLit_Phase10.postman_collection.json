@@ -1,0 +1,28 @@
+{
+  "info": {
+    "name": "RepLiT Backend — Phase 10 (WebSocket Real-Time)",
+    "description": "WebSocket endpoint: ws://127.0.0.1:8000/ws?token=<accessToken> (or Authorization: Bearer). Run 'Login' to capture {{accessToken}}, then connect a WS client.\n\nINBOUND frames (client -> server, JSON text):\n  {\"action\":\"ping\"}\n  {\"action\":\"subscribe\",\"channel\":\"incident:<uuid>\"}\n  {\"action\":\"unsubscribe\",\"channel\":\"<channel>\"}\n  {\"action\":\"location\",\"incident_id\":\"<uuid>\",\"lat\":14.5,\"lng\":120.9,\"captured_at\":\"2026-06-23T08:00:00Z\",\"accuracy_m\":8.0}\n\nCHANNELS: incident:<uuid>, agency:<agency>, role:<role>, org:<uuid>.\nAUTH: admin may join any; incident:<id> requires agency visibility; role:/agency:/org: must match the caller's own.\n\nOUTBOUND frames (server -> client):\n  {\"type\":\"connected\",\"user_id\":...,\"role\":...}        on connect\n  {\"type\":\"pong\"}                                         reply to ping\n  {\"type\":\"ping\"}                                         server heartbeat (~30s)\n  {\"type\":\"subscribed\"|\"unsubscribed\",\"channel\":...}\n  {\"type\":\"location_recorded\",\"incident_id\":...}         ack for a location frame\n  {\"type\":\"error\",\"message\":...}\n  BROADCASTS on incident:<id>:\n    {\"type\":\"incident_verified|incident_rejected|incident_resolved|responder_dispatched|dispatch_withdrawn|incident_en_route|incident_arrived\",\"incident_id\":...,\"status\":...,\"incident\":{...}}\n    {\"type\":\"responder_location\",\"incident_id\":...,\"responder_id\":...,\"lat\":...,\"lng\":...,...}\n  BROADCASTS on agency:<agency>:\n    {\"type\":\"incident_feed\",\"event\":...,\"incident_id\":...,\"designation\":...,\"status\":...,\"alarm_level\":...,\"active_dispatch_count\":...}",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Login (copy token for WS client)",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"login 200\", function () { pm.response.to.have.status(200); });",
+        "pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);",
+        "console.log(\"WS URL: ws://127.0.0.1:8000/ws?token=\" + pm.response.json().access_token);"
+      ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"citizen1@example.com\",\n  \"password\": \"Test1234!\"\n}" },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
+      },
+      "response": []
+    }
+  ]
+}

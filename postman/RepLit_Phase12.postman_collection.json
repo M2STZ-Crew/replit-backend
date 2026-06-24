@@ -1,0 +1,142 @@
+{
+  "info": {
+    "name": "RepLiT Backend — Phase 12 (Equipment, Affiliates, Map Layers)",
+    "description": "Login -> {{accessToken}}; Approve Affiliate -> {{orgId}}; Create Hydrant -> {{hydrantId}}; Submit Request -> {{requestId}}. Ground-truth override needs a Fire-Vol sub-admin token; CSV import is multipart (use the API or curl).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "orgId", "value": "", "type": "string" },
+    { "key": "affiliateId", "value": "", "type": "string" },
+    { "key": "hydrantId", "value": "", "type": "string" },
+    { "key": "requestId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Login",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"login 200\", function () { pm.response.to.have.status(200); });",
+        "pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+      ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"citizen1@example.com\",\n  \"password\": \"Test1234!\"\n}" },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Submit Affiliate",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.collectionVariables.set(\"affiliateId\", pm.response.json().id);"
+      ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"organization_name\": \"Pasay Fire Volunteers\",\n  \"agency_type\": \"fire_volunteer\",\n  \"contact_email\": \"pfv@example.com\"\n}" },
+        "url": { "raw": "{{baseUrl}}/affiliates", "host": ["{{baseUrl}}"], "path": ["affiliates"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Approve Affiliate (creates org)",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.collectionVariables.set(\"orgId\", pm.response.json().organization_id);"
+      ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"notes\": \"welcome\"\n}" },
+        "url": { "raw": "{{baseUrl}}/affiliates/{{affiliateId}}/accept", "host": ["{{baseUrl}}"], "path": ["affiliates","{{affiliateId}}","accept"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Equipment",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"organization_id\": \"{{orgId}}\",\n  \"name\": \"Fire Truck 1\",\n  \"category\": \"vehicle\",\n  \"quantity\": 1,\n  \"status\": \"available\"\n}" },
+        "url": { "raw": "{{baseUrl}}/equipment", "host": ["{{baseUrl}}"], "path": ["equipment"] }
+      },
+      "response": []
+    },
+    {
+      "name": "List Equipment (org)",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/equipment?organization_id={{orgId}}", "host": ["{{baseUrl}}"], "path": ["equipment"], "query": [ { "key": "organization_id", "value": "{{orgId}}" } ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Hydrant (admin)",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.collectionVariables.set(\"hydrantId\", pm.response.json().id);"
+      ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"code\": \"H-001\",\n  \"latitude\": 14.5378,\n  \"longitude\": 120.9947,\n  \"address\": \"Taft Ave\",\n  \"bfp_status\": \"operational\"\n}" },
+        "url": { "raw": "{{baseUrl}}/map/hydrants", "host": ["{{baseUrl}}"], "path": ["map","hydrants"] }
+      },
+      "response": []
+    },
+    {
+      "name": "List Hydrants",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/map/hydrants", "host": ["{{baseUrl}}"], "path": ["map","hydrants"] }
+      },
+      "response": []
+    },
+    {
+      "name": "List Risk Zones",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/map/risk-zones", "host": ["{{baseUrl}}"], "path": ["map","risk-zones"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Hydrant Ground-Truth (Fire-Vol token!)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "description": "Set {{accessToken}} to a Fire Volunteer sub-admin's token; admin -> 403.",
+        "body": { "mode": "raw", "raw": "{\n  \"status\": \"non_operational\",\n  \"notes\": \"valve seized\"\n}" },
+        "url": { "raw": "{{baseUrl}}/map/hydrants/{{hydrantId}}/ground-truth", "host": ["{{baseUrl}}"], "path": ["map","hydrants","{{hydrantId}}","ground-truth"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Submit Map-Layer Request (sub-admin token!)",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.collectionVariables.set(\"requestId\", pm.response.json().id);"
+      ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "description": "Requires a sub-admin token; admin -> 403.",
+        "body": { "mode": "raw", "raw": "{\n  \"layer_type\": \"evacuation_site\",\n  \"operation\": \"create\",\n  \"proposed_data\": { \"name\": \"Barangay Hall Evac\", \"latitude\": 14.55, \"longitude\": 120.99, \"capacity\": 300 },\n  \"reason\": \"new site\"\n}" },
+        "url": { "raw": "{{baseUrl}}/map-layer-requests", "host": ["{{baseUrl}}"], "path": ["map-layer-requests"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Approve Map-Layer Request (admin)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"notes\": \"ok\"\n}" },
+        "url": { "raw": "{{baseUrl}}/map-layer-requests/{{requestId}}/approve", "host": ["{{baseUrl}}"], "path": ["map-layer-requests","{{requestId}}","approve"] }
+      },
+      "response": []
+    }
+  ]
+}

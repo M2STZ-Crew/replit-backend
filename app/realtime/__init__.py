@@ -1,0 +1,1 @@
+"""Real-time (WebSocket) layer: connection manager + channel fan-out (Phase 10)."""

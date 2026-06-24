@@ -1,0 +1,181 @@
+{
+  "info": {
+    "name": "RepLiT Backend — Phase 9 (Incident Lifecycle)",
+    "description": "Incident feed + lifecycle transitions + dispatch + responder GPS. Login captures {{accessToken}}; List Incidents captures {{incidentId}}; List Dispatches captures {{dispatchId}}. Verify needs a Fire-Vol sub-admin; self-dispatch + location need a response_team token; dispatch/reject/resolve need sub-admin (or admin).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "incidentId", "value": "", "type": "string" },
+    { "key": "dispatchId", "value": "", "type": "string" },
+    { "key": "responderId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Login (admin)",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"login 200\", function () { pm.response.to.have.status(200); });",
+        "pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+      ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"citizen1@example.com\",\n  \"password\": \"Test1234!\"\n}" },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
+      },
+      "response": []
+    },
+    {
+      "name": "List Incidents",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"list 200\", function () { pm.response.to.have.status(200); });",
+        "var a = pm.response.json();",
+        "if (Array.isArray(a) && a.length) { pm.collectionVariables.set(\"incidentId\", a[0].id); }"
+      ] } } ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/incidents?active_only=false", "host": ["{{baseUrl}}"], "path": ["incidents"], "query": [ { "key": "active_only", "value": "false" } ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Incident",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/incidents/{{incidentId}}", "host": ["{{baseUrl}}"], "path": ["incidents","{{incidentId}}"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Verify Incident (Fire-Vol sub-admin)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "description": "Requires a Fire Volunteer sub-admin token; admin/others -> 403.",
+        "url": { "raw": "{{baseUrl}}/incidents/{{incidentId}}/verify", "host": ["{{baseUrl}}"], "path": ["incidents","{{incidentId}}","verify"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Dispatch Responder (manual, sub-admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "description": "Sub-admin (or admin). Set {{responderId}} to a response_team user id. Incident must be verified.",
+        "body": { "mode": "raw", "raw": "{\n  \"responder_id\": \"{{responderId}}\",\n  \"notes\": \"engine 1\"\n}" },
+        "url": { "raw": "{{baseUrl}}/incidents/{{incidentId}}/dispatch", "host": ["{{baseUrl}}"], "path": ["incidents","{{incidentId}}","dispatch"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Self Dispatch (response_team)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "description": "Requires a response_team token. Incident must be verified.",
+        "body": { "mode": "raw", "raw": "{\n  \"notes\": \"self-select\"\n}" },
+        "url": { "raw": "{{baseUrl}}/incidents/{{incidentId}}/self-dispatch", "host": ["{{baseUrl}}"], "path": ["incidents","{{incidentId}}","self-dispatch"] }
+      },
+      "response": []
+    },
+    {
+      "name": "List Dispatches",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "var d = pm.response.json();",
+        "if (Array.isArray(d) && d.length) { pm.collectionVariables.set(\"dispatchId\", d[0].id); }"
+      ] } } ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/incidents/{{incidentId}}/dispatches", "host": ["{{baseUrl}}"], "path": ["incidents","{{incidentId}}","dispatches"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Mark En Route",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "description": "Assigned responder or sub-admin/admin. Incident must be dispatched.",
+        "url": { "raw": "{{baseUrl}}/incidents/{{incidentId}}/en-route", "host": ["{{baseUrl}}"], "path": ["incidents","{{incidentId}}","en-route"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Mark Arrived",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "description": "Assigned responder or sub-admin/admin. Incident must be en_route.",
+        "url": { "raw": "{{baseUrl}}/incidents/{{incidentId}}/arrived", "host": ["{{baseUrl}}"], "path": ["incidents","{{incidentId}}","arrived"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Post Responder Location (response_team)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "description": "Requires a response_team token with an ACTIVE dispatch to this incident.",
+        "body": { "mode": "raw", "raw": "{\n  \"lat\": 14.5378,\n  \"lng\": 120.9947,\n  \"captured_at\": \"2026-06-23T08:00:00Z\",\n  \"accuracy_m\": 8.0\n}" },
+        "url": { "raw": "{{baseUrl}}/incidents/{{incidentId}}/location", "host": ["{{baseUrl}}"], "path": ["incidents","{{incidentId}}","location"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Latest Responder Locations",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/incidents/{{incidentId}}/responders/locations", "host": ["{{baseUrl}}"], "path": ["incidents","{{incidentId}}","responders","locations"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Withdraw Dispatch",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "description": "The responder themselves, or sub-admin/admin. Needs {{dispatchId}} from List Dispatches.",
+        "url": { "raw": "{{baseUrl}}/incidents/{{incidentId}}/dispatches/{{dispatchId}}/withdraw", "host": ["{{baseUrl}}"], "path": ["incidents","{{incidentId}}","dispatches","{{dispatchId}}","withdraw"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Resolve Incident (sub-admin)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "description": "Sub-admin (or admin). Completes active dispatches.",
+        "url": { "raw": "{{baseUrl}}/incidents/{{incidentId}}/resolve", "host": ["{{baseUrl}}"], "path": ["incidents","{{incidentId}}","resolve"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Reject Incident (sub-admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "description": "Sub-admin (or admin). Only from pending/verified.",
+        "body": { "mode": "raw", "raw": "{\n  \"reason\": \"false report\"\n}" },
+        "url": { "raw": "{{baseUrl}}/incidents/{{incidentId}}/reject", "host": ["{{baseUrl}}"], "path": ["incidents","{{incidentId}}","reject"] }
+      },
+      "response": []
+    }
+  ]
+}
