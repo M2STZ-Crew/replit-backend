@@ -8,12 +8,16 @@ from app.api.routes import (
     admin,
     affiliates,
     ai,
+    alarm_requests,
     areas,
+    audit,
     auth,
     devices,
     equipment,
+    fire_codes,
     health,
     hydrant_ops,
+    incident_reports,
     incidents,
     map_layer_requests,
     map_layers,
@@ -42,3 +46,7 @@ api_router.include_router(map_layers.router)
 api_router.include_router(map_layers_admin.router)
 api_router.include_router(hydrant_ops.router)
 api_router.include_router(map_layer_requests.router)
+api_router.include_router(fire_codes.router)
+api_router.include_router(alarm_requests.router)
+api_router.include_router(audit.router)
+api_router.include_router(incident_reports.router)

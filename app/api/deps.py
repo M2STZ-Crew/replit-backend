@@ -99,6 +99,7 @@ AccessTokenDep = Annotated[str, Depends(get_access_token)]
 
 
 async def get_current_user(
+    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     db: DatabaseDep,
     http_client: HttpClientDep,
@@ -127,7 +128,11 @@ async def get_current_user(
     )
     if row is None:
         raise UnauthorizedError("Authenticated user has no profile record.")
-    return AuthenticatedUser.model_validate(dict(row))
+    user = AuthenticatedUser.model_validate(dict(row))
+    request.state.actor_id = user.id
+    request.state.actor_role = user.role
+    request.state.actor_agency = user.agency_type
+    return user
 
 
 CurrentUser = Annotated[AuthenticatedUser, Depends(get_current_user)]

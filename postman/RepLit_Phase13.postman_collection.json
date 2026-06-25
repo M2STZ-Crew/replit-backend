@@ -1,0 +1,107 @@
+{
+  "info": {
+    "name": "RepLiT Backend — Phase 13 (Fire Codes & Alarm Requests)",
+    "description": "Login -> {{accessToken}}; List Fire Codes -> {{fireCodeId}}; Create Alarm Request -> {{alarmReqId}}. Set {{areaId}} to an active incident. Alarm create needs a Fire-Vol/BFP sub-admin token; execute/reject need a BFP sub-admin token.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "fireCodeId", "value": "", "type": "string" },
+    { "key": "areaId", "value": "", "type": "string" },
+    { "key": "alarmReqId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Login",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"login 200\", function () { pm.response.to.have.status(200); });",
+        "pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+      ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"citizen1@example.com\",\n  \"password\": \"Test1234!\"\n}" },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
+      },
+      "response": []
+    },
+    {
+      "name": "List Fire Codes",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "var a = pm.response.json();",
+        "if (Array.isArray(a) && a.length) { pm.collectionVariables.set(\"fireCodeId\", a[0].id); }"
+      ] } } ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/fire-codes", "host": ["{{baseUrl}}"], "path": ["fire-codes"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Press Fire Code",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "description": "Gated by the code's target_role/target_agency; admin may press any. Include area_id to tie to an incident.",
+        "body": { "mode": "raw", "raw": "{\n  \"notes\": \"arrived on scene\"\n}" },
+        "url": { "raw": "{{baseUrl}}/fire-codes/{{fireCodeId}}/press", "host": ["{{baseUrl}}"], "path": ["fire-codes","{{fireCodeId}}","press"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Fire-Code Events",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/fire-codes/events", "host": ["{{baseUrl}}"], "path": ["fire-codes","events"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Alarm Request (Fire-Vol/BFP sub-admin)",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "if (pm.response.code === 201) { pm.collectionVariables.set(\"alarmReqId\", pm.response.json().id); }"
+      ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "description": "Set {{accessToken}} to a Fire-Vol or BFP sub-admin; {{areaId}} to an active incident.",
+        "body": { "mode": "raw", "raw": "{\n  \"area_id\": \"{{areaId}}\",\n  \"requested_alarm_level\": \"second_alarm\",\n  \"justification\": \"spreading fast\"\n}" },
+        "url": { "raw": "{{baseUrl}}/alarm-requests", "host": ["{{baseUrl}}"], "path": ["alarm-requests"] }
+      },
+      "response": []
+    },
+    {
+      "name": "List Alarm Requests (BFP/admin)",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/alarm-requests?status=pending", "host": ["{{baseUrl}}"], "path": ["alarm-requests"], "query": [ { "key": "status", "value": "pending" } ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Execute Alarm Request (BFP only)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "description": "Requires a BFP sub-admin token. Applies areas.alarm_level + alarm_level_set_by.",
+        "body": { "mode": "raw", "raw": "{\n  \"notes\": \"approved\"\n}" },
+        "url": { "raw": "{{baseUrl}}/alarm-requests/{{alarmReqId}}/execute", "host": ["{{baseUrl}}"], "path": ["alarm-requests","{{alarmReqId}}","execute"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Reject Alarm Request (BFP only)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"notes\": \"not warranted\"\n}" },
+        "url": { "raw": "{{baseUrl}}/alarm-requests/{{alarmReqId}}/reject", "host": ["{{baseUrl}}"], "path": ["alarm-requests","{{alarmReqId}}","reject"] }
+      },
+      "response": []
+    }
+  ]
+}

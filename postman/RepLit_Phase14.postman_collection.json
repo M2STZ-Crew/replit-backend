@@ -1,0 +1,71 @@
+{
+  "info": {
+    "name": "RepLiT Backend — Phase 14 (Audit Logs & PDF Reports)",
+    "description": "Login -> {{accessToken}}; List Incidents -> {{incidentId}}. 'Create User' is an audited action; 'Query Audit Logs' shows it. 'Download Report PDF' streams a fire-out PDF (binary).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "incidentId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Login",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"login 200\", function () { pm.response.to.have.status(200); });",
+        "pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+      ] } } ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"citizen1@example.com\",\n  \"password\": \"Test1234!\"\n}" },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Create User (audited)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "description": "Generates a 'user.create' audit_logs entry.",
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"audit.demo@example.com\",\n  \"password\": \"Passw0rd!\",\n  \"role\": \"response_team\",\n  \"agency_type\": \"bfp\"\n}" },
+        "url": { "raw": "{{baseUrl}}/admin/users", "host": ["{{baseUrl}}"], "path": ["admin","users"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Query Audit Logs",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/audit-logs?action=user.create", "host": ["{{baseUrl}}"], "path": ["audit-logs"], "query": [ { "key": "action", "value": "user.create" } ] }
+      },
+      "response": []
+    },
+    {
+      "name": "List Incidents",
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "var a = pm.response.json();",
+        "if (Array.isArray(a) && a.length) { pm.collectionVariables.set(\"incidentId\", a[0].id); }"
+      ] } } ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/incidents?active_only=false", "host": ["{{baseUrl}}"], "path": ["incidents"], "query": [ { "key": "active_only", "value": "false" } ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Download Report PDF",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "description": "Returns application/pdf. In Postman, use 'Send and Download' to save the file.",
+        "url": { "raw": "{{baseUrl}}/incidents/{{incidentId}}/report.pdf", "host": ["{{baseUrl}}"], "path": ["incidents","{{incidentId}}","report.pdf"] }
+      },
+      "response": []
+    }
+  ]
+}

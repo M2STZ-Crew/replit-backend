@@ -23,6 +23,7 @@ from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
 from app.db.session import database
 from app.integrations.fcm import init_fcm, shutdown_fcm
+from app.services.audit import maybe_record_request_audit
 from app.workers.neighborhood import (
     shutdown_neighborhood_scheduler,
     start_neighborhood_scheduler,
@@ -110,6 +111,7 @@ def create_app() -> FastAPI:
         duration_ms = round((time.perf_counter() - start) * 1000, 2)
         emit("request_completed", status_code=response.status_code, duration_ms=duration_ms)
         response.headers["X-Request-ID"] = request_id
+        await maybe_record_request_audit(request, response)
         return response
 
     register_exception_handlers(app)
