@@ -133,6 +133,12 @@ class SupabaseAuthClient:
         headers = {**self._anon_headers, "Authorization": f"Bearer {access_token}"}
         await self._request("POST", "/logout", headers=headers)
 
+    async def recover(self, *, email: str) -> None:
+        """Send a password-reset email via GoTrue (/recover)."""
+        await self._request(
+            "POST", "/recover", headers=self._anon_headers, json={"email": email}
+        )
+
     # ----- Admin flows (service_role key) -----
     async def admin_create_user(
         self,
@@ -164,6 +170,22 @@ class SupabaseAuthClient:
         """Admin-update an auth user (e.g. metadata, password)."""
         return await self._request(
             "PUT", f"/admin/users/{user_id}", headers=self._admin_headers, json=attributes
+        )
+
+    async def admin_generate_link(
+        self, *, link_type: str, email: str, redirect_to: str | None = None
+    ) -> dict[str, Any]:
+        """Generate an action link (e.g. 'recovery', 'invite', 'magiclink') for an email.
+
+        Returns GoTrue's payload, which includes the ``action_link`` the recipient
+        clicks to set/reset their password. Lets us send our own branded email
+        instead of GoTrue's default template.
+        """
+        payload: dict[str, Any] = {"type": link_type, "email": email}
+        if redirect_to is not None:
+            payload["redirect_to"] = redirect_to
+        return await self._request(
+            "POST", "/admin/generate_link", headers=self._admin_headers, json=payload
         )
 
     async def admin_delete_user(self, *, user_id: str) -> None:

@@ -120,7 +120,7 @@ async def get_current_user(
     row = await db.fetchrow(
         """
         select id, email, phone, role, agency_type, verified_percent, badge,
-               full_name, primary_org_id
+               full_name, primary_org_id, mobile, date_of_birth, gender
         from public.users
         where id = $1
         """,

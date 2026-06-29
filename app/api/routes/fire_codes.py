@@ -91,7 +91,9 @@ async def press_fire_code(
     if not code["is_active"]:
         raise BadRequestError("This fire code is inactive.")
 
-    allowed = user.role == "admin" or (
+    # Admin and sub-admin coordinators may broadcast any code ("Broadcast a fire
+    # code to all responding units"); a response_team user only their target code.
+    allowed = user.role in ("admin", "sub_admin") or (
         user.role == code["target_role"]
         and (code["target_agency"] is None or user.agency_type == code["target_agency"])
     )

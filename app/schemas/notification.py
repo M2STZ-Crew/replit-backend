@@ -2,10 +2,29 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from datetime import datetime
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
+
+class NotificationItem(BaseModel):
+    """One in-app inbox notification for the caller."""
+
+    id: UUID
+    type: str
+    title: str
+    body: str
+    data: dict[str, Any] = Field(default_factory=dict)
+    is_read: bool
+    created_at: datetime
+
+
+class UnreadCount(BaseModel):
+    """Unread-notification count for the bell badge."""
+
+    count: int = 0
 
 
 class NotificationRespondRequest(BaseModel):

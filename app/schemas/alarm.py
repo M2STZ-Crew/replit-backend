@@ -38,7 +38,9 @@ class AlarmRequestResponse(BaseModel):
 
     id: UUID
     area_id: UUID
+    area_designation: str | None = None
     requested_by: UUID
+    requested_by_name: str | None = None
     requested_alarm_level: str
     justification: str | None = None
     status: str

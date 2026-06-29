@@ -24,10 +24,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query
 
-from app.api.deps import DatabaseDep, StaffUser
+from app.api.deps import DatabaseDep, StaffUser, StorageClientDep
 from app.core.exceptions import (
     BadRequestError,
     ConflictError,
+    ExternalServiceError,
     ForbiddenError,
     NotFoundError,
 )
@@ -37,9 +38,12 @@ from app.realtime.events import broadcast_incident_event, broadcast_responder_lo
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.common import MessageResponse
 from app.schemas.incident import (
-      DispatchItem,
+    AvailableResponder,
+    DispatchItem,
     IncidentDetail,
     IncidentRejectRequest,
+    IncidentReportDetail,
+    IncidentStats,
     IncidentSummary,
     ManualDispatchRequest,
     ResponderLocationCreate,
@@ -50,6 +54,10 @@ from app.services.incident import (
     assert_transition,
     record_responder_location,
     visible_agencies,
+)
+from app.services.incident_notify import (
+    notify_incident_reporters,
+    notify_responder_dispatched,
 )
 
 log = get_logger(__name__)
@@ -139,9 +147,15 @@ async def _build_detail(db: Database, incident_id: UUID) -> IncidentDetail:
                a.reported_at, a.verified_at, a.dispatched_at, a.en_route_at,
                a.arrived_at, a.resolved_at, a.rejected_at, a.updated_at,
                a.n_score, a.s_score, a.v_score, a.version, a.parent_area_id,
-               a.verified_by, a.resolved_by, a.rejected_by, a.rejection_reason,
+               a.verified_by, vu.full_name as verified_by_name,
+               a.resolved_by, ru.full_name as resolved_by_name,
+               a.rejected_by, ju.full_name as rejected_by_name,
+               a.rejection_reason,
                a.alarm_level_set_by, a.alarm_level_set_at
         from public.areas a
+        left join public.users vu on vu.id = a.verified_by
+        left join public.users ru on ru.id = a.resolved_by
+        left join public.users ju on ju.id = a.rejected_by
         where a.id = $1
         """,
         incident_id,
@@ -166,9 +180,13 @@ async def _build_detail(db: Database, incident_id: UUID) -> IncidentDetail:
 
 
 async def _finish(db: Database, incident_id: UUID, event_type: str) -> IncidentDetail:
-    """Rebuild the detail, broadcast the event to subscribers, and return it."""
+    """Rebuild the detail, broadcast to subscribers, push the reporter, and return it."""
     detail = await _build_detail(db, incident_id)
     await broadcast_incident_event(detail, event_type)
+    try:
+        await notify_incident_reporters(db, incident_id, event_type)
+    except Exception:
+        log.error("reporter_notify_failed", incident_id=str(incident_id), exc_info=True)
     return detail
 
 
@@ -232,6 +250,66 @@ async def list_incidents(
     return [IncidentSummary.model_validate(dict(r)) for r in rows]
 
 
+@router.get("/stats", response_model=IncidentStats, summary="Responder dashboard counters")
+async def incident_stats(user: StaffUser, db: DatabaseDep) -> IncidentStats:
+    """Live counters for the responder dashboard, scoped to the caller's visibility."""
+    agencies = visible_agencies(user)
+    if agencies is None:  # admin: everything
+        active = await db.fetchval(
+            "select count(*) from public.areas where status not in ('resolved', 'rejected')"
+        )
+        pending = await db.fetchval(
+            "select count(*) from public.areas where status = 'pending'"
+        )
+    elif not agencies:
+        active = 0
+        pending = 0
+    else:
+        visible = (
+            "exists (select 1 from public.area_reports ar "
+            "join public.reports r on r.id = ar.report_id "
+            "where ar.area_id = a.id and r.selected_agencies && $1::public.agency_type[])"
+        )
+        active = await db.fetchval(
+            f"select count(*) from public.areas a "
+            f"where a.status not in ('resolved', 'rejected') and {visible}",
+            agencies,
+        )
+        pending = await db.fetchval(
+            f"select count(*) from public.areas a where a.status = 'pending' and {visible}",
+            agencies,
+        )
+
+    my_agency = user.agency_type
+    if my_agency:
+        deployed = await db.fetchval(
+            "select count(distinct d.responder_id) from public.dispatch_logs d "
+            "join public.users u on u.id = d.responder_id "
+            "where d.status = 'active' and u.agency_type = $1::public.agency_type",
+            my_agency,
+        )
+        roster = await db.fetchval(
+            "select count(*) from public.users "
+            "where role = 'response_team' and agency_type = $1::public.agency_type",
+            my_agency,
+        )
+    else:
+        deployed = await db.fetchval(
+            "select count(distinct responder_id) from public.dispatch_logs where status = 'active'"
+        )
+        roster = await db.fetchval(
+            "select count(*) from public.users where role = 'response_team'"
+        )
+
+    deployed_n = int(deployed or 0)
+    return IncidentStats(
+        active_incidents=int(active or 0),
+        pending_verify=int(pending or 0),
+        units_deployed=deployed_n,
+        units_standby=max(int(roster or 0) - deployed_n, 0),
+    )
+
+
 @router.get(
     "/{incident_id}",
     response_model=IncidentDetail,
@@ -244,6 +322,48 @@ async def get_incident(
     await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
     return await _build_detail(db, incident_id)
+
+
+@router.get(
+    "/{incident_id}/reports",
+    response_model=list[IncidentReportDetail],
+    summary="List an incident's member reports (reviewer view)",
+)
+async def list_incident_reports(
+    incident_id: UUID, user: StaffUser, db: DatabaseDep, storage: StorageClientDep
+) -> list[IncidentReportDetail]:
+    """Member reports with the reporter's name and a signed photo URL (sub-admin review)."""
+    await _load_status(db, incident_id)
+    await _assert_visible(db, incident_id, user)
+    rows = await db.fetch(
+        """
+        select r.id, r.reporter_id, u.full_name as reporter_name, r.photo_url,
+               r.device_lat, r.device_lng, r.has_exif, r.gps_discrepancy_flag,
+               r.user_verified_percent, r.selected_agencies::text[] as selected_agencies,
+               r.notes, r.created_at
+        from public.area_reports ar
+        join public.reports r on r.id = ar.report_id
+        left join public.users u on u.id = r.reporter_id
+        where ar.area_id = $1
+        order by r.created_at asc
+        """,
+        incident_id,
+    )
+    items: list[IncidentReportDetail] = []
+    for r in rows:
+        signed: str | None = None
+        if r["photo_url"]:
+            try:
+                signed = await storage.create_signed_url(
+                    bucket="incident-photos", path=r["photo_url"]
+                )
+            except ExternalServiceError:
+                signed = None
+        data = dict(r)
+        data["photo_url"] = signed
+        data["selected_agencies"] = list(r["selected_agencies"] or [])
+        items.append(IncidentReportDetail.model_validate(data))
+    return items
 
 
 # --------------------------------------------------------------------------- #
@@ -339,6 +459,47 @@ async def resolve_incident(
 # --------------------------------------------------------------------------- #
 # Dispatch (Section 9 — manual + self-select)
 # --------------------------------------------------------------------------- #
+@router.get(
+    "/{incident_id}/available-responders",
+    response_model=list[AvailableResponder],
+    summary="List response_team users a sub-admin can dispatch (crew picker)",
+)
+async def list_available_responders(
+    incident_id: UUID, user: StaffUser, db: DatabaseDep
+) -> list[AvailableResponder]:
+    """Response_team users for the manual-dispatch picker (agency-scoped; admin sees all)."""
+    if user.role not in ("sub_admin", "admin"):
+        raise ForbiddenError("Only a sub-admin may view dispatchable responders.")
+    await _load_status(db, incident_id)
+    await _assert_visible(db, incident_id, user)
+
+    params: list[Any] = [incident_id]
+    agency_filter = ""
+    if user.role == "sub_admin" and user.agency_type is not None:
+        params.append(user.agency_type)
+        agency_filter = f"and u.agency_type = ${len(params)}::public.agency_type"
+
+    rows = await db.fetch(
+        f"""
+        select u.id, u.full_name, u.agency_type::text as agency_type,
+               u.primary_org_id as organization_id,
+               exists(
+                   select 1 from public.dispatch_logs d
+                   where d.responder_id = u.id and d.status = 'active'
+               ) as is_busy,
+               exists(
+                   select 1 from public.dispatch_logs d
+                   where d.responder_id = u.id and d.status = 'active' and d.area_id = $1
+               ) as on_this_incident
+        from public.users u
+        where u.role = 'response_team' {agency_filter}
+        order by u.full_name nulls last
+        """,
+        *params,
+    )
+    return [AvailableResponder.model_validate(dict(r)) for r in rows]
+
+
 @router.post(
     "/{incident_id}/dispatch",
     response_model=IncidentDetail,
@@ -378,13 +539,15 @@ async def dispatch_responder(
         """
         insert into public.dispatch_logs
             (area_id, responder_id, organization_id, dispatch_type, dispatched_by,
-             status, notes)
-        values ($1, $2, $3, 'manual', $4, 'active', $5)
+             status, vehicle_name, crew_role, notes)
+        values ($1, $2, $3, 'manual', $4, 'active', $5, $6, $7)
         """,
         incident_id,
         payload.responder_id,
         org_id,
         user.id,
+        payload.vehicle_name,
+        payload.crew_role,
         payload.notes,
     )
     if current == "verified":
@@ -397,6 +560,18 @@ async def dispatch_responder(
         responder_id=str(payload.responder_id),
         by=str(user.id),
     )
+    try:
+        await notify_responder_dispatched(
+            db,
+            payload.responder_id,
+            incident_id,
+            vehicle_name=payload.vehicle_name,
+            crew_role=payload.crew_role,
+        )
+    except Exception:
+        log.error(
+            "responder_dispatch_notify_failed", incident_id=str(incident_id), exc_info=True
+        )
     return await _finish(db, incident_id, "responder_dispatched")
 
 
@@ -464,12 +639,14 @@ async def list_dispatches(
     await _assert_visible(db, incident_id, user)
     rows = await db.fetch(
         """
-        select id, area_id, responder_id, organization_id,
-               dispatch_type::text as dispatch_type, dispatched_by,
-               status::text as status, dispatched_at, withdrawn_at, completed_at, notes
-        from public.dispatch_logs
-        where area_id = $1
-        order by dispatched_at asc
+        select d.id, d.area_id, d.responder_id, u.full_name as responder_name,
+               d.organization_id, d.dispatch_type::text as dispatch_type, d.dispatched_by,
+               d.status::text as status, d.dispatched_at, d.withdrawn_at, d.completed_at,
+               d.vehicle_name, d.crew_role, d.notes
+        from public.dispatch_logs d
+        left join public.users u on u.id = d.responder_id
+        where d.area_id = $1
+        order by d.dispatched_at asc
         """,
         incident_id,
     )

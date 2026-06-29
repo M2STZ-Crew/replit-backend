@@ -19,6 +19,7 @@ class EquipmentCreate(BaseModel):
     category: str | None = Field(default=None, max_length=100)
     quantity: int = Field(default=1, ge=0)
     status: EquipmentStatus = "available"
+    capacity_liters: int | None = Field(default=None, ge=0)
     serial_number: str | None = Field(default=None, max_length=200)
     description: str | None = Field(default=None, max_length=2000)
     last_serviced_at: datetime | None = None
@@ -31,6 +32,7 @@ class EquipmentUpdate(BaseModel):
     category: str | None = Field(default=None, max_length=100)
     quantity: int | None = Field(default=None, ge=0)
     status: EquipmentStatus | None = None
+    capacity_liters: int | None = Field(default=None, ge=0)
     serial_number: str | None = Field(default=None, max_length=200)
     description: str | None = Field(default=None, max_length=2000)
     last_serviced_at: datetime | None = None
@@ -45,6 +47,7 @@ class EquipmentResponse(BaseModel):
     category: str | None = None
     quantity: int
     status: str
+    capacity_liters: int | None = None
     serial_number: str | None = None
     description: str | None = None
     last_serviced_at: datetime | None = None

@@ -16,12 +16,14 @@ from fastapi import APIRouter, File, Form, UploadFile, status
 
 from app.api.deps import CurrentUser, DatabaseDep, StorageClientDep
 from app.core.config import get_settings
-from app.core.exceptions import BadRequestError
+from app.core.exceptions import BadRequestError, ExternalServiceError
 from app.core.logging import get_logger
+from app.integrations.fcm import PushService
 from app.schemas.report import ReportResponse, ReportSubmitResponse
 from app.services.clustering import cluster_report
 from app.services.exif import extract_gps, validate_image
 from app.services.geo import haversine_m
+from app.workers.neighborhood import notify_area_neighbors
 
 log = get_logger(__name__)
 
@@ -38,6 +40,21 @@ def _parse_agencies(raw: str) -> list[str]:
         raise BadRequestError(f"Invalid agency selection: {', '.join(invalid)}.")
     return agencies
 
+async def _sign_or_none(
+    storage: StorageClientDep, bucket: str, path: str | None
+) -> str | None:
+    """Sign a private object, returning None (not a 502) when it can't be signed.
+
+    A deleted/missing object makes Supabase return 400 on sign; without this, one
+    orphaned report would break the entire /reports/mine listing.
+    """
+    if not path:
+        return None
+    try:
+        return await storage.create_signed_url(bucket=bucket, path=path)
+    except ExternalServiceError:
+        log.warning("report_media_unsigned", bucket=bucket, path=path)
+        return None
 
 @router.post(
     "/submit",
@@ -148,6 +165,20 @@ async def submit_report(
     area = await db.fetchrow("select designation from public.areas where id = $1", area_id)
     assert area is not None
 
+    # Keep the reporter locatable for future incidents, then immediately alert
+    # nearby users (300 m) — they don't have to wait for the 60 s worker tick.
+    await db.execute(
+        "update public.users set latitude = $2, longitude = $3, last_active_at = now() "
+        "where id = $1",
+        user.id,
+        device_lat,
+        device_lng,
+    )
+    try:
+        await notify_area_neighbors(db, PushService(), area_id, device_lat, device_lng)
+    except Exception:
+        log.error("immediate_neighbor_notify_failed", area_id=str(area_id), exc_info=True)
+
     if not has_exif:
         note = "No EXIF GPS (e.g. gallery upload)."
     elif gps_discrepancy_flag:
@@ -193,16 +224,6 @@ async def list_my_reports(
     )
     items: list[ReportResponse] = []
     for r in rows:
-        photo_signed = (
-            await storage.create_signed_url(bucket="incident-photos", path=r["photo_url"])
-            if r["photo_url"]
-            else None
-        )
-        video_signed = (
-            await storage.create_signed_url(bucket="incident-videos", path=r["video_url"])
-            if r["video_url"]
-            else None
-        )
         items.append(
             ReportResponse(
                 id=r["id"],
@@ -214,8 +235,8 @@ async def list_my_reports(
                 compass_bearing=r["compass_bearing"],
                 selected_agencies=list(r["selected_agencies"]),
                 user_verified_percent=r["user_verified_percent"],
-                photo_url=photo_signed,
-                video_url=video_signed,
+                photo_url=await _sign_or_none(storage, "incident-photos", r["photo_url"]),
+                video_url=await _sign_or_none(storage, "incident-videos", r["video_url"]),
                 created_at=r["created_at"],
             )
         )

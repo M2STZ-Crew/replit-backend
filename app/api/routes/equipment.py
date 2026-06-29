@@ -23,7 +23,7 @@ router = APIRouter(prefix="/equipment", tags=["equipment"])
 
 _COLS = (
     "id, organization_id, name, category, quantity, status::text as status, "
-    "serial_number, description, last_serviced_at, created_at, updated_at"
+    "capacity_liters, serial_number, description, last_serviced_at, created_at, updated_at"
 )
 
 
@@ -106,9 +106,9 @@ async def create_equipment(
     row = await db.fetchrow(
         f"""
         insert into public.equipment
-            (organization_id, name, category, quantity, status, serial_number,
-             description, last_serviced_at)
-        values ($1, $2, $3, $4, $5::public.equipment_status, $6, $7, $8)
+            (organization_id, name, category, quantity, status, capacity_liters,
+             serial_number, description, last_serviced_at)
+        values ($1, $2, $3, $4, $5::public.equipment_status, $6, $7, $8, $9)
         returning {_COLS}
         """,
         payload.organization_id,
@@ -116,6 +116,7 @@ async def create_equipment(
         payload.category,
         payload.quantity,
         payload.status,
+        payload.capacity_liters,
         payload.serial_number,
         payload.description,
         payload.last_serviced_at,

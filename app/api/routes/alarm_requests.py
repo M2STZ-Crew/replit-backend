@@ -19,6 +19,7 @@ from app.core.logging import get_logger
 from app.realtime.manager import manager
 from app.schemas.alarm import AlarmRequestCreate, AlarmRequestResponse, AlarmReviewRequest
 from app.schemas.auth import AuthenticatedUser
+from app.services.incident_notify import notify_bfp_alarm_request
 
 log = get_logger(__name__)
 
@@ -47,9 +48,15 @@ async def create_alarm_request(
     payload: AlarmRequestCreate, user: StaffUser, db: DatabaseDep
 ) -> AlarmRequestResponse:
     """Submit a pending alarm-raise request for an active incident."""
-    if not (user.role == "sub_admin" and user.agency_type in ("fire_volunteer", "bfp")):
+    # Fire-Vol/BFP sub-admins, or a fire-volunteer responder in the field, may
+    # request an alarm raise; BFP sub-admins still execute it (Section 6).
+    allowed = (user.role == "sub_admin" and user.agency_type in ("fire_volunteer", "bfp")) or (
+        user.role == "response_team" and user.agency_type == "fire_volunteer"
+    )
+    if not allowed:
         raise ForbiddenError(
-            "Only a Fire Volunteer or BFP sub-admin may raise an alarm request."
+            "Only Fire Volunteer responders/sub-admins or BFP sub-admins may raise an "
+            "alarm request."
         )
     area = await db.fetchrow(
         "select status::text as status from public.areas where id = $1", payload.area_id
@@ -78,6 +85,12 @@ async def create_alarm_request(
         level=payload.requested_alarm_level,
         by=str(user.id),
     )
+    try:
+        await notify_bfp_alarm_request(
+            db, payload.area_id, user.id, payload.requested_alarm_level
+        )
+    except Exception:
+        log.error("bfp_alarm_notify_failed", area_id=str(payload.area_id), exc_info=True)
     return AlarmRequestResponse.model_validate(dict(row))
 
 
@@ -114,13 +127,24 @@ async def list_alarm_requests(
     params: list[Any] = []
     if status_filter is not None:
         params.append(status_filter)
-        conditions.append(f"status = ${len(params)}::public.request_status")
+        conditions.append(f"a.status = ${len(params)}::public.request_status")
     if area_id is not None:
         params.append(area_id)
-        conditions.append(f"area_id = ${len(params)}")
+        conditions.append(f"a.area_id = ${len(params)}")
     where_sql = f"where {' and '.join(conditions)}" if conditions else ""
     rows = await db.fetch(
-        f"select {_COLS} from public.alarm_requests {where_sql} order by created_at desc",
+        f"""
+        select a.id, a.area_id, ar.designation as area_designation, a.requested_by,
+               u.full_name as requested_by_name,
+               a.requested_alarm_level::text as requested_alarm_level, a.justification,
+               a.status::text as status, a.reviewed_by, a.reviewed_at, a.review_notes,
+               a.executed_at, a.created_at, a.updated_at
+        from public.alarm_requests a
+        left join public.areas ar on ar.id = a.area_id
+        left join public.users u on u.id = a.requested_by
+        {where_sql}
+        order by a.created_at desc
+        """,
         *params,
     )
     return [AlarmRequestResponse.model_validate(dict(r)) for r in rows]

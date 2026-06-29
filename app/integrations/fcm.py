@@ -89,6 +89,12 @@ class PushService:
                 tokens=tokens,
                 notification=messaging.Notification(title=title, body=body),
                 data=data or {},
+                # High priority so the alert is delivered promptly and shown even
+                # when the app is backgrounded or terminated (FCM default channel).
+                android=messaging.AndroidConfig(
+                    priority="high",
+                    notification=messaging.AndroidNotification(default_sound=True),
+                ),
             )
             batch = messaging.send_each_for_multicast(message, app=_fcm_app)
             invalid: list[str] = []

@@ -57,3 +57,17 @@ class AreaOverlapItem(BaseModel):
     distance_m: float
     expires_at: datetime
     created_at: datetime
+
+
+class RequestAgenciesRequest(BaseModel):
+    """Citizen request to add responder agencies to an incident they reported."""
+
+    agencies: list[str] = Field(min_length=1, description="agency_type values to add.")
+
+
+class AreaAgenciesResponse(BaseModel):
+    """The merged agencies now requested on the citizen's report(s) for an area."""
+
+    area_id: UUID
+    agencies: list[str]
+    message: str

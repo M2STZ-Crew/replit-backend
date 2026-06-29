@@ -16,6 +16,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.core.logging import get_logger
 from app.db.session import Database, database
 from app.integrations.fcm import PushService
+from app.services.notification_inbox import record_inbox
 
 log = get_logger(__name__)
 
@@ -98,6 +99,9 @@ async def notify_area_neighbors(
         """,
         area_id,
         user_ids,
+    )
+    await record_inbox(
+        db, user_ids, "fire_alert", _ALERT_TITLE, _ALERT_BODY, {"area_id": str(area_id)}
     )
     log.info("neighborhood_alerts_sent", area_id=str(area_id), users=len(user_ids))
     return len(user_ids)

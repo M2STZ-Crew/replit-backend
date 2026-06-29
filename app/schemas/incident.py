@@ -29,6 +29,43 @@ class IncidentReportItem(BaseModel):
     created_at: datetime
 
 
+class IncidentReportDetail(BaseModel):
+    """A member report with reviewer context: reporter name + signed photo URL."""
+
+    id: UUID
+    reporter_id: UUID | None = None
+    reporter_name: str | None = None
+    photo_url: str | None = None
+    device_lat: float
+    device_lng: float
+    has_exif: bool
+    gps_discrepancy_flag: bool
+    user_verified_percent: int
+    selected_agencies: list[str] = Field(default_factory=list)
+    notes: str | None = None
+    created_at: datetime
+
+
+class AvailableResponder(BaseModel):
+    """A response_team user a sub-admin can dispatch (for the dispatch crew picker)."""
+
+    id: UUID
+    full_name: str | None = None
+    agency_type: str | None = None
+    organization_id: UUID | None = None
+    is_busy: bool = False  # has an active dispatch to any incident
+    on_this_incident: bool = False  # already actively dispatched to this incident
+
+
+class IncidentStats(BaseModel):
+    """Counters for the responder dashboard (visibility / agency scoped)."""
+
+    active_incidents: int = 0
+    pending_verify: int = 0
+    units_deployed: int = 0
+    units_standby: int = 0
+
+
 class IncidentSummary(BaseModel):
     """Compact incident for the operational feed (visibility-filtered)."""
 
@@ -61,8 +98,11 @@ class IncidentDetail(IncidentSummary):
     version: int
     parent_area_id: UUID | None = None
     verified_by: UUID | None = None
+    verified_by_name: str | None = None
     resolved_by: UUID | None = None
+    resolved_by_name: str | None = None
     rejected_by: UUID | None = None
+    rejected_by_name: str | None = None
     rejection_reason: str | None = None
     alarm_level_set_by: UUID | None = None
     alarm_level_set_at: datetime | None = None
@@ -86,6 +126,12 @@ class ManualDispatchRequest(BaseModel):
     responder_id: UUID = Field(description="The response_team user being dispatched.")
     organization_id: UUID | None = Field(
         default=None, description="Responder's organization, if applicable."
+    )
+    vehicle_name: str | None = Field(
+        default=None, max_length=200, description="The unit/truck this responder crews."
+    )
+    crew_role: str | None = Field(
+        default=None, max_length=100, description="Fireground role (e.g. Driver / Pump Op)."
     )
     notes: str | None = Field(default=None, max_length=1000)
 
@@ -122,6 +168,7 @@ class DispatchItem(BaseModel):
     id: UUID
     area_id: UUID
     responder_id: UUID
+    responder_name: str | None = None
     organization_id: UUID | None = None
     dispatch_type: str
     dispatched_by: UUID | None = None
@@ -129,6 +176,8 @@ class DispatchItem(BaseModel):
     dispatched_at: datetime
     withdrawn_at: datetime | None = None
     completed_at: datetime | None = None
+    vehicle_name: str | None = None
+    crew_role: str | None = None
     notes: str | None = None
 
 

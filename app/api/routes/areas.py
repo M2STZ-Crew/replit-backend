@@ -10,13 +10,21 @@ from fastapi import APIRouter
 from app.api.deps import CurrentUser, DatabaseDep, StaffUser
 from app.core.exceptions import BadRequestError, NotFoundError
 from app.core.logging import get_logger
-from app.schemas.area import AreaDetail, AreaOverlapItem, AreaSummary
+from app.schemas.area import (
+    AreaAgenciesResponse,
+    AreaDetail,
+    AreaOverlapItem,
+    AreaSummary,
+    RequestAgenciesRequest,
+)
 from app.schemas.common import MessageResponse
 from app.services.clustering import recompute_area
 
 log = get_logger(__name__)
 
 router = APIRouter(prefix="/areas", tags=["areas"])
+
+_VALID_AGENCIES = {"fire_volunteer", "bfp", "barangay", "medical", "police"}
 
 
 @router.get("", response_model=list[AreaSummary], summary="List incident areas")
@@ -69,6 +77,58 @@ async def get_area(area_id: UUID, user: CurrentUser, db: DatabaseDep) -> AreaDet
     data = dict(area)
     data["reports"] = [dict(r) for r in reports]
     return AreaDetail.model_validate(data)
+
+
+@router.post(
+    "/{area_id}/request-agencies",
+    response_model=AreaAgenciesResponse,
+    summary="Add responder agencies to your incident",
+)
+async def request_area_agencies(
+    area_id: UUID,
+    payload: RequestAgenciesRequest,
+    user: CurrentUser,
+    db: DatabaseDep,
+) -> AreaAgenciesResponse:
+    """Append agencies to the caller's own report(s) in this area (no new report)."""
+    invalid = [a for a in payload.agencies if a not in _VALID_AGENCIES]
+    if invalid:
+        raise BadRequestError(f"Invalid agency selection: {', '.join(invalid)}.")
+
+    rows = await db.fetch(
+        """
+        select r.id, r.selected_agencies
+        from public.reports r
+        join public.area_reports ar on ar.report_id = r.id
+        where ar.area_id = $1 and r.reporter_id = $2
+        """,
+        area_id,
+        user.id,
+    )
+    if not rows:
+        raise NotFoundError("You have no report in this incident.")
+
+    merged_all: set[str] = set()
+    for row in rows:
+        current = list(row["selected_agencies"] or [])
+        merged = sorted(set(current) | set(payload.agencies))
+        await db.execute(
+            "update public.reports set selected_agencies = $2::public.agency_type[] "
+            "where id = $1",
+            row["id"],
+            merged,
+        )
+        merged_all.update(merged)
+
+    log.info(
+        "area_agencies_added", area_id=str(area_id), user_id=str(user.id),
+        added=payload.agencies,
+    )
+    return AreaAgenciesResponse(
+        area_id=area_id,
+        agencies=sorted(merged_all),
+        message="Responder agencies added to your incident.",
+    )
 
 @router.get(
     "/overlaps/pending",

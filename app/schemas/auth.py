@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
@@ -30,6 +31,9 @@ class AuthenticatedUser(BaseModel):
     )
     full_name: str | None = Field(default=None, description="Display name.")
     primary_org_id: UUID | None = Field(default=None, description="Primary organization, if any.")
+    mobile: str | None = Field(default=None, description="Contact mobile number (unverified).")
+    date_of_birth: date | None = Field(default=None, description="Date of birth.")
+    gender: str | None = Field(default=None, description="Gender.")
 
 
 class SignupRequest(BaseModel):
@@ -38,6 +42,18 @@ class SignupRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     full_name: str | None = Field(default=None, max_length=200)
+    mobile: str | None = Field(default=None, max_length=32)
+    date_of_birth: date | None = Field(default=None)
+    gender: str | None = Field(default=None, max_length=40)
+
+
+class ProfileUpdateRequest(BaseModel):
+    """Editable citizen profile fields (omitted fields are left unchanged)."""
+
+    full_name: str | None = Field(default=None, max_length=200)
+    mobile: str | None = Field(default=None, max_length=32)
+    date_of_birth: date | None = Field(default=None)
+    gender: str | None = Field(default=None, max_length=40)
 
 
 class LoginRequest(BaseModel):
@@ -51,6 +67,19 @@ class RefreshRequest(BaseModel):
     """Session refresh payload."""
 
     refresh_token: str = Field(min_length=1)
+
+
+class LocationUpdateRequest(BaseModel):
+    """Update the caller's last-known location (for 300 m neighborhood alerts)."""
+
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+
+
+class RecoverRequest(BaseModel):
+    """Request a password-reset email."""
+
+    email: EmailStr
 
 
 class TokenResponse(BaseModel):
