@@ -19,6 +19,7 @@ from app.schemas.area import (
 )
 from app.schemas.common import MessageResponse
 from app.services.clustering import recompute_area
+from app.services.incident import active_area_sql, assert_transition
 
 log = get_logger(__name__)
 
@@ -31,8 +32,8 @@ _VALID_AGENCIES = {"fire_volunteer", "bfp", "barangay", "medical", "police"}
 async def list_areas(
     user: CurrentUser, db: DatabaseDep, active_only: bool = True
 ) -> list[AreaSummary]:
-    """List areas (active by default: not resolved/rejected)."""
-    where = "where status not in ('resolved', 'rejected')" if active_only else ""
+    """List areas (active by default: not resolved/rejected/merged)."""
+    where = f"where {active_area_sql()}" if active_only else ""
     rows = await db.fetch(
         f"""
         select id, designation, status::text as status, centroid_lat, centroid_lng,
@@ -182,7 +183,7 @@ async def keep_areas_separate(
     summary="Merge two overlapping areas",
 )
 async def merge_areas(overlap_id: UUID, staff: StaffUser, db: DatabaseDep) -> MessageResponse:
-    """Merge area B into area A: move reports, recompute A, reject B (120 s window)."""
+    """Merge area B into area A: move reports, recompute A, mark B merged (120 s window)."""
     overlap = await db.fetchrow(
         "select area_a_id, area_b_id, decision, expires_at from public.area_overlaps where id = $1",
         overlap_id,
@@ -196,6 +197,16 @@ async def merge_areas(overlap_id: UUID, staff: StaffUser, db: DatabaseDep) -> Me
 
     keep_id = overlap["area_a_id"]
     drop_id = overlap["area_b_id"]
+
+    # Merging is only legal before responders are committed — after dispatch it
+    # would orphan their assignments. 409 rather than silently absorbing.
+    drop_status = await db.fetchval(
+        "select status::text from public.areas where id = $1", drop_id
+    )
+    if drop_status is None:
+        raise NotFoundError("Area to merge no longer exists.")
+    assert_transition(str(drop_status), "merged")
+
     await db.execute(
         """
         update public.area_reports
@@ -207,15 +218,18 @@ async def merge_areas(overlap_id: UUID, staff: StaffUser, db: DatabaseDep) -> Me
         drop_id,
     )
     await db.execute("delete from public.area_reports where area_id = $1", drop_id)
+    # 'merged' is its own terminal status (Section 4.1) — recording it as
+    # 'rejected' would count every dispatcher merge as a false report.
     await db.execute(
         """
         update public.areas
-           set status = 'rejected', rejected_at = now(), rejected_by = $2,
-               rejection_reason = 'merged'
+           set status = 'merged', merged_at = now(), merged_by = $2,
+               merged_into_area_id = $3
          where id = $1
         """,
         drop_id,
         staff.id,
+        keep_id,
     )
     await db.execute(
         """

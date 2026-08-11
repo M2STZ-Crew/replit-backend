@@ -86,6 +86,7 @@ class IncidentSummary(BaseModel):
     arrived_at: datetime | None = None
     resolved_at: datetime | None = None
     rejected_at: datetime | None = None
+    merged_at: datetime | None = None
     updated_at: datetime
 
 
@@ -104,6 +105,9 @@ class IncidentDetail(IncidentSummary):
     rejected_by: UUID | None = None
     rejected_by_name: str | None = None
     rejection_reason: str | None = None
+    merged_by: UUID | None = None
+    merged_by_name: str | None = None
+    merged_into_area_id: UUID | None = None
     alarm_level_set_by: UUID | None = None
     alarm_level_set_at: datetime | None = None
     reports: list[IncidentReportItem] = Field(default_factory=list)

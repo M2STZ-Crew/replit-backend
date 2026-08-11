@@ -16,19 +16,58 @@ from app.schemas.incident import ResponderLocationCreate
 # BFP and Fire Volunteers see each other's fire incidents (Section 6, two-way).
 _FIRE_AGENCIES = ("fire_volunteer", "bfp")
 
+# Statuses that take an area out of the live feed. 'merged' is terminal for the
+# absorbed area only — its reports were moved onto the surviving area, so it must
+# not cluster, alert neighbors, or appear as an incident (Section 3.4).
+TERMINAL_STATUSES = ("resolved", "rejected", "merged")
+
+# Statuses that additionally bar an area from seeding a 1 h version chain.
+# 'resolved' is deliberately absent: a genuine second fire at the same location
+# within the hour is exactly what "Area 1.2" designates (Section 3.4). A rejected
+# area was never an incident, and a merged one was absorbed elsewhere.
+UNVERSIONABLE_STATUSES = ("rejected", "merged")
+
 # Allowed forward transitions of public.area_status (Section 9). Mirrors the DB
 # sequencing CHECK constraints: dispatched needs verified, en_route needs
 # dispatched, arrived needs en_route. Resolve is reachable from any active state
-# once verified; reject only before responders are committed.
+# once verified; reject only before responders are committed. Merge is only legal
+# before responders are committed — after dispatch it would orphan their assignments.
 ALLOWED_TRANSITIONS: dict[str, set[str]] = {
-    "pending": {"verified", "rejected"},
-    "verified": {"dispatched", "resolved", "rejected"},
+    "pending": {"verified", "rejected", "merged"},
+    "verified": {"dispatched", "resolved", "rejected", "merged"},
     "dispatched": {"en_route", "resolved"},
     "en_route": {"arrived", "resolved"},
     "arrived": {"resolved"},
     "resolved": set(),
     "rejected": set(),
+    "merged": set(),
 }
+
+
+def _status_exclusion_sql(statuses: tuple[str, ...], alias: str) -> str:
+    """Render ``[alias.]status not in (...)`` for a tuple of area_status values."""
+    prefix = f"{alias}." if alias else ""
+    values = ", ".join(f"'{status}'" for status in statuses)
+    return f"{prefix}status not in ({values})"
+
+
+def active_area_sql(alias: str = "") -> str:
+    """SQL predicate restricting ``public.areas`` to non-terminal (live) incidents.
+
+    Single source of truth for every query that filters the active feed — clustering,
+    overlap detection, the neighborhood worker, and both read routes — so a status
+    added to the enum can't be handled in some of them and missed in others.
+    ``alias`` qualifies the column when the query joins areas under a table alias.
+    """
+    return _status_exclusion_sql(TERMINAL_STATUSES, alias)
+
+
+def versionable_area_sql(alias: str = "") -> str:
+    """SQL predicate for areas eligible to seed a 1 h version chain (Section 3.4).
+
+    Looser than :func:`active_area_sql` by design — see ``UNVERSIONABLE_STATUSES``.
+    """
+    return _status_exclusion_sql(UNVERSIONABLE_STATUSES, alias)
 
 
 def visible_agencies(user: AuthenticatedUser) -> list[str] | None:

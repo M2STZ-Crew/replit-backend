@@ -79,9 +79,25 @@ def test_assert_transition_blocks_illegal_moves() -> None:
 
 
 def test_terminal_states_have_no_transitions() -> None:
-    """resolved and rejected are dead-ends."""
+    """resolved, rejected and merged are dead-ends."""
     assert ALLOWED_TRANSITIONS["resolved"] == set()
     assert ALLOWED_TRANSITIONS["rejected"] == set()
+    assert ALLOWED_TRANSITIONS["merged"] == set()
+
+
+def test_merge_allowed_only_before_responders_are_committed() -> None:
+    """An overlap [Merge] is legal while pending/verified, never after dispatch."""
+    assert_transition("pending", "merged")
+    assert_transition("verified", "merged")
+    for committed in ("dispatched", "en_route", "arrived"):
+        with pytest.raises(ConflictError):
+            assert_transition(committed, "merged")
+
+
+def test_merged_is_distinct_from_rejected() -> None:
+    """A merge must not be reachable via 'rejected' — merges aren't false reports."""
+    assert "merged" not in ALLOWED_TRANSITIONS["rejected"]
+    assert ALLOWED_TRANSITIONS["pending"] >= {"merged", "rejected"}
 
 
 # --------------------------------------------------------------------------- #

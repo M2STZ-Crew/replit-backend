@@ -19,6 +19,7 @@ from uuid import UUID
 from app.core.logging import get_logger
 from app.db.session import Database
 from app.services.geo import haversine_m
+from app.services.incident import active_area_sql, versionable_area_sql
 
 log = get_logger(__name__)
 
@@ -40,7 +41,7 @@ async def cluster_report(db: Database, *, report_id: UUID, lat: float, lng: floa
     match = await db.fetchrow(
         f"""
         select id from public.areas
-        where status not in ('resolved', 'rejected')
+        where {active_area_sql()}
           and extensions.ST_DWithin(
                 centroid, extensions.ST_GeographyFromText($1), {_CLUSTER_RADIUS_M})
           and updated_at > now() - interval '{_RECENT_WINDOW}'
@@ -59,7 +60,8 @@ async def cluster_report(db: Database, *, report_id: UUID, lat: float, lng: floa
     version_src = await db.fetchrow(
         f"""
         select id, base_number from public.areas
-        where extensions.ST_DWithin(
+        where {versionable_area_sql()}
+          and extensions.ST_DWithin(
                 centroid, extensions.ST_GeographyFromText($1), {_CLUSTER_RADIUS_M})
           and base_number is not null
           and updated_at > now() - interval '{_VERSION_WINDOW}'
@@ -189,8 +191,8 @@ async def _detect_overlaps(db: Database, area_id: UUID) -> None:
         from public.areas a
         join public.areas b on b.id <> a.id
         where a.id = $1
-          and a.status not in ('resolved', 'rejected')
-          and b.status not in ('resolved', 'rejected')
+          and {active_area_sql("a")}
+          and {active_area_sql("b")}
           and extensions.ST_DWithin(a.centroid, b.centroid, {_OVERLAP_RADIUS_M})
         """,
         area_id,

@@ -16,6 +16,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.core.logging import get_logger
 from app.db.session import Database, database
 from app.integrations.fcm import PushService
+from app.services.incident import active_area_sql
 from app.services.notification_inbox import record_inbox
 
 log = get_logger(__name__)
@@ -113,10 +114,10 @@ async def neighborhood_tick() -> None:
         return
     push = PushService()
     areas = await database.fetch(
-        """
+        f"""
         select id, centroid_lat, centroid_lng
         from public.areas
-        where status not in ('resolved', 'rejected')
+        where {active_area_sql()}
         """
     )
     for area in areas:

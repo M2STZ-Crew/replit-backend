@@ -162,7 +162,10 @@ async def submit_report(
     assert row is not None
 
     area_id = await cluster_report(db, report_id=report_id, lat=device_lat, lng=device_lng)
-    area = await db.fetchrow("select designation from public.areas where id = $1", area_id)
+    area = await db.fetchrow(
+        "select designation, centroid_lat, centroid_lng from public.areas where id = $1",
+        area_id,
+    )
     assert area is not None
 
     # Keep the reporter locatable for future incidents, then immediately alert
@@ -174,8 +177,18 @@ async def submit_report(
         device_lat,
         device_lng,
     )
+    # Centre the 300 m query on the area centroid, not this reporter's position
+    # (Section 3.5). Clustering has just recomputed the centroid, so for a report
+    # joining an existing area the two differ — using the reporter's coordinates
+    # would blast a different circle than every subsequent 60 s tick.
     try:
-        await notify_area_neighbors(db, PushService(), area_id, device_lat, device_lng)
+        await notify_area_neighbors(
+            db,
+            PushService(),
+            area_id,
+            float(area["centroid_lat"]),
+            float(area["centroid_lng"]),
+        )
     except Exception:
         log.error("immediate_neighbor_notify_failed", area_id=str(area_id), exc_info=True)
 

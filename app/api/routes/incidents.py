@@ -51,6 +51,7 @@ from app.schemas.incident import (
     SelfDispatchRequest,
 )
 from app.services.incident import (
+    active_area_sql,
     assert_transition,
     record_responder_location,
     visible_agencies,
@@ -145,17 +146,19 @@ async def _build_detail(db: Database, incident_id: UUID) -> IncidentDetail:
                (select count(*) from public.dispatch_logs d
                 where d.area_id = a.id and d.status = 'active') as active_dispatch_count,
                a.reported_at, a.verified_at, a.dispatched_at, a.en_route_at,
-               a.arrived_at, a.resolved_at, a.rejected_at, a.updated_at,
+               a.arrived_at, a.resolved_at, a.rejected_at, a.merged_at, a.updated_at,
                a.n_score, a.s_score, a.v_score, a.version, a.parent_area_id,
                a.verified_by, vu.full_name as verified_by_name,
                a.resolved_by, ru.full_name as resolved_by_name,
                a.rejected_by, ju.full_name as rejected_by_name,
                a.rejection_reason,
+               a.merged_by, mu.full_name as merged_by_name, a.merged_into_area_id,
                a.alarm_level_set_by, a.alarm_level_set_at
         from public.areas a
         left join public.users vu on vu.id = a.verified_by
         left join public.users ru on ru.id = a.resolved_by
         left join public.users ju on ju.id = a.rejected_by
+        left join public.users mu on mu.id = a.merged_by
         where a.id = $1
         """,
         incident_id,
@@ -219,7 +222,7 @@ async def list_incidents(
             f"r.selected_agencies && ${len(params)}::public.agency_type[])"
         )
     if active_only:
-        conditions.append("a.status not in ('resolved', 'rejected')")
+        conditions.append(active_area_sql("a"))
     if status_filter is not None:
         params.append(status_filter)
         conditions.append(f"a.status = ${len(params)}::public.area_status")
@@ -239,7 +242,7 @@ async def list_incidents(
                (select count(*) from public.dispatch_logs d
                 where d.area_id = a.id and d.status = 'active') as active_dispatch_count,
                a.reported_at, a.verified_at, a.dispatched_at, a.en_route_at,
-               a.arrived_at, a.resolved_at, a.rejected_at, a.updated_at
+               a.arrived_at, a.resolved_at, a.rejected_at, a.merged_at, a.updated_at
         from public.areas a
         {where_sql}
         order by a.reported_at desc
@@ -256,7 +259,7 @@ async def incident_stats(user: StaffUser, db: DatabaseDep) -> IncidentStats:
     agencies = visible_agencies(user)
     if agencies is None:  # admin: everything
         active = await db.fetchval(
-            "select count(*) from public.areas where status not in ('resolved', 'rejected')"
+            f"select count(*) from public.areas where {active_area_sql()}"
         )
         pending = await db.fetchval(
             "select count(*) from public.areas where status = 'pending'"
@@ -272,7 +275,7 @@ async def incident_stats(user: StaffUser, db: DatabaseDep) -> IncidentStats:
         )
         active = await db.fetchval(
             f"select count(*) from public.areas a "
-            f"where a.status not in ('resolved', 'rejected') and {visible}",
+            f"where {active_area_sql('a')} and {visible}",
             agencies,
         )
         pending = await db.fetchval(

@@ -1,7 +1,7 @@
 # RepLiT Backend
 
 Production backend for **RepLiT** — the Pasay City Fire Volunteer Coordination
-Platform (M2STZ Capstone, v8). FastAPI + Supabase (PostgreSQL/PostGIS) + Redis,
+Platform (M2STZ Capstone, v8). FastAPI + Supabase (PostgreSQL/PostGIS),
 built and managed with [uv](https://docs.astral.sh/uv/).
 
 > Scope note: this repository is the backend (plus minimal placeholder UIs used only
