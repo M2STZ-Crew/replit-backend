@@ -1,0 +1,48 @@
+# Build context is the REPOSITORY ROOT. Everything the runtime image needs is
+# pyproject.toml, uv.lock and app/ — keep the rest out so the context stays small
+# and no secret is ever copied into a layer.
+
+# ----- Virtual envs, caches, bytecode -----
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.python-version
+
+# ----- Secrets & local env -----
+# secrets/ holds the Firebase service-account JSON. Mounted at runtime, never
+# baked in (see docker-compose.yaml).
+.env
+.env.*
+!.env.example
+secrets/
+
+# ----- The admin dashboard is a separate deployable -----
+# 55 MB of node_modules that the backend image has no use for. If this image ever
+# serves the built SPA, un-ignore admin-web/dist only.
+admin-web/
+
+# ----- Database tooling: applied via the Supabase CLI, not from the image -----
+supabase/
+
+# ----- VCS & editors -----
+.git/
+.gitignore
+.gitattributes
+.vscode/
+.idea/
+
+# ----- Dev-only artifacts -----
+Dockerfile
+.dockerignore
+docker-compose.yaml
+docker-compose.yml
+Makefile
+README.md
+tests/
+postman/
+*.log
+*.pdf

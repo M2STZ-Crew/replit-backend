@@ -1,0 +1,42 @@
+# Run from the REPOSITORY ROOT:  docker compose up -d --build
+#
+# The database is Supabase-managed, so there is no postgres service here — the
+# container talks to it over DATABASE_URL. Use the TRANSACTION pooler URI (6543)
+# for the app; only pg_dump needs the session pooler (5432).
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: replit-backend:latest
+    container_name: replit-backend
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      # Firebase service-account JSON, read-only. FCM_CREDENTIALS_FILE in .env is
+      # relative to WORKDIR /app, so `secrets/firebase-service-account.json`
+      # resolves as-is. Drop this mount if you use FCM_CREDENTIALS_JSON instead.
+      - ./secrets:/app/secrets:ro
+    # PID 1 reaper, so SIGTERM reaches uvicorn and shutdown runs the lifespan
+    # teardown (DB pool close, scheduler stop) instead of being killed at timeout.
+    init: true
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').status==200 else 1)"
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging:
+      # Structured JSON logs (LOG_JSON=true) grow fast; cap them on the droplet.
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
