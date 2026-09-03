@@ -67,6 +67,18 @@ export const api = {
   equipment: () => request('/equipment'),
   mapLayer: (name) => request(`/map/${name}`),
 
+  // National ID review (admin only — Section 2.6). The pending list already
+  // carries short-lived signed URLs for the ID and selfie images, which live in
+  // a private bucket.
+  pendingVerifications: () => request('/admin/verifications/pending'),
+  approveVerification: (id) =>
+    request(`/admin/verifications/${id}/approve`, { method: 'POST' }),
+  rejectVerification: (id, notes) =>
+    request(`/admin/verifications/${id}/reject`, {
+      method: 'POST',
+      body: { notes: notes || null },
+    }),
+
   // Affiliate organization review (admin).
   affiliates: (statusFilter) =>
     request(`/affiliates${statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : ''}`),

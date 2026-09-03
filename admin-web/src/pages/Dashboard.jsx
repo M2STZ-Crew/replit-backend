@@ -8,6 +8,7 @@ import AccountManagement from './AccountManagement.jsx';
 import AffiliatesPanel from './AffiliatesPanel.jsx';
 import AuditLog from './AuditLog.jsx';
 import MapManagement from './MapManagement.jsx';
+import IdReview from './IdReview.jsx';
 import VerificationQueue from './VerificationQueue.jsx';
 
 // Per-section topbar heading (dashboard uses the personalised welcome).
@@ -43,7 +44,13 @@ const NAV = [
   { key: 'audit', label: 'Audit Log', sub: 'Incident records', icon: '🗂' },
   { key: 'affiliates', label: 'Affiliates', sub: 'Partner orgs', icon: '🤝' },
   { key: 'accounts', label: 'Accounts', sub: 'Access requests', icon: '👤' },
+  { key: 'idreview', label: 'ID Review', sub: 'National ID approvals', icon: '🪪',
+    adminOnly: true },
 ];
+
+function navFor(role) {
+  return NAV.filter((n) => !n.adminOnly || role === 'admin');
+}
 
 // Map layers: which have backend data + how to read their coordinates.
 const LAYERS = [
@@ -196,7 +203,7 @@ export default function Dashboard() {
         </div>
         <div className="db-nav-label">WORKSPACE</div>
         <nav className="db-nav">
-          {NAV.map((n) => (
+          {navFor(user?.role).map((n) => (
             <button
               key={n.key}
               className={`db-nav-item${active === n.key ? ' active' : ''}`}
@@ -353,6 +360,8 @@ export default function Dashboard() {
             <MapManagement query={query} />
           ) : active === 'affiliates' ? (
             <AffiliatesPanel query={query} onQuery={setQuery} />
+          ) : active === 'idreview' ? (
+            <IdReview />
           ) : active === 'verify' ? (
             <VerificationQueue />
           ) : active === 'audit' ? (

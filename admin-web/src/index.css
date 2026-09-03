@@ -3018,3 +3018,77 @@ select.field {
   border-radius: 9px; padding: 11px 14px; color: var(--text);
 }
 .vq-empty { color: var(--muted); font-size: 13px; padding: 18px 0; }
+
+/* ── National ID review (admin only, Section 2.1 Tier 2) ───────────────── */
+.idr { padding: 24px 28px; }
+.idr-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.idr-title { margin: 0; font-size: 20px; color: var(--text); }
+.idr-sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.idr-refresh {
+  background: transparent; border: 1px solid var(--card-border); color: var(--label);
+  padding: 8px 14px; border-radius: 8px; cursor: pointer;
+}
+.idr-refresh:disabled { opacity: .5; cursor: default; }
+.idr-error {
+  margin-top: 16px; padding: 12px 14px; border-radius: 8px; font-size: 13px;
+  background: rgba(255,84,78,.10); border: 1px solid var(--danger); color: var(--danger);
+}
+.idr-empty { margin-top: 24px; color: var(--muted); font-size: 13px; max-width: 60ch; }
+
+.idr-list { display: flex; flex-direction: column; gap: 16px; margin-top: 20px; }
+.idr-card {
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 12px; padding: 18px;
+}
+.idr-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.idr-name { font-weight: 600; color: var(--text); }
+.idr-meta { margin-top: 3px; font-size: 12px; color: var(--muted); }
+.idr-wait {
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  border: 1px solid var(--card-border); border-radius: 20px; padding: 3px 10px;
+  white-space: nowrap;
+}
+.idr-wait.is-stale { color: #EAB308; border-color: rgba(234,179,8,.5); }
+
+.idr-images { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+.idr-fig { margin: 0; }
+.idr-cap {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--placeholder); margin-bottom: 6px;
+}
+.idr-img {
+  width: 260px; height: 170px; object-fit: cover; border-radius: 8px;
+  border: 1px solid var(--card-border); cursor: zoom-in; display: block;
+}
+.idr-img-missing {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--input-bg); color: var(--placeholder); font-size: 12px; cursor: default;
+}
+.idr-hint { margin: 14px 0 0; font-size: 12px; color: var(--muted); }
+
+.idr-actions { display: flex; gap: 10px; margin-top: 16px; align-items: center; }
+.idr-btn {
+  border: 1px solid var(--card-border); background: transparent; color: var(--label);
+  padding: 10px 18px; border-radius: 9px; cursor: pointer; font-weight: 600;
+}
+.idr-btn:disabled { opacity: .45; cursor: not-allowed; }
+.idr-btn-approve {
+  background: linear-gradient(178deg, var(--accent) 0%, var(--accent-end) 100%);
+  color: var(--accent-text); border: none;
+}
+.idr-btn-reject { border-color: var(--danger); color: var(--danger); }
+.idr-notes {
+  flex: 1; background: var(--input-bg); border: 1px solid var(--input-border);
+  border-radius: 9px; padding: 10px 14px; color: var(--text);
+}
+
+.idr-lightbox {
+  position: fixed; inset: 0; background: rgba(0,0,0,.86); z-index: 50;
+  display: flex; align-items: center; justify-content: center; cursor: zoom-out;
+}
+.idr-lightbox img { max-width: 92vw; max-height: 88vh; border-radius: 8px; }
+.idr-close {
+  position: absolute; top: 20px; right: 24px; background: transparent;
+  border: 1px solid rgba(255,255,255,.4); color: #fff;
+  padding: 8px 16px; border-radius: 8px; cursor: pointer;
+}
