@@ -10,6 +10,12 @@ __pycache__/
 venv/
 env/
 
+# ===== Node =====
+# Both the root (Supabase CLI, pinned in package.json) and admin-web/.
+# package.json and package-lock.json ARE committed so `npm ci` is reproducible.
+node_modules/
+dist/
+
 # ===== Environment / secrets (NEVER commit) =====
 .env
 .env.local

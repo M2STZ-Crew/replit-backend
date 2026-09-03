@@ -22,9 +22,10 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, BackgroundTasks, Query
 
 from app.api.deps import DatabaseDep, StaffUser, StorageClientDep
+from app.core.config import get_settings
 from app.core.exceptions import (
     BadRequestError,
     ConflictError,
@@ -33,7 +34,8 @@ from app.core.exceptions import (
     NotFoundError,
 )
 from app.core.logging import get_logger
-from app.db.session import Database
+from app.db.session import Database, database
+from app.integrations.anthropic_ai import AnthropicClient
 from app.realtime.events import broadcast_incident_event, broadcast_responder_location
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.common import MessageResponse
@@ -50,6 +52,7 @@ from app.schemas.incident import (
     ResponderLocationItem,
     SelfDispatchRequest,
 )
+from app.services.ai_summary import generate_incident_summary
 from app.services.incident import (
     active_area_sql,
     assert_transition,
@@ -428,13 +431,31 @@ async def reject_incident(
     return await _finish(db, incident_id, "incident_rejected")
 
 
+async def _generate_fire_out_report(incident_id: UUID) -> None:
+    """Write the Claude Haiku fire-out report for a just-resolved incident.
+
+    Section 2.5 makes the report part of resolution and Section 6 budgets it as async and
+    non-blocking, so it runs after the response is sent. Uses the shared pool directly
+    rather than a request dependency, because the request is already finished by then. A
+    failure here must never surface as a failed resolve — the incident is closed either way.
+    """
+    if not get_settings().anthropic_configured:
+        log.info("fire_out_report_skipped", incident_id=str(incident_id), reason="no_api_key")
+        return
+    try:
+        await generate_incident_summary(database, AnthropicClient(), incident_id)
+        log.info("fire_out_report_generated", incident_id=str(incident_id))
+    except Exception:
+        log.error("fire_out_report_failed", incident_id=str(incident_id), exc_info=True)
+
+
 @router.post(
     "/{incident_id}/resolve",
     response_model=IncidentDetail,
     summary="Resolve an incident / fire out (sub-admin)",
 )
 async def resolve_incident(
-    incident_id: UUID, user: StaffUser, db: DatabaseDep
+    incident_id: UUID, user: StaffUser, db: DatabaseDep, background: BackgroundTasks
 ) -> IncidentDetail:
     """Resolve an incident (fire out). Completes any still-active dispatches."""
     if user.role not in ("sub_admin", "admin"):
@@ -455,6 +476,7 @@ async def resolve_incident(
         """,
         incident_id,
     )
+    background.add_task(_generate_fire_out_report, incident_id)
     log.info("incident_resolved", incident_id=str(incident_id), user_id=str(user.id))
     return await _finish(db, incident_id, "incident_resolved")
 

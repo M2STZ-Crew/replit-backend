@@ -57,10 +57,11 @@ COPY --chown=appuser:appuser app ./app
 
 USER appuser
 
+ENV PORT=8000
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').status==200 else 1)"
+    CMD python -c "import os,urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('PORT','8000')+'/health').status==200 else 1)"
 
 # Single worker is deliberate, not a default left unchanged. app.realtime.manager
 # keeps its WebSocket subscriber registry in process memory, so a second worker
@@ -68,8 +69,12 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 # shared pub/sub backend first — until then scale by replica, not by worker.
 # The 60 s neighborhood scheduler (app.workers.neighborhood) is likewise
 # per-process and would double-send if run twice.
-CMD ["uvicorn", "app.main:app", \
-     "--host", "0.0.0.0", "--port", "8000", \
-     "--workers", "1", \
-     "--proxy-headers", "--forwarded-allow-ips", "*", \
-     "--no-access-log"]
+#
+# Wrapped in `sh -c` so $PORT expands: managed hosts (Render, Koyeb, Cloud Run)
+# assign the port at runtime and health-check that port only. `exec` replaces the
+# shell, so uvicorn stays PID 1 and still receives SIGTERM for a clean shutdown.
+CMD ["sh", "-c", "exec uvicorn app.main:app \
+     --host 0.0.0.0 --port ${PORT:-8000} \
+     --workers 1 \
+     --proxy-headers --forwarded-allow-ips '*' \
+     --no-access-log"]

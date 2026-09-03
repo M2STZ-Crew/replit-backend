@@ -23,6 +23,7 @@ from app.schemas.report import ReportResponse, ReportSubmitResponse
 from app.services.clustering import cluster_report
 from app.services.exif import extract_gps, validate_image
 from app.services.geo import haversine_m
+from app.services.incident import active_area_sql
 from app.workers.neighborhood import notify_area_neighbors
 
 log = get_logger(__name__)
@@ -222,15 +223,32 @@ async def submit_report(
 async def list_my_reports(
     user: CurrentUser, db: DatabaseDep, storage: StorageClientDep
 ) -> list[ReportResponse]:
-    """Return the caller's reports with signed media URLs."""
+    """Return the caller's reports with signed media URLs and incident progress."""
+    # A report can sit in more than one area (the junction allows overlap zones),
+    # so pick one to report progress against: an active incident in preference to
+    # a closed one, then the most recent. Without this a reporter whose area was
+    # merged would see the absorbed area's stale status.
     rows = await db.fetch(
-        """
-        select id, device_lat, device_lng, has_exif, gps_discrepancy_m,
-               gps_discrepancy_flag, compass_bearing, selected_agencies,
-               user_verified_percent, photo_url, video_url, created_at
-        from public.reports
-        where reporter_id = $1
-        order by created_at desc
+        f"""
+        select r.id, r.device_lat, r.device_lng, r.has_exif, r.gps_discrepancy_m,
+               r.gps_discrepancy_flag, r.compass_bearing, r.selected_agencies,
+               r.user_verified_percent, r.photo_url, r.video_url, r.created_at,
+               a.id as area_id,
+               a.designation as area_designation,
+               a.status::text as area_status,
+               a.confidence_band::text as area_confidence_band
+        from public.reports r
+        left join lateral (
+            select ar.area_id
+            from public.area_reports ar
+            join public.areas a2 on a2.id = ar.area_id
+            where ar.report_id = r.id
+            order by ({active_area_sql("a2")}) desc, a2.reported_at desc
+            limit 1
+        ) picked on true
+        left join public.areas a on a.id = picked.area_id
+        where r.reporter_id = $1
+        order by r.created_at desc
         limit 100
         """,
         user.id,
@@ -251,6 +269,10 @@ async def list_my_reports(
                 photo_url=await _sign_or_none(storage, "incident-photos", r["photo_url"]),
                 video_url=await _sign_or_none(storage, "incident-videos", r["video_url"]),
                 created_at=r["created_at"],
+                area_id=r["area_id"],
+                area_designation=r["area_designation"],
+                area_status=r["area_status"],
+                area_confidence_band=r["area_confidence_band"],
             )
         )
     return items

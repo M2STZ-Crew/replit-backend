@@ -184,7 +184,13 @@ _OVERLAP_WINDOW = "120 seconds"
 
 
 async def _detect_overlaps(db: Database, area_id: UUID) -> None:
-    """Record pending overlaps with other active areas whose centroids are <600 m apart."""
+    """Record pending overlaps with other active areas whose centroids are <600 m apart.
+
+    Areas sharing a base number are versions of the same location (Area 7, 7.2, 7.3 ...),
+    so they sit metres apart by construction. Flagging those asks the dispatcher to merge
+    an area with its own history — noise, not signal. Section 3.4 targets two *distinct*
+    incidents that were accidentally split, so the same version chain is excluded.
+    """
     others = await db.fetch(
         f"""
         select b.id as other_id, extensions.ST_Distance(a.centroid, b.centroid) as dist
@@ -193,6 +199,8 @@ async def _detect_overlaps(db: Database, area_id: UUID) -> None:
         where a.id = $1
           and {active_area_sql("a")}
           and {active_area_sql("b")}
+          and (a.base_number is null or b.base_number is null
+               or a.base_number <> b.base_number)
           and extensions.ST_DWithin(a.centroid, b.centroid, {_OVERLAP_RADIUS_M})
         """,
         area_id,

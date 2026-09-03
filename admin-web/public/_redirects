@@ -1,0 +1,4 @@
+# Single-page app: every path is handled by React Router in the browser, so the
+# host must serve index.html for all of them. Without this, a refresh on /login
+# or a shared deep link returns 404 on Cloudflare Pages and Netlify.
+/*    /index.html   200
