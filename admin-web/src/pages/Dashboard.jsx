@@ -8,6 +8,7 @@ import AccountManagement from './AccountManagement.jsx';
 import AffiliatesPanel from './AffiliatesPanel.jsx';
 import AuditLog from './AuditLog.jsx';
 import MapManagement from './MapManagement.jsx';
+import VerificationQueue from './VerificationQueue.jsx';
 
 // Per-section topbar heading (dashboard uses the personalised welcome).
 const HEAD = {
@@ -37,6 +38,7 @@ const SEARCH_PH = {
 
 const NAV = [
   { key: 'dashboard', label: 'Dashboard', sub: 'Live operations', icon: '▦' },
+  { key: 'verify', label: 'Verification', sub: 'Awaiting review', icon: '✓' },
   { key: 'map', label: 'Map', sub: 'Geo overlays', icon: '🗺' },
   { key: 'audit', label: 'Audit Log', sub: 'Incident records', icon: '🗂' },
   { key: 'affiliates', label: 'Affiliates', sub: 'Partner orgs', icon: '🤝' },
@@ -351,6 +353,8 @@ export default function Dashboard() {
             <MapManagement query={query} />
           ) : active === 'affiliates' ? (
             <AffiliatesPanel query={query} onQuery={setQuery} />
+          ) : active === 'verify' ? (
+            <VerificationQueue />
           ) : active === 'audit' ? (
             <AuditLog query={query} onQuery={setQuery} />
           ) : active === 'accounts' ? (

@@ -56,6 +56,14 @@ export const api = {
   },
   incident: (id) => request(`/incidents/${id}`),
   incidentDispatches: (id) => request(`/incidents/${id}/dispatches`),
+
+  // Verification workflow (Section 2.5, stage 3). incidentReports returns the
+  // member reports with the reporter's name and a signed photo URL — the
+  // evidence a Sub-Admin reviews before deciding.
+  incidentReports: (id) => request(`/incidents/${id}/reports`),
+  incidentVerify: (id) => request(`/incidents/${id}/verify`, { method: 'POST' }),
+  incidentReject: (id, reason) =>
+    request(`/incidents/${id}/reject`, { method: 'POST', body: { reason } }),
   equipment: () => request('/equipment'),
   mapLayer: (name) => request(`/map/${name}`),
 

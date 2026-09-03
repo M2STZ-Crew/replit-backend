@@ -2945,3 +2945,76 @@ select.field {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
+
+/* ── Verification queue (Section 2.5, stage 3) ─────────────────────────── */
+.vq { padding: 24px 28px; }
+.vq-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.vq-title { margin: 0; font-size: 20px; color: var(--text); }
+.vq-sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.vq-refresh {
+  background: transparent; border: 1px solid var(--card-border); color: var(--label);
+  padding: 8px 14px; border-radius: 8px; cursor: pointer;
+}
+.vq-refresh:disabled { opacity: .5; cursor: default; }
+.vq-note, .vq-error {
+  margin-top: 16px; padding: 12px 14px; border-radius: 8px; font-size: 13px;
+}
+.vq-note { background: rgba(255,144,102,.08); border: 1px solid rgba(255,144,102,.35); color: var(--label); }
+.vq-error { background: rgba(255,84,78,.10); border: 1px solid var(--danger); color: var(--danger); }
+
+.vq-cols { display: grid; grid-template-columns: 300px 1fr; gap: 18px; margin-top: 18px; }
+@media (max-width: 900px) { .vq-cols { grid-template-columns: 1fr; } }
+
+.vq-list { display: flex; flex-direction: column; gap: 8px; }
+.vq-item {
+  text-align: left; background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 10px; padding: 12px 14px; cursor: pointer; color: var(--text);
+}
+.vq-item:hover { border-color: var(--accent); }
+.vq-item.is-active { border-color: var(--accent); background: rgba(255,144,102,.06); }
+.vq-item-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.vq-item-name { font-weight: 600; }
+.vq-chip { font-size: 12px; font-weight: 700; }
+.vq-item-sub { margin-top: 4px; font-size: 12px; color: var(--muted); }
+
+.vq-detail { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; }
+.vq-detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.vq-detail-title { margin: 0; font-size: 18px; color: var(--text); }
+.vq-detail-sub { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.vq-band { border: 1px solid; border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+
+.vq-scores { display: flex; gap: 10px; margin: 18px 0 6px; }
+.vq-score {
+  flex: 1; background: var(--input-bg); border-radius: 10px; padding: 12px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.vq-score-v { font-size: 20px; font-weight: 700; color: var(--text); }
+.vq-score-l { font-size: 11px; color: var(--muted); }
+
+.vq-section { margin: 22px 0 10px; font-size: 13px; color: var(--label); font-weight: 600; }
+.vq-reports { display: flex; flex-direction: column; gap: 12px; }
+.vq-report { display: flex; gap: 14px; align-items: flex-start; }
+.vq-photo { width: 150px; height: 108px; object-fit: cover; border-radius: 8px; flex: none; }
+.vq-photo-missing {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--input-bg); color: var(--placeholder); font-size: 12px;
+}
+.vq-report-meta { display: flex; flex-direction: column; gap: 4px; }
+.vq-reporter { font-weight: 600; color: var(--text); }
+.vq-badge { font-size: 12px; font-weight: 600; }
+.vq-flag { font-size: 12px; color: var(--danger); }
+.vq-muted { font-size: 12px; color: var(--muted); }
+
+.vq-actions { display: flex; gap: 10px; margin-top: 24px; align-items: center; }
+.vq-btn {
+  border: 1px solid var(--card-border); background: transparent; color: var(--label);
+  padding: 11px 18px; border-radius: 9px; cursor: pointer; font-weight: 600;
+}
+.vq-btn:disabled { opacity: .45; cursor: not-allowed; }
+.vq-btn-verify { background: linear-gradient(178deg, var(--accent) 0%, var(--accent-end) 100%); color: var(--accent-text); border: none; }
+.vq-btn-reject { border-color: var(--danger); color: var(--danger); }
+.vq-reason {
+  flex: 1; background: var(--input-bg); border: 1px solid var(--input-border);
+  border-radius: 9px; padding: 11px 14px; color: var(--text);
+}
+.vq-empty { color: var(--muted); font-size: 13px; padding: 18px 0; }
