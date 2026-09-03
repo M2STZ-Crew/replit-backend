@@ -33,12 +33,52 @@ from app.schemas.verification import (
     NationalIdStartResponse,
     PhoneVerifyCheckRequest,
     PhoneVerifyStartRequest,
+    VerificationChannelStatus,
     VerificationResultResponse,
+    VerificationStatusResponse,
 )
 
 log = get_logger(__name__)
 
 router = APIRouter(prefix="/verification", tags=["verification"])
+
+
+@router.get(
+    "/status",
+    response_model=VerificationStatusResponse,
+    summary="My progressive-verification standing, per channel",
+)
+async def verification_status(
+    user: CurrentUser, db: DatabaseDep
+) -> VerificationStatusResponse:
+    """Return the caller's percent, badge, and the state of each channel.
+
+    A client needs the per-channel status to tell "never submitted" apart from
+    "submitted, awaiting Admin review" — both contribute 0% — otherwise it
+    prompts the user to upload their National ID again while the first
+    submission is still in the review queue.
+    """
+    rows = await db.fetch(
+        """
+        select type::text as type, status::text as status, percent_awarded,
+               submitted_at, verified_at, review_notes
+        from public.user_verifications
+        where user_id = $1
+        order by type
+        """,
+        user.id,
+    )
+    profile = await db.fetchrow(
+        "select verified_percent, badge::text as badge from public.users where id = $1",
+        user.id,
+    )
+    if profile is None:
+        raise BadRequestError("Profile not found.")
+    return VerificationStatusResponse(
+        verified_percent=profile["verified_percent"],
+        badge=profile["badge"],
+        channels=[VerificationChannelStatus.model_validate(dict(r)) for r in rows],
+    )
 
 
 # --------------------------------------------------------------------------- #

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -35,3 +37,32 @@ class VerificationResultResponse(BaseModel):
     verified_percent: int = Field(ge=0, le=100)
     badge: str
     message: str | None = None
+
+
+class VerificationChannelStatus(BaseModel):
+    """State of one verification channel for the caller."""
+
+    type: str = Field(description="'phone', 'email', or 'national_id'.")
+    status: str = Field(
+        description="pending | verified | manual_review | rejected | failed."
+    )
+    percent_awarded: int = Field(ge=0, le=100)
+    submitted_at: datetime | None = None
+    verified_at: datetime | None = None
+    review_notes: str | None = Field(
+        default=None, description="Reviewer's reason, set when a KYC review rejects."
+    )
+
+
+class VerificationStatusResponse(BaseModel):
+    """The caller's progressive-verification standing, per channel.
+
+    ``verified_percent`` alone cannot distinguish "never submitted" from
+    "submitted and awaiting Admin review" — both read as 0 for that channel — so
+    a client showing an upload form would prompt a user to submit again while
+    their first submission still sits in the queue.
+    """
+
+    verified_percent: int = Field(ge=0, le=100)
+    badge: str
+    channels: list[VerificationChannelStatus] = Field(default_factory=list)
