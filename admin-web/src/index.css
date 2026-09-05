@@ -1,18 +1,88 @@
+/* Design tokens.
+ *
+ * Values come from the "Admin Console" Claude Design file. The accent, danger
+ * and muted values already matched what this console shipped, so the design is
+ * a refinement of the existing identity rather than a rebrand — the surface
+ * ramp below is the substantive change: five deliberate steps from page to
+ * raised panel, where the console previously had two. */
 :root {
-  --bg: #0f0f0f;
-  --card: #121212;
-  --card-border: #1f1f1f;
-  --input-bg: #20201f;
-  --input-border: rgba(118, 117, 117, 0.3);
-  --label: #adaaaa;
-  --muted: #adaaaa;
-  --placeholder: #767575;
+  /* Surfaces, darkest to lightest. */
+  --bg: #0a0a0a;
+  --surface-1: #0f0f0f;
+  --surface-2: #121212;
+  --surface-3: #151515;
+  --surface-4: #181818;
+
+  /* Hairlines. The design leans on inset box-shadows rather than borders so a
+   * 1px line never adds to an element's box size. */
+  --line: #1a1a1a;
+  --line-2: #1f1f1f;
+  --line-3: #262626;
+
+  /* Type ramp. */
   --text: #ffffff;
+  --text-2: #e0e0e0;
+  --text-3: #cfcfcf;
+  --label: #adaaaa;
+  --muted: #8a8a8a;
+  --placeholder: #767575;
+  --faint: #706e6e;
+  --fainter: #484847;
+
   --accent: #ff9066;
   --accent-end: #eb4800;
-  --accent-text: #441200;
+  --accent-text: #381000;
+  --accent-soft: rgba(255, 144, 102, 0.08);
+  --accent-line: rgba(255, 144, 102, 0.25);
+
   --danger: #ff544e;
-  --sidebar: #131313;
+  --warn: #ffb63c;
+  --ok: #22c55e;
+  --info: #6098d6;
+
+  /* Kept so existing pages keep rendering while they are restyled one by one. */
+  --card: var(--surface-2);
+  --card-border: var(--line-2);
+  --input-bg: #121212;
+  --input-border: var(--line-3);
+  --sidebar: #0f0f0f;
+
+  --grad-accent: linear-gradient(135deg, #ff9066 0%, #eb4800 100%);
+  --radius: 12px;
+  --radius-lg: 14px;
+  --radius-pill: 100px;
+}
+
+/* Uppercase micro-label used throughout the design for eyebrows, table headers
+ * and stat captions. Defined once so the tracking stays consistent. */
+.dc-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+@keyframes dcFadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes dcDot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+@keyframes dcEmber {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-18px, -22px, 0) scale(1.08); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 * {
@@ -3091,4 +3161,139 @@ select.field {
   position: absolute; top: 20px; right: 24px; background: transparent;
   border: 1px solid rgba(255,255,255,.4); color: #fff;
   padding: 8px 16px; border-radius: 8px; cursor: pointer;
+}
+
+/* ── Login (Admin Console design) ──────────────────────────────────────── */
+.lg { display: flex; flex-wrap: wrap; width: 100%; min-height: 100vh; }
+
+.lg-brand {
+  position: relative; flex: 1 1 min(460px, 100%); min-height: min(1080px, 100vh);
+  overflow: hidden; background: var(--surface-1);
+  display: flex; flex-direction: column; justify-content: space-between;
+  gap: clamp(28px, 4vw, 56px); padding: clamp(26px, 3.2vw, 64px);
+}
+.lg-ember {
+  position: absolute; left: -180px; top: 220px; width: 900px; height: 900px;
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 50% 50%,
+    rgba(235, 72, 0, 0.34) 0%, rgba(235, 72, 0, 0.06) 42%, rgba(10, 10, 10, 0) 70%);
+  animation: dcEmber 14s ease-in-out infinite;
+}
+.lg-grid {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+.lg-mark { position: relative; display: flex; align-items: center; gap: 14px; }
+.lg-mark img { object-fit: contain; }
+.lg-mark-text { display: flex; flex-direction: column; gap: 2px; }
+.lg-wordmark {
+  font-size: 15px; font-weight: 900; letter-spacing: 2.4px; text-transform: uppercase;
+}
+.lg-tagline {
+  font-size: 9px; font-weight: 700; letter-spacing: 1.6px;
+  text-transform: uppercase; color: var(--placeholder);
+}
+.lg-pitch {
+  position: relative; display: flex; flex-direction: column; gap: 26px; max-width: 600px;
+}
+.lg-pill {
+  display: flex; align-items: center; gap: 10px; padding: 7px 14px;
+  border-radius: var(--radius-pill); background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-line); align-self: flex-start;
+  font-size: 10px; font-weight: 700; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--accent);
+}
+.lg-pill-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  animation: dcDot 1.6s ease-in-out infinite;
+}
+.lg-headline {
+  margin: 0; font-size: clamp(38px, 4.8vw, 66px); line-height: 0.94; font-weight: 900;
+  letter-spacing: -3.4px; text-transform: uppercase; text-wrap: balance;
+}
+.lg-lede {
+  margin: 0; font-size: 15px; line-height: 1.65; color: var(--label); max-width: 470px;
+}
+.lg-foot {
+  position: relative; font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--fainter);
+}
+
+.lg-panel {
+  flex: 1 1 min(400px, 100%); min-height: min(1080px, 100vh);
+  display: flex; align-items: center; justify-content: center;
+  padding: clamp(24px, 3vw, 48px); background: var(--bg);
+  box-shadow: inset 1px 0 0 var(--line);
+}
+.lg-form {
+  width: min(440px, 100%); display: flex; flex-direction: column; gap: 24px;
+  animation: dcFadeUp 0.5s ease both;
+}
+.lg-head { display: flex; flex-direction: column; gap: 8px; }
+.lg-kicker {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.6px;
+  text-transform: uppercase; color: var(--accent);
+}
+.lg-title {
+  margin: 0; font-size: 34px; font-weight: 900; letter-spacing: -1.6px;
+  text-transform: uppercase;
+}
+.lg-sub { margin: 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
+
+.lg-fields { display: flex; flex-direction: column; gap: 14px; }
+.lg-field { display: flex; flex-direction: column; gap: 8px; }
+.lg-field input {
+  height: 48px; width: 100%; border: none; border-radius: var(--radius);
+  background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line-2);
+  color: var(--text); font-size: 13px; padding: 0 16px;
+}
+.lg-field input::placeholder { color: var(--fainter); }
+.lg-field input:focus { box-shadow: inset 0 0 0 1px rgba(255, 144, 102, 0.6); }
+.lg-pw { position: relative; display: block; }
+.lg-pw input { padding-right: 46px; }
+.lg-eye {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; color: var(--placeholder);
+  cursor: pointer; border-radius: 8px;
+}
+.lg-eye:hover { color: var(--accent); }
+.lg-eye:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.lg-error {
+  padding: 12px 14px; border-radius: var(--radius);
+  background: rgba(255, 84, 78, 0.1); box-shadow: inset 0 0 0 1px var(--danger);
+  color: var(--danger); font-size: 13px;
+}
+.lg-submit {
+  height: 52px; border: none; border-radius: var(--radius-lg);
+  background: var(--grad-accent); color: var(--accent-text);
+  font-size: 12px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase;
+  cursor: pointer; box-shadow: 0 14px 34px rgba(235, 72, 0, 0.28);
+  transition: box-shadow 0.18s ease;
+}
+.lg-submit:hover:not(:disabled) { box-shadow: 0 18px 42px rgba(235, 72, 0, 0.44); }
+.lg-submit:disabled { opacity: 0.6; cursor: default; }
+
+.lg-note {
+  display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px;
+  border-radius: var(--radius); background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 10.5px; line-height: 1.5; color: var(--muted);
+}
+.lg-note svg { flex-shrink: 0; margin-top: 1px; }
+.lg-affiliate { font-size: 12px; color: var(--muted); text-align: center; }
+.lg-link {
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--accent); font: inherit; font-weight: 600;
+}
+.lg-link:hover { color: #ffb69b; }
+
+/* The identity panel is decoration; on a phone the form is the whole point. */
+@media (max-width: 900px) {
+  .lg-brand { display: none; }
+  .lg-panel { box-shadow: none; min-height: 100vh; }
 }
