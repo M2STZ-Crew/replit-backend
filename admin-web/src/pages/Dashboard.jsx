@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 
 import { api } from '../api/client.js';
 import { isObserver, useAuth } from '../auth.jsx';
+import ConsoleShell from '../components/ConsoleShell.jsx';
 import LiveMap, { LAYER_COLORS } from '../components/LiveMap.jsx';
-import Logo from '../components/Logo.jsx';
 import AccountManagement from './AccountManagement.jsx';
 import AffiliatesPanel from './AffiliatesPanel.jsx';
 import AuditLog from './AuditLog.jsx';
@@ -198,43 +198,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="db-app">
-      {/* ----------------------------------------------------------- sidebar */}
-      <aside className="db-sidebar">
-        <div className="db-org">
-          <div className="db-org-logo"><Logo height={26} /></div>
-          <div className="db-org-text">
-            <div className="db-org-name">RepLiT Admin</div>
-            <div className="db-org-sub">Response Console</div>
-          </div>
-        </div>
-        <div className="db-nav-label">WORKSPACE</div>
-        <nav className="db-nav">
-          {navFor(user).map((n) => (
-            <button
-              key={n.key}
-              className={`db-nav-item${active === n.key ? ' active' : ''}`}
-              onClick={() => go(n.key)}
-            >
-              <span className="db-nav-icon">{n.icon}</span>
-              <span className="db-nav-texts">
-                <span className="db-nav-title">{n.label}</span>
-                <span className="db-nav-sub">{n.sub}</span>
-              </span>
-            </button>
-          ))}
-        </nav>
-        <div className="db-userbar">
-          <div className="db-avatar">{initials}</div>
-          <div className="db-user-texts">
-            <div className="db-user-name">{name}</div>
-            <div className="db-user-sub">Administrator</div>
-          </div>
-          <button className="db-logout" onClick={logout} title="Log out">⎋</button>
-        </div>
-      </aside>
-
-      {/* -------------------------------------------------------------- main */}
+    <ConsoleShell active={active} onNavigate={go}>
       <div className="db-main">
         <header className="db-topbar">
           <div>
@@ -384,6 +348,6 @@ export default function Dashboard() {
           )}
         </div>
       </div>
-    </div>
+    </ConsoleShell>
   );
 }

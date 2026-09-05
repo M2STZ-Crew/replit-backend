@@ -3297,3 +3297,132 @@ select.field {
   .lg-brand { display: none; }
   .lg-panel { box-shadow: none; min-height: 100vh; }
 }
+
+/* ── Console shell (Admin Console design) ──────────────────────────────── */
+.cs { display: flex; width: 100%; height: 100vh; overflow: hidden; align-items: stretch; }
+
+.cs-nav {
+  width: 272px; flex-shrink: 0; background: #0d0d0d;
+  box-shadow: inset -1px 0 0 var(--line);
+  display: flex; flex-direction: column; padding: 22px 18px; gap: 22px;
+  height: 100vh; overflow-y: auto;
+  transition: width 0.16s ease, padding 0.16s ease;
+}
+.cs.is-slim .cs-nav { width: 84px; padding: 22px 0; align-items: center; gap: 18px; }
+
+.cs-brand { display: flex; align-items: center; gap: 12px; padding: 6px 6px 0; width: 100%; }
+.cs.is-slim .cs-brand { flex-direction: column; padding: 0; gap: 10px; }
+.cs-brand img { object-fit: contain; flex-shrink: 0; }
+.cs-brand-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.cs-brand-name {
+  font-size: 12.5px; font-weight: 900; letter-spacing: 1.6px; text-transform: uppercase;
+}
+.cs-brand-sub {
+  font-size: 9px; font-weight: 700; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--faint);
+}
+.cs-collapse {
+  width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  background: #141414; border: none; box-shadow: inset 0 0 0 1px var(--line-2);
+}
+.cs-collapse:hover { background: #202020; }
+.cs.is-slim .cs-collapse svg { transform: rotate(180deg); }
+
+.cs-group { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.cs.is-slim .cs-group { align-items: center; }
+.cs-group-label {
+  font-size: 9px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase;
+  color: var(--fainter); padding: 0 8px 6px;
+}
+.cs-item {
+  position: relative; display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 10px; border-radius: 12px; cursor: pointer; border: none;
+  background: transparent; text-align: left;
+}
+.cs.is-slim .cs-item { width: 48px; justify-content: center; padding: 10px 0; }
+.cs-item:hover { background: #141414; }
+.cs-item.is-active {
+  background: linear-gradient(90deg, rgba(255, 144, 102, 0.17), rgba(255, 144, 102, 0.03));
+  box-shadow: inset 0 0 0 1px rgba(255, 144, 102, 0.26);
+}
+.cs-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.cs-item-icon {
+  width: 24px; height: 24px; border-radius: 7px; background: var(--surface-3);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.cs-item-label {
+  font-size: 12.5px; font-weight: 600; letter-spacing: 0.2px;
+  color: var(--text-2); flex: 1;
+}
+.cs-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.6px; padding: 2px 6px;
+  border-radius: 5px; color: var(--accent); background: rgba(255, 144, 102, 0.13);
+}
+.cs-badge.is-urgent { color: var(--danger); background: rgba(255, 84, 78, 0.12); }
+.cs-dot {
+  position: absolute; top: 7px; right: 7px; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--accent);
+}
+
+.cs-spacer { flex: 1; }
+
+.cs-posture {
+  display: flex; flex-direction: column; gap: 10px; padding: 14px;
+  border-radius: var(--radius-lg); background: #111111;
+  box-shadow: inset 0 0 0 1px #1c1c1c;
+}
+.cs-posture-top { display: flex; align-items: center; justify-content: space-between; }
+.cs-posture-level {
+  font-size: 9px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--ok);
+}
+.cs-posture-level.is-elevated { color: var(--accent); }
+.cs-posture-note { margin: 0; font-size: 10px; line-height: 1.5; color: var(--muted); }
+
+.cs-user {
+  display: flex; align-items: center; gap: 12px; padding: 12px;
+  border-radius: var(--radius-lg); background: #111111;
+  box-shadow: inset 0 0 0 1px #1c1c1c; width: 100%;
+}
+.cs.is-slim .cs-user { flex-direction: column; padding: 10px 0; background: transparent; box-shadow: none; }
+.cs-avatar {
+  width: 34px; height: 34px; border-radius: 10px; background: var(--grad-accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 900; color: var(--accent-text); flex-shrink: 0;
+}
+.cs-user-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.cs-user-name {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cs-user-role {
+  font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cs-signout {
+  width: 26px; height: 26px; border-radius: 8px; border: none; background: transparent;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+}
+.cs-signout:hover { background: #202020; }
+
+.cs-main { flex: 1; min-width: 0; overflow-y: auto; background: var(--bg); }
+
+/* Bottom bar replaces the sidebar on small screens. */
+.cs-bar { display: none; }
+@media (max-width: 900px) {
+  .cs { flex-direction: column; }
+  .cs-nav { display: none; }
+  .cs-main { flex: 1; padding-bottom: 64px; }
+  .cs-bar {
+    display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: 60px;
+    background: #0d0d0d; box-shadow: inset 0 1px 0 var(--line); z-index: 20;
+  }
+  .cs-bar-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 3px; border: none; background: transparent;
+    cursor: pointer; font-size: 9px; font-weight: 700; letter-spacing: 0.4px;
+    text-transform: uppercase; color: var(--muted); padding: 0;
+  }
+  .cs-bar-item.is-active { color: var(--accent); }
+}
