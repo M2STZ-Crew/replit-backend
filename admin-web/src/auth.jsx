@@ -30,6 +30,20 @@ export function isObserver(user) {
   return user?.role === 'sub_admin' && OBSERVER_AGENCIES.includes(user?.agency_type);
 }
 
+/// Standing of an agency itself, independent of any one account. The directory
+/// screens list organisations and personnel side by side, and a police station
+/// is indistinguishable from a fire brigade in that table unless the authority
+/// it carries is spelled out.
+export function agencyAuthority(agency) {
+  if (COORDINATING_AGENCIES.includes(agency)) {
+    return { key: 'coordinator', label: 'Coordinator', color: '#FF9066' };
+  }
+  if (OBSERVER_AGENCIES.includes(agency)) {
+    return { key: 'observer', label: 'Observer', color: '#6098D6' };
+  }
+  return { key: 'unknown', label: '—', color: '#8a8a8a' };
+}
+
 /// May change an incident's state at all.
 export function canCoordinate(user) {
   if (user?.role === 'admin') return true;

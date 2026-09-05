@@ -3746,9 +3746,10 @@ select.field {
 .af-app-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .af-app-actions .vq-btn { flex: 1; justify-content: center; text-align: center; }
 
-.af-cols { gap: 16px; min-width: 760px; }
+.af-cols { gap: 16px; min-width: 880px; }
 .af-c-org { flex: 1; min-width: 0; }
 .af-c-sector { width: 150px; flex-shrink: 0; }
+.af-c-auth { width: 120px; flex-shrink: 0; display: flex; }
 .af-c-num { width: 86px; flex-shrink: 0; }
 .af-c-status { width: 110px; flex-shrink: 0; display: flex; }
 .af-org { display: flex; align-items: center; gap: 12px; min-width: 0; }
@@ -3772,10 +3773,11 @@ select.field {
 .af-status.is-on { color: var(--ok); background: rgba(34, 197, 94, 0.12); }
 .af-status-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 
-.ac-cols { gap: 16px; min-width: 720px; }
+.ac-cols { gap: 16px; min-width: 840px; }
 .ac-c-person { flex: 1; min-width: 0; }
 .ac-c-role { width: 140px; flex-shrink: 0; display: flex; }
 .ac-c-org { width: 200px; flex-shrink: 0; }
+.ac-c-auth { width: 120px; flex-shrink: 0; display: flex; }
 .ac-c-ver { width: 110px; flex-shrink: 0; }
 .ac-avatar {
   width: 32px; height: 32px; border-radius: 10px; background: var(--grad-accent);

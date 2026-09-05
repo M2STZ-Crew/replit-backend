@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { api } from '../api/client.js';
-import { agencyLabel } from '../auth.jsx';
+import { agencyAuthority, agencyLabel } from '../auth.jsx';
 
 const GLYPH = {
   fire_volunteer: 'glyph-firefighter',
@@ -204,8 +204,10 @@ export default function Affiliates() {
           <div className="sb-map-title">
             <span className="sb-panel-title">Accredited organisations</span>
             <span className="sb-panel-sub">
-              {orgs.length} on the network. Accreditation is granted through the application
-              queue above; there is no endpoint to suspend or revoke it yet.
+              {orgs.length} on the network. Fire Volunteer and BFP organisations coordinate
+              the response; police, medical and barangay take part for situational awareness
+              only. Accreditation is granted through the queue above; there is no endpoint to
+              suspend or revoke it yet.
             </span>
           </div>
         </header>
@@ -214,6 +216,7 @@ export default function Affiliates() {
           <div className="ar-cols af-cols">
             <span className="af-c-org">Organisation</span>
             <span className="af-c-sector">Sector</span>
+            <span className="af-c-auth">Authority</span>
             <span className="af-c-num">Units</span>
             <span className="af-c-num">Personnel</span>
             <span className="af-c-status">Status</span>
@@ -225,7 +228,9 @@ export default function Affiliates() {
             </p>
           )}
 
-          {orgs.map((o) => (
+          {orgs.map((o) => {
+            const auth = agencyAuthority(o.agency_type);
+            return (
             <div className="ar-row af-cols" key={o.id}>
               <div className="af-c-org af-org">
                 <span className="af-org-chip" style={{ background: `${SECTOR_COLOR[o.agency_type] ?? '#8a8a8a'}1f` }}>
@@ -240,6 +245,14 @@ export default function Affiliates() {
                 </div>
               </div>
               <span className="af-c-sector af-sector">{agencyLabel(o.agency_type)}</span>
+              <span className="af-c-auth">
+                <span className="ar-tag" style={{ color: auth.color, background: `${auth.color}1f` }}
+                      title={auth.key === 'observer'
+                        ? 'Sees incidents that requested this agency; cannot verify, reject or dispatch.'
+                        : 'Verifies, rejects and dispatches on incidents.'}>
+                  {auth.label}
+                </span>
+              </span>
               <span className="af-c-num af-num">{o.equipment_count ?? 0}</span>
               <span className="af-c-num af-num">{o.personnel_count ?? 0}</span>
               <span className="af-c-status">
@@ -249,7 +262,8 @@ export default function Affiliates() {
                 </span>
               </span>
             </div>
-          ))}
+            );
+          })}
         </div>
       </section>
     </div>

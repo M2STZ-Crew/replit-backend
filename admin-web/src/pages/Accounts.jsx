@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { api } from '../api/client.js';
-import { agencyLabel } from '../auth.jsx';
+import { agencyAuthority, agencyLabel } from '../auth.jsx';
 
 const ROLE = {
   admin: { label: 'Admin', color: '#FF544E' },
@@ -22,6 +22,30 @@ function initials(name) {
   return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?';
 }
 
+/* What this account may actually do. Authority is a Sub-Admin question — a
+ * Response Team member acts on the dispatches they are given regardless of
+ * which agency they belong to, so labelling them "Coordinator" because their
+ * organisation is a fire brigade would be wrong. */
+function authorityOf(person) {
+  if (person.role === 'sub_admin') {
+    const { label, color, key } = agencyAuthority(person.agency_type);
+    return {
+      label,
+      color,
+      hint: key === 'observer'
+        ? 'Sees incidents that requested this agency; cannot verify, reject or dispatch.'
+        : 'Verifies, rejects and dispatches on incidents.',
+    };
+  }
+  if (person.role === 'response_team') {
+    return { label: 'Responder', color: '#8a8a8a', hint: 'Acts on dispatches; no console authority.' };
+  }
+  if (person.role === 'admin') {
+    return { label: 'Full access', color: '#FF544E', hint: 'Every action, citywide.' };
+  }
+  return { label: '—', color: '#8a8a8a', hint: '' };
+}
+
 /* Personnel accounts (Section 2.6 — Admin: user approval and oversight).
  *
  * There is no endpoint that lists every user; the only roster available is
@@ -34,7 +58,6 @@ function initials(name) {
  * so verification standing takes their place — which is the more useful signal
  * anyway, since it is what dispatchers weigh. */
 export default function Accounts() {
-  const [orgs, setOrgs] = useState([]);
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,7 +67,6 @@ export default function Accounts() {
     setLoading(true);
     try {
       const orgList = await api.organizations();
-      setOrgs(orgList);
       const rosters = await Promise.all(
         orgList.map((o) =>
           api.orgPersonnel(o.id)
@@ -73,6 +95,12 @@ export default function Accounts() {
     );
   }, [people, query]);
 
+  const subAdmins = people.filter((p) => p.role === 'sub_admin');
+  const observers = subAdmins.filter(
+    (p) => agencyAuthority(p.agency_type).key === 'observer',
+  ).length;
+  const coordinators = subAdmins.length - observers;
+
   const split = useMemo(() => {
     const counts = new Map();
     for (const p of people) counts.set(p.role, (counts.get(p.role) ?? 0) + 1);
@@ -95,17 +123,22 @@ export default function Accounts() {
           <span className="ar-stat-v">{loading ? '·' : people.length}</span>
           <span className="sb-kpi-foot">Attached to an organisation</span>
         </section>
-        <section className="ar-stat">
-          <span className="dc-eyebrow">Organisations</span>
-          <span className="ar-stat-v">{loading ? '·' : orgs.length}</span>
-          <span className="sb-kpi-foot">Providing those accounts</span>
-        </section>
+        {/* Sub-Admins are split rather than counted together: five of them with
+            only two able to act on an incident is the sort of number that gets
+            misread in a meeting. */}
         <section className="ar-stat">
           <span className="dc-eyebrow">Coordinators</span>
           <span className="ar-stat-v" style={{ color: '#FF9066' }}>
-            {loading ? '·' : people.filter((p) => p.role === 'sub_admin').length}
+            {loading ? '·' : coordinators}
           </span>
-          <span className="sb-kpi-foot">Sub-Admin accounts</span>
+          <span className="sb-kpi-foot">Sub-Admins who can act</span>
+        </section>
+        <section className="ar-stat">
+          <span className="dc-eyebrow">Observers</span>
+          <span className="ar-stat-v" style={{ color: '#6098D6' }}>
+            {loading ? '·' : observers}
+          </span>
+          <span className="sb-kpi-foot">Situational awareness only</span>
         </section>
         <section className="ar-stat">
           <span className="dc-eyebrow">Responders</span>
@@ -166,6 +199,7 @@ export default function Accounts() {
             <span className="ac-c-person">Person</span>
             <span className="ac-c-role">Role</span>
             <span className="ac-c-org">Organisation</span>
+            <span className="ac-c-auth">Authority</span>
             <span className="ac-c-ver">Verification</span>
           </div>
 
@@ -180,6 +214,7 @@ export default function Accounts() {
           {filtered.map((p) => {
             const role = ROLE[p.role] ?? { label: p.role, color: '#8a8a8a' };
             const badge = BADGE[p.badge] ?? { label: '—', color: '#8a8a8a' };
+            const auth = authorityOf(p);
             return (
               <div className="ar-row ac-cols" key={p.id}>
                 <div className="ac-c-person af-org">
@@ -197,6 +232,12 @@ export default function Accounts() {
                   </span>
                 </span>
                 <span className="ac-c-org af-sector">{p.org}</span>
+                <span className="ac-c-auth">
+                  <span className="ar-tag" title={auth.hint}
+                        style={{ color: auth.color, background: `${auth.color}1f` }}>
+                    {auth.label}
+                  </span>
+                </span>
                 <span className="ac-c-ver ac-ver">
                   <span className="ac-ver-pct" style={{ color: badge.color }}>
                     {p.verified_percent ?? 0}%
