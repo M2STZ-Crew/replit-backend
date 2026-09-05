@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { api } from '../api/client.js';
 import { isObserver, useAuth } from '../auth.jsx';
 import ConsoleShell from '../components/ConsoleShell.jsx';
+import ActionRecord from './ActionRecord.jsx';
+import SituationBoard from './SituationBoard.jsx';
 import LiveMap, { LAYER_COLORS } from '../components/LiveMap.jsx';
 import AccountManagement from './AccountManagement.jsx';
 import AffiliatesPanel from './AffiliatesPanel.jsx';
@@ -222,111 +224,7 @@ export default function Dashboard() {
 
         <div className={`db-scroll${active === 'map' ? ' db-scroll-flush' : ''}`}>
           {active === 'dashboard' ? (
-            <>
-              <div className="db-stats">
-                {STAT_CARDS.map((c) => (
-                  <div className="db-stat" key={c.key}>
-                    <div className="db-stat-icon" style={{ background: c.tint }}>{c.icon}</div>
-                    <div className="db-stat-value">{stats ? (stats[c.key] ?? 0) : '–'}</div>
-                    <div className="db-stat-label">{c.label}</div>
-                    <div className="db-stat-sub">{c.sub}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="db-cols">
-                <section className="db-panel db-mappanel">
-                  <div className="db-panel-head">
-                    <div>
-                      <div className="db-panel-title">Live Map</div>
-                      <div className="db-panel-sub">
-                        Real-time positions across Pasay City. Toggle layers to focus.
-                      </div>
-                    </div>
-                    <div className="db-live"><span className="db-live-dot" />Updating live</div>
-                  </div>
-                  <div className="db-chips">
-                    {LAYERS.map((l) => {
-                      const on = enabled.has(l.key);
-                      return (
-                        <button
-                          key={l.key}
-                          className={`db-chip${on ? ' on' : ''}`}
-                          onClick={() => toggleLayer(l)}
-                          style={on ? { borderColor: l.color } : undefined}
-                        >
-                          <span className="db-chip-dot" style={{ background: l.color }} />
-                          {l.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="db-map">
-                    <LiveMap incidents={shownIncidents} layerPoints={layerPoints} enabled={enabled} />
-                  </div>
-                </section>
-
-                <div className="db-right">
-                  <section className="db-panel">
-                    <div className="db-panel-head">
-                      <div>
-                        <div className="db-panel-title">Incident Reports</div>
-                        <div className="db-panel-sub">
-                          {shownIncidents.length} {q ? 'matching' : 'active'} reports
-                        </div>
-                      </div>
-                      <span className="db-link" onClick={() => go('audit')}>View all ›</span>
-                    </div>
-                    <div className="db-list">
-                      {shownIncidents.length === 0 && <div className="db-empty">No active incidents.</div>}
-                      {shownIncidents.slice(0, 8).map((inc) => {
-                        const st = reportStatus(inc.status);
-                        return (
-                          <div className="db-inccard" key={inc.id}>
-                            <div className="db-inccard-top">
-                              <span className="db-tag">FIRE</span>
-                              <span className="db-dot-status" style={{ color: st.color }}>● {st.label}</span>
-                            </div>
-                            <div className="db-inccard-addr">{inc.designation || 'Incident'}</div>
-                            <div className="db-inccard-meta">
-                              <span>Reported {fmtTime(inc.reported_at)}</span>
-                              <span>{(inc.report_count ?? 0)} report(s)</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </section>
-
-                  <section className="db-panel">
-                    <div className="db-panel-head">
-                      <div>
-                        <div className="db-panel-title">Units</div>
-                        <div className="db-panel-sub">Fleet status snapshot</div>
-                      </div>
-                    </div>
-                    <div className="db-units">
-                      {shownEquipment.length === 0 && <div className="db-empty">No units registered.</div>}
-                      {shownEquipment.slice(0, 10).map((u) => {
-                        const deployed = u.status === 'in_use';
-                        return (
-                          <div className="db-unit" key={u.id}>
-                            <span className="db-unit-dot" style={{ background: deployed ? '#FF9066' : '#CFCFCF' }} />
-                            <div className="db-unit-texts">
-                              <div className="db-unit-name">{u.name}</div>
-                              <div className="db-unit-sub">{u.category || '—'}</div>
-                            </div>
-                            <span className={`db-unit-pill${deployed ? ' deployed' : ''}`}>
-                              {deployed ? 'Deployed' : 'Standby'}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </section>
-                </div>
-              </div>
-            </>
+            <SituationBoard onNavigate={go} />
           ) : active === 'map' ? (
             <MapManagement query={query} />
           ) : active === 'affiliates' ? (
@@ -336,7 +234,7 @@ export default function Dashboard() {
           ) : active === 'verify' ? (
             <VerificationQueue />
           ) : active === 'audit' ? (
-            <AuditLog query={query} onQuery={setQuery} />
+            <ActionRecord />
           ) : active === 'accounts' ? (
             <AccountManagement query={query} />
           ) : (

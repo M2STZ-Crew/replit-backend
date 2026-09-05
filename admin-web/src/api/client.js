@@ -67,6 +67,15 @@ export const api = {
   equipment: () => request('/equipment'),
   mapLayer: (name) => request(`/map/${name}`),
 
+  // Immutable action record (admin only — AdminUser on the server).
+  auditLogs: (opts = {}) => {
+    const q = new URLSearchParams();
+    if (opts.limit) q.set('limit', String(opts.limit));
+    if (opts.action) q.set('action', opts.action);
+    const qs = q.toString();
+    return request(`/audit-logs${qs ? `?${qs}` : ''}`);
+  },
+
   // National ID review (admin only — Section 2.6). The pending list already
   // carries short-lived signed URLs for the ID and selfie images, which live in
   // a private bucket.
