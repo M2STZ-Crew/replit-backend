@@ -16,6 +16,26 @@ export function isConsoleRole(role) {
   return CONSOLE_ROLES.includes(role);
 }
 
+/// Agencies that coordinate the fire response. Mirrors COORDINATING_AGENCIES in
+/// app/services/incident.py — keep the two in step.
+const COORDINATING_AGENCIES = ['fire_volunteer', 'bfp'];
+
+/// Police, medical and barangay take part for situational awareness only
+/// (Section 1.3 problem 9). Their sub-admins see incidents that requested their
+/// agency and can change nothing, so the console must show them the incident
+/// without offering a single action the API would refuse.
+const OBSERVER_AGENCIES = ['police', 'medical', 'barangay'];
+
+export function isObserver(user) {
+  return user?.role === 'sub_admin' && OBSERVER_AGENCIES.includes(user?.agency_type);
+}
+
+/// May change an incident's state at all.
+export function canCoordinate(user) {
+  if (user?.role === 'admin') return true;
+  return user?.role === 'sub_admin' && COORDINATING_AGENCIES.includes(user?.agency_type);
+}
+
 /// Only a Fire Volunteer sub-admin may verify an incident — the backend pins
 /// this in both the route and a database trigger (Section 6). The UI mirrors it
 /// so the action is not offered to someone who would be refused.
@@ -23,9 +43,20 @@ export function canVerifyIncidents(user) {
   return user?.role === 'sub_admin' && user?.agency_type === 'fire_volunteer';
 }
 
-/// Rejecting is broader: any sub-admin, or an admin.
+/// Rejecting needs coordinator standing — any fire-agency sub-admin, or an admin.
 export function canRejectIncidents(user) {
-  return user?.role === 'sub_admin' || user?.role === 'admin';
+  return canCoordinate(user);
+}
+
+/// Human label for an agency, used where the console explains someone's standing.
+export function agencyLabel(agency) {
+  return {
+    fire_volunteer: 'Fire Volunteers',
+    bfp: 'Bureau of Fire Protection',
+    police: 'Police',
+    medical: 'Medical',
+    barangay: 'Barangay',
+  }[agency] ?? agency ?? '—';
 }
 
 /// Holds the signed-in console user (Admin or Sub-Admin).

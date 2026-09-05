@@ -7,12 +7,14 @@ subscribers via app.realtime.events. Visibility is two-way between BFP and Fire
 Volunteer; other agencies see only incidents whose member reports selected them;
 admin sees everything.
 
-Authority (Section 6 + the chosen coordinator/responder model):
+Authority (Section 6 + the chosen coordinator/responder model). "Coordinator"
+means admin, or a sub-admin of a fire agency (fire_volunteer / bfp); a police,
+medical or barangay sub-admin observes only and is read-only throughout:
   - verify ................ Fire Volunteer sub-admin only (DB-pinned by trigger)
-  - reject / resolve ...... sub-admin (or admin)
-  - dispatch (manual) ..... sub-admin (or admin) assigns a response_team user
+  - reject / resolve ...... coordinator
+  - dispatch (manual) ..... coordinator assigns a response_team user
   - self-dispatch ......... a response_team user selects themselves
-  - en_route / arrived .... the assigned responder, or a sub-admin / admin
+  - en_route / arrived .... the assigned responder, or a coordinator
   - location stream ....... the assigned responder (response_team) only
 The matching *_at timestamp is stamped by a database trigger on each status change.
 """
@@ -55,7 +57,9 @@ from app.schemas.incident import (
 from app.services.ai_summary import generate_incident_summary
 from app.services.incident import (
     active_area_sql,
+    assert_coordinator,
     assert_transition,
+    is_coordinator,
     record_responder_location,
     visible_agencies,
 )
@@ -128,8 +132,8 @@ async def _active_dispatch_id(
 async def _assert_responder_or_coordinator(
     db: Database, incident_id: UUID, user: AuthenticatedUser
 ) -> None:
-    """Allow a sub-admin/admin, or a response_team user with an active dispatch here."""
-    if user.role in ("sub_admin", "admin"):
+    """Allow a coordinating sub-admin/admin, or a responder with an active dispatch."""
+    if is_coordinator(user):
         return
     if user.role == "response_team" and await _active_dispatch_id(db, incident_id, user.id):
         return
@@ -411,9 +415,8 @@ async def reject_incident(
     user: StaffUser,
     db: DatabaseDep,
 ) -> IncidentDetail:
-    """Reject an incident (invalid / false report). Sub-admins of the agency, or admin."""
-    if user.role not in ("sub_admin", "admin"):
-        raise ForbiddenError("Only a sub-admin may reject incidents.")
+    """Reject an incident (invalid / false report). Coordinating sub-admins, or admin."""
+    assert_coordinator(user, "reject incidents")
     current = await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
     assert_transition(current, "rejected")
@@ -458,8 +461,7 @@ async def resolve_incident(
     incident_id: UUID, user: StaffUser, db: DatabaseDep, background: BackgroundTasks
 ) -> IncidentDetail:
     """Resolve an incident (fire out). Completes any still-active dispatches."""
-    if user.role not in ("sub_admin", "admin"):
-        raise ForbiddenError("Only a sub-admin may resolve incidents.")
+    assert_coordinator(user, "resolve incidents")
     current = await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
     assert_transition(current, "resolved")
@@ -493,8 +495,7 @@ async def list_available_responders(
     incident_id: UUID, user: StaffUser, db: DatabaseDep
 ) -> list[AvailableResponder]:
     """Response_team users for the manual-dispatch picker (agency-scoped; admin sees all)."""
-    if user.role not in ("sub_admin", "admin"):
-        raise ForbiddenError("Only a sub-admin may view dispatchable responders.")
+    assert_coordinator(user, "dispatch responders")
     await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
 
@@ -537,8 +538,7 @@ async def dispatch_responder(
     db: DatabaseDep,
 ) -> IncidentDetail:
     """Sub-admin assigns a response_team user to a verified incident (manual dispatch)."""
-    if user.role not in ("sub_admin", "admin"):
-        raise ForbiddenError("Only a sub-admin may dispatch responders.")
+    assert_coordinator(user, "dispatch responders")
     current = await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
     if current not in _DISPATCHABLE:
@@ -701,7 +701,7 @@ async def withdraw_dispatch(
     if dispatch is None:
         raise NotFoundError("Dispatch not found for this incident.")
     is_owner = dispatch["responder_id"] == user.id
-    if not (is_owner or user.role in ("sub_admin", "admin")):
+    if not (is_owner or is_coordinator(user)):
         raise ForbiddenError("You may only withdraw your own dispatch.")
     if dispatch["status"] != "active":
         raise ConflictError("That dispatch is not active.")

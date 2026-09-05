@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { api } from '../api/client.js';
-import { canRejectIncidents, canVerifyIncidents, useAuth } from '../auth.jsx';
+import {
+  agencyLabel,
+  canRejectIncidents,
+  canVerifyIncidents,
+  isObserver,
+  useAuth,
+} from '../auth.jsx';
 
 // Confidence bands from the backend's generated column (Section 2.3).
 const BAND = {
@@ -55,10 +61,18 @@ export default function VerificationQueue() {
   const mayVerify = canVerifyIncidents(user);
   const mayReject = canRejectIncidents(user);
 
+  // An observer agency cannot action anything, so a pending-only queue would be
+  // a list of things they are not allowed to touch. Show them the live incidents
+  // involving their agency instead — that is the situational awareness they are
+  // here for (Section 1.3 problem 9).
+  const observer = isObserver(user);
+
   const loadQueue = useCallback(async () => {
     setLoading(true);
     try {
-      const rows = await api.incidents({ status: 'pending', limit: 100 });
+      const rows = observer
+        ? await api.incidents({ limit: 100 })
+        : await api.incidents({ status: 'pending', limit: 100 });
       setPending(rows);
       setSelectedId((current) =>
         current && rows.some((r) => r.id === current) ? current : rows[0]?.id ?? null,
@@ -69,7 +83,7 @@ export default function VerificationQueue() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [observer]);
 
   useEffect(() => { loadQueue(); }, [loadQueue]);
 
@@ -109,28 +123,43 @@ export default function VerificationQueue() {
     <div className="vq">
       <div className="vq-head">
         <div>
-          <h2 className="vq-title">Verification queue</h2>
+          <h2 className="vq-title">{observer ? 'Incidents' : 'Verification queue'}</h2>
           <p className="vq-sub">
-            {loading ? 'Loading…' : `${pending.length} incident${pending.length === 1 ? '' : 's'} awaiting review`}
+            {loading
+              ? 'Loading…'
+              : observer
+                ? `${pending.length} active incident${pending.length === 1 ? '' : 's'} involving ${agencyLabel(user?.agency_type)}`
+                : `${pending.length} incident${pending.length === 1 ? '' : 's'} awaiting review`}
           </p>
         </div>
         <button className="vq-refresh" onClick={loadQueue} disabled={loading}>Refresh</button>
       </div>
 
-      {!mayVerify && (
+      {observer ? (
+        <div className="vq-note">
+          You are signed in for <strong>{agencyLabel(user?.agency_type)}</strong>. These
+          are the incidents where a reporter asked for your agency, shown so your
+          units know what is happening. Verifying, dispatching and resolving are
+          handled by Fire Volunteer and BFP coordinators.
+        </div>
+      ) : !mayVerify ? (
         <div className="vq-note">
           {user?.role === 'admin'
             ? 'Signed in as Admin. Only a Fire Volunteer Sub-Admin may verify an incident (Section 6); you can still reject a false report.'
             : 'Your account cannot verify incidents — this requires a Fire Volunteer Sub-Admin.'}
         </div>
-      )}
+      ) : null}
 
       {error && <div className="vq-error">{error}</div>}
 
       <div className="vq-cols">
         <div className="vq-list">
           {!loading && pending.length === 0 && (
-            <div className="vq-empty">Nothing awaiting verification.</div>
+            <div className="vq-empty">
+              {observer
+                ? 'No active incidents have requested your agency.'
+                : 'Nothing awaiting verification.'}
+            </div>
           )}
           {pending.map((inc) => (
             <button
@@ -149,6 +178,7 @@ export default function VerificationQueue() {
               </div>
               <div className="vq-item-sub">
                 {inc.report_count} report{inc.report_count === 1 ? '' : 's'} · {when(inc.reported_at)}
+                {observer && inc.status ? ` · ${inc.status.replace(/_/g, ' ')}` : ''}
               </div>
             </button>
           ))}
@@ -218,6 +248,7 @@ export default function VerificationQueue() {
                 {reports.length === 0 && <div className="vq-empty">No member reports.</div>}
               </div>
 
+              {observer ? null : (
               <div className="vq-actions">
                 {rejecting ? (
                   <>
@@ -259,6 +290,7 @@ export default function VerificationQueue() {
                   </>
                 )}
               </div>
+              )}
             </>
           )}
         </div>

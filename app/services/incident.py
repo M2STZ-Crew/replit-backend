@@ -8,13 +8,24 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from app.core.exceptions import ConflictError
+from app.core.exceptions import ConflictError, ForbiddenError
 from app.db.session import Database
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.incident import ResponderLocationCreate
 
 # BFP and Fire Volunteers see each other's fire incidents (Section 6, two-way).
 _FIRE_AGENCIES = ("fire_volunteer", "bfp")
+
+# Agencies that may change an incident's state. The two fire agencies coordinate
+# the response, so their sub-admins verify, reject, resolve and dispatch.
+COORDINATING_AGENCIES = _FIRE_AGENCIES
+
+# Every other agency a reporter can summon — police, medical, barangay — takes
+# part for situational awareness only (Section 1.3 problem 9, cross-agency
+# silos). Their sub-admins see incidents that requested their agency and nothing
+# else: they must not be able to reject someone else's fire, resolve it, dispatch
+# Fire Volunteers, or press fire codes.
+OBSERVER_AGENCIES = ("police", "medical", "barangay")
 
 # Statuses that take an area out of the live feed. 'merged' is terminal for the
 # absorbed area only — its reports were moved onto the surviving area, so it must
@@ -79,6 +90,41 @@ def visible_agencies(user: AuthenticatedUser) -> list[str] | None:
     if user.agency_type:
         return [user.agency_type]
     return []
+
+
+def is_coordinator(user: AuthenticatedUser) -> bool:
+    """True when the user may change an incident's state.
+
+    Admin keeps full authority as the system owner. Among sub-admins only the
+    fire agencies coordinate; an observer sub-admin (police, medical, barangay)
+    is read-only on incidents no matter which one requested their agency.
+    """
+    if user.role == "admin":
+        return True
+    return user.role == "sub_admin" and user.agency_type in COORDINATING_AGENCIES
+
+
+def is_observer(user: AuthenticatedUser) -> bool:
+    """True for a sub-admin whose agency only observes (police, medical, barangay)."""
+    return user.role == "sub_admin" and user.agency_type in OBSERVER_AGENCIES
+
+
+def assert_coordinator(user: AuthenticatedUser, action: str) -> None:
+    """Raise 403 unless the user may change incident state.
+
+    The message names the caller's own agency rather than saying "forbidden", so
+    a Barangay sub-admin who taps something understands they are an observer
+    rather than assuming the system is broken.
+    """
+    if is_coordinator(user):
+        return
+    if is_observer(user):
+        raise ForbiddenError(
+            f"Your agency takes part for situational awareness only, so it cannot "
+            f"{action}. Fire Volunteer or BFP coordinators handle this.",
+            details={"agency_type": user.agency_type, "access": "observer"},
+        )
+    raise ForbiddenError(f"You do not have permission to {action}.")
 
 
 def assert_transition(current: str, target: str) -> None:

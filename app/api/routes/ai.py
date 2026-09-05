@@ -18,7 +18,7 @@ from app.db.session import Database
 from app.schemas.ai import AISummaryResponse
 from app.schemas.auth import AuthenticatedUser
 from app.services.ai_summary import generate_incident_summary, list_incident_summaries
-from app.services.incident import visible_agencies
+from app.services.incident import assert_coordinator, visible_agencies
 
 log = get_logger(__name__)
 
@@ -59,9 +59,8 @@ async def generate_summary(
     db: DatabaseDep,
     client: AnthropicClientDep,
 ) -> AISummaryResponse:
-    """Generate and store a fire-out report for a resolved incident (sub-admin/admin)."""
-    if user.role not in ("sub_admin", "admin"):
-        raise ForbiddenError("Only a sub-admin may generate incident summaries.")
+    """Generate and store a fire-out report for a resolved incident (coordinator only)."""
+    assert_coordinator(user, "generate incident summaries")
     status_val = await db.fetchval(
         "select status::text from public.areas where id = $1", incident_id
     )

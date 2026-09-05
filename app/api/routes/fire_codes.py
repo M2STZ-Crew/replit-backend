@@ -21,6 +21,7 @@ from app.schemas.fire_code import (
     FireCodePressRequest,
     FireCodeResponse,
 )
+from app.services.incident import is_coordinator
 
 log = get_logger(__name__)
 
@@ -91,9 +92,12 @@ async def press_fire_code(
     if not code["is_active"]:
         raise BadRequestError("This fire code is inactive.")
 
-    # Admin and sub-admin coordinators may broadcast any code ("Broadcast a fire
-    # code to all responding units"); a response_team user only their target code.
-    allowed = user.role in ("admin", "sub_admin") or (
+    # Coordinators — admin, or a fire-agency sub-admin — may broadcast any code
+    # ("Broadcast a fire code to all responding units"). A response_team user may
+    # press only their own target code. An observer sub-admin (police, medical,
+    # barangay) may press none: fire codes direct the fire response, and these
+    # agencies take part for awareness only.
+    allowed = is_coordinator(user) or (
         user.role == code["target_role"]
         and (code["target_agency"] is None or user.agency_type == code["target_agency"])
     )

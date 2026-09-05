@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { api } from '../api/client.js';
-import { useAuth } from '../auth.jsx';
+import { isObserver, useAuth } from '../auth.jsx';
 import LiveMap, { LAYER_COLORS } from '../components/LiveMap.jsx';
 import Logo from '../components/Logo.jsx';
 import AccountManagement from './AccountManagement.jsx';
@@ -42,14 +42,21 @@ const NAV = [
   { key: 'verify', label: 'Verification', sub: 'Awaiting review', icon: '✓' },
   { key: 'map', label: 'Map', sub: 'Geo overlays', icon: '🗺' },
   { key: 'audit', label: 'Audit Log', sub: 'Incident records', icon: '🗂' },
-  { key: 'affiliates', label: 'Affiliates', sub: 'Partner orgs', icon: '🤝' },
-  { key: 'accounts', label: 'Accounts', sub: 'Access requests', icon: '👤' },
+  { key: 'affiliates', label: 'Affiliates', sub: 'Partner orgs', icon: '🤝',
+    adminOnly: true },
+  { key: 'accounts', label: 'Accounts', sub: 'Access requests', icon: '👤',
+    adminOnly: true },
   { key: 'idreview', label: 'ID Review', sub: 'National ID approvals', icon: '🪪',
     adminOnly: true },
 ];
 
-function navFor(role) {
-  return NAV.filter((n) => !n.adminOnly || role === 'admin');
+function navFor(user) {
+  const observer = isObserver(user);
+  return NAV.filter((n) => !n.adminOnly || user?.role === 'admin').map((n) =>
+    n.key === 'verify' && observer
+      ? { ...n, label: 'Incidents', sub: 'Involving your agency' }
+      : n,
+  );
 }
 
 // Map layers: which have backend data + how to read their coordinates.
@@ -203,7 +210,7 @@ export default function Dashboard() {
         </div>
         <div className="db-nav-label">WORKSPACE</div>
         <nav className="db-nav">
-          {navFor(user?.role).map((n) => (
+          {navFor(user).map((n) => (
             <button
               key={n.key}
               className={`db-nav-item${active === n.key ? ' active' : ''}`}
