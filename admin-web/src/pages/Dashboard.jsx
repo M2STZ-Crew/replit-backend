@@ -1,127 +1,49 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
-import { api } from '../api/client.js';
 import { isObserver, useAuth } from '../auth.jsx';
 import ConsoleShell from '../components/ConsoleShell.jsx';
+import Accounts from './Accounts.jsx';
 import ActionRecord from './ActionRecord.jsx';
-import SituationBoard from './SituationBoard.jsx';
-import LiveMap, { LAYER_COLORS } from '../components/LiveMap.jsx';
-import AccountManagement from './AccountManagement.jsx';
-import AffiliatesPanel from './AffiliatesPanel.jsx';
-import AuditLog from './AuditLog.jsx';
-import MapManagement from './MapManagement.jsx';
+import Affiliates from './Affiliates.jsx';
 import IdReview from './IdReview.jsx';
+import MapManagement from './MapManagement.jsx';
+import SituationBoard from './SituationBoard.jsx';
 import VerificationQueue from './VerificationQueue.jsx';
 
-// Per-section topbar heading (dashboard uses the personalised welcome).
+/* Topbar heading per section. The titles match the nav labels in ConsoleShell —
+   a screen whose heading disagrees with the item you clicked is disorienting.
+   `dashboard` is absent on purpose: it gets the personalised welcome. */
 const HEAD = {
   map: {
-    title: 'Map Management',
-    sub: 'Update risk zones, evacuation sites, hydrants, water sources, and cisterns.',
+    title: 'Live map',
+    sub: 'Risk zones, evacuation sites, hydrants and water sources across Pasay City.',
   },
-  audit: { title: 'Audit Log', sub: 'Every incident, every timestamp — fully traceable.' },
+  verify: {
+    title: 'Verification',
+    sub: 'Reports waiting on a coordinator’s decision.',
+  },
   affiliates: {
-    title: 'Affiliate Organizations',
-    sub: 'Rosters, roles, and equipment for partner response teams.',
+    title: 'Affiliates',
+    sub: 'Applications for accreditation, and the organisations already on the network.',
   },
   accounts: {
-    title: 'Account Management',
-    sub: 'Review and approve affiliate access requests.',
+    title: 'Accounts',
+    sub: 'Everyone attached to an accredited organisation.',
+  },
+  idreview: {
+    title: 'ID review',
+    sub: 'National ID submissions awaiting approval.',
+  },
+  audit: {
+    title: 'Audit log',
+    sub: 'Append-only record of every consequential action.',
   },
 };
 
-// Section-aware placeholder for the shared topbar search.
-const SEARCH_PH = {
-  dashboard: 'Search incidents, units…',
-  map: 'Find a marker…',
-  audit: 'Search incidents…',
-  affiliates: 'Find an organization…',
-  accounts: 'Search requests…',
-};
-
-const NAV = [
-  { key: 'dashboard', label: 'Dashboard', sub: 'Live operations', icon: '▦' },
-  { key: 'verify', label: 'Verification', sub: 'Awaiting review', icon: '✓' },
-  { key: 'map', label: 'Map', sub: 'Geo overlays', icon: '🗺' },
-  { key: 'audit', label: 'Audit Log', sub: 'Incident records', icon: '🗂' },
-  { key: 'affiliates', label: 'Affiliates', sub: 'Partner orgs', icon: '🤝',
-    adminOnly: true },
-  { key: 'accounts', label: 'Accounts', sub: 'Access requests', icon: '👤',
-    adminOnly: true },
-  { key: 'idreview', label: 'ID Review', sub: 'National ID approvals', icon: '🪪',
-    adminOnly: true },
-];
-
-function navFor(user) {
-  const observer = isObserver(user);
-  return NAV.filter((n) => !n.adminOnly || user?.role === 'admin').map((n) =>
-    n.key === 'verify' && observer
-      ? { ...n, label: 'Incidents', sub: 'Involving your agency' }
-      : n,
-  );
-}
-
-// Map layers: which have backend data + how to read their coordinates.
-const LAYERS = [
-  { key: 'incidents', label: 'Incidents', color: '#FF544E' },
-  { key: 'evac', label: 'Evacuation Sites', color: LAYER_COLORS.evac, path: 'evacuation-sites', lat: 'latitude', lng: 'longitude' },
-  { key: 'risk', label: 'Risk Areas', color: LAYER_COLORS.risk, path: 'risk-zones', lat: 'centroid_lat', lng: 'centroid_lng' },
-  { key: 'teams', label: 'Response Teams', color: '#FF9066' },
-  { key: 'hydrants', label: 'Fire Hydrants', color: '#767575', path: 'hydrants', lat: 'latitude', lng: 'longitude' },
-  { key: 'water', label: 'Bodies of Water', color: '#767575', path: 'bodies-of-water', lat: 'latitude', lng: 'longitude' },
-  { key: 'fire', label: 'Fire Department', color: '#767575' },
-  { key: 'police', label: 'Police Department', color: '#767575' },
-  { key: 'hospital', label: 'Hospital', color: '#767575' },
-  { key: 'barangay', label: 'Barangay Hall', color: '#767575' },
-];
-
-const STAT_CARDS = [
-  { key: 'active_incidents', label: 'Active Incidents', sub: 'In progress now', tint: 'rgba(255,84,78,0.10)', icon: '🔥' },
-  { key: 'pending_verify', label: 'Pending Verify', sub: 'Needs ops review', tint: 'rgba(255,144,102,0.10)', icon: '🪪' },
-  { key: 'units_deployed', label: 'Units Deployed', sub: 'On the way or on-site', tint: 'rgba(255,144,102,0.10)', icon: '🚒' },
-  { key: 'units_standby', label: 'Units Standby', sub: 'Ready to respond', tint: 'rgba(118,117,117,0.15)', icon: '✓' },
-];
-
-function reportStatus(status) {
-  switch (status) {
-    case 'verified':
-    case 'dispatched':
-    case 'en_route':
-      return { label: 'Responding', color: '#FF9066' };
-    case 'arrived':
-      return { label: 'Active', color: '#FF544E' };
-    case 'resolved':
-      return { label: 'Resolved', color: '#22C55E' };
-    case 'rejected':
-      return { label: 'Rejected', color: '#FF544E' };
-    default:
-      return { label: 'Pending', color: '#CFCFCF' };
-  }
-}
-
-function fmtTime(iso) {
-  if (!iso) return '';
-  try {
-    const d = new Date(iso);
-    let h = d.getHours();
-    const ampm = h < 12 ? 'AM' : 'PM';
-    h = h % 12 === 0 ? 12 : h % 12;
-    return `${h}:${String(d.getMinutes()).padStart(2, '0')} ${ampm}`;
-  } catch {
-    return '';
-  }
-}
-
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [active, setActive] = useState('dashboard');
   const [query, setQuery] = useState('');
-
-  const [stats, setStats] = useState(null);
-  const [incidents, setIncidents] = useState([]);
-  const [equipment, setEquipment] = useState([]);
-  const [enabled, setEnabled] = useState(new Set(['incidents']));
-  const [layerPoints, setLayerPoints] = useState({});
 
   // Switch sections and clear the search so it doesn't carry across views.
   function go(key) {
@@ -129,74 +51,13 @@ export default function Dashboard() {
     setQuery('');
   }
 
-  // Dashboard-home filtering driven by the shared search.
-  const q = query.trim().toLowerCase();
-  const shownIncidents =
-    active === 'dashboard' && q
-      ? incidents.filter((inc) =>
-          `${inc.designation || ''} ${inc.status || ''}`.toLowerCase().includes(q),
-        )
-      : incidents;
-  const shownEquipment =
-    active === 'dashboard' && q
-      ? equipment.filter((u) =>
-          `${u.name || ''} ${u.category || ''}`.toLowerCase().includes(q),
-        )
-      : equipment;
-
   const name = user?.full_name || user?.email || 'Admin';
-  const initials = name
-    .split(/\s+/)
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
 
-  useEffect(() => {
-    let alive = true;
-    async function load() {
-      try {
-        const [s, inc, eq] = await Promise.all([
-          api.incidentStats().catch(() => null),
-          api.incidents().catch(() => []),
-          api.equipment().catch(() => []),
-        ]);
-        if (!alive) return;
-        if (s) setStats(s);
-        setIncidents(Array.isArray(inc) ? inc : []);
-        setEquipment(Array.isArray(eq) ? eq : []);
-      } catch {
-        /* keep last */
-      }
-    }
-    load();
-    const t = setInterval(load, 12000);
-    return () => {
-      alive = false;
-      clearInterval(t);
-    };
-  }, []);
-
-  async function toggleLayer(layer) {
-    const next = new Set(enabled);
-    if (next.has(layer.key)) {
-      next.delete(layer.key);
-      setEnabled(next);
-      return;
-    }
-    next.add(layer.key);
-    setEnabled(next);
-    if (layer.path && !layerPoints[layer.key]) {
-      try {
-        const raw = await api.mapLayer(layer.path);
-        const pts = (Array.isArray(raw) ? raw : [])
-          .map((r) => ({ lat: r[layer.lat], lng: r[layer.lng] }))
-          .filter((p) => p.lat != null && p.lng != null);
-        setLayerPoints((lp) => ({ ...lp, [layer.key]: pts }));
-      } catch {
-        /* layer just shows nothing */
-      }
-    }
+  let head = HEAD[active];
+  // An observer does not verify anything; that screen is their incident feed,
+  // and the nav item is relabelled to match.
+  if (active === 'verify' && isObserver(user)) {
+    head = { title: 'Incidents', sub: 'Live incidents involving your agency. Read only.' };
   }
 
   return (
@@ -205,21 +66,27 @@ export default function Dashboard() {
         <header className="db-topbar">
           <div>
             <div className="db-hello">
-              {HEAD[active]?.title || `Welcome back, ${name.split(/\s+/)[0]}`}
+              {head?.title || `Welcome back, ${name.split(/\s+/)[0]}`}
             </div>
             <div className="db-hello-sub">
-              {HEAD[active]?.sub || "Here's what's happening across Pasay City right now."}
+              {head?.sub || 'Here’s what’s happening across Pasay City right now.'}
             </div>
           </div>
-          <div className="db-search">
-            <span className="db-search-icon">🔍</span>
-            <input
-              className="db-search-input"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={SEARCH_PH[active] || 'Search…'}
-            />
-          </div>
+          {/* Only the map reads this box. Every other screen carries its own
+              filter, and a search field that silently does nothing is worse
+              than no search field. */}
+          {active === 'map' && (
+            <div className="db-search">
+              <span className="db-search-icon">🔍</span>
+              <input
+                className="db-search-input"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Find a marker…"
+                aria-label="Find a marker"
+              />
+            </div>
+          )}
         </header>
 
         <div className={`db-scroll${active === 'map' ? ' db-scroll-flush' : ''}`}>
@@ -228,21 +95,15 @@ export default function Dashboard() {
           ) : active === 'map' ? (
             <MapManagement query={query} />
           ) : active === 'affiliates' ? (
-            <AffiliatesPanel query={query} onQuery={setQuery} />
+            <Affiliates />
           ) : active === 'idreview' ? (
             <IdReview />
           ) : active === 'verify' ? (
             <VerificationQueue />
           ) : active === 'audit' ? (
             <ActionRecord />
-          ) : active === 'accounts' ? (
-            <AccountManagement query={query} />
           ) : (
-            <div className="db-placeholder">
-              <div className="db-placeholder-icon">{NAV.find((n) => n.key === active)?.icon}</div>
-              <h2>{NAV.find((n) => n.key === active)?.label}</h2>
-              <p className="muted">This section is coming next.</p>
-            </div>
+            <Accounts />
           )}
         </div>
       </div>

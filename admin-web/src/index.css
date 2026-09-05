@@ -3610,9 +3610,15 @@ select.field {
   display: flex; flex-direction: column; gap: 18px;
   padding: 24px clamp(16px, 2.2vw, 34px) 40px;
 }
-.ar-stats { display: flex; flex-wrap: wrap; gap: 18px; }
+/* Grid rather than wrapping flex: when four cards wrap to two rows, a flex
+   row would stretch the lone last card to full width. Auto-fit keeps every
+   card the same size on both rows. */
+.ar-stats {
+  display: grid; gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
 .ar-stat {
-  flex: 1 1 min(210px, 100%); border-radius: 16px; background: var(--surface-2);
+  border-radius: 16px; background: var(--surface-2);
   box-shadow: inset 0 0 0 1px var(--line-2); padding: 18px;
   display: flex; flex-direction: column; gap: 8px;
 }
@@ -3694,4 +3700,101 @@ select.field {
   border-radius: 18px; background: var(--surface-2);
   box-shadow: inset 0 0 0 1px var(--line-2); padding: 28px;
   display: flex; flex-direction: column; gap: 10px;
+}
+
+/* ── Affiliates + Accounts (Admin Console design) ──────────────────────── */
+.af-apps {
+  border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 16px;
+  background: linear-gradient(140deg, #18110d, #121212 60%);
+  box-shadow: inset 0 0 0 1px #261e1a;
+}
+.af-apps-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.af-apps-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+  animation: dcDot 1.7s ease-in-out infinite; flex-shrink: 0;
+}
+.af-apps-head .sb-panel-title { flex: 1; }
+.af-authority {
+  font-size: 9px; font-weight: 700; letter-spacing: 1.1px;
+  text-transform: uppercase; color: var(--accent);
+}
+.af-app-grid { display: flex; flex-wrap: wrap; gap: 14px; }
+.af-app {
+  flex: 1 1 min(300px, 100%); border-radius: 14px; background: #151515;
+  box-shadow: inset 0 0 0 1px #262626; padding: 18px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.af-app-top { display: flex; align-items: center; gap: 9px; }
+.af-app-top .ar-tag { margin-right: auto; }
+.af-app-when { font-size: 9.5px; font-weight: 600; color: var(--faint); }
+.af-app-id { display: flex; flex-direction: column; gap: 5px; }
+.af-app-name { font-size: 15px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.25; }
+.af-app-facts { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.af-app-facts > div { display: flex; gap: 10px; align-items: baseline; }
+.af-app-facts dt {
+  width: 58px; flex-shrink: 0; font-size: 9px; font-weight: 700;
+  letter-spacing: 1.1px; text-transform: uppercase; color: var(--fainter);
+}
+.af-app-facts dd {
+  margin: 0; font-size: 11.5px; color: var(--text-3); min-width: 0;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.af-app-msg {
+  margin: 0; font-size: 11px; line-height: 1.55; color: var(--muted); font-style: italic;
+}
+.af-app-effect { margin: 0; font-size: 10px; line-height: 1.5; color: var(--faint); }
+.af-app-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.af-app-actions .vq-btn { flex: 1; justify-content: center; text-align: center; }
+
+.af-cols { gap: 16px; min-width: 760px; }
+.af-c-org { flex: 1; min-width: 0; }
+.af-c-sector { width: 150px; flex-shrink: 0; }
+.af-c-num { width: 86px; flex-shrink: 0; }
+.af-c-status { width: 110px; flex-shrink: 0; display: flex; }
+.af-org { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.af-org-chip {
+  width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.af-org-chip img { opacity: 0.92; }
+.af-org-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.af-org-name {
+  font-size: 12.5px; font-weight: 700; letter-spacing: -0.1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.af-sector { font-size: 11px; font-weight: 600; color: var(--label); }
+.af-num { font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.af-status {
+  display: flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 7px;
+  font-size: 9px; font-weight: 800; letter-spacing: 0.9px; text-transform: uppercase;
+  color: var(--faint); background: var(--surface-3); white-space: nowrap;
+}
+.af-status.is-on { color: var(--ok); background: rgba(34, 197, 94, 0.12); }
+.af-status-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+.ac-cols { gap: 16px; min-width: 720px; }
+.ac-c-person { flex: 1; min-width: 0; }
+.ac-c-role { width: 140px; flex-shrink: 0; display: flex; }
+.ac-c-org { width: 200px; flex-shrink: 0; }
+.ac-c-ver { width: 110px; flex-shrink: 0; }
+.ac-avatar {
+  width: 32px; height: 32px; border-radius: 10px; background: var(--grad-accent);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  font-size: 10.5px; font-weight: 900; color: var(--accent-text);
+}
+.ac-ver { display: flex; flex-direction: column; gap: 2px; }
+.ac-ver-pct { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+.ac-split { display: flex; flex-direction: column; gap: 9px; }
+.ac-split-row { display: flex; align-items: center; gap: 12px; }
+.ac-split-name {
+  width: 120px; flex-shrink: 0; font-size: 11px; font-weight: 600; color: var(--text-3);
+}
+.ac-split-track {
+  flex: 1; height: 6px; border-radius: 3px; background: var(--surface-4); overflow: hidden;
+}
+.ac-split-fill { display: block; height: 6px; border-radius: 3px; }
+.ac-split-n {
+  width: 32px; text-align: right; font-size: 12px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
