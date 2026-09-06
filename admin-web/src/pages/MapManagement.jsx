@@ -11,6 +11,8 @@ import {
   ZoomControl,
 } from 'react-leaflet';
 
+import { TILE_MAX_ZOOM, TILE_URL } from '../map/tiles.js';
+
 import { api } from '../api/client.js';
 
 const PASAY = [14.5378, 121.0014];
@@ -344,7 +346,7 @@ export default function MapManagement({ query = '' }) {
           zoomControl={false}
           attributionControl={false}
         >
-          <TileLayer url="https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" />
+          <TileLayer url={TILE_URL} maxZoom={TILE_MAX_ZOOM} />
           <ZoomControl position="bottomleft" />
           <ClickCapture active={!!form} onPick={handlePick} />
 

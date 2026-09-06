@@ -1,6 +1,8 @@
 import 'leaflet/dist/leaflet.css';
 import { CircleMarker, MapContainer, TileLayer, Tooltip } from 'react-leaflet';
 
+import { TILE_ATTRIBUTION, TILE_MAX_ZOOM, TILE_URL } from '../map/tiles.js';
+
 const PASAY = [14.5378, 121.0014];
 
 // Colour for GIS layer points (only the layers we have backend data for).
@@ -32,9 +34,9 @@ function dot(color, weight = 1.5) {
   return { color: '#ffffff', weight, fillColor: color, fillOpacity: 0.95 };
 }
 
-/// CARTO dark-tile map (free, no key) with incident markers + toggleable GIS
-/// layer points. `enabled` is a Set of layer keys; `layerPoints[key]` is an
-/// array of { lat, lng }.
+/// The dark basemap with incident markers and toggleable GIS layer points.
+/// `enabled` is a Set of layer keys; `layerPoints[key]` is an array of
+/// { lat, lng }. The tile source lives in map/tiles.js.
 export default function LiveMap({ incidents = [], layerPoints = {}, enabled }) {
   return (
     <MapContainer
@@ -44,7 +46,7 @@ export default function LiveMap({ incidents = [], layerPoints = {}, enabled }) {
       zoomControl={false}
       attributionControl={false}
     >
-      <TileLayer url="https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" />
+      <TileLayer url={TILE_URL} maxZoom={TILE_MAX_ZOOM} />
 
       {Object.entries(LAYER_COLORS).flatMap(([key, color]) =>
         enabled.has(key)
@@ -77,6 +79,10 @@ export default function LiveMap({ incidents = [], layerPoints = {}, enabled }) {
             </CircleMarker>
           );
         })}
+
+      {/* Attribution is a licence condition for both tile providers.
+          Leaflet's own control is off so it can be styled to the design. */}
+      <div className="lm-attribution">{TILE_ATTRIBUTION}</div>
     </MapContainer>
   );
 }
