@@ -48,7 +48,7 @@ _HYDRANT_COLS = (
 )
 _EVAC_COLS = (
     "id, name, latitude, longitude, capacity, address, contact_info, "
-    "is_active, created_at, updated_at"
+    "city, outside_pasay, is_active, created_at, updated_at"
 )
 _RISK_COLS = (
     "id, barangay, name, risk_level::text as risk_level, description, "
@@ -194,8 +194,8 @@ async def create_evacuation_site(
     row = await db.fetchrow(
         f"""
         insert into public.evacuation_sites
-            (name, latitude, longitude, capacity, address, contact_info, is_active)
-        values ($1, $2, $3, $4, $5, $6, $7)
+            (name, latitude, longitude, capacity, address, contact_info, city, is_active)
+        values ($1, $2, $3, $4, $5, $6, $7, $8)
         returning {_EVAC_COLS}
         """,
         payload.name,
@@ -204,6 +204,7 @@ async def create_evacuation_site(
         payload.capacity,
         payload.address,
         payload.contact_info,
+        payload.city,
         payload.is_active,
     )
     assert row is not None

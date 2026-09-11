@@ -19,6 +19,7 @@ from app.core.logging import get_logger
 from app.realtime.manager import manager
 from app.schemas.alarm import AlarmRequestCreate, AlarmRequestResponse, AlarmReviewRequest
 from app.schemas.auth import AuthenticatedUser
+from app.services.incident import OFF_FEED_STATUSES
 from app.services.incident_notify import notify_bfp_alarm_request
 
 log = get_logger(__name__)
@@ -63,7 +64,7 @@ async def create_alarm_request(
     )
     if area is None:
         raise NotFoundError("Incident (area) not found.")
-    if area["status"] in ("resolved", "rejected"):
+    if area["status"] in OFF_FEED_STATUSES:
         raise ConflictError("Cannot raise an alarm on a closed incident.")
     row = await db.fetchrow(
         f"""

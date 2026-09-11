@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from app.core.exceptions import ConflictError, ForbiddenError
+from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.db.session import Database
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.incident import ResponderLocationCreate
@@ -27,29 +27,41 @@ COORDINATING_AGENCIES = _FIRE_AGENCIES
 # Fire Volunteers, or press fire codes.
 OBSERVER_AGENCIES = ("police", "medical", "barangay")
 
-# Statuses that take an area out of the live feed. 'merged' is terminal for the
-# absorbed area only — its reports were moved onto the surviving area, so it must
-# not cluster, alert neighbors, or appear as an incident (Section 3.4).
-TERMINAL_STATUSES = ("resolved", "rejected", "merged")
+# Statuses nothing leaves (v10 Section 2.5). 'merged' is terminal for the
+# absorbed area only — its reports were moved onto the surviving area (Section
+# 2.3). 'closed' is reached only by filing the Post-Incident Report.
+TERMINAL_STATUSES = ("rejected", "merged", "closed")
+
+# Statuses that take an area out of the live feed: it must not cluster new
+# reports, alert neighbors, or count as an active incident. Wider than
+# TERMINAL_STATUSES because fire out ends the response before the paperwork is
+# done — a resolved area waits in 'post_incident_report' (the captain's
+# "pending report" tray) without being live.
+OFF_FEED_STATUSES = ("resolved", "post_incident_report", *TERMINAL_STATUSES)
 
 # Statuses that additionally bar an area from seeding a 1 h version chain.
-# 'resolved' is deliberately absent: a genuine second fire at the same location
-# within the hour is exactly what "Area 1.2" designates (Section 3.4). A rejected
-# area was never an incident, and a merged one was absorbed elsewhere.
+# The post-fire statuses are deliberately absent: a genuine second fire at the
+# same location within the hour is exactly what "Area 1.2" designates (Section
+# 2.3). A rejected area was never an incident, and a merged one was absorbed.
 UNVERSIONABLE_STATUSES = ("rejected", "merged")
 
-# Allowed forward transitions of public.area_status (Section 9). Mirrors the DB
+# Allowed forward transitions of public.area_status (Section 2.5). Mirrors the DB
 # sequencing CHECK constraints: dispatched needs verified, en_route needs
-# dispatched, arrived needs en_route. Resolve is reachable from any active state
-# once verified; reject only before responders are committed. Merge is only legal
-# before responders are committed — after dispatch it would orphan their assignments.
+# dispatched, arrived needs en_route, post_incident_report needs resolved, closed
+# needs post_incident_report. Resolve is reachable from any active state once
+# verified; reject only before responders are committed. Merge is only legal
+# before responders are committed — after dispatch it would orphan their
+# assignments. 'resolved' only ever moves on to the report step, and 'closed' is
+# additionally pinned by a trigger to the existence of a filed report.
 ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     "pending": {"verified", "rejected", "merged"},
     "verified": {"dispatched", "resolved", "rejected", "merged"},
     "dispatched": {"en_route", "resolved"},
     "en_route": {"arrived", "resolved"},
     "arrived": {"resolved"},
-    "resolved": set(),
+    "resolved": {"post_incident_report"},
+    "post_incident_report": {"closed"},
+    "closed": set(),
     "rejected": set(),
     "merged": set(),
 }
@@ -63,14 +75,14 @@ def _status_exclusion_sql(statuses: tuple[str, ...], alias: str) -> str:
 
 
 def active_area_sql(alias: str = "") -> str:
-    """SQL predicate restricting ``public.areas`` to non-terminal (live) incidents.
+    """SQL predicate restricting ``public.areas`` to live incidents.
 
     Single source of truth for every query that filters the active feed — clustering,
     overlap detection, the neighborhood worker, and both read routes — so a status
     added to the enum can't be handled in some of them and missed in others.
     ``alias`` qualifies the column when the query joins areas under a table alias.
     """
-    return _status_exclusion_sql(TERMINAL_STATUSES, alias)
+    return _status_exclusion_sql(OFF_FEED_STATUSES, alias)
 
 
 def versionable_area_sql(alias: str = "") -> str:
@@ -90,6 +102,57 @@ def visible_agencies(user: AuthenticatedUser) -> list[str] | None:
     if user.agency_type:
         return [user.agency_type]
     return []
+
+
+def visible_area_sql(agencies_param: int, alias: str = "a") -> str:
+    """SQL predicate: the area has a member report that asked for one of the agencies.
+
+    ``agencies_param`` is the positional parameter holding the agency list. This
+    is the whole of incident visibility (Section 2.6.1): an agency sees the areas
+    a reporter asked it to, BFP and Fire Volunteer see each other's.
+    """
+    return (
+        "exists (select 1 from public.area_reports ar "
+        "join public.reports r on r.id = ar.report_id "
+        f"where ar.area_id = {alias}.id "
+        f"and r.selected_agencies && ${agencies_param}::public.agency_type[])"
+    )
+
+
+async def assert_incident_visible(
+    db: Database, incident_id: UUID, user: AuthenticatedUser
+) -> str:
+    """Return the incident's status, or raise 404 (missing) / 403 (not your agency's)."""
+    status_val = await db.fetchval(
+        "select status::text from public.areas where id = $1", incident_id
+    )
+    if status_val is None:
+        raise NotFoundError("Incident not found.")
+    agencies = visible_agencies(user)
+    if agencies is None:
+        return str(status_val)
+    visible = bool(agencies) and await db.fetchval(
+        f"select {visible_area_sql(2)} from public.areas a where a.id = $1",
+        incident_id,
+        agencies,
+    )
+    if not visible:
+        raise ForbiddenError("This incident is not visible to your agency.")
+    return str(status_val)
+
+
+def routable_agencies(requested: set[str] | list[str]) -> set[str]:
+    """Agencies Admin may route an incident to, given what its reporters requested.
+
+    Routing follows the report (v10 Section 2.6.2), so an agency nobody asked for
+    is not routable — that keeps visibility scoped by selected_agencies. The fire
+    agencies count as one request, as they do for visibility: the SOS screen
+    offers "fire", and BFP already sees every Fire Volunteer incident.
+    """
+    agencies = set(requested)
+    if agencies & set(_FIRE_AGENCIES):
+        agencies |= set(_FIRE_AGENCIES)
+    return agencies
 
 
 def is_coordinator(user: AuthenticatedUser) -> bool:
@@ -125,6 +188,43 @@ def assert_coordinator(user: AuthenticatedUser, action: str) -> None:
             details={"agency_type": user.agency_type, "access": "observer"},
         )
     raise ForbiddenError(f"You do not have permission to {action}.")
+
+
+def assert_team_captain(user: AuthenticatedUser) -> None:
+    """Raise 403 unless the user may file a Post-Incident Report (v10 Section 2.5).
+
+    The responding team captain files — a sub-admin of a coordinating (fire)
+    agency, on behalf of everyone who went. Response Team members do not file
+    individually, an observer agency has no truck or crew on the fireground, and
+    Admin routes incidents rather than captaining a team.
+    """
+    if user.role == "sub_admin" and user.agency_type in COORDINATING_AGENCIES:
+        return
+    if is_observer(user):
+        raise ForbiddenError(
+            "Your agency takes part for situational awareness only, so it cannot "
+            "file a Post-Incident Report. The responding Fire Volunteer or BFP team "
+            "captain files it.",
+            details={"agency_type": user.agency_type, "access": "observer"},
+        )
+    raise ForbiddenError(
+        "Only the responding team captain (a Fire Volunteer or BFP sub-admin) files "
+        "the Post-Incident Report."
+    )
+
+
+def assert_can_accept(user: AuthenticatedUser) -> None:
+    """Raise 403 unless the user may press Accept on a routed incident (Section 2.6.1).
+
+    Accept is the observer-side action. Coordinators do not see it — they verify
+    and dispatch instead — and Admin is the one doing the routing.
+    """
+    if is_observer(user):
+        return
+    raise ForbiddenError(
+        "Accept is how an observer agency acknowledges an incident routed to it. "
+        "Coordinators verify and dispatch instead."
+    )
 
 
 def assert_transition(current: str, target: str) -> None:

@@ -79,10 +79,16 @@ def test_assert_transition_blocks_illegal_moves() -> None:
 
 
 def test_terminal_states_have_no_transitions() -> None:
-    """resolved, rejected and merged are dead-ends."""
-    assert ALLOWED_TRANSITIONS["resolved"] == set()
+    """rejected, merged and closed are dead-ends (v10 Section 2.5)."""
     assert ALLOWED_TRANSITIONS["rejected"] == set()
     assert ALLOWED_TRANSITIONS["merged"] == set()
+    assert ALLOWED_TRANSITIONS["closed"] == set()
+
+
+def test_resolved_only_moves_on_to_the_post_incident_report() -> None:
+    """v10: fire out is no longer a dead-end; it leads to the report step alone."""
+    assert ALLOWED_TRANSITIONS["resolved"] == {"post_incident_report"}
+    assert ALLOWED_TRANSITIONS["post_incident_report"] == {"closed"}
 
 
 def test_merge_allowed_only_before_responders_are_committed() -> None:

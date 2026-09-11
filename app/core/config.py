@@ -47,7 +47,8 @@ class Settings(BaseSettings):
         description="Force JSON logs; None auto-enables JSON for non-development.",
     )
     cors_origins: str = Field(
-        default="http://localhost:5173,http://localhost:3000",
+        # 5173: Admin Console (admin-web). 5174: Observer Console (observer-web).
+        default="http://localhost:5173,http://localhost:5174,http://localhost:3000",
         description="Comma-separated list of allowed CORS origins.",
     )
 

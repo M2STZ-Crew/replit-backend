@@ -20,6 +20,7 @@ class AuditLogResponse(BaseModel):
     entity_type: str | None = None
     entity_id: UUID | None = None
     area_id: UUID | None = None
+    area_designation: str | None = None
     before_state: dict[str, Any] | None = None
     after_state: dict[str, Any] | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)

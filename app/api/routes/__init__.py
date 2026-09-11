@@ -24,6 +24,7 @@ from app.api.routes import (
     map_layers_admin,
     notifications,
     organizations,
+    post_incident_reports,
     reports,
     verification,
     ws,
@@ -39,6 +40,7 @@ api_router.include_router(reports.router)
 api_router.include_router(areas.router)
 api_router.include_router(notifications.router)
 api_router.include_router(incidents.router)
+api_router.include_router(post_incident_reports.router)
 api_router.include_router(ws.router)
 api_router.include_router(ai.router)
 api_router.include_router(equipment.router)

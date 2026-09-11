@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 HydrantStatus = Literal["operational", "non_operational", "under_maintenance", "unknown"]
 RiskLevel = Literal["low", "medium", "high", "critical"]
@@ -65,7 +65,12 @@ class HydrantResponse(BaseModel):
 # Evacuation sites
 # --------------------------------------------------------------------------- #
 class EvacuationSiteCreate(BaseModel):
-    """Create an evacuation site."""
+    """Create an evacuation site.
+
+    Sites may sit outside Pasay (v10 Section 2.4): a fire in Pasay can need a
+    shelter in Parañaque or Makati. ``city`` records where; the response's
+    ``outside_pasay`` is generated from it by the database.
+    """
 
     name: str = Field(min_length=1, max_length=200)
     latitude: float = Field(ge=-90, le=90)
@@ -73,6 +78,7 @@ class EvacuationSiteCreate(BaseModel):
     capacity: int | None = Field(default=None, ge=0)
     address: str | None = Field(default=None, max_length=500)
     contact_info: str | None = Field(default=None, max_length=500)
+    city: str = Field(default="Pasay City", min_length=1, max_length=100)
     is_active: bool = True
 
 
@@ -85,7 +91,15 @@ class EvacuationSiteUpdate(BaseModel):
     capacity: int | None = Field(default=None, ge=0)
     address: str | None = Field(default=None, max_length=500)
     contact_info: str | None = Field(default=None, max_length=500)
+    city: str | None = Field(default=None, min_length=1, max_length=100)
     is_active: bool | None = None
+
+    @model_validator(mode="after")
+    def _city_cannot_be_cleared(self) -> EvacuationSiteUpdate:
+        """Omit city to keep it; an explicit null would violate the NOT NULL column."""
+        if "city" in self.model_fields_set and self.city is None:
+            raise ValueError("city cannot be cleared; omit it to leave it unchanged.")
+        return self
 
 
 class EvacuationSiteResponse(BaseModel):
@@ -98,6 +112,8 @@ class EvacuationSiteResponse(BaseModel):
     capacity: int | None = None
     address: str | None = None
     contact_info: str | None = None
+    city: str = "Pasay City"
+    outside_pasay: bool = False
     is_active: bool
     created_at: datetime
     updated_at: datetime
