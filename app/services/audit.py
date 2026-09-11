@@ -9,16 +9,25 @@ their action sites. audit_logs is append-only (DB-enforced).
 from __future__ import annotations
 
 import ipaddress
+import json
 import re
 from dataclasses import dataclass
+from typing import Any, Protocol
 from uuid import UUID
 
 from fastapi import Request, Response
 
 from app.core.logging import get_logger
 from app.db.session import database
+from app.schemas.auth import AuthenticatedUser
 
 log = get_logger(__name__)
+
+
+class _Executor(Protocol):
+    """Anything that can run a statement: the pool wrapper, or a connection in a transaction."""
+
+    async def execute(self, query: str, *args: Any) -> str: ...
 
 _UUID = r"[0-9a-fA-F-]{36}"
 
@@ -37,6 +46,11 @@ def _rule(method: str, path_regex: str, action: str, entity: str, is_area: bool 
 
 
 # Curated RBAC / lifecycle endpoints to audit automatically.
+#
+# The v10 actions — Admin routing, observer Accept, filing a Post-Incident Report
+# — are deliberately NOT listed: each writes its own row through record_audit()
+# so the entry carries what was decided (which agencies, which truck), and a
+# rule here would record the same action twice.
 _RULES: list[_Rule] = [
     _rule("POST", rf"^/incidents/({_UUID})/verify$", "incident.verify", "area", True),
     _rule("POST", rf"^/incidents/({_UUID})/reject$", "incident.reject", "area", True),
@@ -84,6 +98,50 @@ def _safe_ip(host: str | None) -> str | None:
     except ValueError:
         return None
     return host
+
+
+async def record_audit(
+    db: _Executor,
+    request: Request,
+    user: AuthenticatedUser,
+    *,
+    action: str,
+    entity_type: str,
+    entity_id: UUID | None,
+    area_id: UUID | None = None,
+    before_state: dict[str, Any] | None = None,
+    after_state: dict[str, Any] | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> None:
+    """Append an audit_logs row written at the action site, with request provenance.
+
+    Unlike :func:`maybe_record_request_audit` this is not best-effort: pass the
+    connection of the transaction making the change, so the action and its
+    record commit together or not at all.
+    """
+    await db.execute(
+        """
+        insert into public.audit_logs
+            (actor_user_id, actor_role, actor_agency, action, entity_type, entity_id,
+             area_id, before_state, after_state, metadata, ip_address, user_agent,
+             request_id)
+        values ($1, $2::public.user_role, $3::public.agency_type, $4, $5, $6, $7,
+                $8::jsonb, $9::jsonb, $10::jsonb, $11::inet, $12, $13)
+        """,
+        user.id,
+        user.role,
+        user.agency_type,
+        action,
+        entity_type,
+        entity_id,
+        area_id,
+        json.dumps(before_state, default=str) if before_state is not None else None,
+        json.dumps(after_state, default=str) if after_state is not None else None,
+        json.dumps(metadata or {}, default=str),
+        _safe_ip(request.client.host if request.client else None),
+        request.headers.get("user-agent"),
+        getattr(request.state, "request_id", None),
+    )
 
 
 async def maybe_record_request_audit(request: Request, response: Response) -> None:

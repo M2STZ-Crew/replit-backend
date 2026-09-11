@@ -13,6 +13,7 @@ from app.main import app
 from app.services.clustering import _designation
 from app.services.geo import haversine_m
 from app.services.incident import (
+    OFF_FEED_STATUSES,
     TERMINAL_STATUSES,
     UNVERSIONABLE_STATUSES,
     active_area_sql,
@@ -42,11 +43,16 @@ def test_haversine_known_distance() -> None:
 # --------------------------------------------------------------------------- #
 # Active-feed predicate (shared by clustering, the worker, and both route modules)
 # --------------------------------------------------------------------------- #
-def test_active_area_sql_excludes_every_terminal_status() -> None:
-    """All three terminal statuses drop out of the live feed — merged included."""
+def test_active_area_sql_excludes_every_off_feed_status() -> None:
+    """Terminal statuses leave the live feed, and so does the post-fire step.
+
+    v10 Section 2.5: 'closed' joins rejected and merged as terminal, and a fire
+    that is out but still owes its Post-Incident Report is no longer live either.
+    """
     predicate = active_area_sql()
-    assert set(TERMINAL_STATUSES) == {"resolved", "rejected", "merged"}
-    for status in TERMINAL_STATUSES:
+    assert set(TERMINAL_STATUSES) == {"rejected", "merged", "closed"}
+    assert set(OFF_FEED_STATUSES) == set(TERMINAL_STATUSES) | {"resolved", "post_incident_report"}
+    for status in OFF_FEED_STATUSES:
         assert f"'{status}'" in predicate
     assert predicate.startswith("status not in (")
 
@@ -60,11 +66,12 @@ def test_active_area_sql_qualifies_with_an_alias() -> None:
 def test_resolved_area_still_seeds_a_version_chain() -> None:
     """A second fire at the same place within the hour becomes 'Area 1.2'.
 
-    So 'resolved' must NOT be excluded from the versioning lookup, while 'rejected'
-    and 'merged' must be.
+    So no post-fire status — resolved, post_incident_report, closed — may be
+    excluded from the versioning lookup, while 'rejected' and 'merged' must be.
     """
     predicate = versionable_area_sql()
-    assert "'resolved'" not in predicate
+    for after_the_fire in ("resolved", "post_incident_report", "closed"):
+        assert f"'{after_the_fire}'" not in predicate
     assert "'rejected'" in predicate
     assert "'merged'" in predicate
     assert set(UNVERSIONABLE_STATUSES) < set(TERMINAL_STATUSES)
@@ -84,7 +91,7 @@ def test_areas_active_index_matches_the_app_predicate() -> None:
     assert definitions, "no migration defines areas_active_idx"
     latest = definitions[-1]
     predicate = latest.split("create index areas_active_idx")[-1]
-    for status in TERMINAL_STATUSES:
+    for status in OFF_FEED_STATUSES:
         assert f"'{status}'" in predicate
 
 

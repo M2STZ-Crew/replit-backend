@@ -9,13 +9,17 @@ admin sees everything.
 
 Authority (Section 6 + the chosen coordinator/responder model). "Coordinator"
 means admin, or a sub-admin of a fire agency (fire_volunteer / bfp); a police,
-medical or barangay sub-admin observes only and is read-only throughout:
+medical or barangay sub-admin observes only and changes no state:
   - verify ................ Fire Volunteer sub-admin only (DB-pinned by trigger)
   - reject / resolve ...... coordinator
   - dispatch (manual) ..... coordinator assigns a response_team user
   - self-dispatch ......... a response_team user selects themselves
   - en_route / arrived .... the assigned responder, or a coordinator
   - location stream ....... the assigned responder (response_team) only
+  - accept ................ an observer sub-admin whose agency Admin routed it to
+                            (v10 Section 2.6.1) — an acknowledgement, no status change
+Fire out (resolve) moves the incident into the Post-Incident Report step; filing
+that report — app/api/routes/post_incident_reports.py — is what closes it.
 The matching *_at timestamp is stamped by a database trigger on each status change.
 """
 
@@ -24,7 +28,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Query
+from fastapi import APIRouter, BackgroundTasks, Query, Request
 
 from app.api.deps import DatabaseDep, StaffUser, StorageClientDep
 from app.core.config import get_settings
@@ -55,8 +59,11 @@ from app.schemas.incident import (
     SelfDispatchRequest,
 )
 from app.services.ai_summary import generate_incident_summary
+from app.services.audit import record_audit
 from app.services.incident import (
+    OFF_FEED_STATUSES,
     active_area_sql,
+    assert_can_accept,
     assert_coordinator,
     assert_transition,
     is_coordinator,
@@ -74,6 +81,34 @@ router = APIRouter(prefix="/incidents", tags=["incidents"])
 
 # Incident statuses during which new dispatches may be added.
 _DISPATCHABLE = ("verified", "dispatched", "en_route", "arrived")
+
+# Columns of IncidentSummary, selected from public.areas aliased ``a``. Shared by
+# the feed and the detail so the two cannot drift. The three agency arrays are
+# what the consoles key their per-agency sound and the Accept control on.
+_SUMMARY_COLS = """
+    a.id, a.designation, a.status::text as status,
+    a.centroid_lat, a.centroid_lng, a.report_count,
+    a.confidence_score, a.confidence_band::text as confidence_band,
+    a.alarm_level::text as alarm_level,
+    (select count(*) from public.dispatch_logs d
+     where d.area_id = a.id and d.status = 'active') as active_dispatch_count,
+    a.reported_at, a.verified_at, a.dispatched_at, a.en_route_at,
+    a.arrived_at, a.resolved_at, a.post_incident_report_at, a.closed_at,
+    a.rejected_at, a.merged_at, a.updated_at,
+    coalesce((select array_agg(distinct ag order by ag)
+              from public.area_reports ar
+              join public.reports r on r.id = ar.report_id
+              cross join lateral unnest(r.selected_agencies::text[]) as ag
+              where ar.area_id = a.id), '{}') as requested_agencies,
+    coalesce((select array_agg(distinct rt.agency::text)
+              from public.area_routes rt
+              where rt.area_id = a.id), '{}') as routed_agencies,
+    coalesce((select array_agg(distinct rt.agency::text)
+              from public.area_routes rt
+              where rt.area_id = a.id and rt.accepted_at is not null), '{}')
+        as accepted_agencies,
+    (select count(*) from public.area_routes rt where rt.area_id = a.id) as route_count
+"""
 
 
 # --------------------------------------------------------------------------- #
@@ -142,28 +177,25 @@ async def _assert_responder_or_coordinator(
     )
 
 
-async def _build_detail(db: Database, incident_id: UUID) -> IncidentDetail:
+async def build_incident_detail(db: Database, incident_id: UUID) -> IncidentDetail:
     """Build the full IncidentDetail for an incident (assumes existence already checked)."""
     row = await db.fetchrow(
-        """
-        select a.id, a.designation, a.status::text as status,
-               a.centroid_lat, a.centroid_lng, a.report_count,
-               a.confidence_score, a.confidence_band::text as confidence_band,
-               a.alarm_level::text as alarm_level,
-               (select count(*) from public.dispatch_logs d
-                where d.area_id = a.id and d.status = 'active') as active_dispatch_count,
-               a.reported_at, a.verified_at, a.dispatched_at, a.en_route_at,
-               a.arrived_at, a.resolved_at, a.rejected_at, a.merged_at, a.updated_at,
+        f"""
+        select {_SUMMARY_COLS},
                a.n_score, a.s_score, a.v_score, a.version, a.parent_area_id,
                a.verified_by, vu.full_name as verified_by_name,
                a.resolved_by, ru.full_name as resolved_by_name,
+               a.closed_by, cu.full_name as closed_by_name,
                a.rejected_by, ju.full_name as rejected_by_name,
                a.rejection_reason,
                a.merged_by, mu.full_name as merged_by_name, a.merged_into_area_id,
-               a.alarm_level_set_by, a.alarm_level_set_at
+               a.alarm_level_set_by, a.alarm_level_set_at,
+               exists (select 1 from public.post_incident_reports p
+                       where p.area_id = a.id) as has_post_incident_report
         from public.areas a
         left join public.users vu on vu.id = a.verified_by
         left join public.users ru on ru.id = a.resolved_by
+        left join public.users cu on cu.id = a.closed_by
         left join public.users ju on ju.id = a.rejected_by
         left join public.users mu on mu.id = a.merged_by
         where a.id = $1
@@ -172,6 +204,21 @@ async def _build_detail(db: Database, incident_id: UUID) -> IncidentDetail:
     )
     if row is None:
         raise NotFoundError("Incident not found.")
+    routes = await db.fetch(
+        """
+        select rt.id, rt.agency::text as agency, rt.organization_id,
+               o.name as organization_name,
+               rt.routed_by, rb.full_name as routed_by_name, rt.routed_at,
+               rt.accepted_by, ab.full_name as accepted_by_name, rt.accepted_at
+        from public.area_routes rt
+        left join public.organizations o on o.id = rt.organization_id
+        left join public.users rb on rb.id = rt.routed_by
+        left join public.users ab on ab.id = rt.accepted_by
+        where rt.area_id = $1
+        order by rt.routed_at asc, rt.agency, o.name nulls first
+        """,
+        incident_id,
+    )
     reports = await db.fetch(
         """
         select r.id, r.device_lat, r.device_lng, r.has_exif, r.gps_discrepancy_flag,
@@ -185,13 +232,20 @@ async def _build_detail(db: Database, incident_id: UUID) -> IncidentDetail:
         incident_id,
     )
     data = dict(row)
+    data["routes"] = [dict(r) for r in routes]
     data["reports"] = [dict(r) for r in reports]
     return IncidentDetail.model_validate(data)
 
 
-async def _finish(db: Database, incident_id: UUID, event_type: str) -> IncidentDetail:
-    """Rebuild the detail, broadcast to subscribers, push the reporter, and return it."""
-    detail = await _build_detail(db, incident_id)
+async def finish_incident_change(
+    db: Database, incident_id: UUID, event_type: str
+) -> IncidentDetail:
+    """Rebuild the detail, broadcast to subscribers, push the reporter, and return it.
+
+    Public because the Post-Incident Report and Admin routing modules change
+    incidents too, and their subscribers deserve the same broadcast.
+    """
+    detail = await build_incident_detail(db, incident_id)
     await broadcast_incident_event(detail, event_type)
     try:
         await notify_incident_reporters(db, incident_id, event_type)
@@ -242,14 +296,7 @@ async def list_incidents(
     where_sql = f"where {' and '.join(conditions)}" if conditions else ""
     rows = await db.fetch(
         f"""
-        select a.id, a.designation, a.status::text as status,
-               a.centroid_lat, a.centroid_lng, a.report_count,
-               a.confidence_score, a.confidence_band::text as confidence_band,
-               a.alarm_level::text as alarm_level,
-               (select count(*) from public.dispatch_logs d
-                where d.area_id = a.id and d.status = 'active') as active_dispatch_count,
-               a.reported_at, a.verified_at, a.dispatched_at, a.en_route_at,
-               a.arrived_at, a.resolved_at, a.rejected_at, a.merged_at, a.updated_at
+        select {_SUMMARY_COLS}
         from public.areas a
         {where_sql}
         order by a.reported_at desc
@@ -271,9 +318,13 @@ async def incident_stats(user: StaffUser, db: DatabaseDep) -> IncidentStats:
         pending = await db.fetchval(
             "select count(*) from public.areas where status = 'pending'"
         )
+        pending_reports = await db.fetchval(
+            "select count(*) from public.areas where status = 'post_incident_report'"
+        )
     elif not agencies:
         active = 0
         pending = 0
+        pending_reports = 0
     else:
         visible = (
             "exists (select 1 from public.area_reports ar "
@@ -287,6 +338,11 @@ async def incident_stats(user: StaffUser, db: DatabaseDep) -> IncidentStats:
         )
         pending = await db.fetchval(
             f"select count(*) from public.areas a where a.status = 'pending' and {visible}",
+            agencies,
+        )
+        pending_reports = await db.fetchval(
+            f"select count(*) from public.areas a "
+            f"where a.status = 'post_incident_report' and {visible}",
             agencies,
         )
 
@@ -317,6 +373,7 @@ async def incident_stats(user: StaffUser, db: DatabaseDep) -> IncidentStats:
         pending_verify=int(pending or 0),
         units_deployed=deployed_n,
         units_standby=max(int(roster or 0) - deployed_n, 0),
+        pending_reports=int(pending_reports or 0),
     )
 
 
@@ -331,7 +388,7 @@ async def get_incident(
     """Return one incident (lifecycle + confidence + member reports), visibility-checked."""
     await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
-    return await _build_detail(db, incident_id)
+    return await build_incident_detail(db, incident_id)
 
 
 @router.get(
@@ -401,7 +458,7 @@ async def verify_incident(
         user.id,
     )
     log.info("incident_verified", incident_id=str(incident_id), user_id=str(user.id))
-    return await _finish(db, incident_id, "incident_verified")
+    return await finish_incident_change(db, incident_id, "incident_verified")
 
 
 @router.post(
@@ -431,7 +488,7 @@ async def reject_incident(
         payload.reason,
     )
     log.info("incident_rejected", incident_id=str(incident_id), user_id=str(user.id))
-    return await _finish(db, incident_id, "incident_rejected")
+    return await finish_incident_change(db, incident_id, "incident_rejected")
 
 
 async def _generate_fire_out_report(incident_id: UUID) -> None:
@@ -460,27 +517,126 @@ async def _generate_fire_out_report(incident_id: UUID) -> None:
 async def resolve_incident(
     incident_id: UUID, user: StaffUser, db: DatabaseDep, background: BackgroundTasks
 ) -> IncidentDetail:
-    """Resolve an incident (fire out). Completes any still-active dispatches."""
+    """Fire out: end the response and open the Post-Incident Report step.
+
+    Completes any still-active dispatches. Fire out ends the response, not the
+    incident: it passes through 'resolved' (stamping resolved_at) straight into
+    'post_incident_report', where it waits in the captain's tray until the report
+    is filed (v10 Section 2.5). Both transitions are validated here and applied as
+    two updates in one transaction, so each passes through the database's own
+    sequencing constraints and nothing observes the incident half-moved.
+    """
     assert_coordinator(user, "resolve incidents")
     current = await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
     assert_transition(current, "resolved")
-    await db.execute(
-        "update public.areas set status = 'resolved', resolved_by = $2 where id = $1",
-        incident_id,
-        user.id,
-    )
-    await db.execute(
-        """
-        update public.dispatch_logs
-           set status = 'completed', completed_at = now()
-         where area_id = $1 and status = 'active'
-        """,
-        incident_id,
-    )
+    assert_transition("resolved", "post_incident_report")
+    async with db.acquire() as conn, conn.transaction():
+        await conn.execute(
+            "update public.areas set status = 'resolved', resolved_by = $2 where id = $1",
+            incident_id,
+            user.id,
+        )
+        await conn.execute(
+            "update public.areas set status = 'post_incident_report' where id = $1",
+            incident_id,
+        )
+        await conn.execute(
+            """
+            update public.dispatch_logs
+               set status = 'completed', completed_at = now()
+             where area_id = $1 and status = 'active'
+            """,
+            incident_id,
+        )
     background.add_task(_generate_fire_out_report, incident_id)
     log.info("incident_resolved", incident_id=str(incident_id), user_id=str(user.id))
-    return await _finish(db, incident_id, "incident_resolved")
+    return await finish_incident_change(db, incident_id, "incident_resolved")
+
+
+# --------------------------------------------------------------------------- #
+# Observer Accept (v10 Section 2.6.1)
+# --------------------------------------------------------------------------- #
+@router.post(
+    "/{incident_id}/accept",
+    response_model=IncidentDetail,
+    summary="Accept an incident Admin routed to your agency (observer sub-admin)",
+)
+async def accept_incident(
+    incident_id: UUID, request: Request, user: StaffUser, db: DatabaseDep
+) -> IncidentDetail:
+    """Acknowledge a routed incident: yes, we see it; yes, we are on it.
+
+    Purely an acknowledgement — the lifecycle status does not move. It marks the
+    caller's agency's route rows accepted (agency-wide routes, and routes to the
+    caller's own team) and records the press in audit_logs. Pressing again is
+    harmless: nothing further is written, and the current state is returned.
+    """
+    assert_can_accept(user)
+    current = await _load_status(db, incident_id)
+    await _assert_visible(db, incident_id, user)
+    if current in OFF_FEED_STATUSES:
+        raise ConflictError(
+            "This incident is no longer live, so there is nothing to accept.",
+            details={"current_status": current},
+        )
+    async with db.acquire() as conn, conn.transaction():
+        accepted = await conn.fetch(
+            """
+            update public.area_routes
+               set accepted_by = $3, accepted_at = now()
+             where area_id = $1
+               and agency = $2::public.agency_type
+               and accepted_at is null
+               and (organization_id is null or organization_id = $4)
+            returning id, organization_id
+            """,
+            incident_id,
+            user.agency_type,
+            user.id,
+            user.primary_org_id,
+        )
+        if accepted:
+            await record_audit(
+                conn,
+                request,
+                user,
+                action="incident.accept",
+                entity_type="area",
+                entity_id=incident_id,
+                area_id=incident_id,
+                metadata={
+                    "agency": user.agency_type,
+                    "route_ids": [str(r["id"]) for r in accepted],
+                    "status_at_accept": current,
+                },
+            )
+        else:
+            routed = await conn.fetchval(
+                """
+                select exists (
+                    select 1 from public.area_routes
+                    where area_id = $1 and agency = $2::public.agency_type
+                      and (organization_id is null or organization_id = $3)
+                )
+                """,
+                incident_id,
+                user.agency_type,
+                user.primary_org_id,
+            )
+            if not routed:
+                raise ConflictError(
+                    "Admin has not routed this incident to your agency or team yet. "
+                    "Accept appears once it has been routed to you."
+                )
+    log.info(
+        "incident_accepted",
+        incident_id=str(incident_id),
+        user_id=str(user.id),
+        agency=user.agency_type,
+        newly_accepted=len(accepted),
+    )
+    return await finish_incident_change(db, incident_id, "incident_accepted")
 
 
 # --------------------------------------------------------------------------- #
@@ -597,7 +753,7 @@ async def dispatch_responder(
         log.error(
             "responder_dispatch_notify_failed", incident_id=str(incident_id), exc_info=True
         )
-    return await _finish(db, incident_id, "responder_dispatched")
+    return await finish_incident_change(db, incident_id, "responder_dispatched")
 
 
 @router.post(
@@ -648,7 +804,7 @@ async def self_dispatch(
         incident_id=str(incident_id),
         responder_id=str(user.id),
     )
-    return await _finish(db, incident_id, "responder_dispatched")
+    return await finish_incident_change(db, incident_id, "responder_dispatched")
 
 
 @router.get(
@@ -719,7 +875,7 @@ async def withdraw_dispatch(
         dispatch_id=str(dispatch_id),
         by=str(user.id),
     )
-    return await _finish(db, incident_id, "dispatch_withdrawn")
+    return await finish_incident_change(db, incident_id, "dispatch_withdrawn")
 
 
 # --------------------------------------------------------------------------- #
@@ -742,7 +898,7 @@ async def mark_en_route(
         "update public.areas set status = 'en_route' where id = $1", incident_id
     )
     log.info("incident_en_route", incident_id=str(incident_id), user_id=str(user.id))
-    return await _finish(db, incident_id, "incident_en_route")
+    return await finish_incident_change(db, incident_id, "incident_en_route")
 
 
 @router.post(
@@ -762,7 +918,7 @@ async def mark_arrived(
         "update public.areas set status = 'arrived' where id = $1", incident_id
     )
     log.info("incident_arrived", incident_id=str(incident_id), user_id=str(user.id))
-    return await _finish(db, incident_id, "incident_arrived")
+    return await finish_incident_change(db, incident_id, "incident_arrived")
 
 
 # --------------------------------------------------------------------------- #

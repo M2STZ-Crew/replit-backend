@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { api } from '../api/client.js';
-import { agencyLabel, useAuth } from '../auth.jsx';
+import { agencyLabel } from '../auth.jsx';
 
 /* Categories are derived from the action's "<entity>.<verb>" prefix, which the
    migration documents as the naming convention. Anything unrecognised falls
@@ -22,9 +22,27 @@ function categoryOf(action = '') {
   return { key, ...(CATEGORY[key] ?? { label: 'Other', color: '#8a8a8a' }) };
 }
 
+/* v10 verbs read better spelled out than split on underscores. */
+const VERB = {
+  'incident.route': 'routed to agencies',
+  'incident.accept': 'accepted (observer)',
+  'incident.post_incident_report': 'filed Post-Incident Report',
+};
+
 function verbOf(action = '') {
+  if (VERB[action]) return VERB[action];
   const verb = action.split('.').slice(1).join(' ') || action;
   return verb.replace(/_/g, ' ');
+}
+
+/* What the action was about. v10 routing lists the agencies it sent to. */
+function detailOf(r) {
+  if (r.action === 'incident.route' && Array.isArray(r.metadata?.routes)) {
+    return r.metadata.routes
+      .map((x) => `${agencyLabel(x.agency)}${x.organization_name ? ` (${x.organization_name})` : ''}`)
+      .join(', ');
+  }
+  return null;
 }
 
 function when(iso) {
@@ -47,9 +65,6 @@ function shortId(id) {
  * genuinely strong provenance (actor role and agency at the time, before/after
  * state, IP, request id) and that is what the footer states instead. */
 export default function ActionRecord() {
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
-
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -69,7 +84,7 @@ export default function ActionRecord() {
     }
   }, []);
 
-  useEffect(() => { if (isAdmin) load(); else setLoading(false); }, [isAdmin, load]);
+  useEffect(() => { load(); }, [load]);
 
   const categories = useMemo(() => {
     const seen = new Map();
@@ -85,7 +100,7 @@ export default function ActionRecord() {
     return rows.filter((r) => {
       if (category !== 'all' && categoryOf(r.action).key !== category) return false;
       if (!q) return true;
-      return [r.action, r.actor_role, r.actor_agency, r.entity_type, r.request_id]
+      return [r.action, r.actor_role, r.actor_agency, r.entity_type, r.request_id, r.area_designation]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q));
     });
@@ -102,21 +117,6 @@ export default function ActionRecord() {
       { k: 'Categories', v: categories.length, foot: 'Kinds of action', color: '#ffffff' },
     ];
   }, [rows, categories]);
-
-  if (!isAdmin) {
-    return (
-      <div className="ar">
-        <section className="ar-locked">
-          <h2 className="sb-panel-title">Action record</h2>
-          <p className="sb-empty">
-            The full action record is available to Admin accounts only. Your
-            incident history is on the {' '}
-            <strong>{user?.role === 'sub_admin' ? 'Verification' : 'Incidents'}</strong> screen.
-          </p>
-        </section>
-      </div>
-    );
-  }
 
   return (
     <div className="ar">
@@ -210,9 +210,14 @@ export default function ActionRecord() {
                     {r.actor_agency ? agencyLabel(r.actor_agency) : shortId(r.actor_user_id)}
                   </span>
                 </span>
-                <span className="ar-c-action ar-action">{verbOf(r.action)}</span>
+                <span className="ar-c-action ar-action">
+                  {verbOf(r.action)}
+                  {detailOf(r) && <span className="ar-actor-sub"> · {detailOf(r)}</span>}
+                </span>
                 <span className="ar-c-target ar-target">
-                  {r.entity_type ? `${r.entity_type} ${shortId(r.entity_id ?? r.area_id)}` : '—'}
+                  {r.area_designation
+                    ? r.area_designation
+                    : r.entity_type ? `${r.entity_type} ${shortId(r.entity_id ?? r.area_id)}` : '—'}
                 </span>
               </div>
             );

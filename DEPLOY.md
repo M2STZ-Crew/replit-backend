@@ -85,6 +85,19 @@ on `/login` from returning 404. Vercel works identically and reads the committed
 `https://replit-admin.pages.dev`. Until you do, the browser blocks every API call
 and the dashboard looks broken while the backend looks healthy.
 
+### The Observer Console
+
+The Observer Console (`observer-web`, for Police, Medical and Barangay team
+captains — Master Context v10 §2.6) is a second Pages project set up the same way:
+root directory `observer-web`, the same build command and output directory, and
+the same `VITE_API_BASE`. Then:
+
+- add its URL to `CORS_ORIGINS` on Render, comma-separated after the Admin
+  Console's;
+- set `VITE_OBSERVER_URL` on the Admin Console project to it, so the Admin
+  Console can point an observer who signs in there to the right place;
+- set `OBSERVER_CONSOLE_URL` in the mobile app's `env.json` for the same reason.
+
 ## 3. Mobile app
 
 There is no free way to publish to the Play Store (Google charges a one-off $25),

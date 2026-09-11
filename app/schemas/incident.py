@@ -64,6 +64,8 @@ class IncidentStats(BaseModel):
     pending_verify: int = 0
     units_deployed: int = 0
     units_standby: int = 0
+    # Fire out, Post-Incident Report not yet filed — the captain's tray (v10 §2.5).
+    pending_reports: int = 0
 
 
 class IncidentSummary(BaseModel):
@@ -85,9 +87,34 @@ class IncidentSummary(BaseModel):
     en_route_at: datetime | None = None
     arrived_at: datetime | None = None
     resolved_at: datetime | None = None
+    post_incident_report_at: datetime | None = None
+    closed_at: datetime | None = None
     rejected_at: datetime | None = None
     merged_at: datetime | None = None
     updated_at: datetime
+    # Agencies the reporters asked for (union over member reports), the ones
+    # Admin has routed it to, and the observer agencies that pressed Accept.
+    requested_agencies: list[str] = Field(default_factory=list)
+    routed_agencies: list[str] = Field(default_factory=list)
+    accepted_agencies: list[str] = Field(default_factory=list)
+    # Routing rows, all agencies and teams. Changes whenever Admin routes more,
+    # so a console can tell "routed to another team" from "now routed to mine".
+    route_count: int = 0
+
+
+class IncidentRoute(BaseModel):
+    """One Admin routing decision on an incident, and its observer Accept (v10 §2.6)."""
+
+    id: UUID
+    agency: str
+    organization_id: UUID | None = None
+    organization_name: str | None = None
+    routed_by: UUID | None = None
+    routed_by_name: str | None = None
+    routed_at: datetime
+    accepted_by: UUID | None = None
+    accepted_by_name: str | None = None
+    accepted_at: datetime | None = None
 
 
 class IncidentDetail(IncidentSummary):
@@ -102,6 +129,8 @@ class IncidentDetail(IncidentSummary):
     verified_by_name: str | None = None
     resolved_by: UUID | None = None
     resolved_by_name: str | None = None
+    closed_by: UUID | None = None
+    closed_by_name: str | None = None
     rejected_by: UUID | None = None
     rejected_by_name: str | None = None
     rejection_reason: str | None = None
@@ -110,6 +139,8 @@ class IncidentDetail(IncidentSummary):
     merged_into_area_id: UUID | None = None
     alarm_level_set_by: UUID | None = None
     alarm_level_set_at: datetime | None = None
+    has_post_incident_report: bool = False
+    routes: list[IncidentRoute] = Field(default_factory=list)
     reports: list[IncidentReportItem] = Field(default_factory=list)
 
 

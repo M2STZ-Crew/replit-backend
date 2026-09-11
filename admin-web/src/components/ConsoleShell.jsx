@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 
 import { api } from '../api/client.js';
-import { agencyLabel, canVerifyIncidents, isObserver, useAuth } from '../auth.jsx';
+import { useAuth } from '../auth.jsx';
+import { useLiveFeed } from '../live/LiveFeed.jsx';
+import SoundSettings from './SoundSettings.jsx';
 
 /* Icons are inline SVG rather than a font or sprite: there are nine of them,
    they never change, and this keeps the shell dependency-free. */
@@ -11,7 +13,7 @@ const Icon = {
       <rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>
   ),
   map: <><path d="M9 3l6 2 6-2v16l-6 2-6-2-6 2V5l6-2z" /><path d="M9 3v16M15 5v16" /></>,
-  check: <><path d="M12 3l8 4v5c0 5-3.4 8.3-8 9-4.6-.7-8-4-8-9V7l8-4z" /><path d="M9 12l2 2 4-4" /></>,
+  flame: <path d="M12 3c1 3.5 5 5.6 5 10a5 5 0 01-10 0c0-2 .8-3.3 2-4.5.3 1.7 1.2 2.6 2.2 2.8C10.6 9 11 6 12 3z" />,
   users: (
     <><path d="M16 20v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="3.2" />
       <path d="M22 20v-2a4 4 0 00-3-3.8" /><path d="M16 4.2A3.2 3.2 0 0117 10" /></>
@@ -35,25 +37,18 @@ function Svg({ path, size = 13, stroke = 'var(--accent)' }) {
   );
 }
 
-/* Nav model. `group` places the item; `adminOnly` hides it from sub-admins
-   because those endpoints are AdminUser-gated and would only ever 403. */
+/* Nav model. `badge` names a counter. The two incident surfaces carry the v10
+   red count (Section 2.9): incidents reported since the operator last viewed
+   that surface. The governance queues keep their accent pending-count. */
 const NAV = [
-  { key: 'dashboard', label: 'Situation board', icon: Icon.grid, group: 'Operations' },
+  { key: 'dashboard', label: 'Situation board', icon: Icon.grid, group: 'Operations', badge: 'new:dashboard' },
+  { key: 'incidents', label: 'Incidents', icon: Icon.flame, group: 'Operations', badge: 'new:incidents' },
   { key: 'map', label: 'Live map', icon: Icon.map, group: 'Operations' },
-  { key: 'verify', label: 'Verification', icon: Icon.check, group: 'Operations', badge: 'verify' },
-  { key: 'affiliates', label: 'Affiliates', icon: Icon.users, group: 'Governance', adminOnly: true, badge: 'affiliates' },
-  { key: 'accounts', label: 'Accounts', icon: Icon.shield, group: 'Governance', adminOnly: true },
-  { key: 'idreview', label: 'ID review', icon: Icon.id, group: 'Governance', adminOnly: true, badge: 'ids' },
+  { key: 'affiliates', label: 'Affiliates', icon: Icon.users, group: 'Governance', badge: 'affiliates' },
+  { key: 'accounts', label: 'Accounts', icon: Icon.shield, group: 'Governance' },
+  { key: 'idreview', label: 'ID review', icon: Icon.id, group: 'Governance', badge: 'ids' },
   { key: 'audit', label: 'Audit log', icon: Icon.doc, group: 'Governance' },
 ];
-
-function navFor(user) {
-  const observer = isObserver(user);
-  return NAV.filter((n) => !n.adminOnly || user?.role === 'admin').map((n) =>
-    // An observer does not verify; the same screen is their incident feed.
-    n.key === 'verify' && observer ? { ...n, label: 'Incidents', badge: null } : n,
-  );
-}
 
 function initials(name, email) {
   const source = (name || email || '?').trim();
@@ -61,55 +56,44 @@ function initials(name, email) {
   return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?';
 }
 
-/* Standing line under the user's name — what they are allowed to do here. */
-function standingOf(user) {
-  if (user?.role === 'admin') return 'Admin · full access';
-  if (isObserver(user)) return `Observer · ${agencyLabel(user.agency_type)}`;
-  if (canVerifyIncidents(user)) return `Coordinator · ${agencyLabel(user.agency_type)}`;
-  return `Sub-Admin · ${agencyLabel(user?.agency_type)}`;
-}
-
 export default function ConsoleShell({ active, onNavigate, children }) {
   const { user, logout } = useAuth();
+  const { stats, seenAt, newSince } = useLiveFeed();
   const [slim, setSlim] = useState(
     () => localStorage.getItem('replit.nav.slim') === '1',
   );
-  const [counts, setCounts] = useState({ verify: 0, affiliates: 0, ids: 0, active: 0 });
+  const [queues, setQueues] = useState({ affiliates: 0, ids: 0 });
 
   useEffect(() => {
     localStorage.setItem('replit.nav.slim', slim ? '1' : '0');
   }, [slim]);
 
-  // Badge counts are real. Each call is guarded by role, because an observer or
-  // sub-admin hitting an AdminUser endpoint would just log a 403.
+  // Governance queue counts, refreshed whenever the operator moves between screens.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const next = { verify: 0, affiliates: 0, ids: 0, active: 0 };
-      const stats = await api.incidentStats().catch(() => null);
-      if (stats) {
-        next.verify = stats.pending_verify ?? 0;
-        next.active = stats.active_incidents ?? 0;
-      }
-      if (user?.role === 'admin') {
-        const [affs, ids] = await Promise.all([
-          api.affiliates('pending').catch(() => []),
-          api.pendingVerifications().catch(() => []),
-        ]);
-        next.affiliates = affs.length;
-        next.ids = ids.length;
-      }
-      if (!cancelled) setCounts(next);
+      const [affs, ids] = await Promise.all([
+        api.affiliates('pending').catch(() => []),
+        api.pendingVerifications().catch(() => []),
+      ]);
+      if (!cancelled) setQueues({ affiliates: affs.length, ids: ids.length });
     })();
     return () => { cancelled = true; };
-  }, [user?.role, active]);
+  }, [active]);
 
-  const items = navFor(user);
-  const groups = ['Operations', 'Governance'];
-
-  function go(key) {
-    onNavigate(key);
+  function countFor(badge, key) {
+    if (!badge) return 0;
+    if (badge.startsWith('new:')) {
+      // The surface you are looking at has nothing new to tell you about.
+      if (key === active) return 0;
+      return newSince(seenAt[badge.slice(4)]).length;
+    }
+    return queues[badge] ?? 0;
   }
+
+  const activeCount = stats?.active_incidents ?? 0;
+  const pendingVerify = stats?.pending_verify ?? 0;
+  const groups = ['Operations', 'Governance'];
 
   return (
     <div className={`cs${slim ? ' is-slim' : ''}`}>
@@ -119,7 +103,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
           {!slim && (
             <div className="cs-brand-text">
               <span className="cs-brand-name">RepLiT</span>
-              <span className="cs-brand-sub">Response console</span>
+              <span className="cs-brand-sub">Admin console</span>
             </div>
           )}
           <button
@@ -132,36 +116,36 @@ export default function ConsoleShell({ active, onNavigate, children }) {
           </button>
         </div>
 
-        {groups.map((group) => {
-          const inGroup = items.filter((n) => n.group === group);
-          if (inGroup.length === 0) return null;
-          return (
-            <div className="cs-group" key={group}>
-              {!slim && <span className="cs-group-label">{group}</span>}
-              {inGroup.map((n) => {
-                const count = n.badge ? counts[n.badge] : 0;
-                return (
-                  <button
-                    key={n.key}
-                    className={`cs-item${active === n.key ? ' is-active' : ''}`}
-                    onClick={() => go(n.key)}
-                    title={slim ? n.label : undefined}
-                    aria-current={active === n.key ? 'page' : undefined}
-                  >
-                    <span className="cs-item-icon"><Svg path={n.icon} /></span>
-                    {!slim && <span className="cs-item-label">{n.label}</span>}
-                    {!slim && count > 0 && (
-                      <span className={`cs-badge${n.badge === 'verify' ? ' is-urgent' : ''}`}>
-                        {count}
-                      </span>
-                    )}
-                    {slim && count > 0 && <span className="cs-dot" />}
-                  </button>
-                );
-              })}
-            </div>
-          );
-        })}
+        {groups.map((group) => (
+          <div className="cs-group" key={group}>
+            {!slim && <span className="cs-group-label">{group}</span>}
+            {NAV.filter((n) => n.group === group).map((n) => {
+              const count = countFor(n.badge, n.key);
+              const isNew = n.badge?.startsWith('new:');
+              return (
+                <button
+                  key={n.key}
+                  className={`cs-item${active === n.key ? ' is-active' : ''}`}
+                  onClick={() => onNavigate(n.key)}
+                  title={slim ? n.label : undefined}
+                  aria-current={active === n.key ? 'page' : undefined}
+                >
+                  <span className="cs-item-icon"><Svg path={n.icon} /></span>
+                  {!slim && <span className="cs-item-label">{n.label}</span>}
+                  {!slim && count > 0 && (
+                    <span
+                      className={`cs-badge${isNew ? ' is-new' : ''}`}
+                      aria-label={isNew ? `${count} new since you last looked` : `${count} pending`}
+                    >
+                      {count}
+                    </span>
+                  )}
+                  {slim && count > 0 && <span className={`cs-dot${isNew ? ' is-new' : ''}`} />}
+                </button>
+              );
+            })}
+          </div>
+        ))}
 
         <div className="cs-spacer" />
 
@@ -169,25 +153,27 @@ export default function ConsoleShell({ active, onNavigate, children }) {
           <div className="cs-posture">
             <div className="cs-posture-top">
               <span className="dc-eyebrow">City posture</span>
-              <span className={`cs-posture-level${counts.active > 0 ? ' is-elevated' : ''}`}>
-                {counts.active > 0 ? 'Elevated' : 'Normal'}
+              <span className={`cs-posture-level${activeCount > 0 ? ' is-elevated' : ''}`}>
+                {activeCount > 0 ? 'Elevated' : 'Normal'}
               </span>
             </div>
             <p className="cs-posture-note">
-              {counts.active === 0
+              {activeCount === 0
                 ? 'No active incidents.'
-                : `${counts.active} active incident${counts.active === 1 ? '' : 's'}` +
-                  (counts.verify > 0 ? ` · ${counts.verify} awaiting verification` : '')}
+                : `${activeCount} active incident${activeCount === 1 ? '' : 's'}` +
+                  (pendingVerify > 0 ? ` · ${pendingVerify} awaiting verification` : '')}
             </p>
           </div>
         )}
+
+        <SoundSettings slim={slim} />
 
         <div className="cs-user">
           <span className="cs-avatar">{initials(user?.full_name, user?.email)}</span>
           {!slim && (
             <div className="cs-user-text">
               <span className="cs-user-name">{user?.full_name || user?.email || 'Signed in'}</span>
-              <span className="cs-user-role">{standingOf(user)}</span>
+              <span className="cs-user-role">Admin · full access</span>
             </div>
           )}
           <button className="cs-signout" onClick={logout} title="Sign out" aria-label="Sign out">
@@ -199,19 +185,24 @@ export default function ConsoleShell({ active, onNavigate, children }) {
       <main className="cs-main">{children}</main>
 
       {/* Below 900px the sidebar becomes a bottom bar: on a phone, thumb reach
-          matters more than the grouping, so labels and badges are dropped. */}
+          matters more than the grouping, so labels are shortened and only the
+          red new-incident dot survives. */}
       <nav className="cs-bar" aria-label="Sections">
-        {items.map((n) => (
-          <button
-            key={n.key}
-            className={`cs-bar-item${active === n.key ? ' is-active' : ''}`}
-            onClick={() => go(n.key)}
-            aria-current={active === n.key ? 'page' : undefined}
-          >
-            <Svg path={n.icon} size={17} stroke={active === n.key ? 'var(--accent)' : 'var(--muted)'} />
-            <span>{n.label.split(' ')[0]}</span>
-          </button>
-        ))}
+        {NAV.map((n) => {
+          const count = n.badge?.startsWith('new:') ? countFor(n.badge, n.key) : 0;
+          return (
+            <button
+              key={n.key}
+              className={`cs-bar-item${active === n.key ? ' is-active' : ''}`}
+              onClick={() => onNavigate(n.key)}
+              aria-current={active === n.key ? 'page' : undefined}
+            >
+              <Svg path={n.icon} size={17} stroke={active === n.key ? 'var(--accent)' : 'var(--muted)'} />
+              <span>{n.label.split(' ')[0]}</span>
+              {count > 0 && <span className="cs-bar-new">{count}</span>}
+            </button>
+          );
+        })}
       </nav>
     </div>
   );

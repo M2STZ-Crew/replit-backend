@@ -1,6 +1,7 @@
 import 'leaflet/dist/leaflet.css';
 import { CircleMarker, MapContainer, TileLayer, Tooltip } from 'react-leaflet';
 
+import { statusOf } from '../lib/status.js';
 import { TILE_ATTRIBUTION, TILE_MAX_ZOOM, TILE_URL } from '../map/tiles.js';
 
 const PASAY = [14.5378, 121.0014];
@@ -13,22 +14,16 @@ export const LAYER_COLORS = {
   water: '#767575',
 };
 
-function incidentColor(status) {
-  switch (status) {
-    case 'verified':
-      return '#3B82F6';
-    case 'dispatched':
-    case 'en_route':
-      return '#FF9066';
-    case 'arrived':
-    case 'resolved':
-      return '#22C55E';
-    case 'rejected':
-      return '#FF544E';
-    default:
-      return '#EAB308'; // pending
-  }
-}
+/// A shelter outside Pasay (v10 Section 2.4) is drawn as a dashed ring rather
+/// than a filled dot, so an operator sees at a glance that the destination is
+/// in another city.
+export const OUTSIDE_PASAY_STYLE = {
+  color: LAYER_COLORS.evac,
+  weight: 2.5,
+  dashArray: '3 3',
+  fillColor: '#0b0b0b',
+  fillOpacity: 0.85,
+};
 
 function dot(color, weight = 1.5) {
   return { color: '#ffffff', weight, fillColor: color, fillOpacity: 0.95 };
@@ -36,8 +31,9 @@ function dot(color, weight = 1.5) {
 
 /// The dark basemap with incident markers and toggleable GIS layer points.
 /// `enabled` is a Set of layer keys; `layerPoints[key]` is an array of
-/// { lat, lng }. The tile source lives in map/tiles.js.
-export default function LiveMap({ incidents = [], layerPoints = {}, enabled }) {
+/// { lat, lng, outside?, label? }. `onSelectIncident`, when given, makes the
+/// incident markers open the incident. The tile source lives in map/tiles.js.
+export default function LiveMap({ incidents = [], layerPoints = {}, enabled, onSelectIncident }) {
   return (
     <MapContainer
       center={PASAY}
@@ -54,9 +50,11 @@ export default function LiveMap({ incidents = [], layerPoints = {}, enabled }) {
               <CircleMarker
                 key={`${key}-${i}`}
                 center={[p.lat, p.lng]}
-                radius={6}
-                pathOptions={dot(color, 1)}
-              />
+                radius={p.outside ? 8 : 6}
+                pathOptions={p.outside ? OUTSIDE_PASAY_STYLE : dot(color, 1)}
+              >
+                {p.label && <Tooltip>{p.outside ? `${p.label} (outside Pasay)` : p.label}</Tooltip>}
+              </CircleMarker>
             ))
           : [],
       )}
@@ -66,15 +64,17 @@ export default function LiveMap({ incidents = [], layerPoints = {}, enabled }) {
           const lat = inc.centroid_lat;
           const lng = inc.centroid_lng;
           if (lat == null || lng == null) return null;
+          const st = statusOf(inc.status);
           return (
             <CircleMarker
               key={inc.id}
               center={[lat, lng]}
               radius={9}
-              pathOptions={dot(incidentColor(inc.status))}
+              pathOptions={dot(st.color)}
+              eventHandlers={onSelectIncident ? { click: () => onSelectIncident(inc) } : undefined}
             >
               <Tooltip>
-                {(inc.designation || 'Incident')} · {inc.status}
+                {(inc.designation || 'Incident')} · {st.label}
               </Tooltip>
             </CircleMarker>
           );

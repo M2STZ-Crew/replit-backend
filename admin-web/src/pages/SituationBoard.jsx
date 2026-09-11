@@ -2,19 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { api } from '../api/client.js';
 import LiveMap, { LAYER_COLORS } from '../components/LiveMap.jsx';
-
-const STATUS = {
-  pending: { label: 'Pending', color: '#EAB308' },
-  verified: { label: 'Verified', color: '#42A5F5' },
-  dispatched: { label: 'Dispatched', color: '#1976D2' },
-  en_route: { label: 'En route', color: '#FF9066' },
-  arrived: { label: 'On scene', color: '#F4511E' },
-  resolved: { label: 'Resolved', color: '#22C55E' },
-  rejected: { label: 'Rejected', color: '#9E9E9E' },
-  merged: { label: 'Merged', color: '#7E57C2' },
-};
+import { useLiveFeed, useSurfaceVisit } from '../live/LiveFeed.jsx';
+import { formatMinutes, formatShare, responseMetrics } from '../lib/metrics.js';
+import { AGENCY_LABEL, since, statusOf } from '../lib/status.js';
 
 const BAND = { high: '#22C55E', medium: '#EAB308', low: '#FF544E' };
+
+const HISTORY_LIMIT = 500;
+const METRICS_DAYS = 30;
 
 /* Posture is derived, not invented: it reads off the count of live incidents.
    The design showed a fixed "Elevated · Lvl 3 / 5" with a dry-season advisory;
@@ -47,45 +42,39 @@ function hourlyBars(incidents, hours = 16) {
   return buckets.map((n) => ({ n, h: Math.max(2, Math.round((n / peak) * 34)) }));
 }
 
-function since(iso) {
-  if (!iso) return '—';
-  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ${mins % 60}m`;
-  return `${Math.floor(hrs / 24)}d`;
-}
-
 export default function SituationBoard({ onNavigate }) {
-  const [stats, setStats] = useState(null);
-  const [incidents, setIncidents] = useState([]);
+  // Live incidents and counters come from the console-wide feed, so this board
+  // updates on the same 12 s poll that drives the badges and sounds.
+  const { incidents, stats, loaded } = useLiveFeed();
+  const lastViewed = useSurfaceVisit('dashboard');
   const [allIncidents, setAllIncidents] = useState([]);
   const [equipment, setEquipment] = useState([]);
   const [layerPoints, setLayerPoints] = useState({});
   const [enabled, setEnabled] = useState(new Set(['incidents']));
-  const [loading, setLoading] = useState(true);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const loading = !loaded || !historyLoaded;
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [s, live, history, eq] = await Promise.all([
-        api.incidentStats().catch(() => null),
-        api.incidents().catch(() => []),
+      const [history, eq] = await Promise.all([
         // Closed incidents included, so the histogram reflects the real last
-        // 16 hours rather than only what is still open.
-        api.incidents({ activeOnly: false, limit: 200 }).catch(() => []),
+        // 16 hours and the §11.2 metrics cover finished incidents. 500 is the
+        // most the feed returns in one page.
+        api.incidents({ activeOnly: false, limit: HISTORY_LIMIT }).catch(() => []),
         api.equipment().catch(() => []),
       ]);
       if (cancelled) return;
-      setStats(s);
-      setIncidents(live);
       setAllIncidents(history);
       setEquipment(eq);
-      setLoading(false);
+      setHistoryLoaded(true);
     })();
     return () => { cancelled = true; };
   }, []);
+
+  const lastViewedMs = lastViewed ? new Date(lastViewed).getTime() : 0;
+  const isNew = (inc) => new Date(inc.reported_at).getTime() > lastViewedMs;
+  const newCount = incidents.filter(isNew).length;
 
   useEffect(() => {
     let cancelled = false;
@@ -100,7 +89,13 @@ export default function SituationBoard({ onNavigate }) {
         const rows = await api.mapLayer(spec.path).catch(() => []);
         if (cancelled) return;
         const pts = rows
-          .map((r) => ({ lat: r[spec.lat], lng: r[spec.lng] }))
+          .map((r) => ({
+            lat: r[spec.lat],
+            lng: r[spec.lng],
+            // Section 2.4: a shelter outside Pasay gets a distinct marker.
+            outside: !!r.outside_pasay,
+            label: r.name ? `${r.name}${r.outside_pasay ? ` · ${r.city}` : ''}` : null,
+          }))
           .filter((p) => p.lat != null && p.lng != null);
         setLayerPoints((lp) => ({ ...lp, [spec.key]: pts }));
       }
@@ -112,6 +107,16 @@ export default function SituationBoard({ onNavigate }) {
   const pending = stats?.pending_verify ?? 0;
   const posture = postureOf(active, pending);
   const bars = useMemo(() => hourlyBars(allIncidents), [allIncidents]);
+  const metrics = useMemo(
+    () => responseMetrics(allIncidents, { days: METRICS_DAYS }),
+    [allIncidents],
+  );
+  // If a full page came back and even its oldest incident is inside the
+  // window, older ones in the window were cut off — say so.
+  const metricsTruncated =
+    allIncidents.length >= HISTORY_LIMIT &&
+    Date.now() - new Date(allIncidents[allIncidents.length - 1]?.reported_at).getTime() <
+      METRICS_DAYS * 864e5;
   const barsHaveData = bars.some((b) => b.n > 0);
 
   const kpis = [
@@ -185,7 +190,12 @@ export default function SituationBoard({ onNavigate }) {
           </header>
 
           <div className="sb-map-canvas">
-            <LiveMap incidents={incidents} layerPoints={layerPoints} enabled={enabled} />
+            <LiveMap
+              incidents={incidents}
+              layerPoints={layerPoints}
+              enabled={enabled}
+              onSelectIncident={(inc) => onNavigate('incidents', { incidentId: inc.id })}
+            />
           </div>
 
           <div className="sb-legend">
@@ -206,6 +216,12 @@ export default function SituationBoard({ onNavigate }) {
                 {l.label}
               </button>
             ))}
+            {enabled.has('evac') && (layerPoints.evac || []).some((p) => p.outside) && (
+              <span className="sb-legend-item is-on sb-legend-static">
+                <span className="sb-legend-ring" style={{ borderColor: LAYER_COLORS.evac }} />
+                Shelter outside Pasay
+              </span>
+            )}
           </div>
         </section>
 
@@ -213,10 +229,17 @@ export default function SituationBoard({ onNavigate }) {
           <section className="sb-panel">
             <header className="sb-panel-head">
               <div className="sb-map-title">
-                <span className="sb-panel-title">Incident reports</span>
-                <span className="sb-panel-sub">Verification clock runs from first report</span>
+                <span className="sb-panel-title">
+                  Incident reports
+                  {newCount > 0 && (
+                    <span className="sb-new-count" aria-label={`${newCount} new since you last looked`}>
+                      {newCount} new
+                    </span>
+                  )}
+                </span>
+                <span className="sb-panel-sub">Click a card to open it</span>
               </div>
-              <button className="sb-link" onClick={() => onNavigate('audit')}>Records →</button>
+              <button className="sb-link" onClick={() => onNavigate('incidents')}>All incidents →</button>
             </header>
 
             {incidents.length === 0 ? (
@@ -226,10 +249,17 @@ export default function SituationBoard({ onNavigate }) {
             ) : (
               <div className="sb-list">
                 {incidents.slice(0, 4).map((inc) => {
-                  const st = STATUS[inc.status] ?? { label: inc.status, color: '#8a8a8a' };
+                  const st = statusOf(inc.status);
+                  const routed = (inc.routed_agencies ?? []).length > 0;
                   return (
-                    <button key={inc.id} className="sb-inc" onClick={() => onNavigate('verify')}>
+                    <button
+                      key={inc.id}
+                      className={`sb-inc${isNew(inc) ? ' is-new' : ''}`}
+                      onClick={() => onNavigate('incidents', { incidentId: inc.id })}
+                      title={`Open ${inc.designation}`}
+                    >
                       <div className="sb-inc-top">
+                        {isNew(inc) && <span className="sb-inc-new">NEW</span>}
                         <span className="sb-inc-band" style={{
                           color: BAND[inc.confidence_band] ?? '#8a8a8a',
                           background: `${BAND[inc.confidence_band] ?? '#8a8a8a'}1f`,
@@ -243,12 +273,14 @@ export default function SituationBoard({ onNavigate }) {
                         </span>
                       </div>
                       <span className="sb-inc-where">
-                        {inc.centroid_lat?.toFixed(5)}, {inc.centroid_lng?.toFixed(5)}
+                        {(inc.requested_agencies ?? []).map((a) => AGENCY_LABEL[a] ?? a).join(' · ') ||
+                          `${inc.centroid_lat?.toFixed(5)}, ${inc.centroid_lng?.toFixed(5)}`}
                       </span>
                       <div className="sb-inc-foot">
                         <span>
                           {inc.report_count} report{inc.report_count === 1 ? '' : 's'}
                           {inc.active_dispatch_count > 0 && ` · ${inc.active_dispatch_count} unit(s)`}
+                          {routed ? '' : ' · not routed'}
                         </span>
                         <span className="sb-inc-age">{since(inc.reported_at)}</span>
                       </div>
@@ -297,6 +329,49 @@ export default function SituationBoard({ onNavigate }) {
           </section>
         </div>
       </div>
+
+      {/* ── row 3: the §11.2 operational metrics ─────────────────────── */}
+      <section className="sb-panel sb-metrics">
+        <header className="sb-panel-head">
+          <div className="sb-map-title">
+            <span className="sb-panel-title">Response metrics · last {METRICS_DAYS} days</span>
+            <span className="sb-panel-sub">
+              {historyLoaded
+                ? `${metrics.count} incident${metrics.count === 1 ? '' : 's'}` +
+                  `${metricsTruncated ? ` (the latest ${HISTORY_LIMIT})` : ''}` +
+                  ' · medians over incidents that reached both steps'
+                : 'Loading…'}
+            </span>
+          </div>
+        </header>
+        <div className="sb-metric-grid">
+          {[
+            { label: 'Report → verified', m: metrics.reportToVerify, fmt: 'time' },
+            { label: 'Verified → on scene', m: metrics.verifyToScene, fmt: 'time' },
+            { label: 'Fire out → report filed', m: metrics.fireOutToReport, fmt: 'time' },
+            { label: 'Reached high confidence', m: metrics.highConfidence, fmt: 'share' },
+            { label: 'False alarms', m: metrics.falseAlarm, fmt: 'share' },
+          ].map(({ label, m, fmt }) => (
+            <div className="sb-metric" key={label}>
+              <span className="dc-eyebrow">{label}</span>
+              <span className="sb-metric-value">
+                {historyLoaded ? (fmt === 'time' ? formatMinutes(m.median) : formatShare(m.share)) : '·'}
+              </span>
+              <span className="sb-kpi-foot">
+                {m.n === 0 ? 'None yet' : `over ${m.n} incident${m.n === 1 ? '' : 's'}`}
+              </span>
+            </div>
+          ))}
+        </div>
+        {historyLoaded && metrics.count > 0 && metrics.highConfidence.share === 0 && (
+          <p className="sb-metric-note">
+            No incident has reached high confidence. With phone verification (+40%)
+            blocked until an SMS provider is chosen (§10.3), reporter credibility tops out
+            at 60%, so the high band (0.7) takes about six or more tightly grouped
+            reports even from otherwise fully verified residents.
+          </p>
+        )}
+      </section>
     </div>
   );
 }

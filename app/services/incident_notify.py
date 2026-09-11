@@ -171,6 +171,76 @@ async def notify_responder_dispatched(
     return len(tokens)
 
 
+async def notify_route_recipients(
+    db: Database, area_id: UUID, routes: list[tuple[str, UUID | None]]
+) -> int:
+    """Inbox + push the team captains Admin just routed an incident to (v10 §2.6.2).
+
+    ``routes`` holds (agency, organization_id) pairs; a null organization means
+    the agency as a whole. Reaches the sub-admins — the team captains — of each
+    routed team. Observer captains work from the web console, which alerts them
+    with its own sound; the inbox row is what that console and the mobile bell
+    read, and the push reaches any registered phone. Best-effort.
+    Returns the number of captains notified.
+    """
+    if not routes:
+        return 0
+    agencies = sorted({agency for agency, _ in routes})
+    org_ids = [org for _, org in routes if org is not None]
+    whole_agencies = sorted({agency for agency, org in routes if org is None})
+    rows = await db.fetch(
+        """
+        select distinct u.id
+        from public.users u
+        where u.role = 'sub_admin'
+          and u.agency_type = any($1::public.agency_type[])
+          and (u.agency_type = any($2::public.agency_type[])
+               or u.primary_org_id = any($3::uuid[]))
+        """,
+        agencies,
+        whole_agencies,
+        org_ids,
+    )
+    captain_ids = [r["id"] for r in rows]
+    if not captain_ids:
+        return 0
+
+    designation = await db.fetchval(
+        "select designation from public.areas where id = $1", area_id
+    )
+    title = "Incident routed to your team"
+    body = f"Admin routed {designation or 'an incident'} to your team. Open it to respond."
+    # Its own type, not the citizens' "incident_update": the mobile app opens a
+    # citizen's live tracker for that one, which is the wrong screen for a captain.
+    await record_inbox(
+        db, captain_ids, "incident_routed", title, body,
+        {"area_id": str(area_id), "event": "incident_routed"},
+    )
+
+    token_rows = await db.fetch(
+        "select fcm_token from public.device_tokens "
+        "where user_id = any($1::uuid[]) and is_active",
+        captain_ids,
+    )
+    tokens = [t["fcm_token"] for t in token_rows]
+    if tokens:
+        push = PushService()
+        result = await push.send_to_tokens(
+            tokens=tokens,
+            title=title,
+            body=body,
+            data={"type": "incident_routed", "area_id": str(area_id)},
+        )
+        if result.invalid_tokens:
+            await db.execute(
+                "update public.device_tokens set is_active = false "
+                "where fcm_token = any($1::text[])",
+                result.invalid_tokens,
+            )
+    log.info("route_recipients_notified", area_id=str(area_id), captains=len(captain_ids))
+    return len(captain_ids)
+
+
 async def notify_bfp_alarm_request(
     db: Database, area_id: UUID, requested_by: UUID, requested_alarm_level: str
 ) -> int:

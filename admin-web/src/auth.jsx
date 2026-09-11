@@ -6,14 +6,32 @@ const AuthContext = createContext(null);
 
 /// Roles admitted to this console.
 ///
-/// Section 2.6 gives the Fire Volunteer Sub-Admin "Mobile + Web" access and
-/// exclusive incident-verification authority, so locking the dashboard to admin
-/// shut the verifier out of the only screen where verification happens.
-/// Response Team and General User remain mobile-only.
-const CONSOLE_ROLES = ['admin', 'sub_admin'];
+/// Master Context v10 (Sections 2.6 and 3.1) gives each surface one audience:
+/// the Admin Console is Admin's; coordinators (Fire Volunteer and BFP team
+/// captains) run the response from the mobile app, where verification now
+/// happens; observers (Police, Medical, Barangay) have the Observer Console.
+const CONSOLE_ROLES = ['admin'];
 
 export function isConsoleRole(role) {
   return CONSOLE_ROLES.includes(role);
+}
+
+/// Where the Observer Console lives, for the message shown to an observer who
+/// signs in here. Set VITE_OBSERVER_URL in admin-web/.env once it is deployed.
+const OBSERVER_URL = import.meta.env.VITE_OBSERVER_URL || 'http://localhost:5174';
+
+/// Why someone was turned away, in terms of where they should go instead.
+function refusalFor(me) {
+  if (me?.role === 'sub_admin' && OBSERVER_AGENCIES.includes(me?.agency_type)) {
+    return (
+      `${agencyLabel(me.agency_type)} team captains use the Observer Console at ` +
+      `${OBSERVER_URL}.`
+    );
+  }
+  if (me?.role === 'sub_admin') {
+    return 'Fire Volunteer and BFP team captains coordinate from the RepLiT mobile app.';
+  }
+  return 'This console is for Admins. Response Teams and residents use the mobile app.';
 }
 
 /// Agencies that coordinate the fire response. Mirrors COORDINATING_AGENCIES in
@@ -21,14 +39,10 @@ export function isConsoleRole(role) {
 const COORDINATING_AGENCIES = ['fire_volunteer', 'bfp'];
 
 /// Police, medical and barangay take part for situational awareness only
-/// (Section 1.3 problem 9). Their sub-admins see incidents that requested their
-/// agency and can change nothing, so the console must show them the incident
-/// without offering a single action the API would refuse.
+/// (Section 2.6.1). Their team captains work from the Observer Console, where
+/// the one action they have is Accept. Mirrors OBSERVER_AGENCIES in
+/// app/services/incident.py and observer-web/src/auth.jsx.
 const OBSERVER_AGENCIES = ['police', 'medical', 'barangay'];
-
-export function isObserver(user) {
-  return user?.role === 'sub_admin' && OBSERVER_AGENCIES.includes(user?.agency_type);
-}
 
 /// Standing of an agency itself, independent of any one account. The directory
 /// screens list organisations and personnel side by side, and a police station
@@ -44,24 +58,6 @@ export function agencyAuthority(agency) {
   return { key: 'unknown', label: '—', color: '#8a8a8a' };
 }
 
-/// May change an incident's state at all.
-export function canCoordinate(user) {
-  if (user?.role === 'admin') return true;
-  return user?.role === 'sub_admin' && COORDINATING_AGENCIES.includes(user?.agency_type);
-}
-
-/// Only a Fire Volunteer sub-admin may verify an incident — the backend pins
-/// this in both the route and a database trigger (Section 6). The UI mirrors it
-/// so the action is not offered to someone who would be refused.
-export function canVerifyIncidents(user) {
-  return user?.role === 'sub_admin' && user?.agency_type === 'fire_volunteer';
-}
-
-/// Rejecting needs coordinator standing — any fire-agency sub-admin, or an admin.
-export function canRejectIncidents(user) {
-  return canCoordinate(user);
-}
-
 /// Human label for an agency, used where the console explains someone's standing.
 export function agencyLabel(agency) {
   return {
@@ -73,7 +69,7 @@ export function agencyLabel(agency) {
   }[agency] ?? agency ?? '—';
 }
 
-/// Holds the signed-in console user (Admin or Sub-Admin).
+/// Holds the signed-in console user (Admin).
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -98,11 +94,9 @@ export function AuthProvider({ children }) {
     setToken(res.access_token);
     const me = await api.me();
     if (!isConsoleRole(me.role)) {
+      await api.logout();
       setToken(null);
-      throw new Error(
-        'This console is for Admins and Sub-Admins. Response Teams and ' +
-          'citizens use the mobile app.',
-      );
+      throw new Error(refusalFor(me));
     }
     setUser(me);
     return me;

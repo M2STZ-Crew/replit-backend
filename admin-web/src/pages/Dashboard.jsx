@@ -1,26 +1,27 @@
 import { useState } from 'react';
 
-import { isObserver, useAuth } from '../auth.jsx';
+import { useAuth } from '../auth.jsx';
 import ConsoleShell from '../components/ConsoleShell.jsx';
+import { LiveFeedProvider } from '../live/LiveFeed.jsx';
 import Accounts from './Accounts.jsx';
 import ActionRecord from './ActionRecord.jsx';
 import Affiliates from './Affiliates.jsx';
 import IdReview from './IdReview.jsx';
+import IncidentDesk from './IncidentDesk.jsx';
 import MapManagement from './MapManagement.jsx';
 import SituationBoard from './SituationBoard.jsx';
-import VerificationQueue from './VerificationQueue.jsx';
 
 /* Topbar heading per section. The titles match the nav labels in ConsoleShell —
    a screen whose heading disagrees with the item you clicked is disorienting.
    `dashboard` is absent on purpose: it gets the personalised welcome. */
 const HEAD = {
+  incidents: {
+    title: 'Incidents',
+    sub: 'Accept incoming reports and route them to the agencies they asked for.',
+  },
   map: {
     title: 'Live map',
-    sub: 'Risk zones, evacuation sites, hydrants and water sources across Pasay City.',
-  },
-  verify: {
-    title: 'Verification',
-    sub: 'Reports waiting on a coordinator’s decision.',
+    sub: 'Risk zones, evacuation sites, hydrants and water sources — Pasay City and beyond.',
   },
   affiliates: {
     title: 'Affiliates',
@@ -41,24 +42,30 @@ const HEAD = {
 };
 
 export default function Dashboard() {
+  return (
+    <LiveFeedProvider>
+      <Console />
+    </LiveFeedProvider>
+  );
+}
+
+function Console() {
   const { user } = useAuth();
   const [active, setActive] = useState('dashboard');
+  // The incident a dashboard card was clicked for, so the Incidents screen
+  // opens on it directly (Section 2.9: no separate list drill-down step).
+  const [focusId, setFocusId] = useState(null);
   const [query, setQuery] = useState('');
 
   // Switch sections and clear the search so it doesn't carry across views.
-  function go(key) {
+  function go(key, opts = {}) {
     setActive(key);
+    setFocusId(opts.incidentId ?? null);
     setQuery('');
   }
 
   const name = user?.full_name || user?.email || 'Admin';
-
-  let head = HEAD[active];
-  // An observer does not verify anything; that screen is their incident feed,
-  // and the nav item is relabelled to match.
-  if (active === 'verify' && isObserver(user)) {
-    head = { title: 'Incidents', sub: 'Live incidents involving your agency. Read only.' };
-  }
+  const head = HEAD[active];
 
   return (
     <ConsoleShell active={active} onNavigate={go}>
@@ -92,14 +99,17 @@ export default function Dashboard() {
         <div className={`db-scroll${active === 'map' ? ' db-scroll-flush' : ''}`}>
           {active === 'dashboard' ? (
             <SituationBoard onNavigate={go} />
+          ) : active === 'incidents' ? (
+            <IncidentDesk key={focusId ?? 'desk'} focusId={focusId} />
           ) : active === 'map' ? (
-            <MapManagement query={query} />
+            <MapManagement
+              query={query}
+              onOpenIncident={(incidentId) => go('incidents', { incidentId })}
+            />
           ) : active === 'affiliates' ? (
             <Affiliates />
           ) : active === 'idreview' ? (
             <IdReview />
-          ) : active === 'verify' ? (
-            <VerificationQueue />
           ) : active === 'audit' ? (
             <ActionRecord />
           ) : (

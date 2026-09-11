@@ -85,7 +85,7 @@ export default function Login() {
       <div className="lg-panel">
         <form className="lg-form" onSubmit={onSubmit}>
           <div className="lg-head">
-            <span className="lg-kicker">Response Console</span>
+            <span className="lg-kicker">Admin Console</span>
             <h2 className="lg-title">Sign in</h2>
             <p className="lg-sub">
               Credentialed officials only. Every session is recorded in the audit log.

@@ -33,7 +33,7 @@ _HYDRANT_COLS = (
 )
 _EVAC_COLS = (
     "id, name, latitude, longitude, capacity, address, contact_info, "
-    "is_active, created_at, updated_at"
+    "city, outside_pasay, is_active, created_at, updated_at"
 )
 _RISK_COLS = (
     "id, barangay, name, risk_level::text as risk_level, description, "
