@@ -14,6 +14,8 @@ import {
 import { TILE_MAX_ZOOM, TILE_URL } from '../map/tiles.js';
 
 import { api } from '../api/client.js';
+import { OUTSIDE_PASAY_STYLE } from '../components/LiveMap.jsx';
+import { statusOf } from '../lib/status.js';
 
 const PASAY = [14.5378, 121.0014];
 
@@ -25,17 +27,12 @@ const COLORS = {
   hydrants: '#767575',
   water: '#4EA8FF',
   cisterns: '#9A8CFF',
-  teams: '#FF9066',
-  fire: '#767575',
-  police: '#767575',
-  hospital: '#767575',
-  barangay: '#767575',
 };
 
 // The five layers an admin can create/update/delete here.
 const EDIT_LAYERS = [
   { key: 'risk', label: 'Risk Areas', singular: 'Risk Area', path: 'risk-zones', icon: '⚠', tagline: 'High-priority zones' },
-  { key: 'evac', label: 'Evacuation Sites', singular: 'Evacuation Site', path: 'evacuation-sites', icon: '🚪', tagline: 'Safe gathering points' },
+  { key: 'evac', label: 'Evacuation Sites', singular: 'Evacuation Site', path: 'evacuation-sites', icon: '🚪', tagline: 'Safe gathering points — Pasay and beyond' },
   { key: 'hydrants', label: 'Fire Hydrants', singular: 'Fire Hydrant', path: 'hydrants', icon: '🚰', tagline: 'Water supply points' },
   { key: 'water', label: 'Bodies of Water', singular: 'Body of Water', path: 'bodies-of-water', icon: '🌊', tagline: 'Natural water sources' },
   { key: 'cisterns', label: 'Underground Cisterns', singular: 'Cistern', path: 'underground-cisterns', icon: '🛢', tagline: 'Underground reserves' },
@@ -43,20 +40,19 @@ const EDIT_LAYERS = [
 
 // The toggle chips on the map (order mirrors the design). `kind`:
 //   'edit'      → an editable GIS layer with backend data
-//   'incidents' → live incidents (read-only here)
-//   'none'      → no backend data yet (honest no-op toggle)
+//   'incidents' → live incidents (read-only here; a click opens the incident)
+//
+// The design also showed Response Teams, Fire/Police Department, Hospital and
+// Barangay Hall chips. None has data behind it — there is no station GIS
+// table, and responder positions are per incident — so, as §2.7.1 asks, they
+// are left out rather than drawn as toggles that do nothing.
 const CHIPS = [
   { key: 'incidents', label: 'Incidents', kind: 'incidents' },
   { key: 'evac', label: 'Evacuation Sites', kind: 'edit' },
   { key: 'risk', label: 'Risk Areas', kind: 'edit' },
-  { key: 'teams', label: 'Response Teams', kind: 'none' },
   { key: 'hydrants', label: 'Fire Hydrants', kind: 'edit' },
   { key: 'water', label: 'Bodies of Water', kind: 'edit' },
   { key: 'cisterns', label: 'Underground Cisterns', kind: 'edit' },
-  { key: 'fire', label: 'Fire Department', kind: 'none' },
-  { key: 'police', label: 'Police Department', kind: 'none' },
-  { key: 'hospital', label: 'Hospital', kind: 'none' },
-  { key: 'barangay', label: 'Barangay Hall', kind: 'none' },
 ];
 
 const RISK_OPTS = ['low', 'medium', 'high', 'critical'];
@@ -76,6 +72,9 @@ const FIELDS = {
     { name: 'name', label: 'Name', type: 'text', required: true },
     { name: 'latitude', label: 'Latitude', type: 'coord', coord: 'lat', required: true },
     { name: 'longitude', label: 'Longitude', type: 'coord', coord: 'lng', required: true },
+    // Section 2.4: a fire in Pasay may need a shelter in the next city. Any city
+    // other than Pasay is drawn with the distinct outside-Pasay marker.
+    { name: 'city', label: 'City / municipality', type: 'text', required: true, default: 'Pasay City' },
     { name: 'capacity', label: 'Capacity', type: 'number' },
     { name: 'address', label: 'Address', type: 'text' },
     { name: 'contact_info', label: 'Contact info', type: 'text' },
@@ -139,14 +138,16 @@ function entryText(key, r) {
         title: r.name || `Risk Area · ${r.barangay}`,
         sub: `${prettify(r.risk_level)} · Brgy. ${r.barangay}`,
       };
-    case 'evac':
+    case 'evac': {
+      const base =
+        r.capacity != null
+          ? `Capacity ${r.capacity}${r.address ? ` · ${r.address}` : ''}`
+          : r.address || 'Evacuation site';
       return {
         title: r.name,
-        sub:
-          r.capacity != null
-            ? `Capacity ${r.capacity}${r.address ? ` · ${r.address}` : ''}`
-            : r.address || 'Evacuation site',
+        sub: r.outside_pasay ? `Outside Pasay · ${r.city} · ${base}` : base,
       };
+    }
     case 'hydrants':
       return {
         title: r.code || 'Hydrant',
@@ -204,7 +205,7 @@ function ClickCapture({ active, onPick }) {
   return null;
 }
 
-export default function MapManagement({ query = '' }) {
+export default function MapManagement({ query = '', onOpenIncident }) {
   const [data, setData] = useState({}); // key → array of rows
   const [incidents, setIncidents] = useState([]);
   const [enabled, setEnabled] = useState(
@@ -350,10 +351,12 @@ export default function MapManagement({ query = '' }) {
           <ZoomControl position="bottomleft" />
           <ClickCapture active={!!form} onPick={handlePick} />
 
-          {/* incidents */}
+          {/* incidents — status-coloured, and a click opens the incident
+              (unless a marker is being placed, when the click places it) */}
           {enabled.has('incidents') &&
             incidents.map((inc) => {
               if (inc.centroid_lat == null || inc.centroid_lng == null) return null;
+              const st = statusOf(inc.status);
               return (
                 <CircleMarker
                   key={`inc-${inc.id}`}
@@ -362,12 +365,15 @@ export default function MapManagement({ query = '' }) {
                   pathOptions={{
                     color: '#fff',
                     weight: 1.5,
-                    fillColor: COLORS.incidents,
+                    fillColor: st.color,
                     fillOpacity: 0.95,
                   }}
+                  eventHandlers={
+                    onOpenIncident && !form ? { click: () => onOpenIncident(inc.id) } : undefined
+                  }
                 >
                   <Tooltip>
-                    {(inc.designation || 'Incident')} · {inc.status}
+                    {(inc.designation || 'Incident')} · {st.label}
                   </Tooltip>
                 </CircleMarker>
               );
@@ -392,8 +398,12 @@ export default function MapManagement({ query = '' }) {
                 <CircleMarker
                   key={`m-${r.id}`}
                   center={[p.lat, p.lng]}
-                  radius={7}
-                  pathOptions={{ color: '#fff', weight: 1, fillColor: color, fillOpacity: 0.95 }}
+                  radius={l.key === 'evac' && r.outside_pasay ? 9 : 7}
+                  pathOptions={
+                    l.key === 'evac' && r.outside_pasay
+                      ? OUTSIDE_PASAY_STYLE
+                      : { color: '#fff', weight: 1, fillColor: color, fillOpacity: 0.95 }
+                  }
                   eventHandlers={{ click: () => openEdit(l.key, r) }}
                 >
                   <Tooltip>
@@ -428,19 +438,13 @@ export default function MapManagement({ query = '' }) {
             {CHIPS.map((c) => {
               const on = enabled.has(c.key);
               const color = COLORS[c.key];
-              const count =
-                c.kind === 'edit'
-                  ? (data[c.key] || []).length
-                  : c.kind === 'incidents'
-                    ? incidents.length
-                    : null;
+              const count = c.kind === 'edit' ? (data[c.key] || []).length : incidents.length;
               return (
                 <button
                   key={c.key}
-                  className={`mm-chip${on ? ' on' : ''}${c.kind === 'none' ? ' empty' : ''}`}
+                  className={`mm-chip${on ? ' on' : ''}`}
                   onClick={() => toggleChip(c.key)}
                   style={on ? { borderColor: `${color}88` } : undefined}
-                  title={c.kind === 'none' ? 'No data source yet' : undefined}
                 >
                   <span className="mm-chip-dot" style={{ background: color }} />
                   {c.label}

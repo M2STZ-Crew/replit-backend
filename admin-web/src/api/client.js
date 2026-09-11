@@ -64,10 +64,20 @@ export const api = {
   incidentVerify: (id) => request(`/incidents/${id}/verify`, { method: 'POST' }),
   incidentReject: (id, reason) =>
     request(`/incidents/${id}/reject`, { method: 'POST', body: { reason } }),
+
+  // Admin routing (v10 Section 2.6.2). `routes` is
+  // [{ agency, organization_ids: [] }] — empty ids route the agency as a whole.
+  routeIncident: (id, routes, notes) =>
+    request(`/admin/incidents/${id}/route`, {
+      method: 'POST',
+      body: { routes, notes: notes || null },
+    }),
+  // The Post-Incident Report a team captain filed after fire out (v10 §2.5).
+  postIncidentReport: (id) => request(`/incidents/${id}/post-incident-report`),
   equipment: () => request('/equipment'),
   mapLayer: (name) => request(`/map/${name}`),
 
-  // Immutable action record (admin only — AdminUser on the server).
+  // Immutable action record (Admin sees all of it).
   auditLogs: (opts = {}) => {
     const q = new URLSearchParams();
     if (opts.limit) q.set('limit', String(opts.limit));
