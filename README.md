@@ -32,7 +32,7 @@ raises a clear error only if used without its credentials.
 
 ```powershell
 uv run uvicorn app.main:app --reload     # or: make dev
-uv run pytest                            # 113 tests, no DB required
+uv run pytest                            # hermetic — no DB required
 uv run ruff check app tests
 uv run mypy app
 ```
@@ -71,11 +71,13 @@ Notes:
 ## Layout
 
 ```
-app/api/routes/     FastAPI routers (23)
+app/api/routes/     FastAPI routers (24)
 app/services/       domain logic (clustering, incident lifecycle, AI summary, PDF)
 app/workers/        the 60 s neighborhood notification scheduler
 app/integrations/   Supabase, Twilio, Didit, Brevo, FCM, Anthropic clients
 app/realtime/       WebSocket manager + event broadcasting
-supabase/migrations 19 SQL migrations — the authoritative schema
-admin-web/          admin console (React 18 + Vite), deployed separately
+supabase/migrations 21 SQL migrations — the authoritative schema
+admin-web/          Admin Console (React 18 + Vite) — Admin only, deployed separately
+observer-web/       Observer Console (React 18 + Vite) — Police, Medical and Barangay
+                    team captains, deployed separately (see observer-web/README.md)
 ```
