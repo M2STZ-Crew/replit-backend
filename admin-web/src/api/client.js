@@ -1,5 +1,13 @@
 // Thin fetch wrapper around the RepLiT FastAPI backend.
-const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
+//
+// The trailing slash is stripped deliberately. Paths below all start with "/",
+// so a base of "https://host/" builds "https://host//auth/login" — a double
+// slash the router does not match. FastAPI answers that with a 404 whose
+// message is the literal "Not Found", which the UI then shows on the login
+// form. Pasting a URL with its trailing slash into VITE_API_BASE is the easiest
+// mistake to make in a hosting dashboard, and the symptom points nowhere near
+// the cause.
+const BASE = (import.meta.env.VITE_API_BASE || 'http://localhost:8000').replace(/\/+$/, '');
 const TOKEN_KEY = 'replit_admin_token';
 
 export function getToken() {

@@ -1,5 +1,10 @@
 // Thin fetch wrapper around the RepLiT FastAPI backend.
-const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
+//
+// The trailing slash is stripped deliberately — see the twin of this file in
+// admin-web. A base of "https://host/" builds "https://host//auth/login", which
+// the router does not match, and the resulting 404 surfaces on the login form
+// as the bare words "Not Found".
+const BASE = (import.meta.env.VITE_API_BASE || 'http://localhost:8000').replace(/\/+$/, '');
 
 // Its own key, so signing in to the Observer Console on the same machine as the
 // Admin Console does not sign either one out.
