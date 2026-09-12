@@ -284,7 +284,7 @@ def test_the_fire_agencies_route_as_a_pair() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# Audit: the v10 actions write their own rows, so the middleware must not
+# Audit: actions that write their own row must not also match a middleware rule
 # --------------------------------------------------------------------------- #
 @pytest.mark.parametrize(
     "path",
@@ -292,9 +292,18 @@ def test_the_fire_agencies_route_as_a_pair() -> None:
         "/incidents/{id}/accept",
         "/incidents/{id}/post-incident-report",
         "/admin/incidents/{id}/route",
+        # Lifecycle transitions record their before/after status in the same
+        # transaction as the change (tests/test_lifecycle_audit.py).
+        "/incidents/{id}/verify",
+        "/incidents/{id}/reject",
+        "/incidents/{id}/resolve",
+        "/incidents/{id}/dispatch",
+        "/incidents/{id}/self-dispatch",
+        "/incidents/{id}/en-route",
+        "/incidents/{id}/arrived",
     ],
 )
-def test_v10_actions_are_not_double_audited(path: str) -> None:
+def test_actions_that_write_their_own_audit_row_are_not_double_audited(path: str) -> None:
     assert match_audit_rule("POST", path.format(id=uuid4())) is None
 
 

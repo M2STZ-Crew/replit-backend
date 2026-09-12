@@ -59,14 +59,14 @@ def _facts() -> dict[str, Any]:
 
 def test_match_audit_rule() -> None:
     """Curated paths map to actions/entities; others return None."""
-    area_id = uuid4()
-    matched = match_audit_rule("POST", f"/incidents/{area_id}/verify")
+    request_id = uuid4()
+    matched = match_audit_rule("POST", f"/alarm-requests/{request_id}/execute")
     assert matched is not None
     action, entity_type, entity_id, is_area = matched
-    assert action == "incident.verify"
-    assert entity_type == "area"
-    assert entity_id == area_id
-    assert is_area is True
+    assert action == "alarm.execute"
+    assert entity_type == "alarm_request"
+    assert entity_id == request_id
+    assert is_area is False
 
     user_create = match_audit_rule("POST", "/admin/users")
     assert user_create is not None

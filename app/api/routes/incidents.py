@@ -28,6 +28,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+import asyncpg
 from fastapi import APIRouter, BackgroundTasks, Query, Request
 
 from app.api.deps import DatabaseDep, StaffUser, StorageClientDep
@@ -122,6 +123,55 @@ async def _load_status(db: Database, incident_id: UUID) -> str:
     if status_val is None:
         raise NotFoundError("Incident not found.")
     return str(status_val)
+
+
+async def _lock_status(conn: asyncpg.Connection, incident_id: UUID) -> str:
+    """Re-read the status under a row lock, inside the caller's transaction.
+
+    Handlers still check with :func:`_load_status` first, so an ordinary refusal
+    (404, 403, 409) costs no transaction. This read is the one the change and its
+    audit row are based on: holding the lock means two coordinators acting at once
+    cannot both pass the transition check, and the recorded "before" is exact.
+    """
+    status_val = await conn.fetchval(
+        "select status::text from public.areas where id = $1 for update", incident_id
+    )
+    if status_val is None:
+        raise NotFoundError("Incident not found.")
+    return str(status_val)
+
+
+async def _audit_transition(
+    conn: asyncpg.Connection,
+    request: Request,
+    user: AuthenticatedUser,
+    incident_id: UUID,
+    *,
+    action: str,
+    before: str,
+    after: str,
+    metadata: dict[str, Any] | None = None,
+) -> None:
+    """Write a lifecycle action's audit row in the transaction that made the change.
+
+    Replaces the request middleware for these actions (see _RULES in
+    app/services/audit.py). That middleware runs after the response and swallows
+    its own errors, so a verify or reject could succeed with no record; here a
+    failed write rolls the action back. The row also carries the status the
+    incident moved from and to, which the middleware could not see (Section 4.1).
+    """
+    await record_audit(
+        conn,
+        request,
+        user,
+        action=action,
+        entity_type="area",
+        entity_id=incident_id,
+        area_id=incident_id,
+        before_state={"status": before},
+        after_state={"status": after},
+        metadata=metadata,
+    )
 
 
 async def _assert_visible(db: Database, incident_id: UUID, user: AuthenticatedUser) -> None:
@@ -442,7 +492,7 @@ async def list_incident_reports(
     summary="Verify an incident (Fire-Volunteer sub-admin only)",
 )
 async def verify_incident(
-    incident_id: UUID, user: StaffUser, db: DatabaseDep
+    incident_id: UUID, request: Request, user: StaffUser, db: DatabaseDep
 ) -> IncidentDetail:
     """Mark an incident verified. DB-pinned to a Fire Volunteer sub-admin (Section 6)."""
     if not (user.role == "sub_admin" and user.agency_type == "fire_volunteer"):
@@ -452,11 +502,18 @@ async def verify_incident(
     current = await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
     assert_transition(current, "verified")
-    await db.execute(
-        "update public.areas set status = 'verified', verified_by = $2 where id = $1",
-        incident_id,
-        user.id,
-    )
+    async with db.acquire() as conn, conn.transaction():
+        current = await _lock_status(conn, incident_id)
+        assert_transition(current, "verified")
+        await conn.execute(
+            "update public.areas set status = 'verified', verified_by = $2 where id = $1",
+            incident_id,
+            user.id,
+        )
+        await _audit_transition(
+            conn, request, user, incident_id,
+            action="incident.verify", before=current, after="verified",
+        )
     log.info("incident_verified", incident_id=str(incident_id), user_id=str(user.id))
     return await finish_incident_change(db, incident_id, "incident_verified")
 
@@ -469,6 +526,7 @@ async def verify_incident(
 async def reject_incident(
     incident_id: UUID,
     payload: IncidentRejectRequest,
+    request: Request,
     user: StaffUser,
     db: DatabaseDep,
 ) -> IncidentDetail:
@@ -477,16 +535,24 @@ async def reject_incident(
     current = await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
     assert_transition(current, "rejected")
-    await db.execute(
-        """
-        update public.areas
-           set status = 'rejected', rejected_by = $2, rejection_reason = $3
-         where id = $1
-        """,
-        incident_id,
-        user.id,
-        payload.reason,
-    )
+    async with db.acquire() as conn, conn.transaction():
+        current = await _lock_status(conn, incident_id)
+        assert_transition(current, "rejected")
+        await conn.execute(
+            """
+            update public.areas
+               set status = 'rejected', rejected_by = $2, rejection_reason = $3
+             where id = $1
+            """,
+            incident_id,
+            user.id,
+            payload.reason,
+        )
+        await _audit_transition(
+            conn, request, user, incident_id,
+            action="incident.reject", before=current, after="rejected",
+            metadata={"reason": payload.reason},
+        )
     log.info("incident_rejected", incident_id=str(incident_id), user_id=str(user.id))
     return await finish_incident_change(db, incident_id, "incident_rejected")
 
@@ -515,7 +581,11 @@ async def _generate_fire_out_report(incident_id: UUID) -> None:
     summary="Resolve an incident / fire out (sub-admin)",
 )
 async def resolve_incident(
-    incident_id: UUID, user: StaffUser, db: DatabaseDep, background: BackgroundTasks
+    incident_id: UUID,
+    request: Request,
+    user: StaffUser,
+    db: DatabaseDep,
+    background: BackgroundTasks,
 ) -> IncidentDetail:
     """Fire out: end the response and open the Post-Incident Report step.
 
@@ -523,8 +593,9 @@ async def resolve_incident(
     incident: it passes through 'resolved' (stamping resolved_at) straight into
     'post_incident_report', where it waits in the captain's tray until the report
     is filed (v10 Section 2.5). Both transitions are validated here and applied as
-    two updates in one transaction, so each passes through the database's own
-    sequencing constraints and nothing observes the incident half-moved.
+    two updates in one transaction with the audit row, so each passes through the
+    database's own sequencing constraints and nothing observes the incident
+    half-moved or unrecorded.
     """
     assert_coordinator(user, "resolve incidents")
     current = await _load_status(db, incident_id)
@@ -532,6 +603,8 @@ async def resolve_incident(
     assert_transition(current, "resolved")
     assert_transition("resolved", "post_incident_report")
     async with db.acquire() as conn, conn.transaction():
+        current = await _lock_status(conn, incident_id)
+        assert_transition(current, "resolved")
         await conn.execute(
             "update public.areas set status = 'resolved', resolved_by = $2 where id = $1",
             incident_id,
@@ -541,13 +614,19 @@ async def resolve_incident(
             "update public.areas set status = 'post_incident_report' where id = $1",
             incident_id,
         )
-        await conn.execute(
+        completed = await conn.fetch(
             """
             update public.dispatch_logs
                set status = 'completed', completed_at = now()
              where area_id = $1 and status = 'active'
+            returning id
             """,
             incident_id,
+        )
+        await _audit_transition(
+            conn, request, user, incident_id,
+            action="incident.resolve", before=current, after="post_incident_report",
+            metadata={"passed_through": "resolved", "dispatches_completed": len(completed)},
         )
     background.add_task(_generate_fire_out_report, incident_id)
     log.info("incident_resolved", incident_id=str(incident_id), user_id=str(user.id))
@@ -682,6 +761,18 @@ async def list_available_responders(
     return [AvailableResponder.model_validate(dict(r)) for r in rows]
 
 
+def _assert_dispatchable(current: str, *, self_select: bool = False) -> None:
+    """Raise 409 unless new dispatches may be added to an incident in ``current`` status."""
+    if current in _DISPATCHABLE:
+        return
+    action = "self-dispatch" if self_select else "dispatch"
+    hint = "it must be verified first" if self_select else "verify it first"
+    raise ConflictError(
+        f"Cannot {action} to an incident in '{current}' status; {hint}.",
+        details={"current_status": current, "allowed_when": list(_DISPATCHABLE)},
+    )
+
+
 @router.post(
     "/{incident_id}/dispatch",
     response_model=IncidentDetail,
@@ -690,6 +781,7 @@ async def list_available_responders(
 async def dispatch_responder(
     incident_id: UUID,
     payload: ManualDispatchRequest,
+    request: Request,
     user: StaffUser,
     db: DatabaseDep,
 ) -> IncidentDetail:
@@ -697,11 +789,7 @@ async def dispatch_responder(
     assert_coordinator(user, "dispatch responders")
     current = await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
-    if current not in _DISPATCHABLE:
-        raise ConflictError(
-            f"Cannot dispatch to an incident in '{current}' status; verify it first.",
-            details={"current_status": current, "allowed_when": list(_DISPATCHABLE)},
-        )
+    _assert_dispatchable(current)
 
     responder = await db.fetchrow(
         "select role::text as role, primary_org_id from public.users where id = $1",
@@ -716,24 +804,41 @@ async def dispatch_responder(
         raise ConflictError("That responder already has an active dispatch to this incident.")
 
     org_id = payload.organization_id or responder["primary_org_id"]
-    await db.execute(
-        """
-        insert into public.dispatch_logs
-            (area_id, responder_id, organization_id, dispatch_type, dispatched_by,
-             status, vehicle_name, crew_role, notes)
-        values ($1, $2, $3, 'manual', $4, 'active', $5, $6, $7)
-        """,
-        incident_id,
-        payload.responder_id,
-        org_id,
-        user.id,
-        payload.vehicle_name,
-        payload.crew_role,
-        payload.notes,
-    )
-    if current == "verified":
-        await db.execute(
-            "update public.areas set status = 'dispatched' where id = $1", incident_id
+    async with db.acquire() as conn, conn.transaction():
+        current = await _lock_status(conn, incident_id)
+        _assert_dispatchable(current)
+        dispatch_id = await conn.fetchval(
+            """
+            insert into public.dispatch_logs
+                (area_id, responder_id, organization_id, dispatch_type, dispatched_by,
+                 status, vehicle_name, crew_role, notes)
+            values ($1, $2, $3, 'manual', $4, 'active', $5, $6, $7)
+            returning id
+            """,
+            incident_id,
+            payload.responder_id,
+            org_id,
+            user.id,
+            payload.vehicle_name,
+            payload.crew_role,
+            payload.notes,
+        )
+        after = current
+        if current == "verified":
+            await conn.execute(
+                "update public.areas set status = 'dispatched' where id = $1", incident_id
+            )
+            after = "dispatched"
+        await _audit_transition(
+            conn, request, user, incident_id,
+            action="incident.dispatch", before=current, after=after,
+            metadata={
+                "dispatch_id": str(dispatch_id),
+                "responder_id": str(payload.responder_id),
+                "organization_id": str(org_id) if org_id else None,
+                "vehicle_name": payload.vehicle_name,
+                "crew_role": payload.crew_role,
+            },
         )
     log.info(
         "responder_dispatched",
@@ -764,6 +869,7 @@ async def dispatch_responder(
 async def self_dispatch(
     incident_id: UUID,
     payload: SelfDispatchRequest,
+    request: Request,
     user: StaffUser,
     db: DatabaseDep,
 ) -> IncidentDetail:
@@ -772,32 +878,41 @@ async def self_dispatch(
         raise ForbiddenError("Only response_team members may self-select onto incidents.")
     current = await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
-    if current not in _DISPATCHABLE:
-        raise ConflictError(
-            f"Cannot self-dispatch to an incident in '{current}' status; "
-            "it must be verified first.",
-            details={"current_status": current, "allowed_when": list(_DISPATCHABLE)},
-        )
+    _assert_dispatchable(current, self_select=True)
 
     if await _active_dispatch_id(db, incident_id, user.id):
         raise ConflictError("You already have an active dispatch to this incident.")
 
     org_id = payload.organization_id or user.primary_org_id
-    await db.execute(
-        """
-        insert into public.dispatch_logs
-            (area_id, responder_id, organization_id, dispatch_type, dispatched_by,
-             status, notes)
-        values ($1, $2, $3, 'self_select', null, 'active', $4)
-        """,
-        incident_id,
-        user.id,
-        org_id,
-        payload.notes,
-    )
-    if current == "verified":
-        await db.execute(
-            "update public.areas set status = 'dispatched' where id = $1", incident_id
+    async with db.acquire() as conn, conn.transaction():
+        current = await _lock_status(conn, incident_id)
+        _assert_dispatchable(current, self_select=True)
+        dispatch_id = await conn.fetchval(
+            """
+            insert into public.dispatch_logs
+                (area_id, responder_id, organization_id, dispatch_type, dispatched_by,
+                 status, notes)
+            values ($1, $2, $3, 'self_select', null, 'active', $4)
+            returning id
+            """,
+            incident_id,
+            user.id,
+            org_id,
+            payload.notes,
+        )
+        after = current
+        if current == "verified":
+            await conn.execute(
+                "update public.areas set status = 'dispatched' where id = $1", incident_id
+            )
+            after = "dispatched"
+        await _audit_transition(
+            conn, request, user, incident_id,
+            action="incident.self_dispatch", before=current, after=after,
+            metadata={
+                "dispatch_id": str(dispatch_id),
+                "organization_id": str(org_id) if org_id else None,
+            },
         )
     log.info(
         "responder_self_dispatched",
@@ -887,16 +1002,23 @@ async def withdraw_dispatch(
     summary="Mark responders en route",
 )
 async def mark_en_route(
-    incident_id: UUID, user: StaffUser, db: DatabaseDep
+    incident_id: UUID, request: Request, user: StaffUser, db: DatabaseDep
 ) -> IncidentDetail:
     """Advance a dispatched incident to en_route (assigned responder or sub-admin)."""
     current = await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
     await _assert_responder_or_coordinator(db, incident_id, user)
     assert_transition(current, "en_route")
-    await db.execute(
-        "update public.areas set status = 'en_route' where id = $1", incident_id
-    )
+    async with db.acquire() as conn, conn.transaction():
+        current = await _lock_status(conn, incident_id)
+        assert_transition(current, "en_route")
+        await conn.execute(
+            "update public.areas set status = 'en_route' where id = $1", incident_id
+        )
+        await _audit_transition(
+            conn, request, user, incident_id,
+            action="incident.en_route", before=current, after="en_route",
+        )
     log.info("incident_en_route", incident_id=str(incident_id), user_id=str(user.id))
     return await finish_incident_change(db, incident_id, "incident_en_route")
 
@@ -907,16 +1029,23 @@ async def mark_en_route(
     summary="Mark responders arrived on scene",
 )
 async def mark_arrived(
-    incident_id: UUID, user: StaffUser, db: DatabaseDep
+    incident_id: UUID, request: Request, user: StaffUser, db: DatabaseDep
 ) -> IncidentDetail:
     """Advance an en_route incident to arrived (assigned responder or sub-admin)."""
     current = await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
     await _assert_responder_or_coordinator(db, incident_id, user)
     assert_transition(current, "arrived")
-    await db.execute(
-        "update public.areas set status = 'arrived' where id = $1", incident_id
-    )
+    async with db.acquire() as conn, conn.transaction():
+        current = await _lock_status(conn, incident_id)
+        assert_transition(current, "arrived")
+        await conn.execute(
+            "update public.areas set status = 'arrived' where id = $1", incident_id
+        )
+        await _audit_transition(
+            conn, request, user, incident_id,
+            action="incident.arrived", before=current, after="arrived",
+        )
     log.info("incident_arrived", incident_id=str(incident_id), user_id=str(user.id))
     return await finish_incident_change(db, incident_id, "incident_arrived")
 

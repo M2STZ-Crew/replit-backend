@@ -45,20 +45,20 @@ def _rule(method: str, path_regex: str, action: str, entity: str, is_area: bool 
     return _Rule(method, re.compile(path_regex), action, entity, is_area)
 
 
-# Curated RBAC / lifecycle endpoints to audit automatically.
+# Curated endpoints the request middleware audits automatically: who acted and
+# from where, with no before/after state.
+#
+# Incident lifecycle transitions are deliberately NOT listed. Each writes its own
+# row inside the transaction that changes the status (_audit_transition in
+# app/api/routes/incidents.py), so the entry records the status it moved from and
+# to, and a failed write rolls the action back. This middleware is best-effort by
+# design — it runs after the response and swallows its own errors — which would
+# let a verify or a reject succeed with no record at all.
 #
 # The v10 actions — Admin routing, observer Accept, filing a Post-Incident Report
-# — are deliberately NOT listed: each writes its own row through record_audit()
-# so the entry carries what was decided (which agencies, which truck), and a
-# rule here would record the same action twice.
+# — write their own rows for the same reason, carrying what was decided (which
+# agencies, which truck). A rule here would record any of them twice.
 _RULES: list[_Rule] = [
-    _rule("POST", rf"^/incidents/({_UUID})/verify$", "incident.verify", "area", True),
-    _rule("POST", rf"^/incidents/({_UUID})/reject$", "incident.reject", "area", True),
-    _rule("POST", rf"^/incidents/({_UUID})/resolve$", "incident.resolve", "area", True),
-    _rule("POST", rf"^/incidents/({_UUID})/dispatch$", "incident.dispatch", "area", True),
-    _rule("POST", rf"^/incidents/({_UUID})/self-dispatch$", "incident.self_dispatch", "area", True),
-    _rule("POST", rf"^/incidents/({_UUID})/en-route$", "incident.en_route", "area", True),
-    _rule("POST", rf"^/incidents/({_UUID})/arrived$", "incident.arrived", "area", True),
     _rule("POST", rf"^/alarm-requests/({_UUID})/execute$", "alarm.execute", "alarm_request"),
     _rule("POST", rf"^/alarm-requests/({_UUID})/reject$", "alarm.reject", "alarm_request"),
     _rule("POST", r"^/admin/users$", "user.create", "user"),
