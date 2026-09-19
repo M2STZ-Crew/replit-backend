@@ -4,6 +4,7 @@ import { api } from '../api/client.js';
 import { useAuth } from '../auth.jsx';
 import { useLiveFeed } from '../live/LiveFeed.jsx';
 import SoundSettings from './SoundSettings.jsx';
+import { applyTheme, storedTheme } from '../theme.js';
 
 /* Icons are inline SVG rather than a font or sprite: there are nine of them,
    they never change, and this keeps the shell dependency-free. */
@@ -26,6 +27,8 @@ const Icon = {
   id: <><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="9" cy="12" r="2.2" /><path d="M14 10h4M14 14h4" /></>,
   chevron: <path d="M15 6l-6 6 6 6" />,
   out: <><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3" /><path d="M10 8l-4 4 4 4M6 12h9" /></>,
+  sun: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>,
+  moon: <path d="M20 14.5A8 8 0 019.5 4a7 7 0 108.9 10.5z" />,
 };
 
 function Svg({ path, size = 13, stroke = 'var(--accent)' }) {
@@ -57,6 +60,9 @@ function initials(name, email) {
 }
 
 export default function ConsoleShell({ active, onNavigate, children }) {
+  // Which ground the console draws on. The switch sits with sign-out in
+  // the sidebar; nothing else about the layout changes with it.
+  const [theme, setTheme] = useState(storedTheme);
   const { user, logout } = useAuth();
   const { stats, seenAt, newSince } = useLiveFeed();
   const [slim, setSlim] = useState(
@@ -176,6 +182,14 @@ export default function ConsoleShell({ active, onNavigate, children }) {
               <span className="cs-user-role">Admin · full access</span>
             </div>
           )}
+          <button
+            className="cs-signout"
+            onClick={() => setTheme(applyTheme(theme === 'light' ? 'dark' : 'light'))}
+            title={theme === 'light' ? 'Switch to the dark ground' : 'Switch to the light ground'}
+            aria-label="Switch theme"
+          >
+            <Svg path={theme === 'light' ? Icon.moon : Icon.sun} stroke="var(--muted)" />
+          </button>
           <button className="cs-signout" onClick={logout} title="Sign out" aria-label="Sign out">
             <Svg path={Icon.out} stroke="var(--muted)" />
           </button>
