@@ -35,6 +35,46 @@
 
   color-scheme: dark;
   font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* The coral a primary control is filled with — the same in both
+   * themes, so the one button that means "act now" never changes. */
+  --accent-fill: #ff9066;
+  --accent-fill-end: #ff7943;
+}
+
+/* The light ground.
+ *
+ * Only the tokens move: nothing below this block knows which theme is in
+ * force, so no element changes size, position or shape when it flips. The
+ * values are the mobile app's light palette, read off the REPLIT-OVERHAUL
+ * light frames by comparing them against the dark ones pixel for pixel.
+ *
+ * Coral stays coral as a fill — the gradient a primary button carries is the
+ * same in both themes. As ink it darkens to #a63a0a, because #ff9066 on a
+ * pale ground reads at about 2:1. */
+:root[data-theme='light'] {
+  --ground: #eeedea;
+  --canvas: #e4e2de;
+  --surface: #fcfcfc;
+  --surface-dim: #f8f7f6;
+  --hairline: #dddcdb;
+  --hairline-strong: #d0d0cc;
+
+  --accent: #a63a0a;
+  --accent-end: #eb4800;
+  --on-accent: #581a00;
+  --accent-tint: rgba(166, 58, 10, 0.12);
+  --live: #b01712;
+  --settled: #106633;
+  --warn: #8a6100;
+
+  --text: #17140f;
+  --text-soft: #423c35;
+  --label: #5b534a;
+  --muted: #6e665c;
+  --faint: #918b84;
+
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -54,7 +94,7 @@ strong { font-weight: 700; }
 /* ── buttons ─────────────────────────────────────────────────────────────── */
 .btn-accent {
   border: none; border-radius: var(--r-card); padding: 14px 20px; cursor: pointer;
-  background: linear-gradient(180deg, var(--accent), var(--accent-end));
+  background: linear-gradient(180deg, var(--accent-fill), var(--accent-fill-end));
   color: var(--on-accent); font-size: 12px; font-weight: 900; letter-spacing: 1.2px;
   text-transform: uppercase;
 }
@@ -145,7 +185,7 @@ strong { font-weight: 700; }
 }
 .os-avatar {
   width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0;
-  background: linear-gradient(180deg, var(--accent), var(--accent-end)); color: var(--on-accent);
+  background: linear-gradient(180deg, var(--accent-fill), var(--accent-fill-end)); color: var(--on-accent);
   font-size: 11px; font-weight: 900;
 }
 .os-user-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
@@ -165,7 +205,7 @@ strong { font-weight: 700; }
 .os-alert-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--live); }
 .os-alert-go {
   margin-left: auto; border: none; border-radius: var(--r-control); padding: 8px 14px; cursor: pointer;
-  background: linear-gradient(180deg, var(--accent), var(--accent-end)); color: var(--on-accent);
+  background: linear-gradient(180deg, var(--accent-fill), var(--accent-fill-end)); color: var(--on-accent);
   font-size: 11px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase;
 }
 .os-alert-x { border: none; background: transparent; color: var(--muted); font-size: 18px; cursor: pointer; }
