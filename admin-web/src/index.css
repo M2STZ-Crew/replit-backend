@@ -4069,3 +4069,235 @@ select.field {
 .dk-pir-grid dd { margin: 0; color: var(--text); display: flex; flex-wrap: wrap; gap: 5px; }
 .dk-pir-grid dd.dk-pir-notes { display: block; white-space: pre-wrap; color: var(--label); }
 .dk-chip { padding: 2px 8px; border-radius: 6px; background: var(--surface-4); font-size: 11px; color: var(--text-3); }
+
+/* ── Responsive: phones and small tablets ──────────────────────────────────
+ * Below 900px the sidebar gives way to a bottom bar; these rules make the
+ * rest hold up at a phone's 360–430px. Nothing is wider than the screen,
+ * tables read as stacked cards instead of scrolling sideways, map panels
+ * become bottom sheets, and controls are at least 44px tall for a thumb.
+ *
+ * dvh, not vh: on a phone 100vh is the height with the browser toolbar
+ * hidden, so a 100vh shell runs underneath the toolbar whenever it shows.
+ * Browsers without dvh ignore these and keep the 100vh rules above. */
+.cs, .cs-nav { height: 100dvh; }
+.lg, .screen-center, .reg-screen, .login-screen { min-height: 100dvh; }
+
+/* Leaflet gives its panes z-indexes up to 1000. Isolating the content column
+   keeps those inside it, so the bottom bar and the More sheet stay on top. */
+.cs-main { isolation: isolate; }
+
+/* The map's layer bar stops short of the editor panel, open or collapsed. */
+.mm-layers { right: 120px; }
+.mm-layers.is-panel-open { right: 372px; }
+
+.cs-sheet-layer { display: none; }
+
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes scrimIn { from { opacity: 0; } to { opacity: 1; } }
+
+@media (max-width: 900px) {
+  /* Bottom bar: four targets, with room for the iPhone home indicator. */
+  .cs-main { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+  .cs-bar {
+    height: calc(62px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    z-index: 30;
+  }
+  .cs-bar-item { font-size: 10px; gap: 4px; min-width: 0; }
+  .cs-bar-item.is-active::before {
+    content: ''; position: absolute; top: 0; left: 30%; right: 30%; height: 2px;
+    border-radius: 0 0 2px 2px; background: var(--accent);
+  }
+  .cs-bar-count {
+    position: absolute; top: 6px; left: calc(50% + 6px); min-width: 16px; height: 16px;
+    padding: 0 4px; border-radius: 8px; background: var(--accent); color: var(--accent-text);
+    font-size: 9px; font-weight: 800; line-height: 16px; text-align: center;
+  }
+
+  /* More sheet */
+  .cs-sheet-layer { display: block; position: fixed; inset: 0; z-index: 40; }
+  .cs-scrim {
+    position: absolute; inset: 0; background: rgba(0, 0, 0, 0.62);
+    animation: scrimIn 0.18s ease both;
+  }
+  .cs-sheet {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    max-height: min(88dvh, 760px); overflow-y: auto; overscroll-behavior: contain;
+    display: flex; flex-direction: column; gap: 16px;
+    padding: 10px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+    border-radius: 20px 20px 0 0; background: var(--surface-1);
+    box-shadow: inset 0 1px 0 var(--line-3);
+    animation: sheetUp 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .cs-sheet-grip {
+    align-self: center; flex-shrink: 0; width: 36px; height: 4px; border-radius: 2px;
+    background: var(--line-3);
+  }
+  .cs-sheet-head { display: flex; align-items: center; justify-content: space-between; }
+  .cs-sheet-title { font-size: 13px; font-weight: 900; letter-spacing: 1.6px; text-transform: uppercase; }
+  .cs-sheet-close {
+    width: 44px; height: 44px; margin-right: -10px; border: none; border-radius: 12px;
+    background: transparent; display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .cs-sheet-close:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .cs-sheet .cs-group-label { padding-bottom: 2px; }
+  .cs-sheet .cs-item { min-height: 48px; padding: 12px; }
+  .cs-sheet .cs-item-icon { width: 28px; height: 28px; }
+  .cs-sheet .cs-item-label { font-size: 14px; }
+  .cs-sheet .cs-badge { font-size: 11px; padding: 3px 8px; }
+  .cs-sheet .cs-posture-note { font-size: 12px; }
+  .cs-sheet .ss-toggle { min-height: 44px; font-size: 12px; }
+  /* Opens in place: positioned above its button, as in the sidebar, it would
+     be clipped by the sheet's own scroll. */
+  .cs-sheet .ss-panel {
+    position: static; width: auto; margin-top: 8px; box-shadow: inset 0 0 0 1px var(--line-3);
+  }
+  .cs-sheet .ss-mute, .cs-sheet .ss-test { min-height: 36px; padding: 0 12px; }
+  .cs-sheet-signout {
+    display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px;
+    flex-shrink: 0; border: none; border-radius: 12px; background: var(--surface-4);
+    box-shadow: inset 0 0 0 1px var(--line-2);
+    color: var(--text-3); font-size: 12px; font-weight: 700; cursor: pointer;
+  }
+  .cs-sheet-signout:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* Full width, above the account row: the ground is a preference, not an
+     account action, so it reads with the sound controls rather than beside
+     sign-out the way the sidebar packs it. */
+  .cs-sheet-ground {
+    display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px;
+    padding: 0 14px; flex-shrink: 0; border: none; border-radius: 12px;
+    background: var(--surface-4); box-shadow: inset 0 0 0 1px var(--line-2);
+    color: var(--text-3); font-size: 12px; font-weight: 700; cursor: pointer;
+  }
+  .cs-sheet-ground:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* Page chrome */
+  .db-topbar { flex-wrap: wrap; gap: 10px; padding: 14px 16px; }
+  .db-hello { font-size: 20px; line-height: 1.25; }
+  .db-hello-sub { font-size: 12.5px; line-height: 1.45; }
+  .db-search { width: 100%; max-width: none; min-height: 44px; }
+  .db-scroll { padding: 16px; }
+  .db-scroll-flush { padding: 0; }
+  .sb, .ar { padding: 0 0 24px; gap: 14px; }
+  .vq, .idr { padding: 0 0 24px; }
+
+  /* 16px text in fields: iOS zooms the whole page into any smaller one on focus. */
+  .db-search-input, .ar-search input, .vq-reason, .idr-notes,
+  .mm-input, .mm-select, .mm-textarea, .lg-field input { font-size: 16px; }
+
+  /* Thumb-sized controls */
+  .sb-ghost, .sb-link, .sb-legend-item, .vq-btn, .vq-refresh, .idr-btn, .idr-refresh,
+  .dk-tab, .dk-team, .ar-chip, .mm-chip, .mm-back, .mm-add,
+  .ar-search, .vq-reason, .idr-notes, .dk-route-agency { min-height: 44px; }
+  .dk-route-agency input { width: 20px; height: 20px; }
+
+  /* Situation board */
+  .sb-kpis, .sb-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .sb-row { gap: 14px; }
+  .sb-kpi { padding: 14px; }
+  .sb-kpi-value { font-size: 30px; }
+  .sb-posture { padding: 18px; }
+  .sb-posture-level { font-size: 38px; }
+  .sb-map-head { padding: 12px 14px; gap: 10px; }
+  .sb-legend { padding: 8px 14px; gap: 0 14px; }
+  .sb-panel { padding: 16px; }
+
+  /* Stat rows shared by the Audit log, Affiliates and Accounts */
+  .ar-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .ar-stat { padding: 14px; }
+  .ar-stat-v { font-size: 24px; }
+  .ar-head { padding: 16px; }
+  .ar-search { width: 100%; }
+  .ar-foot { padding: 14px 16px; }
+  .af-apps { padding: 16px; }
+
+  /* Incident desk: the list stacks above the detail (the grid collapses at 900px). */
+  .dk-tabs {
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    margin: 0 -16px; padding: 0 16px 2px;
+  }
+  .dk-tabs::-webkit-scrollbar { display: none; }
+  .dk-tab, .dk-refresh { flex: none; }
+  .vq-cols { margin-top: 14px; }
+  .vq-detail { padding: 16px; scroll-margin-top: 12px; }
+  .vq-detail-head { flex-wrap: wrap; gap: 8px; }
+  .vq-scores { gap: 8px; }
+  .vq-score { min-width: 0; padding: 10px; }
+  .vq-score-v { font-size: 17px; }
+  .vq-report { flex-direction: column; gap: 10px; }
+  .vq-photo { width: 100%; height: auto; aspect-ratio: 4 / 3; }
+  .vq-actions, .dk-route-foot, .idr-actions, .af-app-actions { flex-wrap: wrap; }
+  .vq-actions .vq-reason, .dk-route-foot .vq-reason,
+  .af-app-actions .vq-reason, .idr-actions .idr-notes { flex: 1 1 100%; }
+  .vq-actions .vq-btn, .dk-route-foot .vq-btn, .idr-actions .idr-btn { flex: 1 1 auto; }
+  .dk-teams { padding-left: 0; }
+  .dk-pir-grid { grid-template-columns: 1fr; gap: 2px; }
+  .dk-pir-grid dt:not(:first-child) { margin-top: 10px; }
+
+  /* ID review */
+  .idr-head, .idr-card-head { flex-wrap: wrap; }
+  .idr-images { gap: 12px; }
+  .idr-fig { flex: 1 1 min(260px, 100%); }
+  .idr-img { width: 100%; height: auto; aspect-ratio: 26 / 17; }
+  .idr-close { top: 12px; right: 12px; min-height: 44px; }
+
+  /* Sign-in and registration */
+  .lg-panel { min-height: 100dvh; padding: 28px 20px; }
+  .lg-title { font-size: 28px; }
+  .reg-screen { padding: 16px; }
+}
+
+@media (max-width: 700px) {
+  /* Tables become stacked cards: the header row is hidden and each row
+     reorders its cells into lines, so nothing scrolls sideways. */
+  .ar-scroll { overflow-x: visible; }
+  .ar-cols { display: none; }
+  .ar-row, .ar-row.af-cols, .ar-row.ac-cols {
+    min-width: 0; flex-wrap: wrap; gap: 6px 10px; padding: 14px 16px;
+  }
+  .ar-row > * { width: auto; }
+
+  .ar-row .ar-c-cat { order: 1; }
+  .ar-row .ar-c-time { order: 2; flex: 1 1 auto; }
+  .ar-row .ar-c-target { order: 3; }
+  .ar-row .ar-c-actor { order: 4; flex-basis: 100%; }
+  .ar-row .ar-c-action { order: 5; flex-basis: 100%; }
+  .ar-actor { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+
+  .ar-row.af-cols .af-c-org { order: 1; flex-basis: 100%; }
+  .ar-row.af-cols .af-c-sector { order: 2; }
+  .ar-row.af-cols .af-c-auth { order: 3; }
+  .ar-row.af-cols .af-c-status { order: 4; margin-left: auto; }
+  .ar-row.af-cols .af-c-num { order: 5; }
+  .af-org-name { white-space: normal; }
+  /* The column headers are hidden, so a bare count needs its own label. */
+  .af-num::before {
+    content: attr(data-label); margin-right: 5px; font-size: 9px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; color: var(--faint);
+  }
+
+  .ar-row.ac-cols .ac-c-person { order: 1; flex-basis: 100%; }
+  .ar-row.ac-cols .ac-c-role { order: 2; }
+  .ar-row.ac-cols .ac-c-auth { order: 3; }
+  .ar-row.ac-cols .ac-c-ver { order: 4; margin-left: auto; }
+  .ar-row.ac-cols .ac-c-org { order: 5; flex-basis: 100%; }
+  .ac-ver { flex-direction: row; align-items: baseline; gap: 6px; }
+  .ac-split-name { width: 96px; }
+
+  /* Map management: the editor becomes a bottom sheet over the map. */
+  .mm-layers, .mm-layers.is-panel-open {
+    top: 12px; left: 12px; right: 12px; max-width: none; padding: 6px 8px;
+  }
+  .mm-layers-label { display: none; }
+  .mm-panel {
+    top: auto; left: 0; right: 0; bottom: 0; width: auto; height: min(62dvh, 560px);
+    border-width: 1px 0 0; border-radius: 20px 20px 0 0;
+  }
+  .mm-panel-head { padding: 10px 16px; }
+  .mm-collapse { width: 44px; height: 44px; transform: rotate(90deg); }
+  .mm-iconbtn { width: 44px; height: 44px; }
+  .mm-gcard { min-height: 44px; }
+  .mm-reopen { top: auto; bottom: 16px; right: 12px; min-height: 44px; }
+  .mm-toast { bottom: auto; top: 72px; max-width: calc(100% - 32px); }
+}

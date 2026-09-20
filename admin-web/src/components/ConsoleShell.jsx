@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { api } from '../api/client.js';
 import { useAuth } from '../auth.jsx';
@@ -6,7 +6,7 @@ import { useLiveFeed } from '../live/LiveFeed.jsx';
 import SoundSettings from './SoundSettings.jsx';
 import { applyTheme, storedTheme } from '../theme.js';
 
-/* Icons are inline SVG rather than a font or sprite: there are nine of them,
+/* Icons are inline SVG rather than a font or sprite: there are only a handful,
    they never change, and this keeps the shell dependency-free. */
 const Icon = {
   grid: (
@@ -29,6 +29,8 @@ const Icon = {
   out: <><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3" /><path d="M10 8l-4 4 4 4M6 12h9" /></>,
   sun: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>,
   moon: <path d="M20 14.5A8 8 0 019.5 4a7 7 0 108.9 10.5z" />,
+  more: <><circle cx="5" cy="12" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="19" cy="12" r="1.7" /></>,
+  close: <path d="M6 6l12 12M18 6L6 18" />,
 };
 
 function Svg({ path, size = 13, stroke = 'var(--accent)' }) {
@@ -42,21 +44,72 @@ function Svg({ path, size = 13, stroke = 'var(--accent)' }) {
 
 /* Nav model. `badge` names a counter. The two incident surfaces carry the v10
    red count (Section 2.9): incidents reported since the operator last viewed
-   that surface. The governance queues keep their accent pending-count. */
+   that surface. The governance queues keep their accent pending-count.
+
+   On a phone the Operations items sit in the bottom bar and the Governance
+   items move into the More sheet. All seven in one bar left each ~53px wide
+   under a 9px label; four is what a thumb can hit reliably. */
 const NAV = [
-  { key: 'dashboard', label: 'Situation board', icon: Icon.grid, group: 'Operations', badge: 'new:dashboard' },
-  { key: 'incidents', label: 'Incidents', icon: Icon.flame, group: 'Operations', badge: 'new:incidents' },
-  { key: 'map', label: 'Live map', icon: Icon.map, group: 'Operations' },
+  { key: 'dashboard', label: 'Situation board', short: 'Board', icon: Icon.grid, group: 'Operations', badge: 'new:dashboard' },
+  { key: 'incidents', label: 'Incidents', short: 'Incidents', icon: Icon.flame, group: 'Operations', badge: 'new:incidents' },
+  { key: 'map', label: 'Live map', short: 'Map', icon: Icon.map, group: 'Operations' },
   { key: 'affiliates', label: 'Affiliates', icon: Icon.users, group: 'Governance', badge: 'affiliates' },
   { key: 'accounts', label: 'Accounts', icon: Icon.shield, group: 'Governance' },
   { key: 'idreview', label: 'ID review', icon: Icon.id, group: 'Governance', badge: 'ids' },
   { key: 'audit', label: 'Audit log', icon: Icon.doc, group: 'Governance' },
 ];
+const GROUPS = ['Operations', 'Governance'];
+
+const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
 
 function initials(name, email) {
   const source = (name || email || '?').trim();
   const parts = source.split(/[\s@.]+/).filter(Boolean);
   return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?';
+}
+
+function Posture({ active, pending }) {
+  return (
+    <div className="cs-posture">
+      <div className="cs-posture-top">
+        <span className="dc-eyebrow">City posture</span>
+        <span className={`cs-posture-level${active > 0 ? ' is-elevated' : ''}`}>
+          {active > 0 ? 'Elevated' : 'Normal'}
+        </span>
+      </div>
+      <p className="cs-posture-note">
+        {active === 0
+          ? 'No active incidents.'
+          : `${active} active incident${active === 1 ? '' : 's'}` +
+            (pending > 0 ? ` · ${pending} awaiting verification` : '')}
+      </p>
+    </div>
+  );
+}
+
+function NavItem({ item, active, slim = false, count, onClick }) {
+  const isNew = item.badge?.startsWith('new:');
+  const on = active === item.key;
+  return (
+    <button
+      className={`cs-item${on ? ' is-active' : ''}`}
+      onClick={onClick}
+      title={slim ? item.label : undefined}
+      aria-current={on ? 'page' : undefined}
+    >
+      <span className="cs-item-icon"><Svg path={item.icon} /></span>
+      {!slim && <span className="cs-item-label">{item.label}</span>}
+      {!slim && count > 0 && (
+        <span
+          className={`cs-badge${isNew ? ' is-new' : ''}`}
+          aria-label={isNew ? `${count} new since you last looked` : `${count} pending`}
+        >
+          {count}
+        </span>
+      )}
+      {slim && count > 0 && <span className={`cs-dot${isNew ? ' is-new' : ''}`} />}
+    </button>
+  );
 }
 
 export default function ConsoleShell({ active, onNavigate, children }) {
@@ -69,6 +122,9 @@ export default function ConsoleShell({ active, onNavigate, children }) {
     () => localStorage.getItem('replit.nav.slim') === '1',
   );
   const [queues, setQueues] = useState({ affiliates: 0, ids: 0 });
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreButton = useRef(null);
+  const sheet = useRef(null);
 
   useEffect(() => {
     localStorage.setItem('replit.nav.slim', slim ? '1' : '0');
@@ -87,6 +143,43 @@ export default function ConsoleShell({ active, onNavigate, children }) {
     return () => { cancelled = true; };
   }, [active]);
 
+  // The More sheet behaves as a dialog: focus moves into it, Tab stays inside,
+  // Escape closes it, and focus returns to the More button afterwards.
+  useEffect(() => {
+    if (!moreOpen) return undefined;
+    const panel = sheet.current;
+    const opener = moreButton.current;
+    panel?.querySelector(FOCUSABLE)?.focus();
+    function onKey(e) {
+      if (e.key === 'Escape') {
+        setMoreOpen(false);
+        return;
+      }
+      if (e.key !== 'Tab' || !panel) return;
+      const items = [...panel.querySelectorAll(FOCUSABLE)];
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      opener?.focus();
+    };
+  }, [moreOpen]);
+
+  function go(key) {
+    setMoreOpen(false);
+    onNavigate(key);
+  }
+
   function countFor(badge, key) {
     if (!badge) return 0;
     if (badge.startsWith('new:')) {
@@ -99,7 +192,10 @@ export default function ConsoleShell({ active, onNavigate, children }) {
 
   const activeCount = stats?.active_incidents ?? 0;
   const pendingVerify = stats?.pending_verify ?? 0;
-  const groups = ['Operations', 'Governance'];
+  const governance = NAV.filter((n) => n.group === 'Governance');
+  const governanceCount = governance.reduce((sum, n) => sum + countFor(n.badge, n.key), 0);
+  const moreActive = governance.some((n) => n.key === active);
+  const name = user?.full_name || user?.email || 'Signed in';
 
   return (
     <div className={`cs${slim ? ' is-slim' : ''}`}>
@@ -122,55 +218,25 @@ export default function ConsoleShell({ active, onNavigate, children }) {
           </button>
         </div>
 
-        {groups.map((group) => (
+        {GROUPS.map((group) => (
           <div className="cs-group" key={group}>
             {!slim && <span className="cs-group-label">{group}</span>}
-            {NAV.filter((n) => n.group === group).map((n) => {
-              const count = countFor(n.badge, n.key);
-              const isNew = n.badge?.startsWith('new:');
-              return (
-                <button
-                  key={n.key}
-                  className={`cs-item${active === n.key ? ' is-active' : ''}`}
-                  onClick={() => onNavigate(n.key)}
-                  title={slim ? n.label : undefined}
-                  aria-current={active === n.key ? 'page' : undefined}
-                >
-                  <span className="cs-item-icon"><Svg path={n.icon} /></span>
-                  {!slim && <span className="cs-item-label">{n.label}</span>}
-                  {!slim && count > 0 && (
-                    <span
-                      className={`cs-badge${isNew ? ' is-new' : ''}`}
-                      aria-label={isNew ? `${count} new since you last looked` : `${count} pending`}
-                    >
-                      {count}
-                    </span>
-                  )}
-                  {slim && count > 0 && <span className={`cs-dot${isNew ? ' is-new' : ''}`} />}
-                </button>
-              );
-            })}
+            {NAV.filter((n) => n.group === group).map((n) => (
+              <NavItem
+                key={n.key}
+                item={n}
+                active={active}
+                slim={slim}
+                count={countFor(n.badge, n.key)}
+                onClick={() => go(n.key)}
+              />
+            ))}
           </div>
         ))}
 
         <div className="cs-spacer" />
 
-        {!slim && (
-          <div className="cs-posture">
-            <div className="cs-posture-top">
-              <span className="dc-eyebrow">City posture</span>
-              <span className={`cs-posture-level${activeCount > 0 ? ' is-elevated' : ''}`}>
-                {activeCount > 0 ? 'Elevated' : 'Normal'}
-              </span>
-            </div>
-            <p className="cs-posture-note">
-              {activeCount === 0
-                ? 'No active incidents.'
-                : `${activeCount} active incident${activeCount === 1 ? '' : 's'}` +
-                  (pendingVerify > 0 ? ` · ${pendingVerify} awaiting verification` : '')}
-            </p>
-          </div>
-        )}
+        {!slim && <Posture active={activeCount} pending={pendingVerify} />}
 
         <SoundSettings slim={slim} />
 
@@ -178,7 +244,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
           <span className="cs-avatar">{initials(user?.full_name, user?.email)}</span>
           {!slim && (
             <div className="cs-user-text">
-              <span className="cs-user-name">{user?.full_name || user?.email || 'Signed in'}</span>
+              <span className="cs-user-name">{name}</span>
               <span className="cs-user-role">Admin · full access</span>
             </div>
           )}
@@ -198,26 +264,109 @@ export default function ConsoleShell({ active, onNavigate, children }) {
 
       <main className="cs-main">{children}</main>
 
-      {/* Below 900px the sidebar becomes a bottom bar: on a phone, thumb reach
-          matters more than the grouping, so labels are shortened and only the
-          red new-incident dot survives. */}
+      {/* Below 900px the sidebar becomes a bottom bar: the three Operations
+          screens plus More. Only the red new-incident count survives on the
+          bar itself; the governance queues total onto More. */}
       <nav className="cs-bar" aria-label="Sections">
-        {NAV.map((n) => {
-          const count = n.badge?.startsWith('new:') ? countFor(n.badge, n.key) : 0;
+        {NAV.filter((n) => n.group === 'Operations').map((n) => {
+          const count = countFor(n.badge, n.key);
+          const on = active === n.key;
           return (
             <button
               key={n.key}
-              className={`cs-bar-item${active === n.key ? ' is-active' : ''}`}
-              onClick={() => onNavigate(n.key)}
-              aria-current={active === n.key ? 'page' : undefined}
+              className={`cs-bar-item${on ? ' is-active' : ''}`}
+              onClick={() => go(n.key)}
+              aria-current={on ? 'page' : undefined}
             >
-              <Svg path={n.icon} size={17} stroke={active === n.key ? 'var(--accent)' : 'var(--muted)'} />
-              <span>{n.label.split(' ')[0]}</span>
-              {count > 0 && <span className="cs-bar-new">{count}</span>}
+              <Svg path={n.icon} size={19} stroke={on ? 'var(--accent)' : 'var(--muted)'} />
+              <span>{n.short}</span>
+              {count > 0 && (
+                <span className="cs-bar-new" aria-label={`${count} new`}>{count}</span>
+              )}
             </button>
           );
         })}
+        <button
+          ref={moreButton}
+          className={`cs-bar-item${moreActive ? ' is-active' : ''}`}
+          onClick={() => setMoreOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={moreOpen}
+        >
+          <Svg path={Icon.more} size={19} stroke={moreActive ? 'var(--accent)' : 'var(--muted)'} />
+          <span>More</span>
+          {governanceCount > 0 && (
+            <span className="cs-bar-count" aria-label={`${governanceCount} pending`}>
+              {governanceCount}
+            </span>
+          )}
+        </button>
       </nav>
+
+      {/* Everything the sidebar holds beyond the three Operations screens.
+          Without it a phone had no way to reach the governance pages, the
+          sound controls, or sign out — the whole sidebar is hidden there. */}
+      {moreOpen && (
+        <div className="cs-sheet-layer">
+          <div className="cs-scrim" onClick={() => setMoreOpen(false)} aria-hidden="true" />
+          <div
+            className="cs-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cs-sheet-title"
+            ref={sheet}
+          >
+            <span className="cs-sheet-grip" aria-hidden="true" />
+            <div className="cs-sheet-head">
+              <span id="cs-sheet-title" className="cs-sheet-title">More</span>
+              <button className="cs-sheet-close" onClick={() => setMoreOpen(false)} aria-label="Close">
+                <Svg path={Icon.close} size={16} stroke="var(--label)" />
+              </button>
+            </div>
+
+            <div className="cs-group">
+              <span className="cs-group-label">Governance</span>
+              {governance.map((n) => (
+                <NavItem
+                  key={n.key}
+                  item={n}
+                  active={active}
+                  count={countFor(n.badge, n.key)}
+                  onClick={() => go(n.key)}
+                />
+              ))}
+            </div>
+
+            <Posture active={activeCount} pending={pendingVerify} />
+
+            <SoundSettings />
+
+            {/* The sidebar keeps this switch beside sign-out, and the sidebar
+                is hidden below 900px — so on a phone the sheet is the only
+                way to reach the light ground. */}
+            <button
+              className="cs-sheet-ground"
+              onClick={() => setTheme(applyTheme(theme === 'light' ? 'dark' : 'light'))}
+              aria-pressed={theme === 'light'}
+            >
+              <Svg path={theme === 'light' ? Icon.moon : Icon.sun} stroke="var(--label)" />
+              {theme === 'light' ? 'Switch to the dark ground' : 'Switch to the light ground'}
+            </button>
+
+            <div className="cs-user">
+              <span className="cs-avatar">{initials(user?.full_name, user?.email)}</span>
+              <div className="cs-user-text">
+                <span className="cs-user-name">{name}</span>
+                <span className="cs-user-role">Admin · full access</span>
+              </div>
+              <button className="cs-sheet-signout" onClick={logout}>
+                <Svg path={Icon.out} stroke="var(--label)" />
+                Sign out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

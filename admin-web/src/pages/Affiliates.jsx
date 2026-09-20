@@ -253,8 +253,9 @@ export default function Affiliates() {
                   {auth.label}
                 </span>
               </span>
-              <span className="af-c-num af-num">{o.equipment_count ?? 0}</span>
-              <span className="af-c-num af-num">{o.personnel_count ?? 0}</span>
+              {/* data-label names the count on a phone, where the header row is hidden. */}
+              <span className="af-c-num af-num" data-label="Units">{o.equipment_count ?? 0}</span>
+              <span className="af-c-num af-num" data-label="Personnel">{o.personnel_count ?? 0}</span>
               <span className="af-c-status">
                 <span className={`af-status${o.is_active ? ' is-on' : ''}`}>
                   <span className="af-status-dot" />

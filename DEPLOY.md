@@ -6,9 +6,14 @@ genuinely free tier with no credit card.
 | Piece | Host | Free tier | Cost |
 |---|---|---|---|
 | FastAPI backend | **Render** (Docker) | 512 MB, sleeps when idle | $0 |
-| Admin dashboard | **Cloudflare Pages** or Vercel | unlimited static builds | $0 |
+| Admin Console (`admin-web`) | **Vercel** or Cloudflare Pages | unlimited static builds | $0 |
+| Observer Console (`observer-web`) | same host, **separate project** | unlimited static builds | $0 |
 | Database + storage | **Supabase** (already there) | 500 MB DB, 1 GB storage | $0 |
 | Mobile app | **APK file** on Drive, or Firebase App Distribution | — | $0 |
+
+Four deployments in total. The two consoles are separate SPAs by design (Master
+Context v10 §3.1), so they are two projects on the host, not one project with a
+role switch.
 
 ---
 
@@ -39,8 +44,13 @@ The repo already contains `render.yaml`, so this is a blueprint deploy rather
 than a pile of dashboard settings.
 
 1. Sign in at [render.com](https://render.com) with GitHub — no card required.
-2. **New → Blueprint**, choose `M2STZ-Crew/replit-backend`, branch
-   **`safe-commits`** (not `main`, which is the near-empty branch).
+2. **New → Blueprint**, choose `M2STZ-Crew/replit-backend`, branch **`main`**.
+
+   > Older instructions said `safe-commits`. That was true while `main` was a
+   > near-empty decoy branch; `safe-commits` has since been merged into `main`,
+   > which is now the trunk. If your service was created before that, open
+   > **Settings → Branch** in Render and switch it to `main` — otherwise pushes
+   > to `main` build nothing and the service quietly serves older code.
 3. Render reads `render.yaml`, finds the root `Dockerfile`, and asks you to fill
    in every variable marked `sync: false` — 19 of them. Paste from your local
    `.env`, with three that must **change**:
@@ -88,42 +98,136 @@ and the dashboard looks broken while the backend looks healthy.
 ### The Observer Console
 
 The Observer Console (`observer-web`, for Police, Medical and Barangay team
-captains — Master Context v10 §2.6) is a second Pages project set up the same way:
-root directory `observer-web`, the same build command and output directory, and
-the same `VITE_API_BASE`. Then:
+captains — Master Context v10 §2.6) is a **second, separate project on the same
+host**, never a second branch of the Admin Console. On Vercel:
+
+1. **Add New → Project**, pick `M2STZ-Crew/replit-backend` again.
+2. Set **Root Directory** to `observer-web`. Vercel then reads the committed
+   `observer-web/vercel.json`, which already supplies the build command, the
+   `dist` output directory and the SPA rewrite that stops a refresh on `/login`
+   returning 404. Leave the build settings alone.
+3. Environment variables: `VITE_API_BASE` (the Render URL) and
+   `VITE_MAPBOX_TOKEN`.
+4. Deploy.
+
+Then wire the three cross-links, or pieces break quietly:
 
 - add its URL to `CORS_ORIGINS` on Render, comma-separated after the Admin
-  Console's;
+  Console's — until you do, every request from the console is blocked by the
+  browser while the backend itself looks perfectly healthy;
 - set `VITE_OBSERVER_URL` on the Admin Console project to it, so the Admin
   Console can point an observer who signs in there to the right place;
 - set `OBSERVER_CONSOLE_URL` in the mobile app's `env.json` for the same reason.
 
+Changing an environment variable on Vercel does **not** rebuild by itself — a
+Vite variable is inlined at build time, so redeploy after editing one or the old
+value stays in the bundle.
+
+### A note on the Mapbox token
+
+`VITE_MAPBOX_TOKEN` is readable inside the deployed JavaScript bundle. That is
+unavoidable for any browser map and is why Mapbox issues *public* `pk.` tokens,
+but it means a deployed console publishes whatever token you give it.
+
+Use **two tokens**:
+
+- a **URL-restricted** token for the two web consoles, scoped to their
+  deployed origins;
+- the **unrestricted** one for the mobile binary only.
+
+One token cannot safely do both. Mapbox enforces URL restrictions by checking
+the `Referer` header, which a native app never sends, so a restricted token
+makes the phone's map silently fall back to plain OpenStreetMap tiles.
+
 ## 3. Mobile app
 
-There is no free way to publish to the Play Store (Google charges a one-off $25),
-but you do not need the store for a demo.
+The app is not deployed to a host. You compile an APK with the backend URL
+**baked in at build time** and hand people the file. There is no settings screen
+that can change the URL afterwards, so a wrong value means rebuilding.
+
+> The Flutter project is `M2STZ-Crew/replit-android`, cloned locally at
+> `C:\Users\Admin\AndroidStudioProjects\mobile`. It is **not**
+> `H:\Replit_mobile_dev\replit_app`, which is an abandoned parallel scaffold
+> that also has the `replit-android` remote configured. Earlier versions of this
+> file pointed at that dead copy and at a `.env` / `API_BASE_URL` pair the real
+> app has never read.
+
+### 3.1 Point it at the deployed backend
+
+Edit `env.json` in the Flutter project root — gitignored, so it never leaves
+your machine and has to be recreated per laptop from `env.example.json`:
+
+```json
+{
+  "MAPBOX_TOKEN": "pk....",
+  "REPLIT_API_BASE": "https://<your-service>.onrender.com",
+  "OBSERVER_CONSOLE_URL": "https://<your-observer-console>.vercel.app"
+}
+```
+
+`REPLIT_API_BASE` must be the Render URL, not `10.0.2.2` — that address only
+means anything to an Android emulator talking to the machine it runs on.
+
+### 3.2 Build
 
 ```bash
-flutter build apk --release
+flutter build apk --release --dart-define-from-file=env.json
 ```
 
-The APK lands in `build/app/outputs/flutter-apk/app-release.apk`. Two ways to
-share it:
+**`--dart-define-from-file=env.json` is the step everyone forgets.** Without it
+the build still succeeds, but every value falls back to its compiled default —
+`http://10.0.2.2:8000` for the API and an empty Mapbox token. The APK installs,
+opens, shows the login screen, and then fails every request with no visible
+reason. If a tester reports "it just spins", this is almost always why.
 
-- **Google Drive link** — simplest. The installer has to allow "install from
-  unknown sources", which is normal for a capstone build.
-- **Firebase App Distribution** — free, and testers get an install prompt rather
-  than a raw file. Worth it if several panel members want it on their phones.
+The file lands at `build/app/outputs/flutter-apk/app-release.apk`, around 55 MB.
 
-Before building, point the app at the deployed backend in
-`Replit_mobile_dev/replit_app/.env`:
+### 3.3 Signing
 
+`android/app/build.gradle.kts` still carries the Flutter template's TODO:
+
+```kotlin
+signingConfig = signingConfigs.getByName("debug")
 ```
-API_BASE_URL=https://<your-service>.onrender.com
+
+A debug-signed release APK installs and runs normally, and Firebase push still
+works — FCM does not require a registered SHA-1 fingerprint. That is enough for
+a demo and for pilot handsets.
+
+What it costs: that build can never go to the Play Store, and it can never be
+updated by a build signed with a different key. Android treats a changed signing
+key as a different application, so testers would have to uninstall first. Before
+any real distribution, generate a keystore — the key and its password must
+belong to the team, so it is not something to hand to an assistant or commit:
+
+```bash
+keytool -genkey -v -keystore %USERPROFILE%\replit-release.jks -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias replit
 ```
 
-Not `10.0.2.2` — that only means anything to an Android emulator talking to your
-own machine.
+Then add `android/key.properties` and a `release` signing config. Both are
+gitignored. **Back the keystore up somewhere permanent** — losing it means never
+being able to update the app again.
+
+### 3.4 Distribute
+
+**Google Drive link.** Upload `app-release.apk`, share the link, and tell people
+they will have to allow "install from unknown sources" once — Android shows this
+prompt for any app not from the Play Store, and it is normal for a capstone
+build.
+
+**Firebase App Distribution** is the alternative: free, already half-configured
+because the project uses FCM, and testers get a proper install prompt plus
+notifications of new builds. Worth it once more than two or three people need
+the app.
+
+### 3.5 Once the backend is on HTTPS
+
+`android/app/src/main/res/xml/network_security_config.xml` permits cleartext
+HTTP to the emulator aliases and one hard-coded LAN IP. HTTPS needs no entry at
+all, so once the Render URL is the only backend in use the whole
+`domain-config` block can be deleted. Leaving it is not dangerous — it is an
+allow-list of four specific addresses, not a blanket opt-out — but deleting it
+proves the release build cannot talk to anything unencrypted.
 
 ---
 
@@ -147,10 +251,19 @@ anyway, and the sleep behaviour is not acceptable for emergency reporting.
 
 - [ ] Supabase project not expiring mid-demo
 - [ ] Render service live, `/health/ready` returns `database: ok`
+- [ ] Render is building the **`main`** branch, not `safe-commits`
 - [ ] `PUBLIC_BASE_URL` is the Render URL, not localhost
-- [ ] `CORS_ORIGINS` contains the dashboard URL
+- [ ] `CORS_ORIGINS` contains **both** console URLs, comma-separated
 - [ ] `FCM_CREDENTIALS_JSON` set, `FCM_CREDENTIALS_FILE` unset
-- [ ] Dashboard loads and an admin login succeeds
-- [ ] Refreshing the dashboard on `/login` does not 404
-- [ ] Mobile `.env` points at the Render URL, APK built
+- [ ] Admin Console loads and an admin login succeeds
+- [ ] Observer Console loads; a `police` / `medical` / `barangay` sub-admin can
+      sign in, and anyone else is turned away
+- [ ] Refreshing either console on `/login` does not 404
+- [ ] `VITE_OBSERVER_URL` set on the Admin Console project
+- [ ] Web consoles use a **URL-restricted** Mapbox token; the mobile build uses
+      the unrestricted one
+- [ ] Mobile `env.json` has the Render URL in `REPLIT_API_BASE` and the observer
+      URL in `OBSERVER_CONSOLE_URL`
+- [ ] APK built **with `--dart-define-from-file=env.json`**, installed on a real
+      phone, and a login against the deployed backend succeeds
 - [ ] Backend woken up a few minutes before the demo

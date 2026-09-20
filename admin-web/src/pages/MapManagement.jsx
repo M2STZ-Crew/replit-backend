@@ -212,7 +212,11 @@ export default function MapManagement({ query = '', onOpenIncident }) {
     () => new Set(['incidents', 'risk', 'evac', 'hydrants', 'water', 'cisterns']),
   );
   const [selected, setSelected] = useState('risk');
-  const [panelOpen, setPanelOpen] = useState(true);
+  // Open beside the map on a desktop. Closed on a phone, where the editor is a
+  // bottom sheet that would otherwise cover most of the map on arrival.
+  const [panelOpen, setPanelOpen] = useState(
+    () => !window.matchMedia('(max-width: 700px)').matches,
+  );
   const [form, setForm] = useState(null); // { layer, mode, id, values }
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
@@ -432,7 +436,9 @@ export default function MapManagement({ query = '', onOpenIncident }) {
         </MapContainer>
 
         {/* layers toggle bar */}
-        <div className="mm-layers" style={{ right: panelOpen ? 372 : 120 }}>
+        {/* A class, not an inline right offset: the offset differs by screen
+            width, and a 372px inline value left a phone's bar with no width. */}
+        <div className={`mm-layers${panelOpen ? ' is-panel-open' : ''}`}>
           <span className="mm-layers-label">☰ Layers</span>
           <div className="mm-chips">
             {CHIPS.map((c) => {

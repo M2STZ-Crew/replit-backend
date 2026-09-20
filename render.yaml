@@ -1,8 +1,12 @@
 # Render blueprint — free-tier deployment of the RepLiT backend.
 #
 # Usage: push this file, then in Render choose New > Blueprint and point it at
-# this repository (branch: safe-commits). Render reads this file, builds the
-# Dockerfile at the repo root, and creates the service.
+# this repository (branch: main). Render reads this file, builds the Dockerfile
+# at the repo root, and creates the service.
+#
+# The branch was `safe-commits` until main became the real trunk. A service
+# still pointed at the old branch keeps building stale code silently, so check
+# Settings > Branch in the Render dashboard if a push to main does not deploy.
 #
 # Secrets are deliberately NOT in here. Every value marked `sync: false` must be
 # pasted into the Render dashboard once — committing them would put the
@@ -22,7 +26,7 @@ services:
     runtime: docker
     plan: free
     region: singapore # closest Render region to Pasay City
-    branch: safe-commits
+    branch: main
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /health
