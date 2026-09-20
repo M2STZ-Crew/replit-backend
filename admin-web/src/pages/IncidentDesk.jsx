@@ -354,7 +354,11 @@ function Timeline({ d }) {
   const steps = [
     ['Reported', d.reported_at],
     ['Verified', d.verified_at],
-    ['Dispatched', d.dispatched_at],
+    // v11 removed the dispatch step, but incidents that ran under v10 still
+    // carry a real dispatched_at and deserve their true history. Shown only
+    // when it happened — otherwise it would sit here as a step that can never
+    // complete.
+    ...(d.dispatched_at ? [['Dispatched', d.dispatched_at]] : []),
     ['En route', d.en_route_at],
     ['On scene', d.arrived_at],
     ['Fire out', d.resolved_at],
