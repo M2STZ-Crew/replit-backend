@@ -24,6 +24,11 @@ dist/
 *.key
 firebase-service-account.json
 service-account*.json
+# The name Google Cloud gives a downloaded key: <project>-firebase-adminsdk-<id>.json.
+# One was found loose in the repo root; the two patterns above did not match it,
+# and this repository is public.
+*-firebase-adminsdk-*.json
+*adminsdk*.json
 
 # ===== uv =====
 # NOTE: uv.lock IS committed for reproducible builds — do not ignore it.
