@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class RosterMember(BaseModel):
@@ -52,6 +52,18 @@ class PostIncidentReportCreate(BaseModel):
         min_length=1, max_length=100, description="Items taken off the unit."
     )
     notes: str | None = Field(default=None, max_length=4000)
+    false_alarm: bool = Field(
+        default=False,
+        description=(
+            "The team reached the scene and found nothing — a prank, a fire already "
+            "out, or the wrong address (v11 Section 2.5.3)."
+        ),
+    )
+    false_alarm_note: str | None = Field(
+        default=None,
+        max_length=2000,
+        description="Why it was a false alarm. Required when false_alarm is set.",
+    )
 
     @field_validator("equipment_taken")
     @classmethod
@@ -73,10 +85,25 @@ class PostIncidentReportCreate(BaseModel):
             raise ValueError("List at least one item taken from the unit.")
         return cleaned
 
-    @field_validator("notes")
+    @field_validator("notes", "false_alarm_note")
     @classmethod
     def _blank_notes_is_none(cls, value: str | None) -> str | None:
         return value or None
+
+    @model_validator(mode="after")
+    def _false_alarm_needs_its_narrative(self) -> PostIncidentReportCreate:
+        """A false alarm must say why (v11 Section 2.5.3).
+
+        Mirrors the CHECK constraint of the same name, so the caller gets a 422
+        naming the field rather than a 500 from the database. "False alarm" with
+        no account of what the team actually found is the one thing this report
+        exists to prevent.
+        """
+        if self.false_alarm and not self.false_alarm_note:
+            raise ValueError(
+                "Say what the team found: a false alarm needs a short explanation."
+            )
+        return self
 
 
 class PostIncidentReportResponse(BaseModel):
@@ -100,4 +127,6 @@ class PostIncidentReportResponse(BaseModel):
     roster: list[RosterMember]
     equipment_taken: list[str]
     notes: str | None = None
+    false_alarm: bool = False
+    false_alarm_note: str | None = None
     submitted_at: datetime

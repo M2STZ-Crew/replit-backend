@@ -35,7 +35,7 @@ export default function DashboardPage({ onNavigate }) {
           <h1 className="page-title">Dashboard</h1>
           <p className="page-sub">
             Live incidents where a reporter asked for {agencyLabel(agency)}. Fire Volunteer
-            and BFP coordinators verify, dispatch and resolve; you watch and acknowledge.
+            and BFP coordinators reject and mark fire out; you watch and accept.
           </p>
         </div>
         <button className="btn-ghost" onClick={refresh}>Refresh</button>

@@ -4,7 +4,7 @@ import { api } from '../api/client.js';
 import { useLiveFeed, useSurfaceVisit } from '../live/LiveFeed.jsx';
 import {
   AGENCY_LABEL,
-  routableAgencies,
+  OFF_FEED,
   since,
   statusOf,
   when,
@@ -140,7 +140,7 @@ export default function IncidentDesk({ focusId = null }) {
     new Date(inc.reported_at).getTime() > (lastViewed ? new Date(lastViewed).getTime() : 0);
   const band = detail?.confidence_band ? BAND[detail.confidence_band] : null;
   const st = detail ? statusOf(detail.status) : null;
-  const isLive = detail && !['resolved', 'post_incident_report', 'closed', 'rejected', 'merged'].includes(detail.status);
+  const isLive = detail && !OFF_FEED.includes(detail.status);
 
   return (
     <div className="vq dk">
@@ -182,7 +182,16 @@ export default function IncidentDesk({ focusId = null }) {
               <button
                 key={inc.id}
                 className={`vq-item${inc.id === selectedId ? ' is-active' : ''}`}
-                onClick={() => setSelectedId(inc.id)}
+                onClick={(e) => {
+                  setSelectedId(inc.id);
+                  // Below 900px the detail stacks under the list, out of sight:
+                  // bring it into view so the tap visibly does something.
+                  if (window.matchMedia('(max-width: 900px)').matches) {
+                    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                    e.currentTarget.closest('.vq-cols')?.querySelector('.vq-detail')
+                      ?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+                  }
+                }}
               >
                 <div className="vq-item-top">
                   <span className="vq-item-name">
@@ -234,13 +243,11 @@ export default function IncidentDesk({ focusId = null }) {
 
               <Timeline d={detail} />
 
-              {isLive && (
-                <RoutePanel
-                  key={`${detail.id}:${detail.routes?.length ?? 0}`}
+              {detail.status === 'reported' && (
+                <AcceptPanel
                   detail={detail}
-                  orgs={orgs}
                   busy={busy}
-                  onRoute={(routes, notes) => act(() => api.routeIncident(detail.id, routes, notes))}
+                  onAccept={() => act(() => api.incidentAccept(detail.id))}
                 />
               )}
 
@@ -295,7 +302,7 @@ export default function IncidentDesk({ focusId = null }) {
                 {evidence.length === 0 && <div className="vq-empty">No member reports.</div>}
               </div>
 
-              {(detail.status === 'pending' || detail.status === 'verified') && (
+              {(detail.status === 'reported' || detail.status === 'verified') && (
                 <div className="vq-actions">
                   {rejecting ? (
                     <>
@@ -326,9 +333,9 @@ export default function IncidentDesk({ focusId = null }) {
                       <button className="vq-btn vq-btn-reject" disabled={busy} onClick={() => setRejecting(true)}>
                         Reject as false report
                       </button>
-                      {detail.status === 'pending' && (
+                      {detail.status === 'reported' && (
                         <span className="vq-muted">
-                          Verification is the Fire Volunteer coordinator&apos;s, on mobile.
+                          Accepting verifies this incident and sends responders.
                         </span>
                       )}
                     </>
@@ -370,107 +377,30 @@ function Timeline({ d }) {
   );
 }
 
-/// Choose agencies (only those the report asked for) and, within each, whole
-/// agency or specific teams. Already-routed teams are shown but cannot be
-/// picked again; routing more later is allowed.
-function RoutePanel({ detail, orgs, busy, onRoute }) {
-  const routable = routableAgencies(detail.requested_agencies);
-  const requested = new Set(detail.requested_agencies ?? []);
-  const routed = new Set((detail.routes ?? []).map((r) => `${r.agency}:${r.organization_id ?? ''}`));
-  const firstTime = (detail.routes ?? []).length === 0;
-
-  const [picked, setPicked] = useState(() =>
-    Object.fromEntries(
-      routable.map((a) => [a, { on: firstTime && requested.has(a), teams: [] }]),
-    ),
-  );
-  const [notes, setNotes] = useState('');
-
-  const teamsOf = (agency) => orgs.filter((o) => o.agency_type === agency && o.is_active);
-  const choice = routable
-    .filter((a) => picked[a]?.on)
-    .map((a) => ({ agency: a, organization_ids: picked[a].teams }))
-    // Drop a choice that would only repeat what is already routed.
-    .filter((c) => (c.organization_ids.length === 0
-      ? !routed.has(`${c.agency}:`)
-      : c.organization_ids.some((id) => !routed.has(`${c.agency}:${id}`))));
-
-  function toggleAgency(a) {
-    setPicked((p) => ({ ...p, [a]: { ...p[a], on: !p[a].on } }));
-  }
-  function toggleTeam(a, id) {
-    setPicked((p) => {
-      const teams = p[a].teams.includes(id) ? p[a].teams.filter((t) => t !== id) : [...p[a].teams, id];
-      return { ...p, [a]: { on: true, teams } };
-    });
-  }
-
-  if (routable.length === 0) {
-    return <div className="vq-note">The reports on this incident did not ask for any agency.</div>;
-  }
-
+/// Admin's Accept (v11 §2.6.2). There is no routing to do: the reporter already
+/// named the agencies they wanted, and each of those sees this incident on its
+/// own surface with its own Accept. Admin's is the safety net — for when the
+/// Fire Volunteer coordinator is offline and the observers are on the fence, so
+/// an incident does not sit unaccepted while a fire grows.
+function AcceptPanel({ detail, busy, onAccept }) {
+  const asked = detail.requested_agencies ?? [];
   return (
-    <section className="dk-route">
-      <div className="dk-route-head">
-        <span className="dc-eyebrow">{firstTime ? 'Accept & route' : 'Route to more teams'}</span>
-        <span className="vq-muted">Only agencies the reporter asked for can be routed.</span>
-      </div>
-
-      {routable.map((a) => {
-        const on = picked[a]?.on;
-        const teams = teamsOf(a);
-        const wholeRouted = routed.has(`${a}:`);
-        return (
-          <div className={`dk-route-row${on ? ' is-on' : ''}`} key={a}>
-            <label className="dk-route-agency">
-              <input type="checkbox" checked={!!on} onChange={() => toggleAgency(a)} disabled={busy} />
-              <span>{AGENCY_LABEL[a]}</span>
-              {!requested.has(a) && <span className="dk-hint">with Fire</span>}
-              {OBSERVERS.includes(a) && <span className="dk-hint">observer · will Accept</span>}
-            </label>
-            {on && (
-              <div className="dk-teams">
-                <button
-                  className={`dk-team${picked[a].teams.length === 0 ? ' is-on' : ''}`}
-                  onClick={() => setPicked((p) => ({ ...p, [a]: { on: true, teams: [] } }))}
-                  disabled={busy || wholeRouted}
-                >
-                  {wholeRouted ? '✓ Whole agency' : 'Whole agency'}
-                </button>
-                {teams.map((o) => {
-                  const done = routed.has(`${a}:${o.id}`);
-                  return (
-                    <button
-                      key={o.id}
-                      className={`dk-team${picked[a].teams.includes(o.id) ? ' is-on' : ''}`}
-                      onClick={() => toggleTeam(a, o.id)}
-                      disabled={busy || done}
-                    >
-                      {done ? `✓ ${o.name}` : o.name}
-                    </button>
-                  );
-                })}
-                {teams.length === 0 && <span className="vq-muted">No accredited teams yet — routes to the agency.</span>}
-              </div>
-            )}
-          </div>
-        );
-      })}
-
+    <section className="dk-routes">
+      <span className="dc-eyebrow">Accept</span>
+      <p className="vq-muted">
+        {asked.length > 0 ? (
+          <>
+            The reporter asked for{' '}
+            {asked.map((a) => AGENCY_LABEL[a] ?? a).join(', ')}. Each of them can accept
+            this themselves.
+          </>
+        ) : (
+          <>This report named no agency, so only Admin can accept it.</>
+        )}
+      </p>
       <div className="dk-route-foot">
-        <input
-          className="vq-reason"
-          placeholder="Note for the record (optional)"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          maxLength={1000}
-        />
-        <button
-          className="vq-btn vq-btn-verify"
-          disabled={busy || choice.length === 0}
-          onClick={() => onRoute(choice, notes.trim())}
-        >
-          {busy ? 'Routing…' : firstTime ? 'Accept & route' : 'Route'}
+        <button className="vq-btn vq-btn-verify" disabled={busy} onClick={onAccept}>
+          {busy ? 'Accepting…' : 'Accept and send responders'}
         </button>
       </div>
     </section>

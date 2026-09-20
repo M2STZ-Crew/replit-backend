@@ -69,18 +69,17 @@ export const api = {
   // member reports with the reporter's name and a signed photo URL — the
   // evidence a Sub-Admin reviews before deciding.
   incidentReports: (id) => request(`/incidents/${id}/reports`),
-  incidentVerify: (id) => request(`/incidents/${id}/verify`, { method: 'POST' }),
+
+  // Accept (v11 Section 2.5.1). The first Accept on an incident carries it
+  // Reported -> Verified -> En route in one act, so Admin pressing this is the
+  // safety net for an incident no agency has picked up. There is no separate
+  // verify call any more, and no routing: the reporter already said which
+  // agencies they wanted, and each of those sees its own Accept.
+  incidentAccept: (id) => request(`/incidents/${id}/accept`, { method: 'POST' }),
   incidentReject: (id, reason) =>
     request(`/incidents/${id}/reject`, { method: 'POST', body: { reason } }),
 
-  // Admin routing (v10 Section 2.6.2). `routes` is
-  // [{ agency, organization_ids: [] }] — empty ids route the agency as a whole.
-  routeIncident: (id, routes, notes) =>
-    request(`/admin/incidents/${id}/route`, {
-      method: 'POST',
-      body: { routes, notes: notes || null },
-    }),
-  // The Post-Incident Report a team captain filed after fire out (v10 §2.5).
+  // The Post-Incident Report a team captain filed after fire out (§2.5.3).
   postIncidentReport: (id) => request(`/incidents/${id}/post-incident-report`),
   equipment: () => request('/equipment'),
   mapLayer: (name) => request(`/map/${name}`),

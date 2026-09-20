@@ -33,7 +33,7 @@ function authorityOf(person) {
       label,
       color,
       hint: key === 'observer'
-        ? 'Sees incidents that requested this agency; cannot verify, reject or dispatch.'
+        ? 'Sees incidents that requested this agency and may accept them; cannot reject.'
         : 'Verifies, rejects and dispatches on incidents.',
     };
   }

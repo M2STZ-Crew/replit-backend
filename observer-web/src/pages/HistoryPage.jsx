@@ -16,7 +16,7 @@ const FILTERS = [
 ];
 
 const VERB = {
-  'incident.verify': 'verified',
+  'incident.accept': 'accepted',
   'incident.reject': 'rejected',
   'incident.resolve': 'declared fire out',
   'incident.dispatch': 'dispatched a responder',
@@ -100,20 +100,27 @@ export default function HistoryPage() {
 
       <section className="panel table-panel">
         <div className="table-scroll">
-          <table className="log">
-            <thead>
-              <tr><th>Time</th><th>Incident</th><th>Who</th><th>Action</th></tr>
+          {/* Explicit roles: on a phone these rows are restyled as cards, and
+              changing a table's display drops its semantics in some browsers. */}
+          <table className="log" role="table">
+            <thead role="rowgroup">
+              <tr role="row">
+                <th role="columnheader">Time</th>
+                <th role="columnheader">Incident</th>
+                <th role="columnheader">Who</th>
+                <th role="columnheader">Action</th>
+              </tr>
             </thead>
-            <tbody>
+            <tbody role="rowgroup">
               {shown.map((r) => (
-                <tr key={r.id}>
-                  <td className="log-time">{when(r.created_at)}</td>
-                  <td>{r.area_designation || '—'}</td>
-                  <td>
+                <tr key={r.id} role="row">
+                  <td className="log-time" role="cell" data-cell="time">{when(r.created_at)}</td>
+                  <td role="cell" data-cell="incident">{r.area_designation || '—'}</td>
+                  <td role="cell" data-cell="who">
                     <span className="log-role">{(r.actor_role || 'system').replace(/_/g, ' ')}</span>
                     {r.actor_agency && <span className="log-agency">{agencyLabel(r.actor_agency)}</span>}
                   </td>
-                  <td>
+                  <td role="cell" data-cell="action">
                     {verbOf(r.action)}
                     {r.action === 'incident.route' && Array.isArray(r.metadata?.routes) && (
                       <span className="log-detail">

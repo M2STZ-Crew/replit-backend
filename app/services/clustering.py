@@ -110,7 +110,7 @@ async def _create_area(
         insert into public.areas
             (designation, base_number, version, parent_area_id,
              centroid_lat, centroid_lng, status, reported_at)
-        values ($1, $2, $3, $4, $5, $6, 'pending', now())
+        values ($1, $2, $3, $4, $5, $6, 'reported', now())
         returning id
         """,
         _designation(base_number, version),

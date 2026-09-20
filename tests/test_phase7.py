@@ -46,12 +46,14 @@ def test_haversine_known_distance() -> None:
 def test_active_area_sql_excludes_every_off_feed_status() -> None:
     """Terminal statuses leave the live feed, and so does the post-fire step.
 
-    v10 Section 2.5: 'closed' joins rejected and merged as terminal, and a fire
-    that is out but still owes its Post-Incident Report is no longer live either.
+    v11 Section 2.5: 'closed' joins rejected and merged as terminal, and a fire
+    that is out ('fire_out') but still owes its Post-Incident Report is no longer
+    live either. Keeping the two sets distinct is what stops a new report near a
+    fire that is out but not yet closed being swallowed by the old Area.
     """
     predicate = active_area_sql()
     assert set(TERMINAL_STATUSES) == {"rejected", "merged", "closed"}
-    assert set(OFF_FEED_STATUSES) == set(TERMINAL_STATUSES) | {"resolved", "post_incident_report"}
+    assert set(OFF_FEED_STATUSES) == set(TERMINAL_STATUSES) | {"fire_out", "post_incident_report"}
     for status in OFF_FEED_STATUSES:
         assert f"'{status}'" in predicate
     assert predicate.startswith("status not in (")

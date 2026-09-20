@@ -1,14 +1,15 @@
 /// Labels and colours for public.area_status, shared by every console screen.
 ///
-/// v10 adds two post-fire statuses (Section 2.5): 'post_incident_report' is the
-/// wait between fire out and the team captain filing, and 'closed' is terminal.
+/// v11 renames the operator-facing set (Section 2.5) and drops 'dispatched':
+/// Accept now carries an incident from Reported straight to En route, so there
+/// is no step between the two to label. 'post_incident_report' is the wait
+/// between fire out and the team captain filing; 'closed' is terminal.
 export const STATUS = {
-  pending: { label: 'Pending', color: '#EAB308' },
+  reported: { label: 'Reported', color: '#EAB308' },
   verified: { label: 'Verified', color: '#42A5F5' },
-  dispatched: { label: 'Dispatched', color: '#1976D2' },
   en_route: { label: 'En route', color: '#FF9066' },
   arrived: { label: 'On scene', color: '#F4511E' },
-  resolved: { label: 'Resolved', color: '#22C55E' },
+  fire_out: { label: 'Fire out', color: '#22C55E' },
   post_incident_report: { label: 'Report due', color: '#2DD4BF' },
   closed: { label: 'Closed', color: '#16A34A' },
   rejected: { label: 'Rejected', color: '#9E9E9E' },
@@ -20,7 +21,7 @@ export function statusOf(status) {
 }
 
 /// Mirrors OFF_FEED_STATUSES in app/services/incident.py.
-export const OFF_FEED = ['resolved', 'post_incident_report', 'closed', 'rejected', 'merged'];
+export const OFF_FEED = ['fire_out', 'post_incident_report', 'closed', 'rejected', 'merged'];
 
 export const AGENCY_LABEL = {
   fire_volunteer: 'Fire Volunteers',
@@ -30,16 +31,9 @@ export const AGENCY_LABEL = {
   barangay: 'Barangay',
 };
 
-/// Mirrors routable_agencies() in app/services/incident.py: routing follows the
-/// report, and the two fire agencies count as one request.
-export function routableAgencies(requested = []) {
-  const out = new Set(requested);
-  if (out.has('fire_volunteer') || out.has('bfp')) {
-    out.add('fire_volunteer');
-    out.add('bfp');
-  }
-  return ['fire_volunteer', 'bfp', 'police', 'medical', 'barangay'].filter((a) => out.has(a));
-}
+/// v11 removed Admin's manual routing (§2.6.2), and routableAgencies with it:
+/// the reporter's selected_agencies already decides which agencies see an
+/// incident, and each of them now presses its own Accept.
 
 export function since(iso) {
   if (!iso) return '—';

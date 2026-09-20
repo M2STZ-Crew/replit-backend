@@ -50,7 +50,7 @@ _REPORT_SELECT = """
            p.organization_id, o.name as organization_name,
            p.truck_equipment_id, p.truck_label, p.truck_type,
            p.driver_name, p.driver_user_id, p.roster, p.equipment_taken, p.notes,
-           p.submitted_at
+           p.false_alarm, p.false_alarm_note, p.submitted_at
     from public.post_incident_reports p
     join public.areas a on a.id = p.area_id
     left join public.organizations o on o.id = p.organization_id
@@ -109,9 +109,11 @@ async def file_post_incident_report(
                 insert into public.post_incident_reports
                     (area_id, filed_by, filed_by_name, filed_by_role, filed_by_agency,
                      organization_id, truck_equipment_id, truck_label, truck_type,
-                     driver_name, driver_user_id, roster, equipment_taken, notes)
+                     driver_name, driver_user_id, roster, equipment_taken, notes,
+                     false_alarm, false_alarm_note)
                 values ($1, $2, $3, $4::public.user_role, $5::public.agency_type,
-                        $6, $7, $8, $9, $10, $11, $12::jsonb, $13::text[], $14)
+                        $6, $7, $8, $9, $10, $11, $12::jsonb, $13::text[], $14,
+                        $15, $16)
                 returning id
                 """,
                 incident_id,
@@ -128,6 +130,8 @@ async def file_post_incident_report(
                 json.dumps(roster),
                 payload.equipment_taken,
                 payload.notes,
+                payload.false_alarm,
+                payload.false_alarm_note,
             )
         except asyncpg.UniqueViolationError as exc:
             raise ConflictError(
@@ -154,6 +158,7 @@ async def file_post_incident_report(
                 "driver_name": payload.driver_name,
                 "roster_count": len(roster),
                 "equipment_count": len(payload.equipment_taken),
+                "false_alarm": payload.false_alarm,
             },
         )
 

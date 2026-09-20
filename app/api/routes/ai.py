@@ -67,11 +67,11 @@ async def generate_summary(
     if status_val is None:
         raise NotFoundError("Incident not found.")
     await _assert_visible(db, incident_id, user)
-    # Fire out passes through 'resolved' into the Post-Incident Report step and
-    # then 'closed' (v10 Section 2.5); each of them is after the fire.
-    if status_val not in ("resolved", "post_incident_report", "closed"):
+    # Fire out passes through 'fire_out' into the Post-Incident Report step and
+    # then 'closed' (v11 Section 2.5); each of them is after the fire.
+    if status_val not in ("fire_out", "post_incident_report", "closed"):
         raise ConflictError(
-            "A fire-out report can only be generated for a resolved incident.",
+            "A fire-out report can only be generated once the fire is out.",
             details={"current_status": status_val},
         )
     row = await generate_incident_summary(db, client, incident_id)

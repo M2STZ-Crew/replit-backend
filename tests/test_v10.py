@@ -14,7 +14,6 @@ from pydantic import ValidationError
 
 from app.core.exceptions import ConflictError, ForbiddenError
 from app.main import app
-from app.schemas.admin import RouteIncidentRequest
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.map_layer import EvacuationSiteCreate, EvacuationSiteUpdate
 from app.schemas.post_incident_report import PostIncidentReportCreate
@@ -28,7 +27,6 @@ from app.services.incident import (
     assert_can_accept,
     assert_team_captain,
     assert_transition,
-    routable_agencies,
 )
 
 _MIGRATIONS = Path(__file__).resolve().parents[1] / "supabase" / "migrations"
@@ -64,10 +62,10 @@ def _report(**overrides: object) -> dict[str, object]:
 # --------------------------------------------------------------------------- #
 # Lifecycle (Section 2.5)
 # --------------------------------------------------------------------------- #
-def test_the_full_v10_path_is_allowed() -> None:
+def test_the_full_v11_path_is_allowed() -> None:
     path = [
-        "pending", "verified", "dispatched", "en_route", "arrived",
-        "resolved", "post_incident_report", "closed",
+        "reported", "verified", "en_route", "arrived",
+        "fire_out", "post_incident_report", "closed",
     ]
     for current, target in zip(path, path[1:], strict=False):
         assert_transition(current, target)
@@ -77,9 +75,9 @@ def test_the_full_v10_path_is_allowed() -> None:
     "current,target",
     [
         ("arrived", "closed"),  # cannot skip fire out
-        ("resolved", "closed"),  # cannot skip the report
-        ("pending", "post_incident_report"),
-        ("post_incident_report", "resolved"),  # no going back
+        ("fire_out", "closed"),  # cannot skip the report
+        ("reported", "post_incident_report"),
+        ("post_incident_report", "fire_out"),  # no going back
         ("closed", "post_incident_report"),
         ("rejected", "closed"),
     ],
@@ -92,7 +90,7 @@ def test_the_report_step_cannot_be_skipped_or_reversed(current: str, target: str
 def test_closed_is_terminal_and_off_the_feed() -> None:
     assert "closed" in TERMINAL_STATUSES
     assert ALLOWED_TRANSITIONS["closed"] == set()
-    assert {"resolved", "post_incident_report", "closed"} <= set(OFF_FEED_STATUSES)
+    assert {"fire_out", "post_incident_report", "closed"} <= set(OFF_FEED_STATUSES)
 
 
 def _enum_values(enum_name: str) -> set[str]:
@@ -176,7 +174,7 @@ def test_only_the_team_captain_files(role: str, agency: str | None) -> None:
 
 
 # --------------------------------------------------------------------------- #
-# Observer Accept (Section 2.6.1)
+# Accept — the collapsed act (v11 Section 2.5.1)
 # --------------------------------------------------------------------------- #
 @pytest.mark.parametrize("agency", OBSERVER_AGENCIES)
 def test_observers_may_accept(agency: str) -> None:
@@ -189,11 +187,20 @@ def test_observers_may_accept(agency: str) -> None:
         ("sub_admin", "fire_volunteer"),
         ("sub_admin", "bfp"),
         ("admin", None),
-        ("response_team", "police"),
     ],
 )
-def test_only_observers_accept(role: str, agency: str | None) -> None:
-    """Coordinators verify and dispatch; they are not shown an Accept control."""
+def test_coordinators_and_admin_may_also_accept(role: str, agency: str | None) -> None:
+    """v11 opened Accept to every staff tier: first to press wins (Section 2.5.1).
+
+    In v9 and v10 this was observer-only, because Accept was a mere
+    acknowledgement of Admin's routing. Now it *is* the verify act.
+    """
+    assert_can_accept(_user(role, agency))
+
+
+@pytest.mark.parametrize("role,agency", [("response_team", "police"), ("general_user", None)])
+def test_non_staff_may_not_accept(role: str, agency: str | None) -> None:
+    """Accept commits an agency. A responder or a citizen cannot make that call."""
     with pytest.raises(ForbiddenError):
         assert_can_accept(_user(role, agency))
 
@@ -238,49 +245,10 @@ def test_a_blank_roster_role_becomes_none() -> None:
     assert report.roster[0].role is None
 
 
-# --------------------------------------------------------------------------- #
-# Admin routing (Section 2.6.2)
-# --------------------------------------------------------------------------- #
-def test_routing_to_several_agencies_at_once() -> None:
-    team = uuid4()
-    request = RouteIncidentRequest.model_validate(
-        {
-            "routes": [
-                {"agency": "fire_volunteer"},
-                {"agency": "medical", "organization_ids": [str(team), str(team)]},
-                {"agency": "police"},
-            ]
-        }
-    )
-    assert [r.agency for r in request.routes] == ["fire_volunteer", "medical", "police"]
-    assert request.routes[1].organization_ids == [team]  # de-duplicated
-    assert request.routes[0].organization_ids == []  # the agency as a whole
-
-
-@pytest.mark.parametrize(
-    "routes",
-    [
-        [],
-        [{"agency": "police"}, {"agency": "police"}],
-        [{"agency": "coast_guard"}],
-    ],
-)
-def test_bad_route_requests_are_refused(routes: list[dict[str, object]]) -> None:
-    with pytest.raises(ValidationError):
-        RouteIncidentRequest.model_validate({"routes": routes})
-
-
-def test_routing_follows_what_the_reporter_asked_for() -> None:
-    """An agency nobody requested stays unroutable, so visibility stays scoped."""
-    assert routable_agencies(["medical"]) == {"medical"}
-    assert "police" not in routable_agencies(["fire_volunteer", "medical"])
-    assert routable_agencies([]) == set()
-
-
-def test_the_fire_agencies_route_as_a_pair() -> None:
-    """The SOS screen offers "fire"; BFP must be routable when Fire Volunteer is."""
-    assert routable_agencies(["fire_volunteer"]) == {"fire_volunteer", "bfp"}
-    assert routable_agencies(["bfp", "police"]) == {"fire_volunteer", "bfp", "police"}
+# v11 removed Admin's manual routing (Section 2.6.2): the reporter's
+# selected_agencies already carries the intent, so each requested agency sees the
+# Area on its own surface with its own Accept. RouteIncidentRequest and
+# routable_agencies went with it, and so did the tests that covered them.
 
 
 # --------------------------------------------------------------------------- #
@@ -339,7 +307,6 @@ def test_city_can_be_changed_but_not_cleared() -> None:
         ("post", f"/incidents/{uuid4()}/post-incident-report"),
         ("get", f"/incidents/{uuid4()}/post-incident-report"),
         ("get", "/post-incident-reports"),
-        ("post", f"/admin/incidents/{uuid4()}/route"),
     ],
 )
 def test_v10_endpoints_require_auth(client: TestClient, method: str, path: str) -> None:

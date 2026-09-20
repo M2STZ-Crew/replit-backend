@@ -35,9 +35,9 @@ TERMINAL_STATUSES = ("rejected", "merged", "closed")
 # Statuses that take an area out of the live feed: it must not cluster new
 # reports, alert neighbors, or count as an active incident. Wider than
 # TERMINAL_STATUSES because fire out ends the response before the paperwork is
-# done — a resolved area waits in 'post_incident_report' (the captain's
+# done — a fire_out area waits in 'post_incident_report' (the captain's
 # "pending report" tray) without being live.
-OFF_FEED_STATUSES = ("resolved", "post_incident_report", *TERMINAL_STATUSES)
+OFF_FEED_STATUSES = ("fire_out", "post_incident_report", *TERMINAL_STATUSES)
 
 # Statuses that additionally bar an area from seeding a 1 h version chain.
 # The post-fire statuses are deliberately absent: a genuine second fire at the
@@ -45,21 +45,28 @@ OFF_FEED_STATUSES = ("resolved", "post_incident_report", *TERMINAL_STATUSES)
 # 2.3). A rejected area was never an incident, and a merged one was absorbed.
 UNVERSIONABLE_STATUSES = ("rejected", "merged")
 
-# Allowed forward transitions of public.area_status (Section 2.5). Mirrors the DB
-# sequencing CHECK constraints: dispatched needs verified, en_route needs
-# dispatched, arrived needs en_route, post_incident_report needs resolved, closed
-# needs post_incident_report. Resolve is reachable from any active state once
-# verified; reject only before responders are committed. Merge is only legal
-# before responders are committed — after dispatch it would orphan their
-# assignments. 'resolved' only ever moves on to the report step, and 'closed' is
-# additionally pinned by a trigger to the existence of a filed report.
+# Allowed forward transitions of public.area_status (v11 Section 2.5). Mirrors
+# the DB sequencing CHECK constraints: en_route needs verified, arrived needs
+# en_route, post_incident_report needs fire_out, closed needs
+# post_incident_report.
+#
+# v11 removed the 'dispatched' step. Accept now carries an Area
+# reported -> verified -> en_route inside one transaction (Section 2.5.1), so
+# 'verified' is a state the lifecycle passes through rather than rests in — but
+# it stays in the table because assert_transition validates each hop separately
+# and the DB stamps verified_at on the way past.
+#
+# Fire out is reachable from any committed state; reject only before anyone has
+# accepted. Merge is likewise only legal before responders are committed — after
+# that it would orphan their assignments. 'fire_out' only ever moves on to the
+# report step, and 'closed' is additionally pinned by a trigger to the existence
+# of a filed report.
 ALLOWED_TRANSITIONS: dict[str, set[str]] = {
-    "pending": {"verified", "rejected", "merged"},
-    "verified": {"dispatched", "resolved", "rejected", "merged"},
-    "dispatched": {"en_route", "resolved"},
-    "en_route": {"arrived", "resolved"},
-    "arrived": {"resolved"},
-    "resolved": {"post_incident_report"},
+    "reported": {"verified", "rejected", "merged"},
+    "verified": {"en_route", "fire_out", "rejected", "merged"},
+    "en_route": {"arrived", "fire_out"},
+    "arrived": {"fire_out"},
+    "fire_out": {"post_incident_report"},
     "post_incident_report": {"closed"},
     "closed": set(),
     "rejected": set(),
@@ -141,20 +148,6 @@ async def assert_incident_visible(
     return str(status_val)
 
 
-def routable_agencies(requested: set[str] | list[str]) -> set[str]:
-    """Agencies Admin may route an incident to, given what its reporters requested.
-
-    Routing follows the report (v10 Section 2.6.2), so an agency nobody asked for
-    is not routable — that keeps visibility scoped by selected_agencies. The fire
-    agencies count as one request, as they do for visibility: the SOS screen
-    offers "fire", and BFP already sees every Fire Volunteer incident.
-    """
-    agencies = set(requested)
-    if agencies & set(_FIRE_AGENCIES):
-        agencies |= set(_FIRE_AGENCIES)
-    return agencies
-
-
 def is_coordinator(user: AuthenticatedUser) -> bool:
     """True when the user may change an incident's state.
 
@@ -214,16 +207,23 @@ def assert_team_captain(user: AuthenticatedUser) -> None:
 
 
 def assert_can_accept(user: AuthenticatedUser) -> None:
-    """Raise 403 unless the user may press Accept on a routed incident (Section 2.6.1).
+    """Raise 403 unless the user may press Accept (v11 Section 2.5.1).
 
-    Accept is the observer-side action. Coordinators do not see it — they verify
-    and dispatch instead — and Admin is the one doing the routing.
+    In v10 this was the observer-only acknowledgement of a routed incident. In
+    v11 Accept *is* the verify act and all three staff tiers may press it: Admin
+    on any Area, a Coordinator or an Observer on one whose reporters asked for
+    their agency. First to press wins and moves the Area; later presses record
+    that agency's participation.
+
+    Role is all this checks. Which Areas a non-admin may reach is scoped by
+    ``visible_agencies`` on the route, so an Observer still only ever sees — and
+    so only ever accepts — incidents that asked for their agency.
     """
-    if is_observer(user):
+    if user.role in ("admin", "sub_admin"):
         return
     raise ForbiddenError(
-        "Accept is how an observer agency acknowledges an incident routed to it. "
-        "Coordinators verify and dispatch instead."
+        "Only Admin, coordinators and observer team captains may accept incidents.",
+        details={"role": user.role},
     )
 
 

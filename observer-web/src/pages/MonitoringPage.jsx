@@ -47,7 +47,7 @@ function FlyTo({ point }) {
 ///
 /// Accept acknowledges receipt — yes, we see it; yes, we are on it. It is
 /// recorded in the audit log and changes no lifecycle status. There is no
-/// Reject here, and no verify, dispatch or resolve: those belong to the Fire
+/// No Reject here, and no fire-out: those belong to the Fire
 /// Volunteer and BFP coordinators.
 export default function MonitoringPage({ focusId = null }) {
   const { user } = useAuth();
@@ -118,6 +118,16 @@ export default function MonitoringPage({ focusId = null }) {
     () => (detail ? [detail.centroid_lat, detail.centroid_lng] : null),
     [detail?.id],
   );
+
+  // Below 700px the panel stacks under the map, out of sight. Bring it into
+  // view when an incident opens, so tapping a marker visibly does something
+  // and the Accept control is on screen.
+  useEffect(() => {
+    if (!detail?.id || !window.matchMedia('(max-width: 700px)').matches) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.querySelector('.mon-side')
+      ?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+  }, [detail?.id]);
 
   const mine = detail ? routesForMe(detail, user) : [];
   const live = detail && !OFF_FEED.includes(detail.status);

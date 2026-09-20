@@ -135,7 +135,7 @@ export default function Login() {
           <div className="lg-note">
             <ShieldIcon />
             <span>
-              Fire Volunteer and BFP coordinators verify and dispatch. Police,
+              Fire Volunteer and BFP coordinators accept and reject. Police,
               medical and barangay accounts see incidents for awareness only.
             </span>
           </div>

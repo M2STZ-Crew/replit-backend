@@ -60,22 +60,25 @@ def test_visible_agencies_no_agency_sees_nothing() -> None:
 # Lifecycle state machine
 # --------------------------------------------------------------------------- #
 def test_assert_transition_allows_the_forward_path() -> None:
-    """The full pending -> verified -> ... -> resolved chain is allowed."""
-    assert_transition("pending", "verified")
-    assert_transition("verified", "dispatched")
-    assert_transition("dispatched", "en_route")
+    """The full reported -> verified -> en_route -> arrived -> fire_out chain.
+
+    v11 dropped the dispatched step: Accept takes verified straight to en_route
+    (Section 2.5.1).
+    """
+    assert_transition("reported", "verified")
+    assert_transition("verified", "en_route")
     assert_transition("en_route", "arrived")
-    assert_transition("arrived", "resolved")
+    assert_transition("arrived", "fire_out")
 
 
 def test_assert_transition_blocks_illegal_moves() -> None:
     """Skipping states or moving out of a terminal state raises 409."""
     with pytest.raises(ConflictError):
-        assert_transition("pending", "resolved")
+        assert_transition("reported", "fire_out")
     with pytest.raises(ConflictError):
-        assert_transition("arrived", "dispatched")
+        assert_transition("reported", "en_route")
     with pytest.raises(ConflictError):
-        assert_transition("resolved", "verified")
+        assert_transition("fire_out", "verified")
 
 
 def test_terminal_states_have_no_transitions() -> None:
@@ -85,17 +88,17 @@ def test_terminal_states_have_no_transitions() -> None:
     assert ALLOWED_TRANSITIONS["closed"] == set()
 
 
-def test_resolved_only_moves_on_to_the_post_incident_report() -> None:
-    """v10: fire out is no longer a dead-end; it leads to the report step alone."""
-    assert ALLOWED_TRANSITIONS["resolved"] == {"post_incident_report"}
+def test_fire_out_only_moves_on_to_the_post_incident_report() -> None:
+    """Fire out is not a dead-end; it leads to the report step alone (v11 2.5.3)."""
+    assert ALLOWED_TRANSITIONS["fire_out"] == {"post_incident_report"}
     assert ALLOWED_TRANSITIONS["post_incident_report"] == {"closed"}
 
 
 def test_merge_allowed_only_before_responders_are_committed() -> None:
-    """An overlap [Merge] is legal while pending/verified, never after dispatch."""
-    assert_transition("pending", "merged")
+    """An overlap [Merge] is legal while reported/verified, never once rolling."""
+    assert_transition("reported", "merged")
     assert_transition("verified", "merged")
-    for committed in ("dispatched", "en_route", "arrived"):
+    for committed in ("en_route", "arrived"):
         with pytest.raises(ConflictError):
             assert_transition(committed, "merged")
 
@@ -103,7 +106,7 @@ def test_merge_allowed_only_before_responders_are_committed() -> None:
 def test_merged_is_distinct_from_rejected() -> None:
     """A merge must not be reachable via 'rejected' — merges aren't false reports."""
     assert "merged" not in ALLOWED_TRANSITIONS["rejected"]
-    assert ALLOWED_TRANSITIONS["pending"] >= {"merged", "rejected"}
+    assert ALLOWED_TRANSITIONS["reported"] >= {"merged", "rejected"}
 
 
 # --------------------------------------------------------------------------- #
@@ -114,15 +117,12 @@ def test_merged_is_distinct_from_rejected() -> None:
     [
         ("get", "/incidents", None),
         ("get", f"/incidents/{uuid4()}", None),
-        ("post", f"/incidents/{uuid4()}/verify", None),
+        ("post", f"/incidents/{uuid4()}/accept", None),
         ("post", f"/incidents/{uuid4()}/reject", {"reason": "x"}),
         ("post", f"/incidents/{uuid4()}/resolve", None),
-        ("post", f"/incidents/{uuid4()}/dispatch", {"responder_id": str(uuid4())}),
         ("post", f"/incidents/{uuid4()}/self-dispatch", {}),
-        ("post", f"/incidents/{uuid4()}/en-route", None),
         ("post", f"/incidents/{uuid4()}/arrived", None),
         ("get", f"/incidents/{uuid4()}/dispatches", None),
-        ("post", f"/incidents/{uuid4()}/dispatches/{uuid4()}/withdraw", None),
         (
             "post",
             f"/incidents/{uuid4()}/location",
