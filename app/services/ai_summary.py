@@ -1,10 +1,19 @@
-"""Post-incident AI summary service (Phase 11, Section 3.6).
+"""Post-incident AI summary service (Section 3.6).
 
-Gathers the structured facts of a resolved incident (designation, centroid, the 7
-lifecycle timestamps, neighborhood corroboration, dispatched resources, fire-code
-activations), asks Claude Haiku for a narrative fire-out report, and persists both
-to public.ai_summaries with token + cost accounting. asyncpg has no JSON codec
-registered here, so jsonb is dumped/loaded explicitly.
+Gathers the structured facts of a closed incident, asks Claude Haiku for a
+narrative post-incident report, and persists both to public.ai_summaries with
+token and cost accounting. asyncpg has no JSON codec registered here, so jsonb is
+dumped and loaded explicitly.
+
+v11 changed what the facts are. The dispatch step is gone (Section 2.5), so "who
+went" no longer comes from dispatch_logs — it comes from the team captain's
+Post-Incident Report: the unit, driver, crew, equipment, notes and the
+false-alarm flag. The facts also carry who accepted the incident, since under v11
+the first Accept is what verified it and sent responders.
+
+That is also why the summary is written when the report is filed rather than at
+fire out: before then, the report — the most useful part of the record — does not
+exist yet.
 """
 
 from __future__ import annotations
@@ -15,9 +24,22 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from app.core.config import get_settings
 from app.core.exceptions import NotFoundError
-from app.db.session import Database
+from app.core.logging import get_logger
+from app.db.session import Database, database
 from app.integrations.anthropic_ai import AnthropicClient
+
+log = get_logger(__name__)
+
+# Agencies as coordinators and the BFP read them. Admin accepts carry no agency.
+_AGENCY_NAME = {
+    "fire_volunteer": "Fire Volunteers",
+    "bfp": "BFP",
+    "police": "Police",
+    "medical": "Medical",
+    "barangay": "Barangay",
+}
 
 
 def _iso(value: datetime | None) -> str | None:
@@ -33,6 +55,11 @@ def _row_to_dict(row: Any) -> dict[str, Any]:
     cost = data.get("cost_usd")
     data["cost_usd"] = float(cost) if cost is not None else None
     return data
+
+
+def _jsonb(value: Any) -> Any:
+    """asyncpg returns jsonb as text here; decode it, pass anything else through."""
+    return json.loads(value) if isinstance(value, str) else value
 
 
 @dataclass(frozen=True)
@@ -53,25 +80,62 @@ def _render_facts(s: dict[str, Any]) -> str:
         f"Confidence: {s['confidence']['score']} ({s['confidence']['band']}), "
         f"from {s['report_count']} citizen report(s)",
         f"Alarm level: {s['alarm_level'] or 'none'}",
-        "Lifecycle timestamps:",
-        f"  reported:   {ts['reported_at'] or '-'}",
-        f"  verified:   {ts['verified_at'] or '-'}",
-        f"  dispatched: {ts['dispatched_at'] or '-'}",
-        f"  en route:   {ts['en_route_at'] or '-'}",
-        f"  arrived:    {ts['arrived_at'] or '-'}",
-        f"  resolved:   {ts['resolved_at'] or '-'}",
-        f"  rejected:   {ts['rejected_at'] or '-'}",
-        f"Neighborhood corroboration: {nb['alerted']} alerted, "
-        f"{nb['responded']} responded, {nb['confirmed']} confirmed a fire",
+        "Timeline:",
+        f"  reported:     {ts['reported_at'] or '-'}",
+        f"  accepted:     {ts['accepted_at'] or '-'}",
     ]
-    if s["dispatched_resources"]:
-        lines.append("Dispatched resources:")
-        for d in s["dispatched_resources"]:
-            who = d["responder"] or "Unknown responder"
-            org = f" ({d['organization']})" if d["organization"] else ""
-            lines.append(f"  - {who}{org} [{d['type']}, {d['status']}]")
+    # Only incidents that ran under v10 have one: v11 has no dispatch step.
+    if ts.get("dispatched_at"):
+        lines.append(f"  dispatched:   {ts['dispatched_at']}")
+    lines += [
+        f"  en route:     {ts['en_route_at'] or '-'}",
+        f"  on scene:     {ts['arrived_at'] or '-'}",
+        f"  fire out:     {ts['fire_out_at'] or '-'}",
+        f"  report filed: {ts['closed_at'] or '-'}",
+    ]
+
+    if s["acceptances"]:
+        lines.append("Accepted by:")
+        for a in s["acceptances"]:
+            who = _AGENCY_NAME.get(a["agency"] or "", "Admin")
+            team = f" ({a['organization']})" if a["organization"] else ""
+            # "Verified it" holds in both eras. Under v11 that same Accept also sent
+            # responders, but under v10 dispatch was a separate step — so saying
+            # "and sent responders" would be false for every incident from before
+            # the migration. The timeline carries the rest.
+            role = "first to accept; this verified it" if a["is_first"] else "also took part"
+            lines.append(f"  - {who}{team}: {role}")
     else:
-        lines.append("Dispatched resources: none recorded")
+        lines.append("Accepted by: no acceptance recorded")
+
+    lines.append(
+        f"Neighbourhood corroboration: {nb['alerted']} alerted, "
+        f"{nb['responded']} responded, {nb['confirmed']} confirmed a fire"
+    )
+
+    report = s["post_incident_report"]
+    if report is None:
+        lines.append("Post-Incident Report: not filed yet")
+    else:
+        filer = report["filed_by"] or "the team captain"
+        agency = _AGENCY_NAME.get(report["filed_by_agency"] or "", "")
+        lines.append(f"Post-Incident Report (filed by {filer}{', ' + agency if agency else ''}):")
+        if report["false_alarm"]:
+            lines.append(f"  FALSE ALARM — {report['false_alarm_note'] or 'no explanation given'}")
+        lines.append(
+            f"  Unit: {report['truck_label']} ({report['truck_type']}), "
+            f"driver {report['driver_name']}"
+        )
+        crew = [
+            f"{m['name']} ({m['role']})" if m.get("role") else m["name"]
+            for m in report["roster"]
+        ]
+        lines.append(f"  Crew: {', '.join(crew) if crew else 'none recorded'}")
+        equipment = report["equipment_taken"]
+        lines.append(f"  Equipment taken: {', '.join(equipment) if equipment else 'none recorded'}")
+        if report["notes"]:
+            lines.append(f"  Captain's notes: {report['notes']}")
+
     if s["fire_codes"]:
         lines.append("Fire codes activated:")
         for c in s["fire_codes"]:
@@ -90,7 +154,7 @@ async def gather_incident_facts(db: Database, area_id: UUID) -> IncidentFacts:
                a.confidence_score, a.confidence_band::text as confidence_band,
                a.alarm_level::text as alarm_level,
                a.reported_at, a.verified_at, a.dispatched_at, a.en_route_at,
-               a.arrived_at, a.resolved_at, a.rejected_at
+               a.arrived_at, a.resolved_at, a.closed_at
         from public.areas a
         where a.id = $1
         """,
@@ -109,17 +173,40 @@ async def gather_incident_facts(db: Database, area_id: UUID) -> IncidentFacts:
         """,
         area_id,
     )
-    dispatches = await db.fetch(
+    acceptances = await db.fetch(
         """
-        select d.dispatch_type::text as dispatch_type, d.status::text as status,
-               u.full_name as responder_name,
-               o.name as org_name, o.agency_type::text as org_agency,
-               d.dispatched_at
-        from public.dispatch_logs d
-        left join public.users u on u.id = d.responder_id
-        left join public.organizations o on o.id = d.organization_id
-        where d.area_id = $1
-        order by d.dispatched_at asc
+        select x.agency::text as agency, o.name as org_name, x.is_first, x.accepted_at
+        from public.area_acceptances x
+        left join public.organizations o on o.id = x.organization_id
+        where x.area_id = $1
+        order by x.is_first desc, x.accepted_at asc
+        """,
+        area_id,
+    )
+    if not acceptances:
+        # An incident verified under v10 has no area_acceptances row: v10 recorded
+        # the decision as areas.verified_by, and the v11 migration only carried
+        # over observer acknowledgements. Without this fallback the timeline would
+        # say "accepted" while the facts said nobody had — and the model, told to
+        # use only the facts, would be handed a contradiction.
+        acceptances = await db.fetch(
+            """
+            select u.agency_type::text as agency, o.name as org_name,
+                   true as is_first, a.verified_at as accepted_at
+            from public.areas a
+            join public.users u on u.id = a.verified_by
+            left join public.organizations o on o.id = u.primary_org_id
+            where a.id = $1 and a.verified_by is not null
+            """,
+            area_id,
+        )
+    report = await db.fetchrow(
+        """
+        select filed_by_name, filed_by_agency::text as filed_by_agency,
+               truck_label, truck_type, driver_name, roster, equipment_taken,
+               notes, false_alarm, false_alarm_note, submitted_at
+        from public.post_incident_reports
+        where area_id = $1
         """,
         area_id,
     )
@@ -143,29 +230,46 @@ async def gather_incident_facts(db: Database, area_id: UUID) -> IncidentFacts:
         "alarm_level": area["alarm_level"],
         "timestamps": {
             "reported_at": _iso(area["reported_at"]),
-            "verified_at": _iso(area["verified_at"]),
+            # v11: verified_at is stamped by the first Accept (Section 2.5.1).
+            "accepted_at": _iso(area["verified_at"]),
             "dispatched_at": _iso(area["dispatched_at"]),
             "en_route_at": _iso(area["en_route_at"]),
             "arrived_at": _iso(area["arrived_at"]),
-            "resolved_at": _iso(area["resolved_at"]),
-            "rejected_at": _iso(area["rejected_at"]),
+            # The column kept its v10 name; the status it records is fire_out.
+            "fire_out_at": _iso(area["resolved_at"]),
+            "closed_at": _iso(area["closed_at"]),
         },
+        "acceptances": [
+            {
+                "agency": a["agency"],
+                "organization": a["org_name"],
+                "is_first": a["is_first"],
+                "accepted_at": _iso(a["accepted_at"]),
+            }
+            for a in acceptances
+        ],
         "neighborhood": {
             "alerted": nb["alerted"] if nb else 0,
             "responded": nb["responded"] if nb else 0,
             "confirmed": nb["confirmed"] if nb else 0,
         },
-        "dispatched_resources": [
-            {
-                "responder": d["responder_name"],
-                "organization": d["org_name"],
-                "agency": d["org_agency"],
-                "type": d["dispatch_type"],
-                "status": d["status"],
-                "dispatched_at": _iso(d["dispatched_at"]),
+        "post_incident_report": (
+            None
+            if report is None
+            else {
+                "filed_by": report["filed_by_name"],
+                "filed_by_agency": report["filed_by_agency"],
+                "truck_label": report["truck_label"],
+                "truck_type": report["truck_type"],
+                "driver_name": report["driver_name"],
+                "roster": _jsonb(report["roster"]) or [],
+                "equipment_taken": list(report["equipment_taken"] or []),
+                "notes": report["notes"],
+                "false_alarm": report["false_alarm"],
+                "false_alarm_note": report["false_alarm_note"],
+                "submitted_at": _iso(report["submitted_at"]),
             }
-            for d in dispatches
-        ],
+        ),
         "fire_codes": [
             {
                 "code": c["code_number"],
@@ -208,6 +312,30 @@ async def generate_incident_summary(
     )
     assert row is not None
     return _row_to_dict(row)
+
+
+async def summarize_in_background(area_id: UUID) -> None:
+    """Write the post-incident summary after the request that closed the incident.
+
+    Runs once the Post-Incident Report is filed — the first moment every fact the
+    summary needs exists. Scheduled as a background task so filing never waits on
+    Claude, and it uses the shared pool rather than a request dependency because
+    that request has already finished.
+
+    Nothing here may surface as a failed filing: the incident is closed and the
+    report stored either way. That also means a failure here is otherwise
+    invisible, so a missing API key is logged as a warning rather than at info: when
+    this was first checked, eight incidents had passed fire out and not one had a
+    summary, and nothing anywhere had said so.
+    """
+    if not get_settings().anthropic_configured:
+        log.warning("incident_summary_skipped", incident_id=str(area_id), reason="no_api_key")
+        return
+    try:
+        await generate_incident_summary(database, AnthropicClient(), area_id)
+        log.info("incident_summary_generated", incident_id=str(area_id))
+    except Exception:
+        log.error("incident_summary_failed", incident_id=str(area_id), exc_info=True)
 
 
 async def list_incident_summaries(db: Database, area_id: UUID) -> list[dict[str, Any]]:

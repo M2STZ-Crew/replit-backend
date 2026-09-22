@@ -19,7 +19,7 @@ from typing import Any
 from uuid import UUID
 
 import asyncpg
-from fastapi import APIRouter, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, Query, Request, status
 
 from app.api.deps import DatabaseDep, StaffUser
 from app.api.routes.incidents import finish_incident_change
@@ -30,6 +30,7 @@ from app.schemas.post_incident_report import (
     PostIncidentReportCreate,
     PostIncidentReportResponse,
 )
+from app.services.ai_summary import summarize_in_background
 from app.services.audit import record_audit
 from app.services.incident import (
     assert_incident_visible,
@@ -82,8 +83,15 @@ async def file_post_incident_report(
     request: Request,
     user: StaffUser,
     db: DatabaseDep,
+    background: BackgroundTasks,
 ) -> PostIncidentReportResponse:
-    """File once, fully filled; the incident moves post_incident_report -> closed."""
+    """File once, fully filled; the incident moves post_incident_report -> closed.
+
+    Filing also schedules the AI post-incident summary. It used to run at fire
+    out, but the report — the unit, crew, equipment and any false-alarm
+    explanation — is filed after that, so a summary written then could never
+    include it. Now it runs once the report exists, after the response is sent.
+    """
     assert_team_captain(user)
     await assert_incident_visible(db, incident_id, user)
 
@@ -169,6 +177,7 @@ async def file_post_incident_report(
         user_id=str(user.id),
     )
     await finish_incident_change(db, incident_id, "incident_closed")
+    background.add_task(summarize_in_background, incident_id)
     report = await _load_report(db, incident_id)
     assert report is not None
     return report
