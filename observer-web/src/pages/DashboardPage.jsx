@@ -14,17 +14,17 @@ export default function DashboardPage({ onNavigate }) {
 
   const awaiting = incidents.filter((inc) => awaitingAccept(inc, agency));
   const accepted = incidents.filter((inc) => (inc.accepted_agencies ?? []).includes(agency));
-  const unrouted = incidents.filter((inc) => !(inc.routed_agencies ?? []).includes(agency));
+  const onScene = incidents.filter((inc) => inc.status === 'arrived');
 
   const kpis = [
     { label: 'Live incidents', value: incidents.length, foot: `Involving ${agencyLabel(agency)}` },
     {
-      label: 'Awaiting your Accept', value: awaiting.length, foot: 'Routed to you by Admin',
+      label: 'Awaiting your Accept', value: awaiting.length, foot: 'Asked for your agency',
       tone: awaiting.length > 0 ? 'var(--live)' : undefined,
     },
     { label: 'Accepted', value: accepted.length, foot: 'Acknowledged by your agency',
       tone: accepted.length > 0 ? 'var(--settled)' : undefined },
-    { label: 'Not yet routed', value: unrouted.length, foot: 'Requested you; Admin has not routed it' },
+    { label: 'On scene', value: onScene.length, foot: 'Responders have arrived' },
   ];
 
   return (
@@ -94,8 +94,8 @@ export default function DashboardPage({ onNavigate }) {
 
 function IncidentCard({ inc, agency, urgent = false, onOpen }) {
   const st = statusOf(inc.status);
-  const routed = (inc.routed_agencies ?? []).includes(agency);
   const accepted = (inc.accepted_agencies ?? []).includes(agency);
+  const waiting = awaitingAccept(inc, agency);
   return (
     <button
       className={`card${urgent ? ' is-urgent' : ''}`}
@@ -118,8 +118,8 @@ function IncidentCard({ inc, agency, urgent = false, onOpen }) {
         <span>
           {inc.report_count} report{inc.report_count === 1 ? '' : 's'} · {since(inc.reported_at)} ago
         </span>
-        <span className={`card-state${accepted ? ' is-ok' : routed ? ' is-live' : ''}`}>
-          {accepted ? '✓ Accepted' : routed ? 'Routed to you' : 'Not routed'}
+        <span className={`card-state${accepted ? ' is-ok' : waiting ? ' is-live' : ''}`}>
+          {accepted ? '✓ Accepted' : waiting ? 'Awaiting your Accept' : 'Not live'}
         </span>
       </div>
     </button>

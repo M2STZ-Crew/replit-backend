@@ -101,9 +101,15 @@ _SUMMARY_COLS = """
     coalesce((select array_agg(distinct rt.agency::text)
               from public.area_routes rt
               where rt.area_id = a.id), '{}') as routed_agencies,
-    coalesce((select array_agg(distinct rt.agency::text)
-              from public.area_routes rt
-              where rt.area_id = a.id and rt.accepted_at is not null), '{}')
+    -- v11 records every Accept in area_acceptances; area_routes holds the v10
+    -- routed Accepts of older incidents. Reading only the routes left this empty
+    -- for every v11 incident, so no console ever showed an agency as committed.
+    coalesce((select array_agg(distinct acc.agency order by acc.agency)
+              from (select rt.agency::text as agency from public.area_routes rt
+                    where rt.area_id = a.id and rt.accepted_at is not null
+                    union
+                    select aa.agency::text from public.area_acceptances aa
+                    where aa.area_id = a.id and aa.agency is not null) acc), '{}')
         as accepted_agencies,
     (select count(*) from public.area_routes rt where rt.area_id = a.id) as route_count
 """
@@ -266,6 +272,19 @@ async def build_incident_detail(db: Database, incident_id: UUID) -> IncidentDeta
         """,
         incident_id,
     )
+    acceptances = await db.fetch(
+        """
+        select aa.agency::text as agency, aa.user_id, u.full_name as user_name,
+               aa.organization_id, o.name as organization_name, aa.is_first,
+               aa.accepted_at
+        from public.area_acceptances aa
+        left join public.users u on u.id = aa.user_id
+        left join public.organizations o on o.id = aa.organization_id
+        where aa.area_id = $1
+        order by aa.accepted_at asc
+        """,
+        incident_id,
+    )
     reports = await db.fetch(
         """
         select r.id, r.device_lat, r.device_lng, r.has_exif, r.gps_discrepancy_flag,
@@ -280,6 +299,7 @@ async def build_incident_detail(db: Database, incident_id: UUID) -> IncidentDeta
     )
     data = dict(row)
     data["routes"] = [dict(r) for r in routes]
+    data["acceptances"] = [dict(r) for r in acceptances]
     data["reports"] = [dict(r) for r in reports]
     return IncidentDetail.model_validate(data)
 

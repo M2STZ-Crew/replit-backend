@@ -12,7 +12,7 @@ import {
 
 import { api } from '../api/client.js';
 import { agencyLabel, canAccept, useAuth } from '../auth.jsx';
-import { awaitingAccept, routesForMe, useLiveFeed } from '../live/LiveFeed.jsx';
+import { awaitingAccept, ourAcceptance, useLiveFeed } from '../live/LiveFeed.jsx';
 import { AGENCY_LABEL, OFF_FEED, since, statusOf, when } from '../lib/status.js';
 import { TILE_ATTRIBUTION, TILE_MAX_ZOOM, TILE_URL } from '../map/tiles.js';
 
@@ -129,12 +129,15 @@ export default function MonitoringPage({ focusId = null }) {
       ?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
   }, [detail?.id]);
 
-  const mine = detail ? routesForMe(detail, user) : [];
+  // v11 Section 2.5.1: an incident that asked for this agency is this
+  // observer's to Accept, with no routing step in between. The first Accept on
+  // an incident verifies it and sends responders; a later one records that
+  // this agency is coming too.
   const live = detail && !OFF_FEED.includes(detail.status);
-  const acceptedRoute = mine.find((r) => r.accepted_at);
-  const canPress = canAccept(user) && live && mine.some((r) => !r.accepted_at);
-  const routedElsewhere = detail && mine.length === 0 &&
-    (detail.routes ?? []).some((r) => r.agency === agency);
+  const asked = (detail?.requested_agencies ?? []).includes(agency);
+  const ours = ourAcceptance(detail, agency);
+  const first = (detail?.acceptances ?? []).find((a) => a.is_first) ?? null;
+  const canPress = canAccept(user) && live && asked && !ours;
 
   return (
     <div className="mon">
@@ -268,40 +271,36 @@ export default function MonitoringPage({ focusId = null }) {
             {error && <div className="note is-error">{error}</div>}
 
             <section className="accept">
-              {/* An unanswered route wins over an earlier Accept: Admin may add
-                  your team after your agency already acknowledged. */}
               {canPress ? (
                 <>
                   <p className="accept-copy">
-                    Admin routed this to{' '}
-                    {mine.find((r) => !r.accepted_at)?.organization_name || agencyLabel(agency)}.
-                    Accept to confirm your agency has it.
+                    {first
+                      ? `${first.user_name || 'Another team'} already accepted it. Accept to tell the other teams ${agencyLabel(agency)} is coming too.`
+                      : `The reporter asked for ${agencyLabel(agency)}. Accepting verifies this incident and sends responders.`}
                   </p>
                   <button className="btn-accent" onClick={accept} disabled={busy}>
                     {busy ? 'Accepting…' : 'Accept'}
                   </button>
-                  <span className="accept-meta">An acknowledgement only — it does not change the incident&apos;s status.</span>
+                  <span className="accept-meta">
+                    {first
+                      ? 'Does not change the incident\u2019s status.'
+                      : 'The first Accept moves the incident to En route.'}
+                  </span>
                 </>
-              ) : acceptedRoute ? (
+              ) : ours ? (
                 <div className="accept-done">
                   <span className="accept-check">✓</span>
                   <div>
                     <strong>Accepted</strong>
                     <span className="accept-meta">
-                      {acceptedRoute.accepted_by_name ? `by ${acceptedRoute.accepted_by_name} · ` : ''}
-                      {when(acceptedRoute.accepted_at)}
+                      {ours.user_name ? `by ${ours.user_name} · ` : ''}
+                      {when(ours.accepted_at)}
                     </span>
                   </div>
                 </div>
-              ) : routedElsewhere ? (
+              ) : live && !asked ? (
                 <p className="accept-copy">
-                  Routed to{' '}
-                  {(detail.routes ?? []).filter((r) => r.agency === agency).map((r) => r.organization_name).filter(Boolean).join(', ') || 'another team'}
-                  , not to your team.
-                </p>
-              ) : live ? (
-                <p className="accept-copy">
-                  Not routed to {agencyLabel(agency)} yet. Accept appears once Admin routes it to you.
+                  The reporter did not ask for {agencyLabel(agency)} on this one.
                 </p>
               ) : (
                 <p className="accept-copy">This incident is no longer live.</p>

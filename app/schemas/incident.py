@@ -117,6 +117,23 @@ class IncidentRoute(BaseModel):
     accepted_at: datetime | None = None
 
 
+class IncidentAcceptance(BaseModel):
+    """One Accept on an incident (v11 Section 2.5.1): who committed, for which agency.
+
+    The first is the Accept that verified the incident and sent responders;
+    each later one is another agency saying it is coming too. ``agency`` is null
+    for an Admin, who accepts for the system rather than for a team.
+    """
+
+    agency: str | None = None
+    user_id: UUID
+    user_name: str | None = None
+    organization_id: UUID | None = None
+    organization_name: str | None = None
+    is_first: bool = False
+    accepted_at: datetime
+
+
 class IncidentDetail(IncidentSummary):
     """Full incident with confidence components, accountability, and member reports."""
 
@@ -141,6 +158,7 @@ class IncidentDetail(IncidentSummary):
     alarm_level_set_at: datetime | None = None
     has_post_incident_report: bool = False
     routes: list[IncidentRoute] = Field(default_factory=list)
+    acceptances: list[IncidentAcceptance] = Field(default_factory=list)
     reports: list[IncidentReportItem] = Field(default_factory=list)
 
 

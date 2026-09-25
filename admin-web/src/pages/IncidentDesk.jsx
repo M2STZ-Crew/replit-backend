@@ -28,7 +28,7 @@ function badgeOf(pct) {
 const OBSERVERS = ['police', 'medical', 'barangay'];
 
 const TABS = [
-  { key: 'incoming', label: 'Incoming', hint: 'Live and not yet routed' },
+  { key: 'incoming', label: 'Incoming', hint: 'Waiting for someone to Accept' },
   { key: 'live', label: 'Live', hint: 'Every open incident' },
   { key: 'report', label: 'Report due', hint: 'Fire out; Post-Incident Report owed' },
   { key: 'closed', label: 'Closed', hint: 'Report filed' },
@@ -72,7 +72,9 @@ export default function IncidentDesk({ focusId = null }) {
   useEffect(() => { loadTab(tab); }, [tab, loadTab]);
 
   const lists = useMemo(() => ({
-    incoming: live.filter((i) => (i.routed_agencies ?? []).length === 0),
+    // v11: nothing is routed any more. Incoming is what nobody has accepted
+    // yet — an Area stays 'reported' until the first Accept moves it.
+    incoming: live.filter((i) => i.status === 'reported'),
     live,
     // Longest-waiting first: a report that has been owed for a day matters
     // more than one owed for ten minutes (§10.2).
@@ -171,7 +173,7 @@ export default function IncidentDesk({ focusId = null }) {
         <div className="vq-list">
           {rows.length === 0 && (
             <div className="vq-empty">
-              {tab === 'incoming' ? 'Nothing waiting to be routed.' :
+              {tab === 'incoming' ? 'Nothing waiting to be accepted.' :
                tab === 'live' ? 'No live incidents.' :
                tab === 'report' ? 'No Post-Incident Reports owed.' : 'Nothing closed yet.'}
             </div>
@@ -211,7 +213,8 @@ export default function IncidentDesk({ focusId = null }) {
                   {(inc.requested_agencies ?? []).map((a) => (
                     <span
                       key={a}
-                      className={`dk-ag${(inc.routed_agencies ?? []).includes(a) ? ' is-routed' : ''}`}
+                      className={`dk-ag${(inc.accepted_agencies ?? []).includes(a) ? ' is-routed' : ''}`}
+                      title={(inc.accepted_agencies ?? []).includes(a) ? 'Accepted' : 'Not accepted yet'}
                     >
                       {AGENCY_LABEL[a] ?? a}
                     </span>
@@ -251,6 +254,11 @@ export default function IncidentDesk({ focusId = null }) {
                 />
               )}
 
+              {detail.acceptances?.length > 0 && (
+                <AcceptanceList acceptances={detail.acceptances} />
+              )}
+
+              {/* Admin routing (v10) — only incidents from before v11 have any. */}
               {detail.routes?.length > 0 && <RouteList routes={detail.routes} />}
 
               {detail.status === 'post_incident_report' && (
@@ -407,6 +415,28 @@ function AcceptPanel({ detail, busy, onAccept }) {
           {busy ? 'Accepting…' : 'Accept and send responders'}
         </button>
       </div>
+    </section>
+  );
+}
+
+/// Who has accepted (v11 §2.5.1). The first Accept verified the incident and
+/// sent responders; each later one is another agency saying it is coming too.
+function AcceptanceList({ acceptances }) {
+  return (
+    <section className="dk-routes">
+      <span className="dc-eyebrow">Accepted</span>
+      {acceptances.map((a) => (
+        <div className="dk-routed" key={a.user_id}>
+          <span className="dk-routed-who">
+            {a.agency ? (AGENCY_LABEL[a.agency] ?? a.agency) : 'Admin'}
+            {a.organization_name && <span className="vq-muted"> · {a.organization_name}</span>}
+          </span>
+          <span className="vq-muted">{when(a.accepted_at)}{a.user_name ? ` by ${a.user_name}` : ''}</span>
+          <span className="dk-accepted">
+            {a.is_first ? '✓ Accepted first — sent responders' : '✓ Coming too'}
+          </span>
+        </div>
+      ))}
     </section>
   );
 }
