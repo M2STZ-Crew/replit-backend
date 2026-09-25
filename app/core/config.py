@@ -37,7 +37,7 @@ class Settings(BaseSettings):
         description='Deployment environment: "development" | "staging" | "production".',
     )
     app_name: str = Field(default="RepLiT Backend", description="Human-readable app name.")
-    app_version: str = Field(default="0.1.0", description="Semantic version of the build.")
+    app_version: str = Field(default="1.11.0", description="Semantic version of the build.")
     host: str = Field(default="0.0.0.0", description="Uvicorn bind host.")
     port: int = Field(default=8000, ge=1, le=65535, description="Uvicorn bind port.")
 

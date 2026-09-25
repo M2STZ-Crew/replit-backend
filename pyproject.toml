@@ -1,6 +1,6 @@
 [project]
 name = "replit-backend"
-version = "0.1.0"
+version = "1.11.0"
 description = "RepLiT — Pasay City Fire Volunteer Coordination Platform (FastAPI backend)"
 readme = "README.md"
 requires-python = ">=3.11"

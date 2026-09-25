@@ -1,7 +1,7 @@
 {
   "name": "replit-observer-web",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.11.0",
   "type": "module",
   "description": "RepLiT Observer Console — the web surface for Police, Medical and Barangay team captains (React 18 + Vite).",
   "scripts": {
