@@ -11,7 +11,7 @@ import secrets
 from typing import Annotated, Any, TypedDict
 from uuid import UUID
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, BackgroundTasks, Query, status
 
 from app.api.deps import (
     AdminUser,
@@ -221,6 +221,51 @@ async def submit_affiliate_request(
     return _to_response(row)
 
 
+def _received_email_html() -> str:
+    """'We have your application' (HTML). Carries nothing the applicant typed:
+    the form is public, so anything echoed here could be used to send spam."""
+    return (
+        '<div style="font-family:Inter,Arial,sans-serif;color:#111;max-width:520px">'
+        "<h2 style='margin:0 0 12px'>We received your application</h2>"
+        "<p>Thank you for applying to join RepLiT as an affiliate organization. "
+        "An administrator will review it.</p>"
+        "<p>Once it is approved, we will email you again at this address with a "
+        "link to set your password and sign in.</p>"
+        '<p style="color:#666;font-size:13px">If you did not apply, you can ignore '
+        "this email.</p>"
+        "</div>"
+    )
+
+
+def _received_email_text() -> str:
+    """Plain-text fallback for the application-received email."""
+    return (
+        "We received your application\n\n"
+        "Thank you for applying to join RepLiT as an affiliate organization. An "
+        "administrator will review it. Once it is approved, we will email you again "
+        "at this address with a link to set your password and sign in.\n\n"
+        "If you did not apply, you can ignore this email.\n"
+    )
+
+
+# One acknowledgement per address in this window, however often the public
+# form is submitted with it.
+_RECEIVED_EMAIL_WINDOW_MIN = 10
+
+
+async def _send_received_email(email_client: BrevoEmailClient, to: str) -> None:
+    """Best effort: a failed acknowledgement must not lose the application."""
+    try:
+        await email_client.send(
+            to=to,
+            subject="We received your RepLiT affiliate application",
+            html=_received_email_html(),
+            text=_received_email_text(),
+        )
+    except AppError as exc:
+        log.warning("affiliate_received_email_failed", error=str(exc))
+
+
 @router.post(
     "/register",
     response_model=AffiliateRequestResponse,
@@ -228,14 +273,25 @@ async def submit_affiliate_request(
     summary="Public affiliate registration (no account required)",
 )
 async def register_affiliate(
-    payload: AffiliatePublicRegister, db: DatabaseDep
+    payload: AffiliatePublicRegister,
+    db: DatabaseDep,
+    email_client: EmailClientDep,
+    background: BackgroundTasks,
 ) -> AffiliateRequestResponse:
     """Public affiliation form: an org applies before having an account.
 
     requested_by is null; the roster/equipment/SEC-cert metadata is captured in
-    ``details`` (jsonb) and summarized into ``message`` for the admin queue. On
-    approval an admin creates the org and credentials are issued out-of-band.
+    ``details`` (jsonb) and summarized into ``message`` for the admin queue. The
+    applicant is emailed straight away that it arrived, and again with a
+    password-setup link when an admin approves it.
     """
+    recently_emailed = await db.fetchval(
+        "select exists (select 1 from public.affiliate_requests "
+        "where lower(contact_email) = lower($1) "
+        "and created_at > now() - make_interval(mins => $2))",
+        str(payload.contact_email),
+        _RECEIVED_EMAIL_WINDOW_MIN,
+    )
     details = {
         "roster": [m.model_dump() for m in payload.roster],
         "equipment": [e.model_dump() for e in payload.equipment],
@@ -272,6 +328,9 @@ async def register_affiliate(
         request_id=str(row["id"]),
         org=payload.organization_name,
     )
+    # After the response, so a slow mail server never holds up the form.
+    if not recently_emailed:
+        background.add_task(_send_received_email, email_client, str(payload.contact_email))
     return _to_response(row)
 
 

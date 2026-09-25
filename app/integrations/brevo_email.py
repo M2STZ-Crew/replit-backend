@@ -12,6 +12,8 @@ from app.core.logging import get_logger
 
 log = get_logger(__name__)
 
+_TIMEOUT_S = 20
+
 
 class EmailNotConfiguredError(AppError):
     """Raised when an email send runs without Brevo configuration (HTTP 503)."""
@@ -47,7 +49,11 @@ class BrevoEmailClient:
                 username=s.brevo_smtp_user,
                 password=s.brevo_smtp_key,
                 start_tls=True,
+                # A blocked port never answers. Give up in seconds rather than
+                # aiosmtplib's default minute, which held an admin's Approve
+                # click that long before saying the email had not gone.
+                timeout=_TIMEOUT_S,
             )
         except aiosmtplib.SMTPException as exc:
-            log.error("brevo_send_failed", error=str(exc))
+            log.error("brevo_send_failed", port=s.brevo_smtp_port, error=str(exc))
             raise ExternalServiceError("Failed to send email.") from exc

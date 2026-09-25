@@ -111,8 +111,10 @@ export default function Register() {
           <RegisterIcon />
           <h1 className="reg-title">Application submitted</h1>
           <p className="muted">
-            Your affiliation request has been received. Once an admin approves it, your
-            login credentials will be sent to <strong>{email}</strong>.
+            Your affiliation request has been received, and a confirmation is on its way
+            to <strong>{email}</strong>. Once an admin approves it, a second email there
+            will have a link to set your password. Check your spam folder if either is
+            not in your inbox.
           </p>
           <button className="btn-primary" onClick={() => navigate('/login')}>
             BACK TO LOGIN
@@ -156,7 +158,7 @@ export default function Register() {
         <label className="field-label">EMAIL</label>
         <input className="field" type="email" placeholder="Email" value={email}
                onChange={(e) => setEmail(e.target.value)} />
-        <div className="reg-hint">Username and password will be sent to this email</div>
+        <div className="reg-hint">We will send your sign-in link to this email once you are approved</div>
 
         <label className="field-label">ADDRESS</label>
         <input className="field" placeholder="Address" value={address}

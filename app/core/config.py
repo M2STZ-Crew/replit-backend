@@ -102,7 +102,10 @@ class Settings(BaseSettings):
 
     # ----- Brevo email (Phase 4) -----
     brevo_smtp_host: str = Field(default="smtp-relay.brevo.com", description="Brevo SMTP host.")
-    brevo_smtp_port: int = Field(default=587, ge=1, le=65535, description="Brevo SMTP port.")
+    # 2525, not 587: Render's free web services block outbound SMTP on 25, 465
+    # and 587, so on 587 every email from the deployed server times out. Brevo's
+    # relay takes the same login on 2525.
+    brevo_smtp_port: int = Field(default=2525, ge=1, le=65535, description="Brevo SMTP port.")
     brevo_smtp_user: str = Field(default="", description="Brevo SMTP login.")
     brevo_smtp_key: str = Field(default="", description="Brevo SMTP key (password).")
     email_from: str = Field(default="", description="Verified sender email address.")
