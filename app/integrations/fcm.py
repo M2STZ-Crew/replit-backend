@@ -10,6 +10,8 @@ from __future__ import annotations
 import asyncio
 import json
 from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Literal
 
 import firebase_admin
 from firebase_admin import credentials, messaging
@@ -22,37 +24,73 @@ log = get_logger(__name__)
 _FCM_APP_NAME = "replit-fcm"
 _fcm_app: firebase_admin.App | None = None
 
+FcmState = Literal["unconfigured", "failed", "ready"]
+
+# Why push is or is not working, kept so a caller can say so. Without it, a
+# server with no credentials and a server whose credentials would not load both
+# answered a test push with "sent to 0 devices; 0 failed" — a success message
+# for a push that never left.
+_fcm_state: FcmState = "unconfigured"
+
+# The repository root, so a relative credentials path means the same file
+# whichever directory the server was started from.
+_ROOT = Path(__file__).resolve().parents[2]
+
+
+def fcm_status() -> FcmState:
+    """'ready' when FCM initialised; otherwise why it did not."""
+    return _fcm_state
+
+
+def _credentials_path(raw: str) -> Path:
+    path = Path(raw)
+    return path if path.is_absolute() else _ROOT / path
+
 
 def init_fcm() -> None:
     """Initialize the Firebase app from config. No-op if unconfigured or already done."""
-    global _fcm_app
+    global _fcm_app, _fcm_state
     if _fcm_app is not None:
         return
     settings = get_settings()
     if not settings.fcm_configured:
+        _fcm_state = "unconfigured"
         log.warning("fcm_not_configured", detail="FCM credentials missing; push disabled")
         return
     try:
         if settings.fcm_credentials_json:
             cred = credentials.Certificate(json.loads(settings.fcm_credentials_json))
         else:
-            cred = credentials.Certificate(settings.fcm_credentials_file)
+            path = _credentials_path(settings.fcm_credentials_file)
+            if not path.is_file():
+                # The usual way this goes wrong on a host: the variable was
+                # copied from a laptop's .env, and the file it names is
+                # gitignored, so it was never deployed.
+                raise FileNotFoundError(
+                    f"FCM_CREDENTIALS_FILE names {path.name}, which is not on this "
+                    "server. On a host, set FCM_CREDENTIALS_JSON to the file's "
+                    "contents instead."
+                )
+            cred = credentials.Certificate(str(path))
         _fcm_app = firebase_admin.initialize_app(cred, name=_FCM_APP_NAME)
+        _fcm_state = "ready"
         log.info("fcm_initialized")
     except Exception:
         _fcm_app = None
+        _fcm_state = "failed"
         log.error("fcm_init_failed", exc_info=True)
 
 
 def shutdown_fcm() -> None:
     """Delete the Firebase app on shutdown (idempotent)."""
-    global _fcm_app
+    global _fcm_app, _fcm_state
     if _fcm_app is not None:
         try:
             firebase_admin.delete_app(_fcm_app)
         except Exception:
             log.warning("fcm_shutdown_failed", exc_info=True)
         _fcm_app = None
+        _fcm_state = "unconfigured"
 
 
 @dataclass

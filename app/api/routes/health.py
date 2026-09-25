@@ -11,6 +11,7 @@ from fastapi import APIRouter, Response, status
 from app.api.deps import DatabaseDep
 from app.core.config import get_settings
 from app.core.logging import get_logger
+from app.integrations.fcm import fcm_status
 from app.schemas.health import HealthResponse, ReadinessResponse, ServiceInfoResponse
 
 log = get_logger(__name__)
@@ -67,10 +68,18 @@ async def readiness(db: DatabaseDep, response: Response) -> ReadinessResponse:
     Returns HTTP 200 when ready and HTTP 503 when a dependency is unavailable.
     Public endpoint.
     """
+    # Push is reported but never gates readiness: a server that cannot send
+    # notifications can still take reports, and should. The check is here so
+    # "why are no alerts arriving?" has an answer from outside the server.
+    push = "ok" if fcm_status() == "ready" else fcm_status()
     db_ok = db.is_connected and await db.healthcheck()
     if db_ok:
-        return ReadinessResponse(status="ready", checks={"database": "ok"})
+        return ReadinessResponse(
+            status="ready", checks={"database": "ok", "push": push}
+        )
 
     response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     db_status = "unavailable" if not db.is_connected else "error"
-    return ReadinessResponse(status="not_ready", checks={"database": db_status})
+    return ReadinessResponse(
+        status="not_ready", checks={"database": db_status, "push": push}
+    )

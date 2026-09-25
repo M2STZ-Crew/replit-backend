@@ -9,8 +9,9 @@ from __future__ import annotations
 from fastapi import APIRouter, Response, status
 
 from app.api.deps import CurrentUser, DatabaseDep, PushServiceDep
-from app.core.exceptions import BadRequestError
+from app.core.exceptions import AppError, BadRequestError
 from app.core.logging import get_logger
+from app.integrations.fcm import fcm_status
 from app.schemas.common import MessageResponse
 from app.schemas.device import DeviceTokenCreate, DeviceTokenResponse
 
@@ -88,6 +89,23 @@ async def send_test_push(
     user: CurrentUser, db: DatabaseDep, push: PushServiceDep
 ) -> MessageResponse:
     """Send a test notification to the caller's active tokens; deactivate dead ones."""
+    # Say why nothing can be sent before counting devices: a server that cannot
+    # reach FCM used to answer "sent to 0 device(s); 0 failed", which reads as
+    # success and sends people looking for the fault on their phone.
+    if not push.is_available:
+        state = fcm_status()
+        raise AppError(
+            (
+                "Push notifications are not set up on this server yet — its "
+                "Firebase credentials are missing."
+                if state == "unconfigured"
+                else "Push notifications could not start on this server — its "
+                "Firebase credentials did not load."
+            )
+            + " Your phone is fine; an administrator needs to fix the server.",
+            status_code=503,
+            error_code=f"push_{state}",
+        )
     rows = await db.fetch(
         "select fcm_token from public.device_tokens where user_id = $1 and is_active",
         user.id,
