@@ -10,14 +10,16 @@ report. Area clustering (Phase 7) consumes these rows.
 from __future__ import annotations
 
 from typing import Annotated
-from uuid import uuid4
+from uuid import UUID, uuid4
 
+from asyncpg import Record
 from fastapi import APIRouter, File, Form, UploadFile, status
 
 from app.api.deps import CurrentUser, DatabaseDep, StorageClientDep
 from app.core.config import get_settings
-from app.core.exceptions import BadRequestError, ExternalServiceError
+from app.core.exceptions import BadRequestError, ConflictError, ExternalServiceError
 from app.core.logging import get_logger
+from app.db.session import Database
 from app.integrations.fcm import PushService
 from app.schemas.report import ReportResponse, ReportSubmitResponse
 from app.services.clustering import cluster_report
@@ -40,6 +42,32 @@ def _parse_agencies(raw: str) -> list[str]:
     if invalid:
         raise BadRequestError(f"Invalid agency selection: {', '.join(invalid)}.")
     return agencies
+
+
+# How long a report can hold its reporter to one report at a time. The app lets
+# go of a report it is following after the same 12 h (ActiveReport.staleAfter),
+# so an area nobody ever picked up cannot stop someone reporting a new fire.
+IN_PROGRESS_HOURS = 12
+
+
+async def _report_in_progress(db: Database, user_id: UUID) -> Record | None:
+    """The caller's newest report whose incident is still live, if any."""
+    return await db.fetchrow(
+        f"""
+        select r.id as report_id, a.id as area_id, a.designation
+        from public.reports r
+        join public.area_reports ar on ar.report_id = r.id
+        join public.areas a on a.id = ar.area_id
+        where r.reporter_id = $1
+          and r.created_at > now() - make_interval(hours => $2)
+          and {active_area_sql("a")}
+        order by r.created_at desc
+        limit 1
+        """,
+        user_id,
+        IN_PROGRESS_HOURS,
+    )
+
 
 async def _sign_or_none(
     storage: StorageClientDep, bucket: str, path: str | None
@@ -79,6 +107,22 @@ async def submit_report(
     """Validate, store, EXIF-cross-reference, and persist a citizen incident report."""
     settings = get_settings()
     agencies = _parse_agencies(selected_agencies)
+
+    # One report at a time: while the caller's last one is still a live incident,
+    # a second is refused. It is almost always the same fire sent again, and
+    # it would open a second area for responders to sort out.
+    pending = await _report_in_progress(db, user.id)
+    if pending is not None:
+        raise ConflictError(
+            "You already have a report in progress. Follow it in the app until "
+            "the fire is out. For a different emergency, call a hotline.",
+            error_code="report_in_progress",
+            details={
+                "report_id": str(pending["report_id"]),
+                "area_id": str(pending["area_id"]),
+                "area_designation": pending["designation"],
+            },
+        )
 
     # --- Photo: validate type, size, and that it's a real image ---
     photo_bytes = await photo.read()
