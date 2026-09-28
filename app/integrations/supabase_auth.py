@@ -139,6 +139,17 @@ class SupabaseAuthClient:
             "POST", "/recover", headers=self._anon_headers, json={"email": email}
         )
 
+    async def update_user(
+        self, *, access_token: str, attributes: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Update the signed-in user (e.g. set a password) with their own session."""
+        return await self._request(
+            "PUT",
+            "/user",
+            headers={**self._anon_headers, "Authorization": f"Bearer {access_token}"},
+            json=attributes,
+        )
+
     # ----- Admin flows (service_role key) -----
     async def admin_create_user(
         self,

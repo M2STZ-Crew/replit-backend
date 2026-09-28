@@ -20,6 +20,7 @@ from app.api.deps import (
     DatabaseDep,
     EmailClientDep,
 )
+from app.api.routes.password_reset import reset_page_url
 from app.core.exceptions import AppError, BadRequestError, ConflictError, NotFoundError
 from app.core.logging import get_logger
 from app.db.session import Database
@@ -169,7 +170,9 @@ async def _provision_subadmin(
 
     # Email a branded password-setup link (GoTrue-generated recovery link).
     try:
-        link_resp = await auth.admin_generate_link(link_type="recovery", email=email)
+        link_resp = await auth.admin_generate_link(
+            link_type="recovery", email=email, redirect_to=reset_page_url()
+        )
         action_link = link_resp.get("action_link") or (
             link_resp.get("properties") or {}
         ).get("action_link")

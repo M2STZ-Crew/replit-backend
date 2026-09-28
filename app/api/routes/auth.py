@@ -9,10 +9,17 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, BackgroundTasks, Response, status
 
-from app.api.deps import AccessTokenDep, AuthClientDep, CurrentUser, DatabaseDep
-from app.core.exceptions import AppError, BadRequestError
+from app.api.deps import (
+    AccessTokenDep,
+    AuthClientDep,
+    CurrentUser,
+    DatabaseDep,
+    EmailClientDep,
+)
+from app.api.routes.password_reset import schedule_reset_email
+from app.core.exceptions import BadRequestError
 from app.core.logging import get_logger
 from app.schemas.auth import (
     AuthenticatedUser,
@@ -100,12 +107,20 @@ async def refresh(payload: RefreshRequest, auth: AuthClientDep) -> TokenResponse
 
 
 @router.post("/recover", response_model=MessageResponse, summary="Send a password-reset email")
-async def recover(payload: RecoverRequest, auth: AuthClientDep) -> MessageResponse:
-    """Send a GoTrue password-reset email. Generic response (no account enumeration)."""
-    try:
-        await auth.recover(email=str(payload.email))
-    except AppError:
-        log.info("password_recover_failed_silently")
+async def recover(
+    payload: RecoverRequest,
+    auth: AuthClientDep,
+    email: EmailClientDep,
+    background: BackgroundTasks,
+) -> MessageResponse:
+    """Email a password-reset link. Generic response (no account enumeration).
+
+    The link lands on /auth/reset-password, and the email goes through Brevo:
+    Supabase's own mailer only delivers to the project's team, and with no
+    redirect its links opened the default Site URL, http://localhost:3000. It is
+    sent after the response, so timing does not tell which addresses exist.
+    """
+    schedule_reset_email(background, auth, email, str(payload.email))
     return MessageResponse(message="If that email is registered, a reset link has been sent.")
 
 
