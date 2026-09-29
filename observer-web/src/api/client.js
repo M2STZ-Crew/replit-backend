@@ -80,8 +80,9 @@ export const api = {
   incidentReports: (id) => request(`/incidents/${id}/reports`),
 
   // The observer-side action (v10 Section 2.6.1). An acknowledgement only —
-  // v11 (§2.5.1): if nobody has accepted yet, this is the act that verifies the
-  // incident and sends responders. If another agency got there first, it records
+  // v12 (§2.5.1): if nobody has accepted yet, this is the act that verifies the
+  // incident (it goes On the way when a responder responds). If another agency
+  // got there first, it records
   // that this agency is taking part too, and the status stays where it is.
   accept: (id) => request(`/incidents/${id}/accept`, { method: 'POST' }),
 

@@ -26,6 +26,7 @@ function categoryOf(action = '') {
 const VERB = {
   'incident.route': 'routed to agencies',
   'incident.accept': 'accepted (observer)',
+  'incident.verify': 'verified',
   'incident.post_incident_report': 'filed Post-Incident Report',
 };
 

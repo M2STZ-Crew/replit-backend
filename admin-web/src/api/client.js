@@ -70,8 +70,9 @@ export const api = {
   // evidence a Sub-Admin reviews before deciding.
   incidentReports: (id) => request(`/incidents/${id}/reports`),
 
-  // Accept (v11 Section 2.5.1). The first Accept on an incident carries it
-  // Reported -> Verified -> En route in one act, so Admin pressing this is the
+  // Accept (v12 Section 2.5.1) verifies: the first moves the incident Reported
+  // -> Verified and sends nobody; it goes On the way when someone responds.
+  // Admin pressing this is the
   // safety net for an incident no agency has picked up. There is no separate
   // verify call any more, and no routing: the reporter already said which
   // agencies they wanted, and each of those sees its own Accept.

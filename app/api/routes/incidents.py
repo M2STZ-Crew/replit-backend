@@ -7,17 +7,20 @@ subscribers via app.realtime.events. Visibility is two-way between BFP and Fire
 Volunteer; other agencies see only incidents whose member reports selected them;
 admin sees everything.
 
-Authority (Section 6 + the chosen coordinator/responder model). "Coordinator"
-means admin, or a sub-admin of a fire agency (fire_volunteer / bfp); a police,
-medical or barangay sub-admin observes only and changes no state:
-  - verify ................ Fire Volunteer sub-admin only (DB-pinned by trigger)
-  - reject / resolve ...... coordinator
-  - dispatch (manual) ..... coordinator assigns a response_team user
-  - self-dispatch ......... a response_team user selects themselves
-  - en_route / arrived .... the assigned responder, or a coordinator
-  - location stream ....... the assigned responder (response_team) only
-  - accept ................ an observer sub-admin whose agency Admin routed it to
-                            (v10 Section 2.6.1) — an acknowledgement, no status change
+Authority (v12 Section 2.6). "Coordinator" means admin, or a sub-admin of a
+fire agency (fire_volunteer / bfp); a police, medical or barangay sub-admin is an
+observer:
+  - verify (/verify, and /accept, the same act) ... any responder, any sub-admin,
+                            or Admin, on an incident their agency can see; the
+                            first moves reported -> verified, later ones record
+                            that agency's participation (DB-pinned by trigger)
+  - respond (/self-dispatch) ... a responder or a coordinator commits to going;
+                            the first moves verified -> en_route ("On the way")
+  - reject ................ coordinator, until someone is on scene; releases
+                            anyone already responding
+  - resolve (fire out) .... coordinator
+  - arrived ............... someone responding, a coordinator, or the GPS
+  - location stream ....... whoever is responding (responder or coordinator)
 Fire out (resolve) moves the incident into the Post-Incident Report step; filing
 that report — app/api/routes/post_incident_reports.py — is what closes it.
 The matching *_at timestamp is stamped by a database trigger on each status change.
@@ -60,9 +63,11 @@ from app.services.audit import record_audit
 from app.services.incident import (
     OFF_FEED_STATUSES,
     active_area_sql,
-    assert_can_accept,
+    assert_can_respond,
+    assert_can_verify,
     assert_coordinator,
     assert_transition,
+    can_respond,
     is_coordinator,
     record_responder_location,
     visible_agencies,
@@ -77,10 +82,9 @@ log = get_logger(__name__)
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])
 
-# Incident statuses during which a responder may attach themselves. v11 dropped
-# 'dispatched' from the lifecycle; self-selection survives as the record of who
-# is actually on an incident (it drives responder GPS and the Arrived button),
-# but it no longer moves the status — Accept already did that.
+# Incident statuses during which someone may respond. Responding is the record
+# of who is actually going (it drives their GPS and the Arrived button); the
+# first one also moves the incident from verified to en_route (v12 Section 2.5).
 _RESPONDER_ATTACHABLE = ("verified", "en_route", "arrived")
 
 # Columns of IncidentSummary, selected from public.areas aliased ``a``. Shared by
@@ -525,7 +529,13 @@ async def reject_incident(
     user: StaffUser,
     db: DatabaseDep,
 ) -> IncidentDetail:
-    """Reject an incident (invalid / false report). Coordinating sub-admins, or admin."""
+    """Reject an incident (invalid / false report). Coordinating sub-admins, or admin.
+
+    Open from reported, verified and en_route (v12 Section 2.5.3): a verify can
+    be a slip of the thumb, and undoing it must not depend on nobody having set
+    off yet. Anyone responding is released in the same transaction. Once someone
+    is on scene it is fire out instead, with the false-alarm flag on the report.
+    """
     assert_coordinator(user, "reject incidents")
     current = await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
@@ -543,10 +553,21 @@ async def reject_incident(
             user.id,
             payload.reason,
         )
+        # Anyone already on the way is released: their GPS stops being taken
+        # (no active dispatch) and their app tells them to stand down.
+        released = await conn.fetch(
+            """
+            update public.dispatch_logs
+               set status = 'withdrawn', withdrawn_at = now()
+             where area_id = $1 and status = 'active'
+            returning id
+            """,
+            incident_id,
+        )
         await _audit_transition(
             conn, request, user, incident_id,
             action="incident.reject", before=current, after="rejected",
-            metadata={"reason": payload.reason},
+            metadata={"reason": payload.reason, "responders_released": len(released)},
         )
     log.info("incident_rejected", incident_id=str(incident_id), user_id=str(user.id))
     return await finish_incident_change(db, incident_id, "incident_rejected")
@@ -610,35 +631,37 @@ async def resolve_incident(
 
 
 # --------------------------------------------------------------------------- #
-# Accept — the collapsed act (v11 Section 2.5.1)
+# Verify (v12 Section 2.5.1) — /accept is the same act, kept for the consoles
 # --------------------------------------------------------------------------- #
+@router.post(
+    "/{incident_id}/verify",
+    response_model=IncidentDetail,
+    summary="Verify an incident: the first verify marks it real; it sends nobody",
+)
 @router.post(
     "/{incident_id}/accept",
     response_model=IncidentDetail,
-    summary="Accept an incident: the first Accept verifies it and sends responders",
+    summary="Accept (verify) an incident — the same act as /verify",
 )
 async def accept_incident(
     incident_id: UUID, request: Request, user: StaffUser, db: DatabaseDep
 ) -> IncidentDetail:
-    """Accept an incident. The first Accept moves it; later ones record participation.
+    """Verify an incident. The first verify moves it; later ones record participation.
 
-    v11 collapsed verify-then-dispatch into this one act. The **first** Accept on
-    an Area carries it ``reported -> verified -> en_route`` inside a single
-    transaction, so responders can leave the moment someone commits rather than
-    waiting for a second decision. Admin, Coordinators and Observers may all
-    press it (Section 2.5.1); whoever gets there first wins.
+    v12 separates verifying from responding. The **first** verify on an Area
+    moves it ``reported -> verified`` and nothing more: it says the fire is
+    real, and it is what makes the incident open to anyone who decides to go
+    (``/self-dispatch``). Responders, captains and Admin may all verify; whoever
+    gets there first wins, and the row lock plus the partial unique index on
+    ``is_first`` settle a race between two of them in the database.
 
-    Every **later** Accept, from another responding agency, writes its own row
-    and its own audit entry but leaves the status alone — it means "we are coming
-    too", not "start again". Each agency's UI reads its own row back, so an
-    operator can see whether their team is committed.
-
-    Pressing twice as the same person is a no-op: the unique constraint on
-    ``(area_id, user_id)`` makes Accept idempotent per actor (Section 11.1), and
-    the partial unique index on ``is_first`` settles the race between two
-    agencies in the database rather than in whichever transaction commits last.
+    A **later** press by a captain or Admin writes its own row and audit entry
+    but leaves the status alone — the agency saying "we see it too". A
+    responder who finds it already verified is told to respond instead: for
+    them the next act is going, not acknowledging. Pressing twice as the same
+    person is a no-op (unique on ``(area_id, user_id)``).
     """
-    assert_can_accept(user)
+    assert_can_verify(user)
     current = await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
     if current in OFF_FEED_STATUSES:
@@ -667,20 +690,21 @@ async def accept_incident(
                 "where area_id = $1 and is_first)",
                 incident_id,
             )
+            if not is_first and user.role == "response_team":
+                raise ConflictError(
+                    "This incident is already verified. If you are going, respond "
+                    "to it.",
+                    details={"current_status": current},
+                )
             if is_first:
-                # reported -> verified -> en_route, both hops validated, both
-                # stamped by the lifecycle trigger on the way past.
+                # reported -> verified. Nobody is on the way yet: that is the
+                # first responder's call (self_dispatch), not the verifier's.
                 assert_transition(current, "verified")
                 await conn.execute(
                     "update public.areas set status = 'verified', verified_by = $2 "
                     "where id = $1",
                     incident_id,
                     user.id,
-                )
-                assert_transition("verified", "en_route")
-                await conn.execute(
-                    "update public.areas set status = 'en_route' where id = $1",
-                    incident_id,
                 )
                 moved = True
             await conn.execute(
@@ -698,8 +722,8 @@ async def accept_incident(
             if moved:
                 await _audit_transition(
                     conn, request, user, incident_id,
-                    action="incident.accept", before=current, after="en_route",
-                    metadata={"agency": user.agency_type, "first_accept": True},
+                    action="incident.verify", before=current, after="verified",
+                    metadata={"agency": user.agency_type, "role": user.role},
                 )
             else:
                 await record_audit(
@@ -717,13 +741,15 @@ async def accept_incident(
                     },
                 )
     log.info(
-        "incident_accepted",
+        "incident_verified" if moved else "incident_accepted",
         incident_id=str(incident_id),
         user_id=str(user.id),
         agency=user.agency_type,
         moved_status=moved,
     )
-    return await finish_incident_change(db, incident_id, "incident_accepted")
+    return await finish_incident_change(
+        db, incident_id, "incident_verified" if moved else "incident_accepted"
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -770,13 +796,18 @@ async def list_available_responders(
 
 
 def _assert_attachable(current: str) -> None:
-    """Raise 409 unless a responder may attach to an incident in ``current`` status."""
+    """Raise 409 unless someone may respond to an incident in ``current`` status."""
     if current in _RESPONDER_ATTACHABLE:
         return
     raise ConflictError(
-        f"Cannot join an incident in '{current}' status; someone must accept it first.",
+        "Verify this incident before responding to it."
+        if current == "reported"
+        else f"This incident is '{current}', so nobody can respond to it now.",
         details={"current_status": current, "allowed_when": list(_RESPONDER_ATTACHABLE)},
     )
+
+
+_ALREADY_RESPONDING = "You are already responding to this incident."
 
 
 # v11 removed manual dispatch (Section 2.5). Choosing a truck and a crew while
@@ -788,7 +819,7 @@ def _assert_attachable(current: str) -> None:
 @router.post(
     "/{incident_id}/self-dispatch",
     response_model=IncidentDetail,
-    summary="Self-select onto an incident (response_team)",
+    summary="Respond: commit to going to a verified incident",
 )
 async def self_dispatch(
     incident_id: UUID,
@@ -797,60 +828,89 @@ async def self_dispatch(
     user: StaffUser,
     db: DatabaseDep,
 ) -> IncidentDetail:
-    """A response_team member adds themselves to an accepted incident (self-select).
+    """Respond: a responder or a coordinator commits to going (v12 Section 2.5.2).
 
-    v11: this attaches a responder to the incident and nothing more. It is what
-    makes their GPS fixes acceptable and the Arrived button theirs to press — the
-    status was already moved by whoever pressed Accept, so nothing here changes
-    it. The roster of who actually went is captured afterwards, on the
-    Post-Incident Report (Section 2.5.3).
+    Any responder, and any Fire Volunteer or BFP coordinator, may respond to an
+    incident their agency can see once it is verified — not only the captain it
+    was meant for. Several may respond to one fire (several trucks); nobody may
+    respond to the same fire twice. The **first** to respond moves the incident
+    ``verified -> en_route``, which is when the reporter sees "On the way".
+
+    Responding is also what makes the person's GPS fixes acceptable and the
+    Arrived button theirs. The status is read under the row lock, and the
+    active-response check is repeated there; the partial unique index on
+    dispatch_logs (one active response per person per incident) settles any
+    race the lock does not, as a 409 rather than an error.
     """
-    if user.role != "response_team":
-        raise ForbiddenError("Only response_team members may self-select onto incidents.")
+    assert_can_respond(user)
     current = await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
     _assert_attachable(current)
 
     if await _active_dispatch_id(db, incident_id, user.id):
-        raise ConflictError("You have already joined this incident.")
+        raise ConflictError(_ALREADY_RESPONDING)
 
     org_id = payload.organization_id or user.primary_org_id
-    async with db.acquire() as conn, conn.transaction():
-        current = await _lock_status(conn, incident_id)
-        _assert_attachable(current)
-        dispatch_id = await conn.fetchval(
-            """
-            insert into public.dispatch_logs
-                (area_id, responder_id, organization_id, dispatch_type, dispatched_by,
-                 status, notes)
-            values ($1, $2, $3, 'self_select', null, 'active', $4)
-            returning id
-            """,
-            incident_id,
-            user.id,
-            org_id,
-            payload.notes,
-        )
-        await record_audit(
-            conn,
-            request,
-            user,
-            action="incident.self_dispatch",
-            entity_type="area",
-            entity_id=incident_id,
-            area_id=incident_id,
-            metadata={
-                "dispatch_id": str(dispatch_id),
-                "organization_id": str(org_id) if org_id else None,
-                "status_at_join": current,
-            },
-        )
+    moved = False
+    try:
+        async with db.acquire() as conn, conn.transaction():
+            current = await _lock_status(conn, incident_id)
+            _assert_attachable(current)
+            if await _active_dispatch_id(conn, incident_id, user.id):
+                raise ConflictError(_ALREADY_RESPONDING)
+            dispatch_id = await conn.fetchval(
+                """
+                insert into public.dispatch_logs
+                    (area_id, responder_id, organization_id, dispatch_type,
+                     dispatched_by, status, notes)
+                values ($1, $2, $3, 'self_select', null, 'active', $4)
+                returning id
+                """,
+                incident_id,
+                user.id,
+                org_id,
+                payload.notes,
+            )
+            if current == "verified":
+                # The first to respond: now the reporter sees "On the way".
+                assert_transition(current, "en_route")
+                await conn.execute(
+                    "update public.areas set status = 'en_route' where id = $1",
+                    incident_id,
+                )
+                moved = True
+                await _audit_transition(
+                    conn, request, user, incident_id,
+                    action="incident.en_route", before=current, after="en_route",
+                    metadata={"first_responder": True, "dispatch_id": str(dispatch_id)},
+                )
+            await record_audit(
+                conn,
+                request,
+                user,
+                action="incident.self_dispatch",
+                entity_type="area",
+                entity_id=incident_id,
+                area_id=incident_id,
+                metadata={
+                    "dispatch_id": str(dispatch_id),
+                    "organization_id": str(org_id) if org_id else None,
+                    "status_at_join": current,
+                    "role": user.role,
+                },
+            )
+    except asyncpg.UniqueViolationError as exc:
+        raise ConflictError(_ALREADY_RESPONDING) from exc
     log.info(
         "responder_self_dispatched",
         incident_id=str(incident_id),
         responder_id=str(user.id),
+        role=user.role,
+        moved_status=moved,
     )
-    return await finish_incident_change(db, incident_id, "responder_dispatched")
+    return await finish_incident_change(
+        db, incident_id, "incident_en_route" if moved else "responder_dispatched"
+    )
 
 
 @router.get(
@@ -997,9 +1057,13 @@ async def post_responder_location(
     user: StaffUser,
     db: DatabaseDep,
 ) -> MessageResponse:
-    """Append one GPS fix from the calling responder and broadcast it to subscribers."""
-    if user.role != "response_team":
-        raise ForbiddenError("Only response_team responders may stream their location.")
+    """Append one GPS fix from the calling responder and broadcast it to subscribers.
+
+    Whoever is responding streams: a responder, or a coordinator who went
+    (v12). The active response is what authorises the fix.
+    """
+    if not can_respond(user):
+        raise ForbiddenError("Only someone responding to the incident may stream location.")
     recorded = await record_responder_location(db, incident_id, user.id, payload)
     if not recorded:
         await _load_status(db, incident_id)  # 404 if the incident does not exist

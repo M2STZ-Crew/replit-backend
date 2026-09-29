@@ -1,7 +1,8 @@
 /// Labels and colours for public.area_status, shared by every console screen.
 ///
 /// v11 renames the operator-facing set (Section 2.5) and drops 'dispatched':
-/// Accept now carries an incident from Reported straight to En route, so there
+/// v12: Accept verifies (Reported -> Verified); the first responder moves it to
+/// En route. Either way there
 /// is no step between the two to label. 'post_incident_report' is the wait
 /// between fire out and the team captain filing; 'closed' is terminal.
 export const STATUS = {

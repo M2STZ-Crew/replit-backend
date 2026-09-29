@@ -21,7 +21,7 @@ from app.services.incident import (
     OFF_FEED_STATUSES,
     TERMINAL_STATUSES,
     active_area_sql,
-    assert_can_accept,
+    assert_can_verify,
     assert_coordinator,
     assert_transition,
 )
@@ -74,8 +74,9 @@ def test_dispatched_is_not_a_status_any_more() -> None:
         assert "dispatched" not in targets
 
 
-def test_accept_reaches_en_route_without_passing_through_dispatched() -> None:
-    """The collapsed Accept: reported -> verified -> en_route, both hops legal."""
+def test_the_lifecycle_never_passes_through_dispatched() -> None:
+    """reported -> verified -> en_route, each hop legal on its own (v12 makes
+    them two acts: verify, then the first respond)."""
     assert_transition("reported", "verified")
     assert_transition("verified", "en_route")
 
@@ -115,17 +116,14 @@ def test_fire_out_stays_off_the_feed_without_being_terminal() -> None:
     ],
 )
 def test_every_staff_tier_may_accept(role: str, agency: str | None) -> None:
-    """First to Accept wins, whoever they are — the v11 change in one assertion."""
-    assert_can_accept(_user(role, agency))
+    """First to Accept (verify) wins, whoever they are."""
+    assert_can_verify(_user(role, agency))
 
 
-@pytest.mark.parametrize(
-    "role,agency", [("response_team", "fire_volunteer"), ("general_user", None)]
-)
-def test_accept_still_needs_staff(role: str, agency: str | None) -> None:
-    """Accept commits an agency. A responder or a citizen cannot make that call."""
+def test_accept_still_needs_staff() -> None:
+    """A citizen cannot verify. (Responders can since v12 — see test_v12.py.)"""
     with pytest.raises(ForbiddenError):
-        assert_can_accept(_user(role, agency))
+        assert_can_verify(_user("general_user", None))
 
 
 @pytest.mark.parametrize("agency", ["police", "medical", "barangay"])
@@ -139,7 +137,7 @@ def test_reject_stays_coordinator_only(agency: str) -> None:
 def test_an_observer_accepting_is_not_an_observer_rejecting() -> None:
     """The same user may Accept and may not Reject. Both rules, one person."""
     observer = _user("sub_admin", "police")
-    assert_can_accept(observer)
+    assert_can_verify(observer)
     with pytest.raises(ForbiddenError):
         assert_coordinator(observer, "reject incidents")
 

@@ -17,7 +17,8 @@ from app.schemas.incident import ResponderLocationCreate
 _FIRE_AGENCIES = ("fire_volunteer", "bfp")
 
 # Agencies that may change an incident's state. The two fire agencies coordinate
-# the response, so their sub-admins verify, reject, resolve and dispatch.
+# the response, so their sub-admins reject, mark fire out, and may go to the fire
+# themselves (v12 Section 2.5).
 COORDINATING_AGENCIES = _FIRE_AGENCIES
 
 # Every other agency a reporter can summon — police, medical, barangay — takes
@@ -45,26 +46,26 @@ OFF_FEED_STATUSES = ("fire_out", "post_incident_report", *TERMINAL_STATUSES)
 # 2.3). A rejected area was never an incident, and a merged one was absorbed.
 UNVERSIONABLE_STATUSES = ("rejected", "merged")
 
-# Allowed forward transitions of public.area_status (v11 Section 2.5). Mirrors
+# Allowed forward transitions of public.area_status (v12 Section 2.5). Mirrors
 # the DB sequencing CHECK constraints: en_route needs verified, arrived needs
 # en_route, post_incident_report needs fire_out, closed needs
 # post_incident_report.
 #
-# v11 removed the 'dispatched' step. Accept now carries an Area
-# reported -> verified -> en_route inside one transaction (Section 2.5.1), so
-# 'verified' is a state the lifecycle passes through rather than rests in — but
-# it stays in the table because assert_transition validates each hop separately
-# and the DB stamps verified_at on the way past.
+# v12 separates verifying from responding again. Verify moves reported ->
+# verified and nothing more; the first person to respond moves verified ->
+# en_route, which is when the citizen sees "On the way". (v11 had collapsed the
+# two into one Accept, so nobody decided to go — the incident just went.)
 #
-# Fire out is reachable from any committed state; reject only before anyone has
-# accepted. Merge is likewise only legal before responders are committed — after
-# that it would orphan their assignments. 'fire_out' only ever moves on to the
-# report step, and 'closed' is additionally pinned by a trigger to the existence
-# of a filed report.
+# Reject is open until someone is on scene: a mistaken verify can be undone even
+# after a responder has set off, and the reject releases them. Once someone has
+# arrived, a false alarm is recorded on the Post-Incident Report instead. Merge
+# is only legal before anyone responds — after that it would orphan their
+# assignments. 'fire_out' only ever moves on to the report step, and 'closed' is
+# additionally pinned by a trigger to the existence of a filed report.
 ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     "reported": {"verified", "rejected", "merged"},
     "verified": {"en_route", "fire_out", "rejected", "merged"},
-    "en_route": {"arrived", "fire_out"},
+    "en_route": {"arrived", "fire_out", "rejected"},
     "arrived": {"fire_out"},
     "fire_out": {"post_incident_report"},
     "post_incident_report": {"closed"},
@@ -206,23 +207,49 @@ def assert_team_captain(user: AuthenticatedUser) -> None:
     )
 
 
-def assert_can_accept(user: AuthenticatedUser) -> None:
-    """Raise 403 unless the user may press Accept (v11 Section 2.5.1).
+def assert_can_verify(user: AuthenticatedUser) -> None:
+    """Raise 403 unless the user may verify an incident (v12 Section 2.5.1).
 
-    In v10 this was the observer-only acknowledgement of a routed incident. In
-    v11 Accept *is* the verify act and all three staff tiers may press it: Admin
-    on any Area, a Coordinator or an Observer on one whose reporters asked for
-    their agency. First to press wins and moves the Area; later presses record
-    that agency's participation.
+    Verifying says "this is a real fire"; it sends nobody. Anyone on a
+    responding agency who can reach the incident may do it: Admin, every
+    sub-admin (coordinators and observers), and — new in v12 — response team
+    members, because the one captain who used to hold this power may be away
+    from their phone, asleep, or on another fire when the report comes in.
 
     Role is all this checks. Which Areas a non-admin may reach is scoped by
-    ``visible_agencies`` on the route, so an Observer still only ever sees — and
-    so only ever accepts — incidents that asked for their agency.
+    ``visible_agencies`` on the route, so each only ever verifies incidents that
+    asked for their agency. Citizens never can.
     """
-    if user.role in ("admin", "sub_admin"):
+    if user.role in ("admin", "sub_admin", "response_team"):
         return
     raise ForbiddenError(
-        "Only Admin, coordinators and observer team captains may accept incidents.",
+        "Only responders, team captains and Admin may verify incidents.",
+        details={"role": user.role},
+    )
+
+
+def can_respond(user: AuthenticatedUser) -> bool:
+    """Whether the user may go to a fire: any response team member, or a
+    Fire Volunteer / BFP coordinator (v12 Section 2.5.2). Observer captains
+    watch from the web and Admin runs the system; neither goes to the scene."""
+    if user.role == "response_team":
+        return True
+    return user.role == "sub_admin" and user.agency_type in COORDINATING_AGENCIES
+
+
+def assert_can_respond(user: AuthenticatedUser) -> None:
+    """Raise 403 unless the user may respond to (go to) an incident."""
+    if can_respond(user):
+        return
+    if is_observer(user):
+        raise ForbiddenError(
+            "Your agency takes part for situational awareness only, so its captains "
+            "do not respond from here. Your responders can respond from the app.",
+            details={"agency_type": user.agency_type, "access": "observer"},
+        )
+    raise ForbiddenError(
+        "Only responders and Fire Volunteer or BFP coordinators may respond to "
+        "incidents.",
         details={"role": user.role},
     )
 

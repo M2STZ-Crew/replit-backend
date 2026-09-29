@@ -276,7 +276,7 @@ export default function MonitoringPage({ focusId = null }) {
                   <p className="accept-copy">
                     {first
                       ? `${first.user_name || 'Another team'} already accepted it. Accept to tell the other teams ${agencyLabel(agency)} is coming too.`
-                      : `The reporter asked for ${agencyLabel(agency)}. Accepting verifies this incident and sends responders.`}
+                      : `The reporter asked for ${agencyLabel(agency)}. Accepting verifies this incident; responders go when they choose to respond.`}
                   </p>
                   <button className="btn-accent" onClick={accept} disabled={busy}>
                     {busy ? 'Accepting…' : 'Accept'}

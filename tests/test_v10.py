@@ -24,7 +24,7 @@ from app.services.incident import (
     OBSERVER_AGENCIES,
     OFF_FEED_STATUSES,
     TERMINAL_STATUSES,
-    assert_can_accept,
+    assert_can_verify,
     assert_team_captain,
     assert_transition,
 )
@@ -174,11 +174,11 @@ def test_only_the_team_captain_files(role: str, agency: str | None) -> None:
 
 
 # --------------------------------------------------------------------------- #
-# Accept — the collapsed act (v11 Section 2.5.1)
+# Accept — since v12 the verify act (Section 2.5.1)
 # --------------------------------------------------------------------------- #
 @pytest.mark.parametrize("agency", OBSERVER_AGENCIES)
 def test_observers_may_accept(agency: str) -> None:
-    assert_can_accept(_user("sub_admin", agency))
+    assert_can_verify(_user("sub_admin", agency))
 
 
 @pytest.mark.parametrize(
@@ -193,16 +193,15 @@ def test_coordinators_and_admin_may_also_accept(role: str, agency: str | None) -
     """v11 opened Accept to every staff tier: first to press wins (Section 2.5.1).
 
     In v9 and v10 this was observer-only, because Accept was a mere
-    acknowledgement of Admin's routing. Now it *is* the verify act.
+    acknowledgement of Admin's routing. Since v11 it *is* the verify act.
     """
-    assert_can_accept(_user(role, agency))
+    assert_can_verify(_user(role, agency))
 
 
-@pytest.mark.parametrize("role,agency", [("response_team", "police"), ("general_user", None)])
-def test_non_staff_may_not_accept(role: str, agency: str | None) -> None:
-    """Accept commits an agency. A responder or a citizen cannot make that call."""
+def test_a_citizen_may_not_accept() -> None:
+    """v12 opened verifying to responders too; a citizen still cannot."""
     with pytest.raises(ForbiddenError):
-        assert_can_accept(_user(role, agency))
+        assert_can_verify(_user("general_user", None))
 
 
 # --------------------------------------------------------------------------- #

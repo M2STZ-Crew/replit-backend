@@ -33,7 +33,11 @@ from app.realtime.events import broadcast_responder_location
 from app.realtime.manager import manager
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.incident import ResponderLocationCreate
-from app.services.incident import record_responder_location, visible_agencies
+from app.services.incident import (
+    can_respond,
+    record_responder_location,
+    visible_agencies,
+)
 from app.services.map_feed import MAP_CHANNEL
 from app.services.tracking import can_track
 
@@ -147,7 +151,7 @@ async def _heartbeat(websocket: WebSocket) -> None:
 
 async def _handle_location(conn_id: str, user: AuthenticatedUser, msg: dict[str, object]) -> None:
     """Persist and fan out a responder GPS fix received over the socket."""
-    if user.role != "response_team":
+    if not can_respond(user):
         await manager.send_personal(
             conn_id, {"type": "error", "message": "Only responders may stream location."}
         )

@@ -343,7 +343,7 @@ export default function IncidentDesk({ focusId = null }) {
                       </button>
                       {detail.status === 'reported' && (
                         <span className="vq-muted">
-                          Accepting verifies this incident and sends responders.
+                          Accepting verifies this incident. Responders go when they choose to respond.
                         </span>
                       )}
                     </>
@@ -412,7 +412,7 @@ function AcceptPanel({ detail, busy, onAccept }) {
       </p>
       <div className="dk-route-foot">
         <button className="vq-btn vq-btn-verify" disabled={busy} onClick={onAccept}>
-          {busy ? 'Accepting…' : 'Accept and send responders'}
+          {busy ? 'Accepting…' : 'Accept (verify)'}
         </button>
       </div>
     </section>
@@ -433,7 +433,7 @@ function AcceptanceList({ acceptances }) {
           </span>
           <span className="vq-muted">{when(a.accepted_at)}{a.user_name ? ` by ${a.user_name}` : ''}</span>
           <span className="dk-accepted">
-            {a.is_first ? '✓ Accepted first — sent responders' : '✓ Coming too'}
+            {a.is_first ? '✓ Verified it' : '✓ Coming too'}
           </span>
         </div>
       ))}

@@ -7,11 +7,12 @@ import { agencyLabel, useAuth } from '../auth.jsx';
    incident their agency can see, with device details withheld. */
 const FILTERS = [
   { key: 'all', label: 'All' },
-  { key: 'accept', label: 'Accepts', match: (a) => a === 'incident.accept' },
+  { key: 'accept', label: 'Accepts', match: (a) => a === 'incident.accept' || a === 'incident.verify' },
   { key: 'route', label: 'Routing', match: (a) => a === 'incident.route' },
   {
     key: 'lifecycle', label: 'Lifecycle',
-    match: (a) => a.startsWith('incident.') && a !== 'incident.accept' && a !== 'incident.route',
+    match: (a) =>
+      a.startsWith('incident.') && a !== 'incident.accept' && a !== 'incident.verify' && a !== 'incident.route',
   },
 ];
 
@@ -20,8 +21,9 @@ const VERB = {
   'incident.reject': 'rejected',
   'incident.resolve': 'declared fire out',
   'incident.dispatch': 'dispatched a responder',
-  'incident.self_dispatch': 'self-dispatched',
-  'incident.en_route': 'marked en route',
+  'incident.self_dispatch': 'responded',
+  'incident.en_route': 'set off (first to respond)',
+  'incident.verify': 'verified',
   'incident.arrived': 'marked on scene',
   'incident.route': 'routed to agencies',
   'incident.accept': 'accepted',
