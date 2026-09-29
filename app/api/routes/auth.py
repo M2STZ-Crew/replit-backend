@@ -23,6 +23,8 @@ from app.api.deps import (
 from app.api.routes.password_reset import schedule_reset_email
 from app.core.exceptions import BadRequestError
 from app.core.logging import get_logger
+from app.db.session import Database
+from app.integrations.supabase_auth import AuthError
 from app.schemas.auth import (
     AuthenticatedUser,
     LocationUpdateRequest,
@@ -34,6 +36,7 @@ from app.schemas.auth import (
     TokenResponse,
 )
 from app.schemas.common import MessageResponse
+from app.services.phone_verification import PhoneNumberTakenError, normalize_ph_mobile
 
 log = get_logger(__name__)
 
@@ -68,7 +71,18 @@ async def signup(
     The handle_new_user() DB trigger provisions the public.users row as
     general_user; role elevation is admin-only (Part 5). Optional profile fields
     (mobile / DOB / gender) are persisted onto that row right after signup.
+
+    The mobile number is checked before the account is made: a malformed one is
+    a 400 and one another account already verified is a 409, so neither leaves
+    behind an account that can never pass the phone gate. It is stored in E.164;
+    proving it is the phone's is the next step, POST /verification/phone/request.
     """
+    mobile = normalize_ph_mobile(payload.mobile) if payload.mobile else None
+    if mobile is not None and await _verified_owner_email(db, mobile) is not None:
+        raise PhoneNumberTakenError(
+            "This number is already used by another RepLiT account. Sign in with it, "
+            "or use a different number."
+        )
     metadata = {"full_name": payload.full_name} if payload.full_name else None
     data = await auth.sign_up(email=str(payload.email), password=payload.password, data=metadata)
     if "access_token" not in data:
@@ -77,7 +91,7 @@ async def signup(
             "Disable it in Supabase Auth settings (or confirm via email) to log in."
         )
     token = _to_token_response(data)
-    if payload.mobile or payload.date_of_birth or payload.gender:
+    if mobile or payload.date_of_birth or payload.gender:
         await db.execute(
             """
             update public.users
@@ -85,7 +99,7 @@ async def signup(
              where id = $1
             """,
             token.user_id,
-            payload.mobile,
+            mobile,
             payload.date_of_birth,
             payload.gender,
         )
@@ -93,11 +107,36 @@ async def signup(
     return token
 
 
-@router.post("/login", response_model=TokenResponse, summary="Email/password login")
-async def login(payload: LoginRequest, auth: AuthClientDep) -> TokenResponse:
-    """Authenticate with email + password and return a session (all four tiers)."""
-    data = await auth.sign_in_with_password(email=str(payload.email), password=payload.password)
-    log.info("user_logged_in")
+async def _verified_owner_email(db: Database, phone: str) -> str | None:
+    """The email of the account that verified ``phone``, if any account has."""
+    email = await db.fetchval(
+        "select email from public.users where phone = $1 and phone_verified", phone
+    )
+    return None if email is None else str(email)
+
+
+@router.post(
+    "/login", response_model=TokenResponse, summary="Log in with email or mobile number"
+)
+async def login(payload: LoginRequest, auth: AuthClientDep, db: DatabaseDep) -> TokenResponse:
+    """Authenticate with a password and return a session (all four tiers).
+
+    Accounts live in Supabase Auth by email, so a mobile number is first turned
+    into the email of the account that *verified* it — one account at most, by
+    the unique index. A number no account verified gets exactly the refusal a
+    wrong password gets, so this cannot be used to find out which numbers are
+    registered. Staff have no verified number and keep signing in by email.
+    """
+    if payload.phone is not None:
+        found = await _verified_owner_email(db, normalize_ph_mobile(payload.phone))
+        if found is None:
+            log.info("login_phone_unmatched")
+            raise AuthError("Invalid login credentials", details={"gotrue_status": 400})
+        email = found
+    else:
+        email = str(payload.email)
+    data = await auth.sign_in_with_password(email=email, password=payload.password)
+    log.info("user_logged_in", method="phone" if payload.phone else "email")
     return _to_token_response(data)
 
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
 class AuthenticatedUser(BaseModel):
@@ -57,7 +57,15 @@ class SignupRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     full_name: str | None = Field(default=None, max_length=200)
-    mobile: str | None = Field(default=None, max_length=32)
+    mobile: str | None = Field(
+        default=None,
+        max_length=32,
+        description=(
+            "Philippine mobile number, in any usual form (0917 123 4567, +63 917...). "
+            "Stored as +639XXXXXXXXX. Refused if another account already verified it. "
+            "Verifying it is a separate step: POST /verification/phone/request."
+        ),
+    )
     date_of_birth: date | None = Field(default=None)
     gender: str | None = Field(default=None, max_length=40)
 
@@ -72,10 +80,26 @@ class ProfileUpdateRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    """Email/password login payload."""
+    """Login payload: an email *or* a verified mobile number, and the password."""
 
-    email: EmailStr
+    email: EmailStr | None = Field(default=None, description="The account's email.")
+    phone: str | None = Field(
+        default=None,
+        min_length=10,
+        max_length=20,
+        description=(
+            "A mobile number verified on the account, in any usual form. Only a "
+            "verified number signs in: an unverified one proves nothing about who "
+            "owns it."
+        ),
+    )
     password: str = Field(min_length=1, max_length=128)
+
+    @model_validator(mode="after")
+    def _exactly_one_identifier(self) -> LoginRequest:
+        if (self.email is None) == (self.phone is None):
+            raise ValueError("Sign in with either an email or a mobile number.")
+        return self
 
 
 class RefreshRequest(BaseModel):
