@@ -70,6 +70,7 @@ from app.services.incident import (
 from app.services.incident_notify import (
     notify_incident_reporters,
 )
+from app.services.map_feed import publish_area_change
 from app.services.tracking import gps_arrival_distance, publish_tracking
 
 log = get_logger(__name__)
@@ -317,6 +318,7 @@ async def finish_incident_change(
     detail = await build_incident_detail(db, incident_id)
     await broadcast_incident_event(detail, event_type)
     await publish_tracking(db, incident_id)
+    await publish_area_change(db, incident_id)
     try:
         await notify_incident_reporters(db, incident_id, event_type)
     except Exception:

@@ -7,10 +7,12 @@ same agency-visibility rules as the REST incident feed. A response_team member m
 push GPS fixes ('location'), which are persisted and fanned out to the incident
 channel. A periodic server ping keeps idle connections alive.
 
-Citizens connect too, for Track It Live: ``track:<area_id>`` carries the
-sanitised TrackingSnapshot (app/services/tracking.py), and only to the citizen
-who reported that incident. A citizen who has not verified a phone is refused
-at the upgrade, as on every gated REST route.
+Citizens connect too: ``map:areas`` is the live citizen map, one AreaSummary
+per change (app/services/map_feed.py), open to every signed-in user; and
+``track:<area_id>`` carries the sanitised TrackingSnapshot for Track It Live
+(app/services/tracking.py), only to the citizen who reported that incident. A
+citizen who has not verified a phone is refused at the upgrade, as on every
+gated REST route.
 """
 
 from __future__ import annotations
@@ -32,6 +34,7 @@ from app.realtime.manager import manager
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.incident import ResponderLocationCreate
 from app.services.incident import record_responder_location, visible_agencies
+from app.services.map_feed import MAP_CHANNEL
 from app.services.tracking import can_track
 
 log = get_logger(__name__)
@@ -102,6 +105,11 @@ async def _incident_visible(
 async def authorize_channel(user: AuthenticatedUser, channel: str, db: Database) -> bool:
     """Decide whether a user may subscribe to a channel."""
     if user.role == "admin":
+        return True
+    if channel == MAP_CHANNEL:
+        # The live map is GET /areas as it changes: whoever may read one may
+        # follow the other. (Citizens without a verified phone never get here:
+        # the socket refuses them at the upgrade.)
         return True
     kind, _, ident = channel.partition(":")
     if not ident:
@@ -214,7 +222,11 @@ async def _dispatch_message(conn_id: str, user: AuthenticatedUser, raw: str) -> 
             if not await authorize_channel(user, channel, database):
                 await manager.send_personal(
                     conn_id,
-                    {"type": "error", "message": f"Not allowed to subscribe to {channel}."},
+                    {
+                        "type": "error",
+                        "channel": channel,
+                        "message": f"Not allowed to subscribe to {channel}.",
+                    },
                 )
                 return
             manager.subscribe(conn_id, channel)

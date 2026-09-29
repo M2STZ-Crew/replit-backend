@@ -21,6 +21,7 @@ from app.schemas.alarm import AlarmRequestCreate, AlarmRequestResponse, AlarmRev
 from app.schemas.auth import AuthenticatedUser
 from app.services.incident import OFF_FEED_STATUSES
 from app.services.incident_notify import notify_bfp_alarm_request
+from app.services.map_feed import publish_area_change
 
 log = get_logger(__name__)
 
@@ -208,6 +209,7 @@ async def execute_alarm_request(
             "set_by": str(user.id),
         },
     )
+    await publish_area_change(db, req["area_id"])
     log.info(
         "alarm_request_executed",
         request_id=str(request_id),

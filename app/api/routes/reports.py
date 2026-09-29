@@ -26,6 +26,7 @@ from app.services.clustering import cluster_report
 from app.services.exif import extract_gps, validate_image
 from app.services.geo import haversine_m
 from app.services.incident import active_area_sql
+from app.services.map_feed import publish_area_change
 from app.workers.neighborhood import notify_area_neighbors
 
 log = get_logger(__name__)
@@ -236,6 +237,7 @@ async def submit_report(
         )
     except Exception:
         log.error("immediate_neighbor_notify_failed", area_id=str(area_id), exc_info=True)
+    await publish_area_change(db, area_id)
 
     if not has_exif:
         note = "No EXIF GPS (e.g. gallery upload)."

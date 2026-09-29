@@ -315,7 +315,12 @@ async def publish_tracking(db: Database, area_id: UUID) -> int:
         if snapshot is None:
             return 0
         return await manager.broadcast(
-            channel, {"type": "tracking", "snapshot": snapshot.model_dump(mode="json")}
+            channel,
+            {
+                "type": "tracking",
+                "channel": channel,
+                "snapshot": snapshot.model_dump(mode="json"),
+            },
         )
     except Exception:
         log.error("tracking_publish_failed", area_id=str(area_id), exc_info=True)

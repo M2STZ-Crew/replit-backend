@@ -21,6 +21,7 @@ from app.schemas.common import MessageResponse
 from app.schemas.tracking import TrackingSnapshot
 from app.services.clustering import recompute_area
 from app.services.incident import active_area_sql, assert_transition
+from app.services.map_feed import AREA_SUMMARY_COLS, publish_area_change
 from app.services.tracking import build_tracking_snapshot, can_track
 
 log = get_logger(__name__)
@@ -38,9 +39,7 @@ async def list_areas(
     where = f"where {active_area_sql()}" if active_only else ""
     rows = await db.fetch(
         f"""
-        select id, designation, status::text as status, centroid_lat, centroid_lng,
-               report_count, confidence_score, confidence_band::text as confidence_band,
-               alarm_level::text as alarm_level, reported_at, updated_at
+        select {AREA_SUMMARY_COLS}
         from public.areas
         {where}
         order by reported_at desc
@@ -263,5 +262,7 @@ async def merge_areas(overlap_id: UUID, staff: StaffUser, db: DatabaseDep) -> Me
         staff.id,
     )
     await recompute_area(db, keep_id)
+    await publish_area_change(db, keep_id)
+    await publish_area_change(db, drop_id)
     log.info("overlap_merged", keep=str(keep_id), dropped=str(drop_id), staff_id=str(staff.id))
     return MessageResponse(message="Areas merged.")
