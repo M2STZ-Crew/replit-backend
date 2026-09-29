@@ -14,16 +14,17 @@ import httpx
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.core.exceptions import ForbiddenError, UnauthorizedError
+from app.core.config import get_settings
+from app.core.exceptions import ForbiddenError, PhoneNotVerifiedError, UnauthorizedError
 from app.core.security import decode_access_token
 from app.db.session import Database, database
 from app.integrations.anthropic_ai import AnthropicClient
 from app.integrations.brevo_email import BrevoEmailClient
 from app.integrations.didit_kyc import DiditKYCClient
 from app.integrations.fcm import PushService
+from app.integrations.semaphore_sms import SemaphoreClient
 from app.integrations.supabase_auth import SupabaseAuthClient
 from app.integrations.supabase_storage import SupabaseStorageClient
-from app.integrations.twilio_verify import TwilioVerifyClient
 from app.schemas.auth import AuthenticatedUser
 
 
@@ -62,9 +63,9 @@ def get_email_client() -> BrevoEmailClient:
     """Return a Brevo email client (uses SMTP settings)."""
     return BrevoEmailClient()
 
-def get_twilio_verify() -> TwilioVerifyClient:
-    """Return a Twilio Verify client (reads Twilio settings)."""
-    return TwilioVerifyClient()
+def get_semaphore_client(request: Request) -> SemaphoreClient:
+    """Return a Semaphore SMS client bound to the shared HTTP client."""
+    return SemaphoreClient(cast(httpx.AsyncClient, request.app.state.http_client))
 
 def get_anthropic_client() -> AnthropicClient:
     """Return a Claude (Anthropic) summarization client."""
@@ -77,7 +78,7 @@ StorageClientDep = Annotated[SupabaseStorageClient, Depends(get_storage_client)]
 DiditClientDep = Annotated[DiditKYCClient, Depends(get_didit_client)]
 PushServiceDep = Annotated[PushService, Depends(get_push_service)]
 EmailClientDep = Annotated[BrevoEmailClient, Depends(get_email_client)]
-TwilioVerifyDep = Annotated[TwilioVerifyClient, Depends(get_twilio_verify)]
+SemaphoreDep = Annotated[SemaphoreClient, Depends(get_semaphore_client)]
 AnthropicClientDep = Annotated[AnthropicClient, Depends(get_anthropic_client)]
 
 # --------------------------------------------------------------------------- #
@@ -120,7 +121,7 @@ async def get_current_user(
     row = await db.fetchrow(
         """
         select id, email, phone, role, agency_type, verified_percent, badge,
-               full_name, primary_org_id, mobile, date_of_birth, gender
+               full_name, primary_org_id, mobile, date_of_birth, gender, phone_verified
         from public.users
         where id = $1
         """,
@@ -135,7 +136,50 @@ async def get_current_user(
     return user
 
 
-CurrentUser = Annotated[AuthenticatedUser, Depends(get_current_user)]
+def phone_gate_applies(user: AuthenticatedUser) -> bool:
+    """True when this account must verify a mobile number before using the app.
+
+    Only citizens are gated. Staff accounts come from a reviewed affiliate
+    application that an Admin approves, so they are vouched for another way —
+    and no staff account has ever verified a phone, so gating them would lock
+    out every coordinator and responder at once.
+
+    Shared by the HTTP dependency and the WebSocket handshake, so the two cannot
+    disagree about who is let in.
+    """
+    return (
+        get_settings().require_citizen_phone_verification
+        and user.role == "general_user"
+        and not user.phone_verified
+    )
+
+
+async def get_verified_user(
+    user: Annotated[AuthenticatedUser, Depends(get_current_user)],
+) -> AuthenticatedUser:
+    """The current user, refused with 403 if they are a citizen yet to verify.
+
+    This is what CurrentUser resolves to, so every route that takes CurrentUser
+    is gated by default and a new citizen route cannot forget to be. The check
+    reads users.phone_verified, which only a correct SMS code can set (via the
+    recompute_user_verification trigger) — nothing a client sends, stores or
+    edits in its token can change it.
+    """
+    if phone_gate_applies(user):
+        raise PhoneNotVerifiedError(
+            "Verify your mobile number before using your RepLiT account. We will "
+            "text you a code.",
+        )
+    return user
+
+
+# Any authenticated account, verified or not. Only for the handful of routes an
+# unverified citizen needs in order to become verified: reading their own
+# profile, signing out, and requesting or checking the SMS code.
+SessionUser = Annotated[AuthenticatedUser, Depends(get_current_user)]
+
+# The default. Gated for citizens who have not yet verified their phone.
+CurrentUser = Annotated[AuthenticatedUser, Depends(get_verified_user)]
 
 
 # --------------------------------------------------------------------------- #

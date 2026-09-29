@@ -67,11 +67,12 @@ services:
 
       # ---- Optional integrations. Each feature degrades cleanly if unset, so a
       # demo can go live before every provider is configured. ----
-      - key: TWILIO_ACCOUNT_SID
+      # Phone verification codes (+40%, and the citizen gate). Semaphore only
+      # delivers to Philippine numbers; set the sender name once Semaphore has
+      # approved one, otherwise the account's default sender is used.
+      - key: SEMAPHORE_API_KEY
         sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
-      - key: TWILIO_VERIFY_SERVICE_SID
+      - key: SEMAPHORE_SENDER_NAME
         sync: false
       - key: BREVO_SMTP_USER
         sync: false

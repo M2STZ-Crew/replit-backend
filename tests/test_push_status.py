@@ -57,7 +57,9 @@ def client() -> Iterator[TestClient]:
 
 
 def _wire(db: _Db, push: _Push) -> None:
-    user = AuthenticatedUser(id=uuid4(), role="general_user")
+    # A citizen who has verified a phone: an unverified one is stopped at the
+    # gate before this route runs (see tests/test_phone_verification.py).
+    user = AuthenticatedUser(id=uuid4(), role="general_user", phone_verified=True)
     app.dependency_overrides[get_current_user] = lambda: user
     app.dependency_overrides[get_database] = lambda: db
     app.dependency_overrides[get_push_service] = lambda: push

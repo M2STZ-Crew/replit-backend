@@ -28,8 +28,8 @@ _REPORTER_MESSAGES: dict[str, tuple[str, str]] = {
         "A response team has been dispatched to the incident you reported.",
     ),
     "incident_en_route": (
-        "Responders en route",
-        "Help is on the way to your reported location.",
+        "Help is on the way",
+        "Responders are on the way to the fire you reported. Open RepLiT to see them.",
     ),
     "incident_arrived": (
         "Responders on scene",

@@ -17,6 +17,8 @@ from app.api.deps import (
     CurrentUser,
     DatabaseDep,
     EmailClientDep,
+    SessionUser,
+    phone_gate_applies,
 )
 from app.api.routes.password_reset import schedule_reset_email
 from app.core.exceptions import BadRequestError
@@ -125,9 +127,13 @@ async def recover(
 
 
 @router.get("/me", response_model=AuthenticatedUser, summary="Current user profile")
-async def me(user: CurrentUser) -> AuthenticatedUser:
-    """Return the authenticated user's profile (role/agency/verified_percent from DB)."""
-    return user
+async def me(user: SessionUser) -> AuthenticatedUser:
+    """Return the authenticated user's profile (role/agency/verified_percent from DB).
+
+    Reachable before the phone gate is passed — it is how the app learns it has
+    to show the gate (``phone_verification_required``).
+    """
+    return user.model_copy(update={"phone_verification_required": phone_gate_applies(user)})
 
 
 @router.patch("/me/profile", response_model=AuthenticatedUser, summary="Update my profile")
@@ -186,7 +192,7 @@ async def update_my_location(
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, summary="Logout")
-async def logout(user: CurrentUser, token: AccessTokenDep, auth: AuthClientDep) -> Response:
+async def logout(user: SessionUser, token: AccessTokenDep, auth: AuthClientDep) -> Response:
     """Revoke the current session at Supabase Auth."""
     await auth.sign_out(access_token=token)
     log.info("user_logged_out")

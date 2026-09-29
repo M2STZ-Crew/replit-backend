@@ -77,10 +77,19 @@ def test_admin_create_valid_subadmin() -> None:
     assert req.agency_type == "fire_volunteer"
 
 
-def test_phone_request_rejects_non_e164() -> None:
-    """A non-E.164 phone (missing +countrycode) is rejected."""
+def test_phone_request_accepts_local_formats() -> None:
+    """People type 0917..., not +63917...; the service normalises it.
+
+    The schema used to demand E.164 and so refused the way a resident actually
+    writes their own number. Shape checking now lives in normalize_ph_mobile.
+    """
+    assert PhoneVerifyStartRequest(phone="09171234567").phone == "09171234567"
+
+
+def test_phone_request_rejects_an_implausible_length() -> None:
+    """Far too short or long is still refused before any code is spent."""
     with pytest.raises(ValidationError):
-        PhoneVerifyStartRequest(phone="09171234567")
+        PhoneVerifyStartRequest(phone="0917")
 
 
 def test_phone_request_accepts_e164() -> None:

@@ -32,6 +32,7 @@ import asyncpg
 from fastapi import APIRouter, Query, Request
 
 from app.api.deps import DatabaseDep, StaffUser, StorageClientDep
+from app.core.config import get_settings
 from app.core.exceptions import (
     ConflictError,
     ExternalServiceError,
@@ -69,6 +70,7 @@ from app.services.incident import (
 from app.services.incident_notify import (
     notify_incident_reporters,
 )
+from app.services.tracking import gps_arrival_distance, publish_tracking
 
 log = get_logger(__name__)
 
@@ -146,7 +148,7 @@ async def _lock_status(conn: asyncpg.Connection, incident_id: UUID) -> str:
 
 async def _audit_transition(
     conn: asyncpg.Connection,
-    request: Request,
+    request: Request | None,
     user: AuthenticatedUser,
     incident_id: UUID,
     *,
@@ -314,6 +316,7 @@ async def finish_incident_change(
     """
     detail = await build_incident_detail(db, incident_id)
     await broadcast_incident_event(detail, event_type)
+    await publish_tracking(db, incident_id)
     try:
         await notify_incident_reporters(db, incident_id, event_type)
     except Exception:
@@ -916,6 +919,67 @@ async def mark_arrived(
     return await finish_incident_change(db, incident_id, "incident_arrived")
 
 
+async def arrive_by_gps(
+    db: Database, request: Request | None, user: AuthenticatedUser, incident_id: UUID
+) -> bool:
+    """Mark an en_route incident arrived when this responder's GPS puts them there.
+
+    Runs after each recorded fix, from the HTTP route and the socket alike. The
+    same transition as the Arrived button — same row lock, same audit action,
+    same broadcast and reporter push — with the audit row saying it was the GPS
+    and how close. Whichever of the two comes first wins; the other finds the
+    status already moved and does nothing. Returns True if this call moved it.
+    """
+    distance = await gps_arrival_distance(db, incident_id, user.id)
+    if distance is None:
+        return False
+    settings = get_settings()
+    async with db.acquire() as conn, conn.transaction():
+        current = await _lock_status(conn, incident_id)
+        if current != "en_route":
+            return False
+        await conn.execute(
+            "update public.areas set status = 'arrived' where id = $1", incident_id
+        )
+        await _audit_transition(
+            conn, request, user, incident_id,
+            action="incident.arrived", before=current, after="arrived",
+            metadata={
+                "detected": "gps",
+                "distance_m": round(distance, 1),
+                "radius_m": settings.arrival_radius_meters,
+                "fixes": settings.arrival_consecutive_fixes,
+            },
+        )
+    log.info(
+        "incident_arrived_by_gps",
+        incident_id=str(incident_id),
+        user_id=str(user.id),
+        distance_m=round(distance, 1),
+    )
+    await finish_incident_change(db, incident_id, "incident_arrived")
+    return True
+
+
+async def after_responder_fix(
+    db: Database, request: Request | None, user: AuthenticatedUser, incident_id: UUID
+) -> bool:
+    """Everything a recorded fix sets off beyond the staff broadcast.
+
+    Arrival first: if it fires, its status broadcast already carries a fresh
+    tracking snapshot. Otherwise the fix alone refreshes Track It Live. Never
+    raises — the fix is stored either way, and failing the request would only
+    make the phone send it again.
+    """
+    try:
+        if await arrive_by_gps(db, request, user, incident_id):
+            return True
+    except Exception:
+        log.error("gps_arrival_failed", incident_id=str(incident_id), exc_info=True)
+    await publish_tracking(db, incident_id)
+    return False
+
+
 # --------------------------------------------------------------------------- #
 # Responder GPS stream (Section 8 — 5 s cadence; mirrors the WS 'location' frame)
 # --------------------------------------------------------------------------- #
@@ -927,6 +991,7 @@ async def mark_arrived(
 async def post_responder_location(
     incident_id: UUID,
     payload: ResponderLocationCreate,
+    request: Request,
     user: StaffUser,
     db: DatabaseDep,
 ) -> MessageResponse:
@@ -954,6 +1019,8 @@ async def post_responder_location(
         incident_id=str(incident_id),
         responder_id=str(user.id),
     )
+    if await after_responder_fix(db, request, user, incident_id):
+        return MessageResponse(message="Location recorded. You are on scene: marked Arrived.")
     return MessageResponse(message="Location recorded.")
 
 @router.get(

@@ -8,12 +8,30 @@ from pydantic import BaseModel, Field
 
 
 class PhoneVerifyStartRequest(BaseModel):
-    """Request to send a phone OTP."""
+    """Request to text a verification code to a Philippine mobile number."""
 
     phone: str = Field(
-        pattern=r"^\+[1-9]\d{6,14}$",
-        description="Phone in E.164 format, e.g. +639171234567.",
+        min_length=10,
+        max_length=20,
+        description=(
+            "A Philippine mobile number in any common form: 0917 123 4567, "
+            "09171234567, +639171234567 or 639171234567. Normalised server-side."
+        ),
     )
+
+
+class PhoneCodeRequestResponse(BaseModel):
+    """What asking for a code came to.
+
+    ``message`` stays first so a client that only reads it keeps working. The
+    two timers let a client count down the resend button and the code's life.
+    """
+
+    message: str
+    phone: str = Field(description="The number the code went to, normalised to E.164.")
+    sent: bool = Field(description="False when the number was already verified.")
+    expires_in_seconds: int = Field(ge=0)
+    resend_after_seconds: int = Field(ge=0)
 
 
 class PhoneVerifyCheckRequest(BaseModel):

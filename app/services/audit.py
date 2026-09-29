@@ -102,7 +102,7 @@ def _safe_ip(host: str | None) -> str | None:
 
 async def record_audit(
     db: _Executor,
-    request: Request,
+    request: Request | None,
     user: AuthenticatedUser,
     *,
     action: str,
@@ -118,6 +118,10 @@ async def record_audit(
     Unlike :func:`maybe_record_request_audit` this is not best-effort: pass the
     connection of the transaction making the change, so the action and its
     record commit together or not at all.
+
+    ``request`` is None when the action did not arrive over HTTP — a responder
+    fix streamed over the WebSocket can move an incident on scene. The row then
+    has no IP, user agent or request id, and says how it came in via metadata.
     """
     await db.execute(
         """
@@ -138,9 +142,9 @@ async def record_audit(
         json.dumps(before_state, default=str) if before_state is not None else None,
         json.dumps(after_state, default=str) if after_state is not None else None,
         json.dumps(metadata or {}, default=str),
-        _safe_ip(request.client.host if request.client else None),
-        request.headers.get("user-agent"),
-        getattr(request.state, "request_id", None),
+        _safe_ip(request.client.host if request and request.client else None),
+        request.headers.get("user-agent") if request else None,
+        getattr(request.state, "request_id", None) if request else None,
     )
 
 

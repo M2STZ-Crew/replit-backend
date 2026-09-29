@@ -4,7 +4,7 @@ Single source of truth for all runtime configuration and secrets, loaded from
 environment variables then a local ``.env`` file, accessed via :func:`get_settings`.
 No hardcoded secrets anywhere (master context Section 5, Section 13).
 
-Optional integration sections (Supabase, database, Twilio) default to empty so the
+Optional integration sections (Supabase, database, Semaphore) default to empty so the
 app always boots; ``*_configured`` properties report readiness, and the consuming
 modules raise a clear error if a feature is used without its configuration.
 """
@@ -79,11 +79,38 @@ class Settings(BaseSettings):
         default=600, ge=0, description="How long to cache Supabase JWKS keys."
     )
 
-    # ----- Twilio Verify (Phase 3) -----
-    twilio_account_sid: str = Field(default="", description="Twilio Account SID.")
-    twilio_auth_token: str = Field(default="", description="Twilio Auth Token (secret).")
-    twilio_verify_service_sid: str = Field(
-        default="", description="Twilio Verify Service SID (VA...)."
+    # ----- Semaphore SMS (phone OTP, +40%) -----
+    # Semaphore only sends: it does not check codes the way Twilio Verify did, so
+    # the backend generates, stores (as an HMAC) and checks every code itself.
+    semaphore_api_key: str = Field(default="", description="Semaphore API key (secret).")
+    semaphore_base_url: str = Field(
+        default="https://api.semaphore.co/api/v4", description="Semaphore API root."
+    )
+    semaphore_sender_name: str = Field(
+        default="",
+        description="Approved sender name. Empty uses the account's default sender.",
+    )
+    phone_otp_length: int = Field(default=6, ge=4, le=8, description="Digits in a phone code.")
+    phone_otp_ttl_seconds: int = Field(
+        default=300, ge=60, le=1800, description="How long a phone code stays valid."
+    )
+    phone_otp_max_attempts: int = Field(
+        default=5, ge=1, le=10,
+        description="Wrong guesses allowed before a code is thrown away.",
+    )
+    # Each code costs two Semaphore credits and the OTP route has no rate limit
+    # of its own, so these limits are what stands between a script and the
+    # credit balance. The per-number cap spans accounts: making ten accounts does
+    # not buy ten times the texts to one victim's phone.
+    phone_otp_resend_cooldown_seconds: int = Field(
+        default=60, ge=0, le=3600, description="Minimum wait between two codes to one account."
+    )
+    phone_otp_daily_limit_per_user: int = Field(
+        default=5, ge=1, le=50, description="Codes one account may request in 24 hours."
+    )
+    phone_otp_daily_limit_per_number: int = Field(
+        default=5, ge=1, le=50,
+        description="Codes one phone number may receive in 24 hours, across all accounts.",
     )
 
     # ----- Didit.me KYC (Phase 4) -----
@@ -135,6 +162,39 @@ class Settings(BaseSettings):
     phone_verification_percent: int = Field(default=40, ge=0, le=100)
     email_verification_percent: int = Field(default=10, ge=0, le=100)
     id_verification_percent: int = Field(default=50, ge=0, le=100)
+
+    # ----- Citizen phone gate -----
+    # A citizen account must verify a Philippine mobile number before it can use
+    # the app. A switch rather than a constant because the gate stands on SMS
+    # delivery: if Semaphore stops delivering, or the credit runs out, every
+    # unverified citizen is locked out, and turning the gate off from the Render
+    # dashboard is the recovery that needs no deploy. Staff are never gated.
+    require_citizen_phone_verification: bool = Field(
+        default=True,
+        description="Refuse citizen API access until the account's phone is verified.",
+    )
+
+    # ----- Live responder tracking -----
+    # Arrival is measured against the Area's centroid, which is the average of
+    # the citizens' own report positions — itself up to tens of metres from the
+    # fire. Too tight and a truck parked outside never counts as arrived; too
+    # loose and it arrives a street early. Tune it during testing.
+    arrival_radius_meters: float = Field(
+        default=100.0, ge=10, le=500,
+        description="A responder this close to the Area centroid is on scene.",
+    )
+    arrival_consecutive_fixes: int = Field(
+        default=2, ge=1, le=10,
+        description="Fixes in a row inside the radius before arrival is declared.",
+    )
+    responder_fix_max_age_seconds: int = Field(
+        default=120, ge=10, le=3600,
+        description="A fix older than this is kept for history but cannot move status.",
+    )
+    tracking_stale_after_seconds: int = Field(
+        default=60, ge=5, le=3600,
+        description="A responder position older than this is shown to citizens as stale.",
+    )
 
  # ----- Anthropic (Claude Haiku) AI summarization (Phase 11, Section 3.6) -----
     anthropic_api_key: str = Field(
@@ -207,11 +267,9 @@ class Settings(BaseSettings):
         return bool(self.database_url)
 
     @property
-    def twilio_configured(self) -> bool:
-        """True when all Twilio Verify credentials are present."""
-        return bool(
-            self.twilio_account_sid and self.twilio_auth_token and self.twilio_verify_service_sid
-        )
+    def semaphore_configured(self) -> bool:
+        """True when a Semaphore API key is present."""
+        return bool(self.semaphore_api_key)
     
     @property
     def didit_configured(self) -> bool:

@@ -8,7 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter
 
 from app.api.deps import CurrentUser, DatabaseDep, StaffUser
-from app.core.exceptions import BadRequestError, NotFoundError
+from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
 from app.core.logging import get_logger
 from app.schemas.area import (
     AreaAgenciesResponse,
@@ -18,8 +18,10 @@ from app.schemas.area import (
     RequestAgenciesRequest,
 )
 from app.schemas.common import MessageResponse
+from app.schemas.tracking import TrackingSnapshot
 from app.services.clustering import recompute_area
 from app.services.incident import active_area_sql, assert_transition
+from app.services.tracking import build_tracking_snapshot, can_track
 
 log = get_logger(__name__)
 
@@ -46,6 +48,26 @@ async def list_areas(
         """
     )
     return [AreaSummary.model_validate(dict(r)) for r in rows]
+
+
+@router.get(
+    "/{area_id}/tracking",
+    response_model=TrackingSnapshot,
+    summary="Track It Live: status and responder positions",
+)
+async def get_tracking(area_id: UUID, user: CurrentUser, db: DatabaseDep) -> TrackingSnapshot:
+    """The picture Track It Live draws, for the citizen who reported this incident.
+
+    The same snapshot the ``track:<area_id>`` socket channel pushes. The app reads
+    it once on open, then follows the socket, and falls back to polling this when
+    the socket is down. Staff who can see the incident may read it too.
+    """
+    if not await can_track(db, user, area_id):
+        raise ForbiddenError("You can follow live tracking only for an incident you reported.")
+    snapshot = await build_tracking_snapshot(db, area_id)
+    if snapshot is None:
+        raise NotFoundError("Incident not found.")
+    return snapshot
 
 
 @router.get("/{area_id}", response_model=AreaDetail, summary="Get an area with its reports")

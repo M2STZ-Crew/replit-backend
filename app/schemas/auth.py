@@ -31,7 +31,22 @@ class AuthenticatedUser(BaseModel):
     )
     full_name: str | None = Field(default=None, description="Display name.")
     primary_org_id: UUID | None = Field(default=None, description="Primary organization, if any.")
+    phone_verified: bool = Field(
+        default=False,
+        description=(
+            "True once the account has verified a mobile number by SMS code. A citizen "
+            "account cannot use the app until it is (see require_citizen_phone_verification)."
+        ),
+    )
     mobile: str | None = Field(default=None, description="Contact mobile number (unverified).")
+    phone_verification_required: bool = Field(
+        default=False,
+        description=(
+            "Set on GET /auth/me: true when this account must verify a phone before it "
+            "can use the app. The app gates on this rather than on phone_verified, so "
+            "turning require_citizen_phone_verification off reaches it too."
+        ),
+    )
     date_of_birth: date | None = Field(default=None, description="Date of birth.")
     gender: str | None = Field(default=None, description="Gender.")
 

@@ -6,6 +6,11 @@ location protocol over JSON text frames. Subscribable channels are bounded by th
 same agency-visibility rules as the REST incident feed. A response_team member may
 push GPS fixes ('location'), which are persisted and fanned out to the incident
 channel. A periodic server ping keeps idle connections alive.
+
+Citizens connect too, for Track It Live: ``track:<area_id>`` carries the
+sanitised TrackingSnapshot (app/services/tracking.py), and only to the citizen
+who reported that incident. A citizen who has not verified a phone is refused
+at the upgrade, as on every gated REST route.
 """
 
 from __future__ import annotations
@@ -17,6 +22,8 @@ from uuid import UUID
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from pydantic import ValidationError
 
+from app.api.deps import phone_gate_applies
+from app.api.routes.incidents import after_responder_fix
 from app.core.logging import get_logger
 from app.core.security import decode_access_token
 from app.db.session import Database, database
@@ -25,6 +32,7 @@ from app.realtime.manager import manager
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.incident import ResponderLocationCreate
 from app.services.incident import record_responder_location, visible_agencies
+from app.services.tracking import can_track
 
 log = get_logger(__name__)
 
@@ -56,7 +64,7 @@ async def authenticate_websocket(websocket: WebSocket) -> AuthenticatedUser | No
     row = await database.fetchrow(
         """
         select id, email, phone, role, agency_type, verified_percent, badge,
-               full_name, primary_org_id
+               full_name, primary_org_id, phone_verified
         from public.users
         where id = $1
         """,
@@ -104,6 +112,12 @@ async def authorize_channel(user: AuthenticatedUser, channel: str, db: Database)
         except ValueError:
             return False
         return await _incident_visible(db, incident_id, user)
+    if kind == "track":
+        try:
+            area_id = UUID(ident)
+        except ValueError:
+            return False
+        return await can_track(db, user, area_id)
     if kind == "role":
         return ident == user.role
     if kind == "agency":
@@ -162,8 +176,10 @@ async def _handle_location(conn_id: str, user: AuthenticatedUser, msg: dict[str,
             "captured_at": payload.captured_at.isoformat(),
         },
     )
+    arrived = await after_responder_fix(database, None, user, incident_id)
     await manager.send_personal(
-        conn_id, {"type": "location_recorded", "incident_id": str(incident_id)}
+        conn_id,
+        {"type": "location_recorded", "incident_id": str(incident_id), "arrived": arrived},
     )
 
 
@@ -218,6 +234,12 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     if user is None:
         log.info("ws_auth_rejected")
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+    if phone_gate_applies(user):
+        log.info("ws_phone_not_verified", user_id=str(user.id))
+        await websocket.close(
+            code=status.WS_1008_POLICY_VIOLATION, reason="phone_not_verified"
+        )
         return
     await websocket.accept()
     conn_id = manager.connect(websocket, user)

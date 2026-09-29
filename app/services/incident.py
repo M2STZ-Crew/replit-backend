@@ -259,6 +259,8 @@ async def record_responder_location(
     )
     if active_id is None:
         return False
+    # The fix belongs to the dispatch the server found, not to whatever id the
+    # phone sent: a client-supplied dispatch_id could name someone else's.
     await db.execute(
         """
         insert into public.responder_locations
@@ -268,7 +270,7 @@ async def record_responder_location(
         """,
         responder_id,
         incident_id,
-        payload.dispatch_id or active_id,
+        active_id,
         payload.lat,
         payload.lng,
         payload.accuracy_m,

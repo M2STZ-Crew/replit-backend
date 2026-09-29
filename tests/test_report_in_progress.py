@@ -67,7 +67,11 @@ def client() -> Iterator[TestClient]:
 
 
 def _wire(db: _Db, storage: _Storage, monkeypatch: pytest.MonkeyPatch) -> None:
-    user = AuthenticatedUser(id=uuid4(), role="general_user", verified_percent=60)
+    # A citizen who has verified a phone: an unverified one is stopped at the
+    # gate before this route runs (see tests/test_phone_verification.py).
+    user = AuthenticatedUser(
+        id=uuid4(), role="general_user", verified_percent=60, phone_verified=True
+    )
     app.dependency_overrides[get_current_user] = lambda: user
     app.dependency_overrides[get_database] = lambda: db
     app.dependency_overrides[get_storage_client] = lambda: storage

@@ -78,6 +78,17 @@ class ForbiddenError(AppError):
     error_code = "forbidden"
 
 
+class PhoneNotVerifiedError(ForbiddenError):
+    """A citizen account has not verified its mobile number yet (HTTP 403).
+
+    Its own error code, so a client can tell "verify your phone first" apart from
+    every other refusal and send the person to the verification screen rather
+    than showing a generic permission error.
+    """
+
+    error_code = "phone_not_verified"
+
+
 class NotFoundError(AppError):
     """The requested resource does not exist (HTTP 404)."""
 
@@ -95,7 +106,7 @@ class ConflictError(AppError):
 class ExternalServiceError(AppError):
     """A required third-party service failed or was unavailable (HTTP 502).
 
-    Used by later-phase integrations (Didit.me, Twilio, Brevo, FCM, Anthropic).
+    Used by later-phase integrations (Didit.me, Semaphore, Brevo, FCM, Anthropic).
     """
 
     status_code = status.HTTP_502_BAD_GATEWAY
