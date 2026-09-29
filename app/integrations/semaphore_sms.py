@@ -107,6 +107,21 @@ class SemaphoreClient:
             )
             raise ExternalServiceError("Could not reach the SMS service.") from exc
 
+        if _sender_name_problem(response):
+            # The account has no approved Sender Name, so Semaphore refuses
+            # every message. Retrying cannot fix it — only an approved name
+            # (and SEMAPHORE_SENDER_NAME, if it is not the account default) can.
+            log.error(
+                "semaphore_no_sender_name",
+                number=mask_number(number),
+                status_code=response.status_code,
+                body=_safe_body(response),
+            )
+            raise SemaphoreNotConfiguredError(
+                "Semaphore has no approved Sender Name for this account yet, so it "
+                "sends nothing. Register one in the Semaphore dashboard."
+            )
+
         if response.status_code >= 400:
             log.error(
                 "semaphore_rejected",
@@ -163,6 +178,23 @@ def _first_message(response: httpx.Response) -> dict[str, Any] | None:
     if isinstance(body, dict) and body.get("message_id") is not None:
         return body
     return None
+
+
+def _sender_name_problem(response: httpx.Response) -> bool:
+    """True when Semaphore refused because of the Sender Name, not the message.
+
+    It answers ``[{"senderName": "No active sender name found..."}]`` (seen with
+    HTTP 500) or a ``sendername`` validation error; either way the key names it.
+    """
+    try:
+        body = response.json()
+    except ValueError:
+        return False
+    items = body if isinstance(body, list) else [body]
+    return any(
+        isinstance(item, dict) and any(str(k).lower() == "sendername" for k in item)
+        for item in items
+    )
 
 
 def _safe_body(response: httpx.Response) -> str:

@@ -486,6 +486,28 @@ async def test_a_refusal_never_reads_as_sent(response: httpx.Response) -> None:
         )
 
 
+@pytest.mark.parametrize(
+    "response",
+    [
+        # What Semaphore actually answered before the account had a Sender Name.
+        httpx.Response(
+            500,
+            json=[{"senderName": "No active sender name found. Please apply for a "
+                   "sender name before sending messages."}],
+        ),
+        httpx.Response(200, json={"sendername": ["The selected sendername is invalid."]}),
+    ],
+)
+async def test_no_approved_sender_name_is_a_setup_problem_not_a_retry(
+    response: httpx.Response,
+) -> None:
+    """The app says texts are unavailable, not "try again in a minute"."""
+    with pytest.raises(SemaphoreNotConfiguredError):
+        await _client(lambda _r: response).send_otp(
+            number="639171234567", code="1", message="{otp}"
+        )
+
+
 async def test_no_api_key_is_a_clear_503(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(get_settings(), "semaphore_api_key", "")
     with pytest.raises(SemaphoreNotConfiguredError):
