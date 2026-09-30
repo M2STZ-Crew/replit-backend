@@ -1,6 +1,6 @@
 """Post-incident AI summary endpoints (Phase 11, Section 3.6).
 
-Generate a Claude Haiku 'fire-out' report for a resolved incident and list prior
+Generate a DeepSeek 'fire-out' report for a resolved incident and list prior
 summaries. Generation is restricted to sub-admins/admin with agency visibility; the
 incident must be resolved.
 """
@@ -11,7 +11,7 @@ from uuid import UUID
 
 from fastapi import APIRouter
 
-from app.api.deps import AnthropicClientDep, DatabaseDep, StaffUser
+from app.api.deps import DatabaseDep, DeepSeekClientDep, StaffUser
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.core.logging import get_logger
 from app.db.session import Database
@@ -51,13 +51,13 @@ async def _assert_visible(db: Database, area_id: UUID, user: AuthenticatedUser) 
 @router.post(
     "/{incident_id}/summary",
     response_model=AISummaryResponse,
-    summary="Generate a post-incident fire-out summary (Claude Haiku)",
+    summary="Generate a post-incident fire-out summary (DeepSeek)",
 )
 async def generate_summary(
     incident_id: UUID,
     user: StaffUser,
     db: DatabaseDep,
-    client: AnthropicClientDep,
+    client: DeepSeekClientDep,
 ) -> AISummaryResponse:
     """Generate and store a fire-out report for a resolved incident (coordinator only)."""
     assert_coordinator(user, "generate incident summaries")

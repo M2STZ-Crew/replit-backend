@@ -3,6 +3,11 @@
 Renders the structured incident facts (from app.services.ai_summary) plus the
 latest AI narrative into a one-page incident report. Pure/sync — build the bytes
 and hand them to a Response.
+
+It reads the facts as gather_incident_facts builds them. It used to read a
+"dispatched_resources" list and v10 timestamp names that the facts stopped
+carrying in v11, so the endpoint failed on every real incident; who went now
+comes from the team captain's Post-Incident Report, as it does for the summary.
 """
 
 from __future__ import annotations
@@ -104,13 +109,15 @@ def build_fire_out_pdf(facts: dict[str, Any], summary_text: str | None) -> bytes
     ts = facts["timestamps"]
     timeline = [
         ("Reported", "reported_at"),
-        ("Verified", "verified_at"),
-        ("Dispatched", "dispatched_at"),
+        ("Accepted", "accepted_at"),
         ("En route", "en_route_at"),
-        ("Arrived", "arrived_at"),
-        ("Resolved", "resolved_at"),
-        ("Rejected", "rejected_at"),
+        ("On scene", "arrived_at"),
+        ("Fire out", "fire_out_at"),
+        ("Report filed", "closed_at"),
     ]
+    # Only incidents that ran under v10 have a dispatch time.
+    if ts.get("dispatched_at"):
+        timeline.insert(2, ("Dispatched", "dispatched_at"))
     flow.append(_kv_table([[label, str(ts.get(key) or "-")] for label, key in timeline]))
     flow.append(Spacer(1, 5 * mm))
 
@@ -125,22 +132,28 @@ def build_fire_out_pdf(facts: dict[str, Any], summary_text: str | None) -> bytes
     )
     flow.append(Spacer(1, 5 * mm))
 
-    flow.append(Paragraph("Dispatched Resources", styles["Heading2"]))
-    resources = facts["dispatched_resources"]
-    if resources:
-        rows = [["Responder", "Organization", "Type", "Status"]]
-        rows.extend(
-            [
-                str(d["responder"] or "-"),
-                str(d["organization"] or "-"),
-                str(d["type"]),
-                str(d["status"]),
-            ]
-            for d in resources
+    flow.append(Paragraph("Post-Incident Report", styles["Heading2"]))
+    report = facts.get("post_incident_report")
+    if report:
+        units = ", ".join(
+            f"{u['name']} ({u['type']})" if u.get("type") else str(u["name"])
+            for u in report.get("units") or []
         )
-        flow.append(_grid_table(rows))
+        crew = ", ".join(str(m["name"]) for m in report.get("roster") or [])
+        rows = [
+            ["Filed by", str(report.get("filed_by") or "-")],
+            ["Time of the incident", str(report.get("incident_at") or "-")],
+            ["Time the fire was out", str(report.get("fire_out_at") or "-")],
+            ["Units", units or "-"],
+            ["Driver", str(report.get("driver_name") or "-")],
+            ["Roster", crew or "-"],
+            ["Equipment taken", ", ".join(report.get("equipment_taken") or []) or "-"],
+        ]
+        if report.get("false_alarm"):
+            rows.append(["False alarm", str(report.get("false_alarm_note") or "Yes")])
+        flow.append(_kv_table([[k, Paragraph(_esc(v), styles["BodyText"])] for k, v in rows]))
     else:
-        flow.append(Paragraph("None recorded.", styles["BodyText"]))
+        flow.append(Paragraph("Not filed yet.", styles["BodyText"]))
     flow.append(Spacer(1, 5 * mm))
 
     flow.append(Paragraph("Fire Codes Activated", styles["Heading2"]))

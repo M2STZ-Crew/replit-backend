@@ -46,8 +46,7 @@ def _user(role: str, agency: str | None = None) -> AuthenticatedUser:
 def _report(**overrides: object) -> dict[str, object]:
     """A complete, valid Post-Incident Report payload."""
     payload: dict[str, object] = {
-        "truck_label": "Apollo",
-        "truck_type": "Fire truck",
+        "units": [{"name": "Apollo", "type": "Fire truck"}],
         "driver_name": "Juan Dela Cruz",
         "roster": [
             {"name": "Juan Dela Cruz", "role": "Driver"},
@@ -209,7 +208,7 @@ def test_a_citizen_may_not_accept() -> None:
 # --------------------------------------------------------------------------- #
 def test_a_complete_report_validates() -> None:
     report = PostIncidentReportCreate.model_validate(_report(notes="  "))
-    assert report.truck_label == "Apollo"
+    assert report.unit_names == "Apollo"
     assert len(report.roster) == 2
     assert report.notes is None  # blank notes are not a note
 
@@ -217,8 +216,8 @@ def test_a_complete_report_validates() -> None:
 @pytest.mark.parametrize(
     "overrides",
     [
-        {"truck_label": "   "},
-        {"truck_type": ""},
+        {"units": []},
+        {"units": [{"name": "   "}]},
         {"driver_name": " "},
         {"roster": []},
         {"roster": [{"name": "  "}]},

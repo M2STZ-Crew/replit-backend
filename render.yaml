@@ -89,5 +89,6 @@ services:
       # The whole service-account JSON on one line — there is no writable disk.
       - key: FCM_CREDENTIALS_JSON
         sync: false
-      - key: ANTHROPIC_API_KEY
+      # DeepSeek API key for the post-incident AI summary.
+      - key: deepseek_summarization
         sync: false

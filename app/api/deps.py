@@ -18,8 +18,8 @@ from app.core.config import get_settings
 from app.core.exceptions import ForbiddenError, PhoneNotVerifiedError, UnauthorizedError
 from app.core.security import decode_access_token
 from app.db.session import Database, database
-from app.integrations.anthropic_ai import AnthropicClient
 from app.integrations.brevo_email import BrevoEmailClient
+from app.integrations.deepseek_ai import DeepSeekClient
 from app.integrations.didit_kyc import DiditKYCClient
 from app.integrations.fcm import PushService
 from app.integrations.semaphore_sms import SemaphoreClient
@@ -67,9 +67,9 @@ def get_semaphore_client(request: Request) -> SemaphoreClient:
     """Return a Semaphore SMS client bound to the shared HTTP client."""
     return SemaphoreClient(cast(httpx.AsyncClient, request.app.state.http_client))
 
-def get_anthropic_client() -> AnthropicClient:
-    """Return a Claude (Anthropic) summarization client."""
-    return AnthropicClient()
+def get_deepseek_client(request: Request) -> DeepSeekClient:
+    """Return a DeepSeek summarization client bound to the shared HTTP client."""
+    return DeepSeekClient(cast(httpx.AsyncClient, request.app.state.http_client))
 
 DatabaseDep = Annotated[Database, Depends(get_database)]
 HttpClientDep = Annotated[httpx.AsyncClient, Depends(get_http_client)]
@@ -79,7 +79,7 @@ DiditClientDep = Annotated[DiditKYCClient, Depends(get_didit_client)]
 PushServiceDep = Annotated[PushService, Depends(get_push_service)]
 EmailClientDep = Annotated[BrevoEmailClient, Depends(get_email_client)]
 SemaphoreDep = Annotated[SemaphoreClient, Depends(get_semaphore_client)]
-AnthropicClientDep = Annotated[AnthropicClient, Depends(get_anthropic_client)]
+DeepSeekClientDep = Annotated[DeepSeekClient, Depends(get_deepseek_client)]
 
 # --------------------------------------------------------------------------- #
 # Authentication

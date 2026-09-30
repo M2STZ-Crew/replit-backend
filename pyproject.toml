@@ -21,7 +21,6 @@ dependencies = [
     "exifread>=3.5.1",
     "pillow>=12.2.0",
     "apscheduler>=3.10,<4",
-    "anthropic>=0.111.0",
     "reportlab>=5.0.0",
 ]
 

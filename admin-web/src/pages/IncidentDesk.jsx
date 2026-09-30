@@ -482,7 +482,16 @@ function ReportView({ report }) {
         </span>
       </div>
       <dl className="dk-pir-grid">
-        <dt>Unit</dt><dd>{report.truck_label} <span className="vq-muted">· {report.truck_type}</span></dd>
+        <dt>Incident</dt><dd>{report.incident_at ? when(report.incident_at) : '—'}</dd>
+        <dt>Fire out</dt><dd>{report.fire_out_at ? when(report.fire_out_at) : '—'}</dd>
+        <dt>{(report.units ?? []).length > 1 ? 'Units' : 'Unit'}</dt>
+        <dd>
+          {(report.units ?? []).length > 0
+            ? report.units.map((u, i) => (
+              <span className="dk-chip" key={`${u.name}-${i}`}>{u.name}{u.type ? ` · ${u.type}` : ''}</span>
+            ))
+            : <>{report.truck_label} <span className="vq-muted">· {report.truck_type}</span></>}
+        </dd>
         <dt>Driver</dt><dd>{report.driver_name}</dd>
         <dt>Roster</dt>
         <dd>

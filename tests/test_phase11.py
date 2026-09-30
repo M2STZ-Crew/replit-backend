@@ -1,12 +1,13 @@
-"""Phase 11 (Claude Haiku AI summaries) unit + guard tests (hermetic).
+"""Phase 11 (DeepSeek AI summaries) unit + guard tests (hermetic).
 
-Nothing here calls Anthropic: the client is exercised against a stand-in for
-AsyncAnthropic, so the tests cost nothing and run without a key.
+Nothing here calls DeepSeek: the client is pointed at an httpx MockTransport,
+so the tests cost nothing and run without a key.
 """
 
 from __future__ import annotations
 
 import inspect
+import json
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -14,13 +15,14 @@ from types import SimpleNamespace
 from typing import Any
 from uuid import uuid4
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
 from app.api.routes import incidents, post_incident_reports
+from app.core.config import Settings
 from app.core.exceptions import ExternalServiceError
-from app.integrations import anthropic_ai
-from app.integrations.anthropic_ai import AnthropicClient
+from app.integrations.deepseek_ai import DeepSeekClient, DeepSeekNotConfiguredError
 from app.main import app
 from app.services.ai_summary import _iso, _render_facts, _row_to_dict
 
@@ -37,15 +39,18 @@ def _report(**overrides: Any) -> dict[str, Any]:
     base: dict[str, Any] = {
         "filed_by": "Ana Reyes",
         "filed_by_agency": "fire_volunteer",
-        "truck_label": "Apollo",
-        "truck_type": "Fire truck",
-        "driver_name": "Juan Dela Cruz",
-        "roster": [
-            {"name": "Juan Dela Cruz", "role": "Driver"},
-            {"name": "Maria Santos", "role": "Nozzle"},
+        "incident_at": "2026-06-23T08:00:00+00:00",
+        "fire_out_at": "2026-06-23T08:40:00+00:00",
+        "units": [
+            {"name": "Apollo", "type": "Fire Truck"},
+            {"name": "Hermes", "type": "Fire Truck"},
         ],
-        "equipment_taken": ["2.5in hose x3", "SCBA x2"],
-        "notes": "Hydrant on Taft was dry; drew from the tanker.",
+        "truck_label": "Apollo, Hermes",
+        "truck_type": "Fire Truck",
+        "driver_name": "Juan Dela Cruz",
+        "roster": [{"name": "Juan Dela Cruz"}, {"name": "Maria Santos"}],
+        "equipment_taken": ["Hose line", "SCBA"],
+        "notes": None,
         "false_alarm": False,
         "false_alarm_note": None,
         "submitted_at": "2026-06-23T09:10:00+00:00",
@@ -55,7 +60,7 @@ def _report(**overrides: Any) -> dict[str, Any]:
 
 
 def _structured(**overrides: Any) -> dict[str, Any]:
-    """A representative v11 structured-facts dict for a closed incident."""
+    """A representative structured-facts dict for a closed incident."""
     base: dict[str, Any] = {
         "designation": "Area 7",
         "status": "closed",
@@ -102,7 +107,7 @@ def test_iso_handles_none_and_datetime() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# The facts the model is given (v11)
+# The facts the model is given
 # --------------------------------------------------------------------------- #
 def test_render_facts_includes_key_sections() -> None:
     """The incident, its acceptance, the neighbours, the report and the codes."""
@@ -114,14 +119,23 @@ def test_render_facts_includes_key_sections() -> None:
     assert "C-1" in text
 
 
-def test_the_crew_comes_from_the_post_incident_report() -> None:
-    """v11: who went is the captain's record, not a dispatch log (Section 2.5.3)."""
+def test_the_summary_is_given_what_the_captain_selected() -> None:
+    """The report's six answers are what the model reads: the two times, every
+    unit, the driver, the roster and the equipment (Section 2.5.3)."""
     text = _render_facts(_structured())
-    assert "Apollo (Fire truck)" in text
-    assert "driver Juan Dela Cruz" in text
-    assert "Maria Santos (Nozzle)" in text
-    assert "SCBA x2" in text
-    assert "Hydrant on Taft was dry" in text
+    assert "Time of the incident: 2026-06-23T08:00:00+00:00" in text
+    assert "Time the fire was out: 2026-06-23T08:40:00+00:00" in text
+    assert "Units: Apollo (Fire Truck), Hermes (Fire Truck)" in text
+    assert "Driver: Juan Dela Cruz" in text
+    assert "Crew: Juan Dela Cruz, Maria Santos" in text
+    assert "Equipment taken: Hose line, SCBA" in text
+
+
+def test_a_report_from_before_roles_were_dropped_still_names_them() -> None:
+    text = _render_facts(
+        _structured(post_incident_report=_report(roster=[{"name": "Maria", "role": "Nozzle"}]))
+    )
+    assert "Maria (Nozzle)" in text
 
 
 def test_the_v10_vocabulary_is_gone() -> None:
@@ -157,21 +171,19 @@ def test_a_false_alarm_leads_the_report_with_its_explanation() -> None:
     """Section 2.5.3: the flag is the headline, and it never appears unexplained."""
     text = _render_facts(
         _structured(
-            post_incident_report=_report(
-                false_alarm=True, false_alarm_note="Rubbish fire, already out on arrival."
-            )
+            post_incident_report=_report(false_alarm=True, false_alarm_note="Fire already out")
         )
     )
     report_section = text.split("Post-Incident Report")[1]
-    assert report_section.index("FALSE ALARM") < report_section.index("Unit:")
-    assert "Rubbish fire, already out on arrival." in text
+    assert report_section.index("FALSE ALARM") < report_section.index("Units:")
+    assert "Fire already out" in text
 
 
 def test_an_unfiled_report_says_so() -> None:
     """A manual summary before filing must not pretend the report exists."""
     text = _render_facts(_structured(post_incident_report=None, status="post_incident_report"))
     assert "Post-Incident Report: not filed yet" in text
-    assert "Unit:" not in text
+    assert "Units:" not in text
 
 
 def test_a_v10_incident_keeps_its_real_dispatch_time() -> None:
@@ -188,11 +200,12 @@ def test_render_facts_empty_sections() -> None:
             alarm_level=None,
             acceptances=[],
             fire_codes=[],
-            post_incident_report=_report(roster=[], equipment_taken=[], notes=None),
+            post_incident_report=_report(units=[], roster=[], equipment_taken=[]),
         )
     )
     assert "Alarm level: none" in text
     assert "Accepted by: no acceptance recorded" in text
+    assert "Units: none recorded" in text
     assert "Crew: none recorded" in text
     assert "Equipment taken: none recorded" in text
     assert "Captain's notes" not in text
@@ -200,88 +213,117 @@ def test_render_facts_empty_sections() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# The client: what it sends, and what it refuses to store
+# The client: what it sends DeepSeek, and what it refuses to store
 # --------------------------------------------------------------------------- #
-def _message(stop_reason: str, text: str = "Area 7 was reported at 08:00.") -> Any:
-    return SimpleNamespace(
-        stop_reason=stop_reason,
-        content=[SimpleNamespace(type="text", text=text)],
-        usage=SimpleNamespace(
-            input_tokens=320,
-            output_tokens=180,
-            cache_read_input_tokens=0,
-            cache_creation_input_tokens=0,
-        ),
-        _request_id="req_test",
-    )
+def _completion(finish: str = "stop", text: str = "Area 7 was reported at 08:00.") -> dict:
+    return {
+        "id": "cmpl-test",
+        "choices": [{"finish_reason": finish, "message": {"role": "assistant", "content": text}}],
+        "usage": {
+            "prompt_tokens": 320,
+            "completion_tokens": 180,
+            "total_tokens": 500,
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 320,
+        },
+    }
 
 
-class _FakeAnthropic:
-    """Stands in for AsyncAnthropic: records the request, returns a fixed message."""
+def _client_with(
+    body: dict[str, Any] | None = None, *, status: int = 200, model: str = "deepseek-flash"
+) -> tuple[DeepSeekClient, list[httpx.Request]]:
+    sent: list[httpx.Request] = []
 
-    def __init__(self, message: Any) -> None:
-        self._message = message
-        self.sent: dict[str, Any] = {}
-        self.messages = self
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(request)
+        return httpx.Response(status, json=body if body is not None else _completion())
 
-    async def __aenter__(self) -> _FakeAnthropic:
-        return self
-
-    async def __aexit__(self, *_exc: object) -> None:
-        return None
-
-    async def create(self, **kwargs: Any) -> Any:
-        self.sent = kwargs
-        return self._message
-
-
-def _client_with(monkeypatch: pytest.MonkeyPatch, message: Any) -> tuple[AnthropicClient, Any]:
-    fake = _FakeAnthropic(message)
-    monkeypatch.setattr(anthropic_ai, "AsyncAnthropic", lambda **_kw: fake)
-    summarizer = AnthropicClient()
+    summarizer = DeepSeekClient(httpx.AsyncClient(transport=httpx.MockTransport(handler)))
     summarizer._settings = SimpleNamespace(  # type: ignore[assignment]
-        anthropic_configured=True,
-        anthropic_api_key="test-key",
-        anthropic_model="claude-haiku-4-5",
-        anthropic_max_tokens=1024,
+        deepseek_configured=True,
+        deepseek_summarization="test-key",
+        deepseek_model=model,
+        deepseek_base_url="https://api.deepseek.com",
+        deepseek_max_tokens=1024,
     )
-    return summarizer, fake
+    return summarizer, sent
 
 
-async def test_a_truncated_summary_is_refused_not_stored(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_the_key_is_read_from_deepseek_summarization() -> None:
+    """The setting is named as the key is named on the host and in .env."""
+    assert "deepseek_summarization" in Settings.model_fields
+    assert Settings(deepseek_summarization="k").deepseek_configured is True
+    assert Settings(deepseek_summarization="").deepseek_configured is False
+    assert "anthropic_api_key" not in Settings.model_fields
+
+
+async def test_it_asks_deepseek_with_thinking_off() -> None:
+    summarizer, sent = _client_with()
+    await summarizer.summarize_incident("the facts")
+
+    request = sent[0]
+    assert str(request.url) == "https://api.deepseek.com/chat/completions"
+    assert request.headers["authorization"] == "Bearer test-key"
+    body = json.loads(request.content)
+    assert body["model"] == "deepseek-flash"
+    assert body["max_tokens"] == 1024
+    # On by default, and it would spend the output budget reasoning.
+    assert body["thinking"] == {"type": "disabled"}
+    assert body["stream"] is False
+    assert [m["role"] for m in body["messages"]] == ["system", "user"]
+    assert body["messages"][1]["content"] == "the facts"
+
+
+async def test_a_truncated_summary_is_refused_not_stored() -> None:
     """A report cut off at max_tokens reads as complete once stored, so it is not."""
-    summarizer, _ = _client_with(monkeypatch, _message("max_tokens"))
+    summarizer, _ = _client_with(_completion("length"))
     with pytest.raises(ExternalServiceError, match="cut off"):
         await summarizer.summarize_incident("facts")
 
 
-async def test_a_refusal_is_not_stored_as_a_summary(monkeypatch: pytest.MonkeyPatch) -> None:
-    summarizer, _ = _client_with(monkeypatch, _message("refusal", text=""))
+async def test_a_filtered_answer_is_not_stored_as_a_summary() -> None:
+    summarizer, _ = _client_with(_completion("content_filter", text=""))
     with pytest.raises(ExternalServiceError, match="declined"):
         await summarizer.summarize_incident("facts")
 
 
-async def test_a_finished_summary_is_returned_with_its_cost(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    summarizer, _ = _client_with(monkeypatch, _message("end_turn"))
+async def test_an_interrupted_answer_is_not_stored_either() -> None:
+    summarizer, _ = _client_with(_completion("insufficient_system_resource"))
+    with pytest.raises(ExternalServiceError, match="did not finish"):
+        await summarizer.summarize_incident("facts")
+
+
+@pytest.mark.parametrize("status", [401, 402, 429, 500])
+async def test_a_refused_request_is_one_plain_failure(status: int) -> None:
+    """Wrong key, no balance, rate limit, their outage: the log says which."""
+    summarizer, _ = _client_with({"error": {"message": "nope"}}, status=status)
+    with pytest.raises(ExternalServiceError, match="request failed"):
+        await summarizer.summarize_incident("facts")
+
+
+async def test_a_finished_summary_is_returned_with_its_cost() -> None:
+    summarizer, _ = _client_with()
     result = await summarizer.summarize_incident("facts")
     assert result.summary_text == "Area 7 was reported at 08:00."
+    assert result.model == "deepseek-flash"
     assert result.total_tokens == 500
-    # Haiku 4.5: 320 input at $1/M plus 180 output at $5/M.
-    assert result.cost_usd == pytest.approx(0.00122)
+    assert result.request_id == "cmpl-test"
+    # deepseek-flash at peak rates: 320 input at $0.30/M plus 180 output at $1.20/M.
+    assert result.cost_usd == pytest.approx(0.000312)
 
 
-async def test_the_system_prompt_carries_no_cache_breakpoint(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Haiku 4.5 caches only 4,096+ token prefixes; this one is ~200, so none."""
-    summarizer, fake = _client_with(monkeypatch, _message("end_turn"))
-    await summarizer.summarize_incident("facts")
-    assert isinstance(fake.sent["system"], str)
-    assert "cache_control" not in str(fake.sent)
+async def test_an_unpriced_model_has_no_cost_rather_than_a_wrong_one() -> None:
+    summarizer, _ = _client_with(model="deepseek-something-new")
+    result = await summarizer.summarize_incident("facts")
+    assert result.cost_usd is None
+
+
+async def test_without_a_key_it_says_so() -> None:
+    summarizer, sent = _client_with()
+    summarizer._settings.deepseek_configured = False
+    with pytest.raises(DeepSeekNotConfiguredError):
+        await summarizer.summarize_incident("facts")
+    assert sent == []
 
 
 # --------------------------------------------------------------------------- #

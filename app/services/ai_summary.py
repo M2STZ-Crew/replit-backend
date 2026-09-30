@@ -1,14 +1,16 @@
 """Post-incident AI summary service (Section 3.6).
 
-Gathers the structured facts of a closed incident, asks Claude Haiku for a
-narrative post-incident report, and persists both to public.ai_summaries with
-token and cost accounting. asyncpg has no JSON codec registered here, so jsonb is
+Gathers the structured facts of a closed incident, asks DeepSeek for a narrative
+post-incident report, and persists both to public.ai_summaries with token and
+cost accounting. asyncpg has no JSON codec registered here, so jsonb is
 dumped and loaded explicitly.
 
 v11 changed what the facts are. The dispatch step is gone (Section 2.5), so "who
 went" no longer comes from dispatch_logs — it comes from the team captain's
-Post-Incident Report: the unit, driver, crew, equipment, notes and the
-false-alarm flag. The facts also carry who accepted the incident, since under v11
+Post-Incident Report: the time of the incident and the time the fire was out,
+the units, driver, crew, equipment and the false-alarm flag - every one of them
+picked rather than typed, so the facts the model reads are the organisation's
+own unit and member names. The facts also carry who accepted the incident, since under v11
 the first Accept is what verified it and sent responders.
 
 That is also why the summary is written when the report is filed rather than at
@@ -28,7 +30,7 @@ from app.core.config import get_settings
 from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
 from app.db.session import Database, database
-from app.integrations.anthropic_ai import AnthropicClient
+from app.integrations.deepseek_ai import DeepSeekClient
 
 log = get_logger(__name__)
 
@@ -122,10 +124,14 @@ def _render_facts(s: dict[str, Any]) -> str:
         lines.append(f"Post-Incident Report (filed by {filer}{', ' + agency if agency else ''}):")
         if report["false_alarm"]:
             lines.append(f"  FALSE ALARM — {report['false_alarm_note'] or 'no explanation given'}")
-        lines.append(
-            f"  Unit: {report['truck_label']} ({report['truck_type']}), "
-            f"driver {report['driver_name']}"
-        )
+        lines.append(f"  Time of the incident: {report['incident_at'] or '-'}")
+        lines.append(f"  Time the fire was out: {report['fire_out_at'] or '-'}")
+        units = [
+            f"{u['name']} ({u['type']})" if u.get("type") else u["name"]
+            for u in report["units"]
+        ]
+        lines.append(f"  Units: {', '.join(units) if units else 'none recorded'}")
+        lines.append(f"  Driver: {report['driver_name']}")
         crew = [
             f"{m['name']} ({m['role']})" if m.get("role") else m["name"]
             for m in report["roster"]
@@ -202,11 +208,15 @@ async def gather_incident_facts(db: Database, area_id: UUID) -> IncidentFacts:
         )
     report = await db.fetchrow(
         """
-        select filed_by_name, filed_by_agency::text as filed_by_agency,
-               truck_label, truck_type, driver_name, roster, equipment_taken,
-               notes, false_alarm, false_alarm_note, submitted_at
-        from public.post_incident_reports
-        where area_id = $1
+        select p.filed_by_name, p.filed_by_agency::text as filed_by_agency,
+               coalesce(p.incident_at, a.reported_at) as incident_at,
+               coalesce(p.fire_out_at, a.resolved_at) as fire_out_at,
+               p.units, p.truck_label, p.truck_type, p.driver_name, p.roster,
+               p.equipment_taken, p.notes, p.false_alarm, p.false_alarm_note,
+               p.submitted_at
+        from public.post_incident_reports p
+        join public.areas a on a.id = p.area_id
+        where p.area_id = $1
         """,
         area_id,
     )
@@ -259,6 +269,12 @@ async def gather_incident_facts(db: Database, area_id: UUID) -> IncidentFacts:
             else {
                 "filed_by": report["filed_by_name"],
                 "filed_by_agency": report["filed_by_agency"],
+                "incident_at": _iso(report["incident_at"]),
+                "fire_out_at": _iso(report["fire_out_at"]),
+                # A report from before several units could be recorded has only
+                # the one truck.
+                "units": _jsonb(report["units"])
+                or [{"name": report["truck_label"], "type": report["truck_type"]}],
                 "truck_label": report["truck_label"],
                 "truck_type": report["truck_type"],
                 "driver_name": report["driver_name"],
@@ -283,20 +299,20 @@ async def gather_incident_facts(db: Database, area_id: UUID) -> IncidentFacts:
 
 
 async def generate_incident_summary(
-    db: Database, client: AnthropicClient, area_id: UUID
+    db: Database, client: DeepSeekClient, area_id: UUID
 ) -> dict[str, Any]:
-    """Gather facts, call Claude, persist to ai_summaries, and return the stored row."""
+    """Gather facts, call DeepSeek, persist to ai_summaries, and return the stored row."""
     facts = await gather_incident_facts(db, area_id)
     result = await client.summarize_incident(facts.facts_text)
     row = await db.fetchrow(
         """
         insert into public.ai_summaries
             (area_id, model, prompt, prompt_tokens, completion_tokens, cached_tokens,
-             total_tokens, cost_usd, summary_text, structured_report, anthropic_request_id)
+             total_tokens, cost_usd, summary_text, structured_report, provider_request_id)
         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11)
         returning id, area_id, model, summary_text, structured_report,
                   prompt_tokens, completion_tokens, cached_tokens, total_tokens,
-                  cost_usd, anthropic_request_id, generated_at
+                  cost_usd, provider_request_id, generated_at
         """,
         area_id,
         result.model,
@@ -319,7 +335,7 @@ async def summarize_in_background(area_id: UUID) -> None:
 
     Runs once the Post-Incident Report is filed — the first moment every fact the
     summary needs exists. Scheduled as a background task so filing never waits on
-    Claude, and it uses the shared pool rather than a request dependency because
+    DeepSeek, and it uses the shared pool rather than a request dependency because
     that request has already finished.
 
     Nothing here may surface as a failed filing: the incident is closed and the
@@ -328,11 +344,11 @@ async def summarize_in_background(area_id: UUID) -> None:
     this was first checked, eight incidents had passed fire out and not one had a
     summary, and nothing anywhere had said so.
     """
-    if not get_settings().anthropic_configured:
+    if not get_settings().deepseek_configured:
         log.warning("incident_summary_skipped", incident_id=str(area_id), reason="no_api_key")
         return
     try:
-        await generate_incident_summary(database, AnthropicClient(), area_id)
+        await generate_incident_summary(database, DeepSeekClient(), area_id)
         log.info("incident_summary_generated", incident_id=str(area_id))
     except Exception:
         log.error("incident_summary_failed", incident_id=str(area_id), exc_info=True)
@@ -344,7 +360,7 @@ async def list_incident_summaries(db: Database, area_id: UUID) -> list[dict[str,
         """
         select id, area_id, model, summary_text, structured_report,
                prompt_tokens, completion_tokens, cached_tokens, total_tokens,
-               cost_usd, anthropic_request_id, generated_at
+               cost_usd, provider_request_id, generated_at
         from public.ai_summaries
         where area_id = $1
         order by generated_at desc

@@ -196,15 +196,21 @@ class Settings(BaseSettings):
         description="A responder position older than this is shown to citizens as stale.",
     )
 
- # ----- Anthropic (Claude Haiku) AI summarization (Phase 11, Section 3.6) -----
-    anthropic_api_key: str = Field(
-        default="", description="Anthropic API key (Claude); server-only."
+    # ----- DeepSeek AI summarization (Phase 11, Section 3.6) -----
+    # The key's setting is named deepseek_summarization - set it under that name
+    # on the host and in .env (DEEPSEEK_SUMMARIZATION works too: names are
+    # case-insensitive).
+    deepseek_summarization: str = Field(
+        default="", description="DeepSeek API key for post-incident summaries; server-only."
     )
-    anthropic_model: str = Field(
-        default="claude-haiku-4-5",
-        description="Claude model id for post-incident summaries (text-only).",
+    deepseek_model: str = Field(
+        default="deepseek-flash",
+        description="DeepSeek model id for post-incident summaries (text-only).",
     )
-    anthropic_max_tokens: int = Field(
+    deepseek_base_url: str = Field(
+        default="https://api.deepseek.com", description="DeepSeek API base URL."
+    )
+    deepseek_max_tokens: int = Field(
         default=1024, ge=1, le=8192, description="Max output tokens per summary."
     )
 
@@ -287,9 +293,9 @@ class Settings(BaseSettings):
         return bool(self.fcm_credentials_file or self.fcm_credentials_json)
     
     @property
-    def anthropic_configured(self) -> bool:
-        """True when an Anthropic API key is present."""
-        return bool(self.anthropic_api_key)
+    def deepseek_configured(self) -> bool:
+        """True when the DeepSeek API key (deepseek_summarization) is present."""
+        return bool(self.deepseek_summarization)
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

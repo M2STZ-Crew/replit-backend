@@ -106,7 +106,7 @@ class ConflictError(AppError):
 class ExternalServiceError(AppError):
     """A required third-party service failed or was unavailable (HTTP 502).
 
-    Used by later-phase integrations (Didit.me, Semaphore, Brevo, FCM, Anthropic).
+    Used by later-phase integrations (Didit.me, Semaphore, Brevo, FCM, DeepSeek).
     """
 
     status_code = status.HTTP_502_BAD_GATEWAY

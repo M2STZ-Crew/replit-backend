@@ -1,4 +1,4 @@
-"""AI summary (Claude Haiku) schemas (Phase 11, Section 3.6)."""
+"""AI summary (DeepSeek) schemas (Phase 11, Section 3.6)."""
 
 from __future__ import annotations
 
@@ -22,5 +22,5 @@ class AISummaryResponse(BaseModel):
     cached_tokens: int | None = None
     total_tokens: int | None = None
     cost_usd: float | None = None
-    anthropic_request_id: str | None = None
+    provider_request_id: str | None = None
     generated_at: datetime

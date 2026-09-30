@@ -21,38 +21,54 @@ def client() -> Iterator[TestClient]:
         yield test_client
 
 
-def _facts() -> dict[str, Any]:
-    """A representative structured-facts dict for the PDF builder."""
+def _facts(*, report: bool = True) -> dict[str, Any]:
+    """Facts in the shape gather_incident_facts really builds (v11 onwards).
+
+    The builder used to be tested against a hand-made dict with a
+    "dispatched_resources" list, which the real facts stopped carrying in v11 -
+    so the tests passed while the endpoint failed on every incident.
+    """
     return {
         "designation": "Area 1",
-        "status": "resolved",
+        "status": "closed",
         "centroid": {"lat": 14.5, "lng": 120.9},
         "confidence": {"score": 0.8, "band": "high"},
         "report_count": 3,
         "alarm_level": "first_alarm",
         "timestamps": {
-            k: None
-            for k in (
-                "reported_at",
-                "verified_at",
-                "dispatched_at",
-                "en_route_at",
-                "arrived_at",
-                "resolved_at",
-                "rejected_at",
-            )
+            "reported_at": "2026-06-23T08:00:00+00:00",
+            "accepted_at": "2026-06-23T08:02:00+00:00",
+            "dispatched_at": None,
+            "en_route_at": "2026-06-23T08:02:00+00:00",
+            "arrived_at": "2026-06-23T08:11:00+00:00",
+            "fire_out_at": "2026-06-23T08:40:00+00:00",
+            "closed_at": "2026-06-23T09:10:00+00:00",
         },
+        "acceptances": [],
         "neighborhood": {"alerted": 5, "responded": 2, "confirmed": 1},
-        "dispatched_resources": [
+        "post_incident_report": (
             {
-                "responder": "Juan",
-                "organization": "BFP Pasay",
-                "agency": "bfp",
-                "type": "manual",
-                "status": "completed",
-                "dispatched_at": None,
+                "filed_by": "Ramon Dizon",
+                "filed_by_agency": "fire_volunteer",
+                "incident_at": "2026-06-23T08:00:00+00:00",
+                "fire_out_at": "2026-06-23T08:40:00+00:00",
+                "units": [
+                    {"name": "Apollo", "type": "Fire Truck"},
+                    {"name": "Hermes", "type": "Fire Truck"},
+                ],
+                "truck_label": "Apollo, Hermes",
+                "truck_type": "Fire Truck",
+                "driver_name": "Paolo Villareal",
+                "roster": [{"name": "Paolo Villareal"}, {"name": "Jericho Manalo"}],
+                "equipment_taken": ["Hose line", "SCBA"],
+                "notes": None,
+                "false_alarm": False,
+                "false_alarm_note": None,
+                "submitted_at": "2026-06-23T09:10:00+00:00",
             }
-        ],
+            if report
+            else None
+        ),
         "fire_codes": [{"code": "FC-1", "name": "Arrived", "pressed_at": None}],
     }
 
@@ -97,6 +113,18 @@ def test_build_fire_out_pdf_returns_pdf_bytes() -> None:
 def test_build_fire_out_pdf_without_summary() -> None:
     """The PDF builds even with no AI summary."""
     assert build_fire_out_pdf(_facts(), None)[:5] == b"%PDF-"
+
+
+def test_build_fire_out_pdf_before_the_report_is_filed() -> None:
+    """Fire out, report still owed: the PDF says so rather than failing."""
+    assert build_fire_out_pdf(_facts(report=False), None)[:5] == b"%PDF-"
+
+
+def test_the_pdf_is_built_from_the_facts_the_summary_uses() -> None:
+    """The two must not drift: both read gather_incident_facts' output."""
+    from tests.test_phase11 import _structured
+
+    assert build_fire_out_pdf(_structured(), "Summary.")[:5] == b"%PDF-"
 
 
 @pytest.mark.parametrize(

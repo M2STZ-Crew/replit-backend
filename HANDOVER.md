@@ -79,7 +79,7 @@ secrets/firebase-service-account.json -> repo root, create the secrets/ folder
 
 **Do not send these over Messenger, Viber, email, or a chat paste.** They include the
 Supabase **service-role key**, which bypasses every RLS policy in the database, plus the
-Twilio, Brevo, Didit, and Anthropic credentials. Anyone holding that file has full read
+SMS, Brevo, Didit, and DeepSeek credentials. Anyone holding that file has full read
 and write access to all user data.
 
 Use one of:

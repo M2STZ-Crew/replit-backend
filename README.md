@@ -74,7 +74,7 @@ Notes:
 app/api/routes/     FastAPI routers (24)
 app/services/       domain logic (clustering, incident lifecycle, AI summary, PDF)
 app/workers/        the 60 s neighborhood notification scheduler
-app/integrations/   Supabase, Twilio, Didit, Brevo, FCM, Anthropic clients
+app/integrations/   Supabase, Semaphore, Didit, Brevo, FCM, DeepSeek clients
 app/realtime/       WebSocket manager + event broadcasting
 supabase/migrations 21 SQL migrations — the authoritative schema
 admin-web/          Admin Console (React 18 + Vite) — Admin only, deployed separately

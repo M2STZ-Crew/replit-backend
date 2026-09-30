@@ -1,8 +1,9 @@
 """Post-Incident Report endpoints (v10 Section 2.5): file, read, list.
 
 During a response, coordinators and responders capture only what is needed to
-run it. The full record — truck, driver, roster, equipment taken — is filed here
-once the fire is out, by the responding team captain, for everyone who went.
+run it. The full record — when it happened and when the fire was out, the units,
+driver, roster and equipment taken — is filed here once the fire is out, by the
+responding team captain, for everyone who went. Every answer is a selection.
 
 Fire out (POST /incidents/{id}/resolve) leaves the incident in
 'post_incident_report'; filing is the only route to 'closed'. The form is
@@ -44,12 +45,17 @@ log = get_logger(__name__)
 
 router = APIRouter(tags=["post_incident_reports"])
 
+# A report filed before the times and units were recorded has them null: the
+# incident's own timestamps and the single truck stand in, so every report reads
+# back in one shape.
 _REPORT_SELECT = """
     select p.id, p.area_id, a.designation as area_designation, a.resolved_at,
+           coalesce(p.incident_at, a.reported_at) as incident_at,
+           coalesce(p.fire_out_at, a.resolved_at) as fire_out_at,
            p.filed_by, p.filed_by_name, p.filed_by_role::text as filed_by_role,
            p.filed_by_agency::text as filed_by_agency,
            p.organization_id, o.name as organization_name,
-           p.truck_equipment_id, p.truck_label, p.truck_type,
+           p.units, p.truck_equipment_id, p.truck_label, p.truck_type,
            p.driver_name, p.driver_user_id, p.roster, p.equipment_taken, p.notes,
            p.false_alarm, p.false_alarm_note, p.submitted_at
     from public.post_incident_reports p
@@ -62,6 +68,16 @@ def _to_response(row: Any) -> PostIncidentReportResponse:
     data = dict(row)
     if isinstance(data.get("roster"), str):
         data["roster"] = json.loads(data["roster"])
+    units = data.get("units")
+    if isinstance(units, str):
+        units = json.loads(units)
+    data["units"] = units or [
+        {
+            "name": data["truck_label"],
+            "type": data["truck_type"],
+            "equipment_id": data.get("truck_equipment_id"),
+        }
+    ]
     data["equipment_taken"] = list(data.get("equipment_taken") or [])
     return PostIncidentReportResponse.model_validate(data)
 
@@ -95,14 +111,28 @@ async def file_post_incident_report(
     assert_team_captain(user)
     await assert_incident_visible(db, incident_id, user)
 
-    if payload.truck_equipment_id is not None:
-        truck = await db.fetchval(
-            "select 1 from public.equipment where id = $1", payload.truck_equipment_id
+    unit_ids = [u.equipment_id for u in payload.units if u.equipment_id is not None]
+    if unit_ids:
+        known = await db.fetchval(
+            "select count(*) from public.equipment where id = any($1::uuid[])", unit_ids
         )
-        if truck is None:
-            raise BadRequestError("That truck is not in the equipment register.")
+        if known != len(set(unit_ids)):
+            raise BadRequestError("One of those units is not in the equipment register.")
 
-    roster = [member.model_dump(mode="json") for member in payload.roster]
+    # The times default to what the system recorded; the captain changes them
+    # only when the record is off.
+    times = await db.fetchrow(
+        "select reported_at, resolved_at from public.areas where id = $1", incident_id
+    )
+    if times is None:
+        raise NotFoundError("Incident not found.")
+    incident_at = payload.incident_at or times["reported_at"]
+    fire_out_at = payload.fire_out_at or times["resolved_at"]
+    if incident_at is not None and fire_out_at is not None and fire_out_at < incident_at:
+        raise BadRequestError("The fire cannot be out before the incident happened.")
+
+    roster = [member.model_dump(mode="json", exclude_none=True) for member in payload.roster]
+    units = [unit.model_dump(mode="json") for unit in payload.units]
     async with db.acquire() as conn, conn.transaction():
         # Lock the area so two captains filing at once cannot both pass the check.
         current = await conn.fetchval(
@@ -118,10 +148,10 @@ async def file_post_incident_report(
                     (area_id, filed_by, filed_by_name, filed_by_role, filed_by_agency,
                      organization_id, truck_equipment_id, truck_label, truck_type,
                      driver_name, driver_user_id, roster, equipment_taken, notes,
-                     false_alarm, false_alarm_note)
+                     false_alarm, false_alarm_note, incident_at, fire_out_at, units)
                 values ($1, $2, $3, $4::public.user_role, $5::public.agency_type,
                         $6, $7, $8, $9, $10, $11, $12::jsonb, $13::text[], $14,
-                        $15, $16)
+                        $15, $16, $17, $18, $19::jsonb)
                 returning id
                 """,
                 incident_id,
@@ -130,9 +160,11 @@ async def file_post_incident_report(
                 user.role,
                 user.agency_type,
                 user.primary_org_id,
-                payload.truck_equipment_id,
-                payload.truck_label,
-                payload.truck_type,
+                # The single-truck columns are NOT NULL and older readers use
+                # them: they hold the first unit's link and the units as a line.
+                payload.units[0].equipment_id,
+                payload.unit_names,
+                payload.unit_types,
                 payload.driver_name,
                 payload.driver_user_id,
                 json.dumps(roster),
@@ -140,6 +172,9 @@ async def file_post_incident_report(
                 payload.notes,
                 payload.false_alarm,
                 payload.false_alarm_note,
+                incident_at,
+                fire_out_at,
+                json.dumps(units),
             )
         except asyncpg.UniqueViolationError as exc:
             raise ConflictError(
@@ -161,8 +196,7 @@ async def file_post_incident_report(
             before_state={"status": str(current)},
             after_state={
                 "status": "closed",
-                "truck_label": payload.truck_label,
-                "truck_type": payload.truck_type,
+                "units": payload.unit_names,
                 "driver_name": payload.driver_name,
                 "roster_count": len(roster),
                 "equipment_count": len(payload.equipment_taken),
