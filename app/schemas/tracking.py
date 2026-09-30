@@ -2,10 +2,10 @@
 
 Deliberately narrow. Staff watch an incident through the full IncidentDetail on
 ``incident:<id>``, which names responders and carries every report; a citizen
-gets only this: the incident's status and position, and for each responding
-unit a label, its agency and where it is. No user ids, names, phone numbers or
-accounts — a unit is "Unit 2" or the truck's name, never the person holding the
-phone.
+gets only this: the incident's status and position, the team that verified it,
+and for each responding unit a label, its agency and where it is. No user ids,
+names, phone numbers or accounts — a unit is "Unit 2" or the truck's name, and
+the verifier is their brigade, never the person holding the phone.
 """
 
 from __future__ import annotations
@@ -51,4 +51,13 @@ class TrackingSnapshot(BaseModel):
     responders: list[TrackedResponder] = Field(
         description="Units responding. Empty unless the incident is en_route or arrived."
     )
+    verified_by: str | None = Field(
+        default=None,
+        description="The team that verified it ('Hercules Fire Brigade'), never the person; "
+        "null until verified.",
+    )
+    verified_by_agency: str | None = Field(
+        default=None, description="That team's agency; null when an Admin verified it."
+    )
+    verified_at: datetime | None = None
     generated_at: datetime

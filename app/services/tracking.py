@@ -7,9 +7,9 @@ things on top of that same stream, without a second one:
 
 - **Track It Live.** The citizen who reported an incident may follow it on
   ``track:<area_id>`` (or poll ``GET /areas/{id}/tracking``). What they receive
-  is a :class:`TrackingSnapshot` — status, incident position, and per unit a
-  label and a position — rebuilt from the database after each fix or status
-  change, and only while someone is actually watching.
+  is a :class:`TrackingSnapshot` — status, incident position, the team that
+  verified it, and per unit a label and a position — rebuilt from the database
+  after each fix or status change, and only while someone is actually watching.
 
 - **Automatic On scene.** When the incident is en route and a responder's last
   few fixes all put them within ``arrival_radius_meters`` of the incident, the
@@ -34,6 +34,7 @@ from app.realtime.manager import manager
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.tracking import TrackedResponder, TrackingSnapshot
 from app.services.incident import visible_agencies, visible_area_sql
+from app.services.verifier import fetch_verifier
 
 log = get_logger(__name__)
 
@@ -287,6 +288,8 @@ async def build_tracking_snapshot(
         responders = units_from_rows(
             rows, now=now, stale_after_s=settings.tracking_stale_after_seconds
         )
+    # A new report has no verifier to look up; every later status may.
+    verifier = None if area["status"] == "reported" else await fetch_verifier(db, area_id)
     return TrackingSnapshot(
         area_id=area["id"],
         designation=area["designation"],
@@ -296,6 +299,10 @@ async def build_tracking_snapshot(
         arrival_radius_m=settings.arrival_radius_meters,
         stale_after_seconds=settings.tracking_stale_after_seconds,
         responders=responders,
+        # The team, never the person: see app/services/verifier.py.
+        verified_by=None if verifier is None else verifier.public_label,
+        verified_by_agency=None if verifier is None else verifier.agency,
+        verified_at=None if verifier is None else verifier.verified_at,
         generated_at=now,
     )
 

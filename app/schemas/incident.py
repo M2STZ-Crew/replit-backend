@@ -144,6 +144,10 @@ class IncidentDetail(IncidentSummary):
     parent_area_id: UUID | None = None
     verified_by: UUID | None = None
     verified_by_name: str | None = None
+    # The team the verifier verified it for, as it was when they pressed Verify
+    # (app/services/verifier.py); agency is null for an Admin.
+    verified_by_organization: str | None = None
+    verified_by_agency: str | None = None
     resolved_by: UUID | None = None
     resolved_by_name: str | None = None
     closed_by: UUID | None = None

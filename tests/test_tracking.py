@@ -7,7 +7,8 @@ What these pin:
 - the GPS arrival is the same transition as the Arrived button: row lock,
   audit row (saying it was the GPS, and how close), broadcast, reporter push —
   and it loses quietly to a button pressed first;
-- what a citizen receives names no person: units are trucks or "Unit N";
+- what a citizen receives names no person: units are trucks or "Unit N", and
+  the verifier is their team;
 - only the citizen who reported an incident may follow it, over REST or socket,
   and a responder's fix reaches that citizen's socket as a fresh snapshot.
 """
@@ -40,6 +41,7 @@ from app.services.tracking import (
     haversine_m,
     units_from_rows,
 )
+from app.services.verifier import VERIFIER_SQL
 
 
 @pytest.fixture(autouse=True)
@@ -167,15 +169,29 @@ def test_silence_is_shown_as_stale_not_hidden() -> None:
     assert units[1].lat is None, "never sent a fix: nothing to draw yet"
 
 
-class _SnapshotDb:
-    """Answers the two snapshot reads; records whether the unit list was read."""
+_VERIFIER = {
+    "name": "Ramon Dizon", "role": "sub_admin", "verified_at": NOW - timedelta(minutes=4),
+    "agency": "fire_volunteer", "organization": "Hercules Fire Brigade",
+}
 
-    def __init__(self, status: str, rows: list[dict[str, Any]]) -> None:
+
+class _SnapshotDb:
+    """Answers the snapshot reads; records whether the unit list was read."""
+
+    def __init__(
+        self,
+        status: str,
+        rows: list[dict[str, Any]],
+        verifier: dict[str, Any] | None = _VERIFIER,
+    ) -> None:
         self.status = status
         self.rows = rows
+        self.verifier = verifier
         self.read_units = False
 
     async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
+        if query == VERIFIER_SQL:
+            return self.verifier
         assert "from public.areas" in query
         return {
             "id": args[0], "designation": "Area 3", "status": self.status,
@@ -199,6 +215,42 @@ async def test_the_snapshot_names_no_person() -> None:
         "key", "label", "organization", "agency", "lat", "lng", "heading_deg",
         "speed_mps", "accuracy_m", "updated_at", "stale",
     }
+    # The verifier is their team, never their name (v1.12.1).
+    assert "Ramon Dizon" not in body
+    assert snapshot.verified_by == "Hercules Fire Brigade"
+
+
+@pytest.mark.parametrize(
+    ("verifier", "shown"),
+    [
+        ({"agency": "bfp", "organization": "Pasay Fire Station"}, "Pasay Fire Station"),
+        ({"agency": "bfp", "organization": None}, "the Bureau of Fire Protection"),
+        ({"agency": None, "organization": None, "role": "admin"}, "RepLiT Admin"),
+    ],
+)
+async def test_the_citizen_is_told_which_team_verified_it(
+    verifier: dict[str, Any], shown: str
+) -> None:
+    db = _SnapshotDb("verified", [], {**_VERIFIER, **verifier})
+    snapshot = await build_tracking_snapshot(db, AREA, now=NOW)  # type: ignore[arg-type]
+    assert snapshot is not None
+    assert snapshot.verified_by == shown
+    assert snapshot.verified_by_agency == verifier["agency"]
+    assert snapshot.verified_at == _VERIFIER["verified_at"]
+
+
+async def test_a_new_report_has_no_verifier() -> None:
+    db = _SnapshotDb("reported", [], verifier=None)
+    snapshot = await build_tracking_snapshot(db, AREA, now=NOW)  # type: ignore[arg-type]
+    assert snapshot is not None
+    assert (snapshot.verified_by, snapshot.verified_at) == (None, None)
+
+
+def test_the_verifiers_team_is_the_one_recorded_when_they_verified() -> None:
+    # The first Accept's row holds the team at that moment; the account's
+    # current team is only the fallback for incidents verified before v11.
+    assert "f.is_first and f.user_id = a.verified_by" in VERIFIER_SQL
+    assert "case when f.id is not null then fo.name else uo.name end" in VERIFIER_SQL
 
 
 @pytest.mark.parametrize("status", ["reported", "verified", "fire_out", "closed", "rejected"])

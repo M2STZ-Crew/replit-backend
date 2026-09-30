@@ -6,6 +6,82 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.1 — 30 September 2026 — Who verified a fire, and for which organization
+
+### Changes
+
+**Added**
+- **The verifier's organization.** Wherever an incident shows who verified it,
+  it now also shows the team they verified it for — as recorded at the moment
+  they pressed Verify (the `is_first` row of `area_acceptances`), so a later
+  change of brigade does not rewrite it. Incidents verified before v11 fall
+  back to the verifier's current team.
+- **The citizen is told which team verified their report**: Track It Live
+  shows "Verified by Hercules Fire Brigade", and the "Report verified" push
+  says "verified by Hercules Fire Brigade". The team only, never the person
+  (decided 30 Sep 2026), the same rule Track It Live keeps for units. A
+  verifier with no team is named by agency; an Admin as "RepLiT Admin".
+
+**Modified**
+- Observer Console: the Verified fact reads "time · name (organization)".
+
+**Unchanged, confirmed**
+- The fire truck on the citizen's map: the reporter's Track It Live already
+  draws each responding unit — responders and responding coordinators alike —
+  as a moving fire-truck marker from their first GPS fix, while the incident
+  is On the way or On scene.
+
+### Files Changed
+- `app/services/verifier.py` — new: `fetch_verifier`, `Verifier.public_label`.
+- `app/schemas/incident.py`, `app/api/routes/incidents.py` —
+  `IncidentDetail.verified_by_organization`, `verified_by_agency`.
+- `app/schemas/tracking.py`, `app/services/tracking.py` —
+  `TrackingSnapshot.verified_by`, `verified_by_agency`, `verified_at`.
+- `app/services/incident_notify.py` — the verified push names the team.
+- `observer-web/src/pages/MonitoringPage.jsx` — verifier's organization.
+- `MASTER_CONTEXT_v12.md` — §2.5.1 note on what is shown to whom.
+- `pyproject.toml`, `uv.lock`, `app/core/config.py`, `admin-web/package.json`,
+  `observer-web/package.json` — version 1.12.1.
+- Tests: `tests/test_verifier.py` (new), `tests/test_tracking.py`,
+  `tests/test_acceptances.py`.
+
+### Database Changes
+None. The organization was already recorded by every Verify since v11
+(`area_acceptances.organization_id`); this version only reads it. The new query
+was checked against the live schema (read-only `explain`).
+
+### API Changes
+| Endpoint | Change |
+|---|---|
+| `GET /incidents/{id}` (and every `IncidentDetail` response / `incident:` frame) | Adds `verified_by_organization`, `verified_by_agency`. |
+| `GET /areas/{id}/tracking` and `track:<id>` frames | Adds `verified_by` (the team's display name, never a person), `verified_by_agency`, `verified_at`. |
+| "Report verified" push and inbox row | Body names the team when known. |
+
+All additions are optional fields; older apps ignore them.
+
+### Frontend Changes
+- Observer Console: verifier's organization. Admin Console unchanged — its
+  Accepted list already showed agency, organization and name.
+- Mobile (`replit-android` v1.12.1): see that repository's `CHANGELOG.md`.
+
+### Testing
+- Staff detail carries the verifier's name, organization and agency.
+- The citizen's snapshot names the team, never the person; falls back to the
+  agency, then "RepLiT Admin"; a new report has no verifier.
+- The organization is the one recorded at verify time (query pinned).
+- The verified push names the team and not the person; without a verifier it
+  reads as before.
+- Result: **377 backend tests pass**; `ruff` and `mypy --strict` clean; the
+  Observer Console builds.
+
+### Regression Check
+Full backend suite passes. The two test fakes that answer the incident-detail
+and snapshot reads were taught the one new query; no assertion was relaxed.
+The snapshot still carries no user id, full name, phone or e-mail (existing
+test, extended).
+
+---
+
 ## v1.12.0 — 30 September 2026 — Verify and Respond separated; open to every responder and coordinator
 
 ### Changes

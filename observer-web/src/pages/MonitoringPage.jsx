@@ -20,6 +20,15 @@ const PASAY = [14.5378, 121.0014];
 const EVAC = '#22C55E';
 const RISK = '#FF9066';
 
+/// " · Ramon Dizon (Hercules Fire Brigade)": who verified, and the team they
+/// verified it for — the agency when they have no team, "Admin" for an Admin.
+function verifiedBy(d) {
+  const team = d.verified_by_organization
+    || (d.verified_by_agency ? AGENCY_LABEL[d.verified_by_agency] ?? d.verified_by_agency : 'Admin');
+  if (!d.verified_by_name) return '';
+  return ` · ${d.verified_by_name} (${team})`;
+}
+
 /// Pans the map to the selected incident.
 ///
 /// Leaflet's flyTo divides by the map's pixel size, so on a map with no size —
@@ -308,7 +317,7 @@ export default function MonitoringPage({ focusId = null }) {
             </section>
 
             <dl className="facts">
-              <dt>Verified</dt><dd>{detail.verified_at ? `${when(detail.verified_at)}${detail.verified_by_name ? ` · ${detail.verified_by_name}` : ''}` : 'Not yet'}</dd>
+              <dt>Verified</dt><dd>{detail.verified_at ? `${when(detail.verified_at)}${verifiedBy(detail)}` : 'Not yet'}</dd>
               <dt>Units</dt><dd>{detail.active_dispatch_count} responding</dd>
               <dt>On scene</dt><dd>{detail.arrived_at ? when(detail.arrived_at) : '—'}</dd>
               <dt>Fire out</dt><dd>{detail.resolved_at ? when(detail.resolved_at) : '—'}</dd>

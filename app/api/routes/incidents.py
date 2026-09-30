@@ -77,6 +77,7 @@ from app.services.incident_notify import (
 )
 from app.services.map_feed import publish_area_change
 from app.services.tracking import gps_arrival_distance, publish_tracking
+from app.services.verifier import fetch_verifier
 
 log = get_logger(__name__)
 
@@ -304,10 +305,14 @@ async def build_incident_detail(db: Database, incident_id: UUID) -> IncidentDeta
         """,
         incident_id,
     )
+    verifier = await fetch_verifier(db, incident_id)
     data = dict(row)
     data["routes"] = [dict(r) for r in routes]
     data["acceptances"] = [dict(r) for r in acceptances]
     data["reports"] = [dict(r) for r in reports]
+    if verifier is not None:
+        data["verified_by_organization"] = verifier.organization
+        data["verified_by_agency"] = verifier.agency
     return IncidentDetail.model_validate(data)
 
 

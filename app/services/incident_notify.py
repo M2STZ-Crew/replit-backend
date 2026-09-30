@@ -14,6 +14,7 @@ from app.core.logging import get_logger
 from app.db.session import Database
 from app.integrations.fcm import PushService
 from app.services.notification_inbox import record_inbox
+from app.services.verifier import fetch_verifier
 
 log = get_logger(__name__)
 
@@ -57,6 +58,14 @@ async def notify_incident_reporters(db: Database, area_id: UUID, event_type: str
         return 0
 
     title, body = message
+    if event_type == "incident_verified":
+        # Say which team: "...verified by Hercules Fire Brigade." Never the person.
+        verifier = await fetch_verifier(db, area_id)
+        if verifier is not None:
+            body = (
+                f"Your fire report was verified by {verifier.public_label}. "
+                "Responders are being assigned."
+            )
 
     # In-app inbox for every reporter (even those without a device token).
     reporter_rows = await db.fetch(

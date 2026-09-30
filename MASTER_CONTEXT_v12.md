@@ -258,6 +258,13 @@ the partial unique index on `is_first` settle a race between two verifiers in
 the database. The web consoles' **Accept** is this same act (`/accept`, alias of
 `/verify`).
 
+**Who verified is shown** (v1.12.1). The `is_first` row keeps the verifier's
+agency and team as they were at that moment, and that is what is displayed:
+staff screens and consoles show the person and the team ("Ramon Dizon ·
+Hercules Fire Brigade"); the reporting citizen's Track It Live and "Report
+verified" push show the **team only** ("Verified by Hercules Fire Brigade") —
+the same rule as the units on their map: a brigade, never the person.
+
 #### 2.5.2 Respond — "I am going"
 
 Once an Area is `verified`, any **Response Team member** and any **Fire

@@ -15,6 +15,7 @@ from uuid import uuid4
 
 from app.api.routes import incidents
 from app.schemas.incident import IncidentDetail
+from app.services.verifier import VERIFIER_SQL
 
 _AREA = uuid4()
 _CAPTAIN = uuid4()
@@ -38,6 +39,11 @@ class _Db:
         self.now = datetime.now(UTC)
 
     async def fetchrow(self, query: str, *args: Any) -> dict[str, Any]:
+        if query == VERIFIER_SQL:
+            return {
+                "name": "Ramon Dizon", "role": "sub_admin", "verified_at": self.now,
+                "agency": "fire_volunteer", "organization": "Hercules Fire Brigade",
+            }
         return {
             "id": _AREA, "designation": "Area 7", "status": "en_route",
             "centroid_lat": 14.54, "centroid_lng": 121.0, "report_count": 2,
@@ -80,3 +86,9 @@ async def test_the_detail_lists_who_accepted() -> None:
         ("police", False),
     ]
     assert detail.acceptances[1].user_name == "Rowena Pascual"
+    # Staff see who verified it and for which team (v1.12.1).
+    assert (detail.verified_by_name, detail.verified_by_organization) == (
+        "Ramon Dizon",
+        "Hercules Fire Brigade",
+    )
+    assert detail.verified_by_agency == "fire_volunteer"
