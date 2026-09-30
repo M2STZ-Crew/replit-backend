@@ -1,7 +1,8 @@
 """Incident PDF report endpoint (Phase 14).
 
-Streams a one-page fire-out PDF for an incident (visibility-checked staff). Reuses
-the structured facts from app.services.ai_summary and the latest stored AI summary.
+Streams the incident report PDF (visibility-checked staff): the incident, its
+timeline, every responding team's Post-Incident Report, and the latest AI
+summary. Reuses the structured facts from app.services.ai_summary.
 """
 
 from __future__ import annotations
@@ -62,14 +63,20 @@ async def incident_report_pdf(
     await _assert_visible(db, incident_id, user)
 
     facts = await gather_incident_facts(db, incident_id)
-    summary_text: str | None = await db.fetchval(
+    # The newest summary: it is rewritten each time another team files, so the
+    # latest is the one that covers every report in the facts.
+    summary = await db.fetchrow(
         """
-        select summary_text from public.ai_summaries
+        select summary_text, model from public.ai_summaries
         where area_id = $1 order by generated_at desc limit 1
         """,
         incident_id,
     )
-    pdf_bytes = build_fire_out_pdf(facts.structured, summary_text)
+    pdf_bytes = build_fire_out_pdf(
+        facts.structured,
+        summary["summary_text"] if summary else None,
+        summary_model=summary["model"] if summary else None,
+    )
     log.info("incident_pdf_generated", incident_id=str(incident_id), by=str(user.id))
     return Response(
         content=pdf_bytes,

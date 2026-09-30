@@ -226,14 +226,14 @@ def test_a_responder_may_read_it_too(client: TestClient) -> None:
     assert client.get("/organizations/mine/members").status_code == 200
 
 
-def test_staff_with_no_organisation_get_their_agencys_unattached_staff(
-    client: TestClient,
-) -> None:
+def test_a_captain_with_no_organisation_is_offered_nobody(client: TestClient) -> None:
+    """Strictly the coordinator's own organization: it used to fall back to every
+    unattached staff account in the agency, which offered other teams' people."""
     db = _Db()
     _as(AuthenticatedUser(id=uuid4(), role="sub_admin", agency_type="bfp"), db)
-    assert client.get("/organizations/mine/members").status_code == 200
-    query, args = db.calls[0]
-    assert "primary_org_id is null" in query and args == ("bfp",)
+    r = client.get("/organizations/mine/members")
+    assert r.status_code == 200 and r.json() == []
+    assert db.calls == []
 
 
 def test_a_citizen_is_refused(client: TestClient) -> None:

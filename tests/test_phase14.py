@@ -21,6 +21,16 @@ def client() -> Iterator[TestClient]:
         yield test_client
 
 
+def _pdf_text(data: bytes) -> str:
+    """The text drawn in an uncompressed reportlab PDF - what a reader sees."""
+    import re
+
+    chunks = re.findall(rb"\((.*?)(?<!\\)\)\s*Tj", data, re.S)
+    return " ".join(
+        c.decode("latin-1").replace("\\(", "(").replace("\\)", ")") for c in chunks
+    )
+
+
 def _facts(*, report: bool = True) -> dict[str, Any]:
     """Facts in the shape gather_incident_facts really builds (v11 onwards).
 
@@ -46,10 +56,11 @@ def _facts(*, report: bool = True) -> dict[str, Any]:
         },
         "acceptances": [],
         "neighborhood": {"alerted": 5, "responded": 2, "confirmed": 1},
-        "post_incident_report": (
-            {
+        "post_incident_reports": (
+            [{
                 "filed_by": "Ramon Dizon",
                 "filed_by_agency": "fire_volunteer",
+                "organization": "Hercules Fire Brigade",
                 "incident_at": "2026-06-23T08:00:00+00:00",
                 "fire_out_at": "2026-06-23T08:40:00+00:00",
                 "units": [
@@ -65,9 +76,9 @@ def _facts(*, report: bool = True) -> dict[str, Any]:
                 "false_alarm": False,
                 "false_alarm_note": None,
                 "submitted_at": "2026-06-23T09:10:00+00:00",
-            }
+            }]
             if report
-            else None
+            else []
         ),
         "fire_codes": [{"code": "FC-1", "name": "Arrived", "pressed_at": None}],
     }
@@ -118,6 +129,29 @@ def test_build_fire_out_pdf_without_summary() -> None:
 def test_build_fire_out_pdf_before_the_report_is_filed() -> None:
     """Fire out, report still owed: the PDF says so rather than failing."""
     assert build_fire_out_pdf(_facts(report=False), None)[:5] == b"%PDF-"
+
+
+def test_the_pdf_lists_every_teams_report() -> None:
+    """Two teams filed: the report has a subsection for each, in filing order."""
+    facts = _facts()
+    second = dict(
+        facts["post_incident_reports"][0],
+        filed_by="Arnel Robles",
+        filed_by_agency="bfp",
+        organization="BFP Pasay City Fire Station",
+        driver_name="Dennis Cabrera",
+    )
+    facts["post_incident_reports"].append(second)
+    flat = _pdf_text(
+        build_fire_out_pdf(facts, "Summary.", summary_model="deepseek-flash", compress=False)
+    )
+    assert "Fire Incident Report" in flat
+    assert "5.1" in flat and "Hercules Fire Brigade" in flat
+    assert "5.2" in flat and "BFP Pasay City Fire Station" in flat
+    assert flat.index("Paolo Villareal") < flat.index("Dennis Cabrera")
+    # Philippine time, not the UTC the facts are stored in.
+    assert "23 Jun 2026, 4:40 PM" in flat
+    assert "Written by AI (deepseek-flash)" in flat
 
 
 def test_the_pdf_is_built_from_the_facts_the_summary_uses() -> None:

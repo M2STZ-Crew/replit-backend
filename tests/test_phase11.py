@@ -24,7 +24,7 @@ from app.core.config import Settings
 from app.core.exceptions import ExternalServiceError
 from app.integrations.deepseek_ai import DeepSeekClient, DeepSeekNotConfiguredError
 from app.main import app
-from app.services.ai_summary import _iso, _render_facts, _row_to_dict
+from app.services.ai_summary import _iso, _render_facts, _row_to_dict, ph_time
 
 
 @pytest.fixture(scope="module")
@@ -39,6 +39,7 @@ def _report(**overrides: Any) -> dict[str, Any]:
     base: dict[str, Any] = {
         "filed_by": "Ana Reyes",
         "filed_by_agency": "fire_volunteer",
+        "organization": "Hercules Fire Brigade",
         "incident_at": "2026-06-23T08:00:00+00:00",
         "fire_out_at": "2026-06-23T08:40:00+00:00",
         "units": [
@@ -92,7 +93,7 @@ def _structured(**overrides: Any) -> dict[str, Any]:
             },
         ],
         "neighborhood": {"alerted": 6, "responded": 3, "confirmed": 2},
-        "post_incident_report": _report(),
+        "post_incident_reports": [_report()],
         "fire_codes": [{"code": "C-1", "name": "Water supply", "pressed_at": None}],
     }
     base.update(overrides)
@@ -123,8 +124,9 @@ def test_the_summary_is_given_what_the_captain_selected() -> None:
     """The report's six answers are what the model reads: the two times, every
     unit, the driver, the roster and the equipment (Section 2.5.3)."""
     text = _render_facts(_structured())
-    assert "Time of the incident: 2026-06-23T08:00:00+00:00" in text
-    assert "Time the fire was out: 2026-06-23T08:40:00+00:00" in text
+    # 08:00 UTC is 4:00 PM in Pasay - the time anyone at the fire would give.
+    assert "Time of the incident: 23 Jun 2026, 4:00 PM" in text
+    assert "Time the fire was out: 23 Jun 2026, 4:40 PM" in text
     assert "Units: Apollo (Fire Truck), Hermes (Fire Truck)" in text
     assert "Driver: Juan Dela Cruz" in text
     assert "Crew: Juan Dela Cruz, Maria Santos" in text
@@ -133,9 +135,39 @@ def test_the_summary_is_given_what_the_captain_selected() -> None:
 
 def test_a_report_from_before_roles_were_dropped_still_names_them() -> None:
     text = _render_facts(
-        _structured(post_incident_report=_report(roster=[{"name": "Maria", "role": "Nozzle"}]))
+        _structured(post_incident_reports=[_report(roster=[{"name": "Maria", "role": "Nozzle"}])])
     )
     assert "Maria (Nozzle)" in text
+
+
+def test_every_teams_report_is_given_to_the_model() -> None:
+    """Two teams fought it and each captain filed: the summary must cover both."""
+    second = _report(
+        filed_by="Arnel Robles",
+        filed_by_agency="bfp",
+        organization="BFP Pasay City Fire Station",
+        units=[{"name": "Fire truck", "type": "Fire Truck"}],
+        driver_name="Dennis Cabrera",
+        roster=[{"name": "Dennis Cabrera"}, {"name": "Liza Fernandez"}],
+        equipment_taken=["Hydrant key"],
+    )
+    text = _render_facts(_structured(post_incident_reports=[_report(), second]))
+    assert "Post-Incident Reports filed: 2 (one per responding team)" in text
+    assert "Report 1 of 2 - Hercules Fire Brigade (Fire Volunteers), filed by Ana Reyes" in text
+    assert "Report 2 of 2 - BFP Pasay City Fire Station (BFP), filed by Arnel Robles" in text
+    # Each report keeps its own crew: the order in the text is the order filed.
+    assert text.index("Driver: Juan Dela Cruz") < text.index("Driver: Dennis Cabrera")
+    assert "Equipment taken: Hydrant key" in text
+
+
+def test_times_are_written_as_philippine_time() -> None:
+    assert ph_time("2026-09-30T08:40:00+00:00") == "30 Sep 2026, 4:40 PM"
+    assert ph_time("2026-09-30T16:05:00+00:00") == "1 Oct 2026, 12:05 AM"
+    assert ph_time(datetime(2026, 9, 30, 4, 0, tzinfo=UTC)) == "30 Sep 2026, 12:00 PM"
+    assert ph_time(None) == "-"
+    text = _render_facts(_structured())
+    assert "all times are Philippine time" in text
+    assert "T08:" not in text, "no raw UTC timestamp reaches the model"
 
 
 def test_the_v10_vocabulary_is_gone() -> None:
@@ -171,18 +203,20 @@ def test_a_false_alarm_leads_the_report_with_its_explanation() -> None:
     """Section 2.5.3: the flag is the headline, and it never appears unexplained."""
     text = _render_facts(
         _structured(
-            post_incident_report=_report(false_alarm=True, false_alarm_note="Fire already out")
+            post_incident_reports=[
+                _report(false_alarm=True, false_alarm_note="Fire already out")
+            ]
         )
     )
-    report_section = text.split("Post-Incident Report")[1]
+    report_section = text.split("Report 1 of 1")[1]
     assert report_section.index("FALSE ALARM") < report_section.index("Units:")
     assert "Fire already out" in text
 
 
 def test_an_unfiled_report_says_so() -> None:
     """A manual summary before filing must not pretend the report exists."""
-    text = _render_facts(_structured(post_incident_report=None, status="post_incident_report"))
-    assert "Post-Incident Report: not filed yet" in text
+    text = _render_facts(_structured(post_incident_reports=[], status="post_incident_report"))
+    assert "Post-Incident Reports: none filed yet" in text
     assert "Units:" not in text
 
 
@@ -190,7 +224,7 @@ def test_a_v10_incident_keeps_its_real_dispatch_time() -> None:
     """Incidents that ran before v11 genuinely have one; it stays in their history."""
     ts = dict(_structured()["timestamps"], dispatched_at="2026-06-23T08:03:00+00:00")
     text = _render_facts(_structured(timestamps=ts))
-    assert "dispatched:   2026-06-23T08:03:00+00:00" in text
+    assert "dispatched:   23 Jun 2026, 4:03 PM" in text
 
 
 def test_render_facts_empty_sections() -> None:
@@ -200,7 +234,7 @@ def test_render_facts_empty_sections() -> None:
             alarm_level=None,
             acceptances=[],
             fire_codes=[],
-            post_incident_report=_report(units=[], roster=[], equipment_taken=[]),
+            post_incident_reports=[_report(units=[], roster=[], equipment_taken=[])],
         )
     )
     assert "Alarm level: none" in text

@@ -7,11 +7,13 @@ dumped and loaded explicitly.
 
 v11 changed what the facts are. The dispatch step is gone (Section 2.5), so "who
 went" no longer comes from dispatch_logs — it comes from the team captain's
-Post-Incident Report: the time of the incident and the time the fire was out,
+Post-Incident Reports: the time of the incident and the time the fire was out,
 the units, driver, crew, equipment and the false-alarm flag - every one of them
 picked rather than typed, so the facts the model reads are the organisation's
-own unit and member names. The facts also carry who accepted the incident, since under v11
-the first Accept is what verified it and sent responders.
+own unit and member names. Each responding team files its own report, and the
+summary is given all of them: it is rewritten every time another team files.
+The facts also carry who accepted the incident, since under v11 the first
+Accept is what verified it and sent responders.
 
 That is also why the summary is written when the report is filed rather than at
 fire out: before then, the report — the most useful part of the record — does not
@@ -22,7 +24,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
@@ -49,6 +51,32 @@ def _iso(value: datetime | None) -> str | None:
     return value.isoformat() if value is not None else None
 
 
+# The Philippines keeps UTC+8 all year, so a fixed offset is exact and needs no
+# time-zone database on the host.
+PH_TIME = timezone(timedelta(hours=8), "PHT")
+
+
+def ph_time(value: str | datetime | None, *, missing: str = "-") -> str:
+    """A timestamp as a reader in Pasay would write it: "30 Sep 2026, 4:40 PM".
+
+    The facts are stored in UTC. Handed to the model (or printed in the PDF) as
+    ISO strings they came back as "08:40 UTC" - eight hours off the time anyone
+    at the fire would recognise.
+    """
+    if value is None or value == "":
+        return missing
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value)
+        except ValueError:
+            return value
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=UTC)
+    local = value.astimezone(PH_TIME)
+    hour = local.hour % 12 or 12
+    return f"{local.day} {local:%b %Y}, {hour}:{local:%M} {'AM' if local.hour < 12 else 'PM'}"
+
+
 def _row_to_dict(row: Any) -> dict[str, Any]:
     """Normalize an ai_summaries row: parse jsonb, coerce numeric cost to float."""
     data = dict(row)
@@ -72,6 +100,33 @@ class IncidentFacts:
     facts_text: str
 
 
+def _report_lines(report: dict[str, Any], index: int, total: int) -> list[str]:
+    """One team's Post-Incident Report, as the model reads it."""
+    team = report.get("organization") or "a team with no organisation on record"
+    agency = _AGENCY_NAME.get(report["filed_by_agency"] or "", "")
+    filer = report["filed_by"] or "the team captain"
+    lines = [
+        f"Report {index} of {total} - {team}{' (' + agency + ')' if agency else ''}, "
+        f"filed by {filer} on {ph_time(report.get('submitted_at'))}:"
+    ]
+    if report["false_alarm"]:
+        lines.append(f"  FALSE ALARM - {report['false_alarm_note'] or 'no explanation given'}")
+    lines.append(f"  Time of the incident: {ph_time(report['incident_at'])}")
+    lines.append(f"  Time the fire was out: {ph_time(report['fire_out_at'])}")
+    units = [f"{u['name']} ({u['type']})" if u.get("type") else u["name"] for u in report["units"]]
+    lines.append(f"  Units: {', '.join(units) if units else 'none recorded'}")
+    lines.append(f"  Driver: {report['driver_name']}")
+    crew = [
+        f"{m['name']} ({m['role']})" if m.get("role") else m["name"] for m in report["roster"]
+    ]
+    lines.append(f"  Crew: {', '.join(crew) if crew else 'none recorded'}")
+    equipment = report["equipment_taken"]
+    lines.append(f"  Equipment taken: {', '.join(equipment) if equipment else 'none recorded'}")
+    if report.get("notes"):
+        lines.append(f"  Captain's notes: {report['notes']}")
+    return lines
+
+
 def _render_facts(s: dict[str, Any]) -> str:
     """Render the structured facts into a compact text block for the model."""
     ts = s["timestamps"]
@@ -82,18 +137,18 @@ def _render_facts(s: dict[str, Any]) -> str:
         f"Confidence: {s['confidence']['score']} ({s['confidence']['band']}), "
         f"from {s['report_count']} citizen report(s)",
         f"Alarm level: {s['alarm_level'] or 'none'}",
-        "Timeline:",
-        f"  reported:     {ts['reported_at'] or '-'}",
-        f"  accepted:     {ts['accepted_at'] or '-'}",
+        "Timeline (all times are Philippine time):",
+        f"  reported:     {ph_time(ts['reported_at'])}",
+        f"  accepted:     {ph_time(ts['accepted_at'])}",
     ]
     # Only incidents that ran under v10 have one: v11 has no dispatch step.
     if ts.get("dispatched_at"):
-        lines.append(f"  dispatched:   {ts['dispatched_at']}")
+        lines.append(f"  dispatched:   {ph_time(ts['dispatched_at'])}")
     lines += [
-        f"  en route:     {ts['en_route_at'] or '-'}",
-        f"  on scene:     {ts['arrived_at'] or '-'}",
-        f"  fire out:     {ts['fire_out_at'] or '-'}",
-        f"  report filed: {ts['closed_at'] or '-'}",
+        f"  en route:     {ph_time(ts['en_route_at'])}",
+        f"  on scene:     {ph_time(ts['arrived_at'])}",
+        f"  fire out:     {ph_time(ts['fire_out_at'])}",
+        f"  report filed: {ph_time(ts['closed_at'])}",
     ]
 
     if s["acceptances"]:
@@ -115,32 +170,14 @@ def _render_facts(s: dict[str, Any]) -> str:
         f"{nb['responded']} responded, {nb['confirmed']} confirmed a fire"
     )
 
-    report = s["post_incident_report"]
-    if report is None:
-        lines.append("Post-Incident Report: not filed yet")
+    # Each responding team's captain files their own; the summary covers them all.
+    reports = s["post_incident_reports"]
+    if not reports:
+        lines.append("Post-Incident Reports: none filed yet")
     else:
-        filer = report["filed_by"] or "the team captain"
-        agency = _AGENCY_NAME.get(report["filed_by_agency"] or "", "")
-        lines.append(f"Post-Incident Report (filed by {filer}{', ' + agency if agency else ''}):")
-        if report["false_alarm"]:
-            lines.append(f"  FALSE ALARM — {report['false_alarm_note'] or 'no explanation given'}")
-        lines.append(f"  Time of the incident: {report['incident_at'] or '-'}")
-        lines.append(f"  Time the fire was out: {report['fire_out_at'] or '-'}")
-        units = [
-            f"{u['name']} ({u['type']})" if u.get("type") else u["name"]
-            for u in report["units"]
-        ]
-        lines.append(f"  Units: {', '.join(units) if units else 'none recorded'}")
-        lines.append(f"  Driver: {report['driver_name']}")
-        crew = [
-            f"{m['name']} ({m['role']})" if m.get("role") else m["name"]
-            for m in report["roster"]
-        ]
-        lines.append(f"  Crew: {', '.join(crew) if crew else 'none recorded'}")
-        equipment = report["equipment_taken"]
-        lines.append(f"  Equipment taken: {', '.join(equipment) if equipment else 'none recorded'}")
-        if report["notes"]:
-            lines.append(f"  Captain's notes: {report['notes']}")
+        lines.append(f"Post-Incident Reports filed: {len(reports)} (one per responding team)")
+        for index, report in enumerate(reports, start=1):
+            lines += _report_lines(report, index, len(reports))
 
     if s["fire_codes"]:
         lines.append("Fire codes activated:")
@@ -206,9 +243,11 @@ async def gather_incident_facts(db: Database, area_id: UUID) -> IncidentFacts:
             """,
             area_id,
         )
-    report = await db.fetchrow(
+    # Every team's report, in the order they were filed (one per organisation).
+    reports = await db.fetch(
         """
         select p.filed_by_name, p.filed_by_agency::text as filed_by_agency,
+               o.name as organization,
                coalesce(p.incident_at, a.reported_at) as incident_at,
                coalesce(p.fire_out_at, a.resolved_at) as fire_out_at,
                p.units, p.truck_label, p.truck_type, p.driver_name, p.roster,
@@ -216,7 +255,9 @@ async def gather_incident_facts(db: Database, area_id: UUID) -> IncidentFacts:
                p.submitted_at
         from public.post_incident_reports p
         join public.areas a on a.id = p.area_id
+        left join public.organizations o on o.id = p.organization_id
         where p.area_id = $1
+        order by p.submitted_at asc
         """,
         area_id,
     )
@@ -263,12 +304,11 @@ async def gather_incident_facts(db: Database, area_id: UUID) -> IncidentFacts:
             "responded": nb["responded"] if nb else 0,
             "confirmed": nb["confirmed"] if nb else 0,
         },
-        "post_incident_report": (
-            None
-            if report is None
-            else {
+        "post_incident_reports": [
+            {
                 "filed_by": report["filed_by_name"],
                 "filed_by_agency": report["filed_by_agency"],
+                "organization": report["organization"],
                 "incident_at": _iso(report["incident_at"]),
                 "fire_out_at": _iso(report["fire_out_at"]),
                 # A report from before several units could be recorded has only
@@ -285,7 +325,8 @@ async def gather_incident_facts(db: Database, area_id: UUID) -> IncidentFacts:
                 "false_alarm_note": report["false_alarm_note"],
                 "submitted_at": _iso(report["submitted_at"]),
             }
-        ),
+            for report in reports
+        ],
         "fire_codes": [
             {
                 "code": c["code_number"],

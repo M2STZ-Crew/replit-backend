@@ -51,7 +51,7 @@ export default function IncidentDesk({ focusId = null }) {
   const [selectedId, setSelectedId] = useState(focusId);
   const [detail, setDetail] = useState(null);
   const [evidence, setEvidence] = useState([]);
-  const [report, setReport] = useState(null);
+  const [reports, setReports] = useState([]);
   const [orgs, setOrgs] = useState([]);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -93,16 +93,18 @@ export default function IncidentDesk({ focusId = null }) {
   }, [rows, selectedId]);
 
   const loadDetail = useCallback(async (id) => {
-    if (!id) { setDetail(null); setEvidence([]); setReport(null); return; }
+    if (!id) { setDetail(null); setEvidence([]); setReports([]); return; }
     const [d, r] = await Promise.all([
       api.incident(id).catch(() => null),
       api.incidentReports(id).catch(() => []),
     ]);
     setDetail(d);
     setEvidence(r);
-    setReport(d?.has_post_incident_report
-      ? await api.postIncidentReport(id).catch(() => null)
-      : null);
+    // One per responding team. An API from before that returns a single one.
+    setReports(d?.has_post_incident_report
+      ? await api.postIncidentReports(id)
+          .catch(() => api.postIncidentReport(id).then((one) => [one]).catch(() => []))
+      : []);
   }, []);
 
   useEffect(() => {
@@ -267,7 +269,28 @@ export default function IncidentDesk({ focusId = null }) {
                   captain&apos;s Post-Incident Report — the incident closes when they file it.
                 </div>
               )}
-              {report && <ReportView report={report} />}
+              {reports.map((r, i) => (
+                <ReportView
+                  key={r.id}
+                  report={r}
+                  position={reports.length > 1 ? `${i + 1} of ${reports.length}` : null}
+                />
+              ))}
+
+              {reports.length > 0 && (
+                <div className="dk-route-foot">
+                  <button
+                    className="vq-btn"
+                    disabled={busy}
+                    onClick={() => act(() => api.incidentReportPdf(detail.id, detail.designation))}
+                  >
+                    Download report (PDF)
+                  </button>
+                  <span className="vq-muted">
+                    Timeline, every team&apos;s report, and the AI summary.
+                  </span>
+                </div>
+              )}
 
               <div className="vq-scores">
                 <div className="vq-score">
@@ -467,14 +490,16 @@ function RouteList({ routes }) {
   );
 }
 
-function ReportView({ report }) {
+function ReportView({ report, position = null }) {
   const mins = report.resolved_at
     ? Math.max(0, Math.round((new Date(report.submitted_at) - new Date(report.resolved_at)) / 60000))
     : null;
   return (
     <section className="dk-pir">
       <div className="dk-route-head">
-        <span className="dc-eyebrow">Post-Incident Report</span>
+        <span className="dc-eyebrow">
+          Post-Incident Report{position ? ` · ${position}` : ''}
+        </span>
         <span className="vq-muted">
           Filed {when(report.submitted_at)} by {report.filed_by_name || 'the team captain'}
           {report.organization_name ? ` · ${report.organization_name}` : ''}

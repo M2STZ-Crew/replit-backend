@@ -43,6 +43,31 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
   return data;
 }
 
+/// Fetch a file the API serves (the incident report PDF) and hand it to the
+/// browser as a download. It needs the bearer token, so a plain link will not do.
+async function download(path, filename) {
+  let resp;
+  try {
+    resp = await fetch(`${BASE}${path}`, {
+      headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+    });
+  } catch {
+    throw new Error('Cannot reach the server. Is the API running?');
+  }
+  if (!resp.ok) {
+    const data = await resp.json().catch(() => ({}));
+    throw new Error(data.message || `Download failed (${resp.status}).`);
+  }
+  const url = URL.createObjectURL(await resp.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export const api = {
   login: (email, password) =>
     request('/auth/login', { method: 'POST', auth: false, body: { email, password } }),
@@ -82,6 +107,14 @@ export const api = {
 
   // The Post-Incident Report a team captain filed after fire out (§2.5.3).
   postIncidentReport: (id) => request(`/incidents/${id}/post-incident-report`),
+  // Every responding team's report, in the order they were filed.
+  postIncidentReports: (id) => request(`/incidents/${id}/post-incident-reports`),
+  // The incident report PDF: timeline, every team's report, and the AI summary.
+  incidentReportPdf: (id, designation) =>
+    download(
+      `/incidents/${id}/report.pdf`,
+      `${(designation || 'incident').replace(/[^\w.-]+/g, '-')}-report.pdf`,
+    ),
   equipment: () => request('/equipment'),
   mapLayer: (name) => request(`/map/${name}`),
 
