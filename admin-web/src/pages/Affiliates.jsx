@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { api } from '../api/client.js';
 import { agencyAuthority, agencyLabel } from '../auth.jsx';
+import OrgDialog from '../components/OrgDialog.jsx';
 
 const GLYPH = {
   fire_volunteer: 'glyph-firefighter',
@@ -23,6 +24,15 @@ function when(iso, opts = { day: 'numeric', month: 'short', year: 'numeric' }) {
   return iso ? new Date(iso).toLocaleDateString(undefined, opts) : '—';
 }
 
+function ChevronIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  );
+}
+
 function ago(iso) {
   if (!iso) return '';
   const hrs = (Date.now() - new Date(iso).getTime()) / 36e5;
@@ -38,10 +48,16 @@ function ago(iso) {
  * that changes an organisation's standing, so neither is shown — a button that
  * cannot work is worse than no button. Its application cards also had a
  * document-completion bar; affiliate_requests stores no documents, so the
- * contact details that are actually submitted are shown instead. */
+ * contact details that are actually submitted are shown instead.
+ *
+ * An approved application leaves the queue, but what it said stays useful: a
+ * row in the accredited table opens the organisation with its application,
+ * matched on the organisation the approval created. */
 export default function Affiliates() {
   const [orgs, setOrgs] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [approved, setApproved] = useState([]);
+  const [openId, setOpenId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busyId, setBusyId] = useState(null);
@@ -51,12 +67,14 @@ export default function Affiliates() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [o, r] = await Promise.all([
+      const [o, r, a] = await Promise.all([
         api.organizations().catch(() => []),
         api.affiliates('pending').catch(() => []),
+        api.affiliates('approved').catch(() => []),
       ]);
       setOrgs(o);
       setRequests(r);
+      setApproved(a);
       setError(null);
     } catch (e) {
       setError(e.message);
@@ -83,14 +101,29 @@ export default function Affiliates() {
     }
   }
 
+  // The application that created each organisation, newest first so a
+  // re-application would win over an older one.
+  const applicationOf = useMemo(() => {
+    const byOrg = new Map();
+    for (const req of approved) {
+      if (req.organization_id && !byOrg.has(req.organization_id)) {
+        byOrg.set(req.organization_id, req);
+      }
+    }
+    return byOrg;
+  }, [approved]);
+
+  const openOrg = orgs.find((o) => o.id === openId) ?? null;
+  const closeOrg = useCallback(() => setOpenId(null), []);
+
   const stats = useMemo(() => {
     const personnel = orgs.reduce((n, o) => n + (o.personnel_count ?? 0), 0);
     const units = orgs.reduce((n, o) => n + (o.equipment_count ?? 0), 0);
     return [
-      { k: 'Accredited', v: orgs.length, foot: 'Organisations on the network', color: '#ffffff' },
-      { k: 'Awaiting decision', v: requests.length, foot: 'Applications pending', color: requests.length ? '#FF9066' : '#ffffff' },
-      { k: 'Personnel', v: personnel, foot: 'Across all organisations', color: '#ffffff' },
-      { k: 'Units', v: units, foot: 'Equipment registered', color: '#ffffff' },
+      { k: 'Accredited', v: orgs.length, foot: 'Organisations on the network', color: 'var(--text)' },
+      { k: 'Awaiting decision', v: requests.length, foot: 'Applications pending', color: requests.length ? 'var(--accent)' : 'var(--text)' },
+      { k: 'Personnel', v: personnel, foot: 'Across all organisations', color: 'var(--text)' },
+      { k: 'Units', v: units, foot: 'Equipment registered', color: 'var(--text)' },
     ];
   }, [orgs, requests]);
 
@@ -204,10 +237,10 @@ export default function Affiliates() {
           <div className="sb-map-title">
             <span className="sb-panel-title">Accredited organisations</span>
             <span className="sb-panel-sub">
-              {orgs.length} on the network. Fire Volunteer and BFP organisations coordinate
-              the response; police, medical and barangay take part for situational awareness
-              only. Accreditation is granted through the queue above; there is no endpoint to
-              suspend or revoke it yet.
+              {orgs.length} on the network. Select one to see its contact details, people,
+              equipment and the application it joined with. Fire Volunteer and BFP
+              organisations coordinate the response; police, medical and barangay take part
+              for situational awareness only.
             </span>
           </div>
         </header>
@@ -220,6 +253,7 @@ export default function Affiliates() {
             <span className="af-c-num">Units</span>
             <span className="af-c-num">Personnel</span>
             <span className="af-c-status">Status</span>
+            <span className="af-c-go" />
           </div>
 
           {!loading && orgs.length === 0 && (
@@ -231,7 +265,14 @@ export default function Affiliates() {
           {orgs.map((o) => {
             const auth = agencyAuthority(o.agency_type);
             return (
-            <div className="ar-row af-cols" key={o.id}>
+            <button
+              type="button"
+              className="ar-row af-cols af-row"
+              key={o.id}
+              onClick={() => setOpenId(o.id)}
+              aria-haspopup="dialog"
+              aria-label={`${o.name}: view details`}
+            >
               <div className="af-c-org af-org">
                 <span className="af-org-chip" style={{ background: `${SECTOR_COLOR[o.agency_type] ?? '#8a8a8a'}1f` }}>
                   <img src={`/assets/${GLYPH[o.agency_type] ?? 'glyph-people'}.png`} alt="" width="15" height="15" />
@@ -239,8 +280,10 @@ export default function Affiliates() {
                 <div className="af-org-text">
                   <span className="af-org-name">{o.name}</span>
                   <span className="ar-actor-sub">
-                    Accredited {when(o.created_at)}
-                    {o.address ? ` · ${o.address}` : ''}
+                    Accredited {when(applicationOf.get(o.id)?.reviewed_at || o.created_at)}
+                    {(o.address || applicationOf.get(o.id)?.address)
+                      ? ` · ${o.address || applicationOf.get(o.id).address}`
+                      : ''}
                   </span>
                 </div>
               </div>
@@ -262,11 +305,22 @@ export default function Affiliates() {
                   {o.is_active ? 'Active' : 'Inactive'}
                 </span>
               </span>
-            </div>
+              <span className="af-c-go" aria-hidden="true"><ChevronIcon /></span>
+            </button>
             );
           })}
         </div>
       </section>
+
+      {openOrg && (
+        <OrgDialog
+          org={openOrg}
+          application={applicationOf.get(openOrg.id) ?? null}
+          glyph={GLYPH[openOrg.agency_type] ?? 'glyph-people'}
+          color={SECTOR_COLOR[openOrg.agency_type] ?? '#8a8a8a'}
+          onClose={closeOrg}
+        />
+      )}
     </div>
   );
 }
