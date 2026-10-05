@@ -424,6 +424,26 @@ menu → Responders) or Observer (Observer Console → Responders) — creates t
   none). Another team's responder is not found (404). Every create, reset,
   deactivate and reactivate is in the audit log (`user.responder_*`).
 
+#### 2.6.4 AI summaries — *new in v1.12.5*
+
+Coordinators (Fire Volunteer, BFP) and Admin have an **AI summaries** list
+(app: menu → AI summaries; `GET /ai-summaries`). It shows every incident a
+team has filed its Post-Incident Report for, newest first, as "Summarized
+incident — M/D/YYYY", scoped to what their agency sees.
+
+- **Automatic.** Filing a report writes the summary (DeepSeek, from the
+  incident's facts and every team's report), and each later team's report
+  rewrites it. Nobody presses anything. The list writes any summary that is
+  owed (none yet, or older than the newest report), at most once per incident
+  in ten minutes. There is no minimum number of citizen reports.
+- **Read as a note** in the app; **Download PDF** opens the report in the
+  phone's browser. The PDF is built at download from the current facts, never
+  stored, so it is never out of date and costs no AI tokens. The browser
+  holds a five-minute signed link (`POST /incidents/{id}/report-link`) instead
+  of the sign-in; the download re-checks that the account is active and can
+  see the incident.
+- **Cost.** About 600 tokens in and 260 out per summary (≈ US$0.0005).
+
 ### 2.7 Design System
 
 Both web front-ends and the mobile app implement Claude Design hand-offs:
@@ -588,7 +608,7 @@ lifecycle, clustering or verification changes — this is presentation only.
 4. **Notify** — residents within 300 m are asked to corroborate; requested
    agencies see the new Area on their surface with an Accept control
 5. **Summarise** — a background job writes a text summary for whoever is
-   reviewing
+   reviewing (the post-incident AI summary is step 9's, §2.6.4)
 6. **Verify** — the first responder, captain or Admin to verify moves the
    Area `reported → verified`. Later captains' presses are participation
    acknowledgments, logged separately.

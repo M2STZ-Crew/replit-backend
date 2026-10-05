@@ -23,6 +23,7 @@ exist yet.
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
@@ -33,6 +34,7 @@ from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
 from app.db.session import Database, database
 from app.integrations.deepseek_ai import DeepSeekClient
+from app.services.incident import visible_area_sql
 
 log = get_logger(__name__)
 
@@ -388,11 +390,100 @@ async def summarize_in_background(area_id: UUID) -> None:
     if not get_settings().deepseek_configured:
         log.warning("incident_summary_skipped", incident_id=str(area_id), reason="no_api_key")
         return
+    # Filing always writes one, cooldown or not (there is a new report to cover);
+    # noting it here keeps the AI summaries list from starting a second copy.
+    _started[area_id] = time.monotonic()
     try:
         await generate_incident_summary(database, DeepSeekClient(), area_id)
         log.info("incident_summary_generated", incident_id=str(area_id))
     except Exception:
         log.error("incident_summary_failed", incident_id=str(area_id), exc_info=True)
+
+
+# --------------------------------------------------------------------------- #
+# The coordinators' AI summaries list (v1.12.5)
+# --------------------------------------------------------------------------- #
+# When a summary was last started for an incident (monotonic seconds). A
+# summary the list finds missing is written once and not again for ten minutes,
+# so a coordinator pulling to refresh — or two of them at once — cannot start a
+# second copy, and a DeepSeek outage is retried every ten minutes rather than on
+# every load. Per process; a restart forgets it, which costs at most one extra
+# summary.
+SUMMARY_RETRY_AFTER = 600.0
+_started: dict[UUID, float] = {}
+
+# The most summaries one load of the list starts. A backlog is worked through
+# over a few loads rather than all at once.
+BACKFILL_PER_LOAD = 10
+
+
+def claim_summary(area_id: UUID, *, now: float | None = None) -> bool:
+    """True, and noted, when no summary was started for this incident lately."""
+    now = time.monotonic() if now is None else now
+    for stale in [k for k, t in _started.items() if now - t >= SUMMARY_RETRY_AFTER]:
+        del _started[stale]
+    if area_id in _started:
+        return False
+    _started[area_id] = now
+    return True
+
+
+def summary_state(row: dict[str, Any], *, configured: bool) -> str:
+    """ready: the newest summary covers every team's report; writing: one is owed
+    and will be written; unavailable: one is owed and the server has no AI key.
+
+    A summary is owed when there is none, or when a team filed after it was
+    written — the summary is rewritten for each report, and if that rewrite
+    failed the old one no longer covers the incident.
+    """
+    generated = row.get("generated_at")
+    if generated is not None and generated >= row["last_filed_at"]:
+        return "ready"
+    return "writing" if configured else "unavailable"
+
+
+async def list_summarized_incidents(
+    db: Database, agencies: list[str] | None, *, limit: int
+) -> list[dict[str, Any]]:
+    """Every incident a team has filed a report for, with its newest summary.
+
+    ``agencies`` is visible_agencies(user): None for admin (all). Newest first,
+    by when the summary was written, or the last report filed if there is none.
+    """
+    params: list[Any] = [limit]
+    where = ""
+    if agencies is not None:
+        params.append(agencies)
+        where = "where " + visible_area_sql(2, "a")
+    rows = await db.fetch(
+        f"""
+        select a.id as area_id, a.designation, a.status::text as status,
+               a.reported_at, a.closed_at,
+               p.reports_filed, p.teams, p.last_filed_at,
+               s.id as summary_id, s.summary_text, s.model, s.generated_at
+        from public.areas a
+        join lateral (
+            select count(*) as reports_filed,
+                   array_remove(array_agg(o.name order by pr.submitted_at), null) as teams,
+                   max(pr.submitted_at) as last_filed_at
+            from public.post_incident_reports pr
+            left join public.organizations o on o.id = pr.organization_id
+            where pr.area_id = a.id
+        ) p on p.reports_filed > 0
+        left join lateral (
+            select x.id, x.summary_text, x.model, x.generated_at
+            from public.ai_summaries x
+            where x.area_id = a.id
+            order by x.generated_at desc
+            limit 1
+        ) s on true
+        {where}
+        order by coalesce(s.generated_at, p.last_filed_at) desc
+        limit $1
+        """,
+        *params,
+    )
+    return [dict(r) for r in rows]
 
 
 async def list_incident_summaries(db: Database, area_id: UUID) -> list[dict[str, Any]]:

@@ -6,6 +6,89 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.5 — 5 October 2026 — AI summaries for coordinators, and the PDF in a browser
+
+### Changes
+
+**Added**
+- **AI summaries list** for Fire Volunteer and BFP coordinators (and Admin):
+  every incident a team has filed its Post-Incident Report for, newest first,
+  each with its newest summary. No gate on how many citizens reported it.
+- **Nobody asks for a summary.** One is still written when each team files
+  (as since v1.12.0). The list now also writes any that are owed: an
+  incident with no summary (the ones from before the AI key was set), or one
+  whose newest report came after its summary (a rewrite that failed). It
+  starts them after answering, at most 10 per load, and once per incident in
+  ten minutes, so pulling to refresh never starts a second copy.
+- **The PDF, downloaded in the phone's browser.** A browser cannot send the
+  sign-in, so the app asks for a link that works for five minutes, for one
+  incident, for the person it was made for. The link is HMAC-signed (key
+  derived from `SUPABASE_JWT_SECRET`, or the service-role key if that is
+  unset); nothing is stored. The download checks again that the account is
+  active staff who can see the incident. The PDF is still built at each
+  download, so it carries every report filed by then. Its file name is
+  readable: `Fire-report-Area-3-2026-10-05.pdf`.
+
+**Modified**
+- `GET /incidents/{id}/report.pdf` shares its PDF building with the new
+  download; it behaves the same.
+
+### Files Changed
+- New: `app/services/report_links.py`, `tests/test_ai_summaries.py`.
+- `app/api/routes/ai.py` (`summaries_router`, `GET /ai-summaries`),
+  `app/api/routes/incident_reports.py` (`report-link`, `report-download`),
+  `app/services/ai_summary.py` (the owed-summary rule, the ten-minute claim,
+  the list query), `app/schemas/ai.py` (`SummarizedIncident`,
+  `ReportLinkResponse`), `app/api/routes/__init__.py`.
+- `pyproject.toml`, `uv.lock`, `app/core/config.py`, `admin-web/package.json`,
+  `observer-web/package.json` — version 1.12.5.
+
+### Database Changes
+None. (v1.12.4's `20261005090000_responder_accounts.sql` must still be
+applied before this backend deploys. See below.)
+
+### API Changes
+| Endpoint | Change |
+|---|---|
+| `GET /ai-summaries?limit=50` | **New.** Coordinators and Admin (observers, responders → 403). `[{area_id, designation, status, reported_at, closed_at, reports_filed, teams[], last_filed_at, state, summary_id, summary_text, model, generated_at}]`, newest first, scoped to what the caller's agency sees. `state`: `ready` / `writing` (being written; an older summary is still returned meanwhile) / `unavailable` (no AI key). |
+| `POST /incidents/{id}/report-link` | **New.** Visibility-checked staff → `{path, expires_at}`; `path` is relative to the API base and carries its signature. |
+| `GET /incidents/{id}/report-download?token=` | **New. No Authorization header.** Streams the PDF (`Cache-Control: private, no-store`). Expired → 410, tampered or for another incident → 403, account deactivated or no longer able to see the incident → 403. Each refusal is plain text, since a browser shows it. |
+
+### Frontend Changes
+- Mobile (`replit-android` v1.12.5): menu → **AI summaries** for Fire
+  Volunteer and BFP coordinators. A list of "Summarized incident — 10/5/2026";
+  each opens as a note with **Download PDF**. See that repository's
+  `CHANGELOG.md`.
+
+### Testing
+- The link: works within five minutes for its incident and user; expires
+  after; refused for another incident, with the user, expiry or signature
+  changed, or malformed; URL-safe; signs without the JWT secret.
+- What is owed: a summary after the last report is ready; none, or one
+  older than the newest report, is owed (`writing`, or `unavailable` with no
+  key); a summary is started once in ten minutes.
+- The list: a coordinator sees each incident and its teams; a missing
+  summary is started without anyone asking and not again on refresh; an
+  outdated one is shown while it is rewritten; nothing starts without a key; a
+  backlog goes 10 per load with no repeats; a fire coordinator's query covers
+  both fire agencies; Admin's covers all; police, responders and citizens are
+  refused (403) before any query; no sign-in → 401.
+- The download: link → PDF in a browser with no sign-in, readable file name,
+  `no-store`; no link for another agency's incident; a deactivated account's
+  link stops at once; a link does not open another incident; an expired one
+  says so in words (410); the file name is the incident's Philippine day.
+- Result: 480 backend tests pass (34 new); `ruff` clean; `mypy` clean apart
+  from the pre-existing `app/services/ai_summary.py:74` (`ph_time`, moved two
+  lines by an import, not otherwise touched).
+
+### Regression Check
+Full backend suite passes. Filing a Post-Incident Report still writes the
+summary exactly as before. The ten-minute note it now leaves only stops the
+list from starting a duplicate. `report.pdf` is unchanged for the Admin
+Console.
+
+---
+
 ## v1.12.4 — 5 October 2026 — Coordinators make their responders' accounts
 
 (1.12.2 and 1.12.3 were app-only releases; the backend and consoles go from
