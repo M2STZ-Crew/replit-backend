@@ -6,6 +6,110 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.4 — 5 October 2026 — Coordinators make their responders' accounts
+
+(1.12.2 and 1.12.3 were app-only releases; the backend and consoles go from
+1.12.1 straight to 1.12.4 so all four carry the same number again.)
+
+### Changes
+
+**Added**
+- **Responder accounts, made by the team captain** (Master Context v12
+  §2.6.3). Every sub-admin — a Fire Volunteer or BFP coordinator in the app,
+  a police, medical or barangay captain in the Observer Console — creates the
+  Response Team accounts of their own agency and team:
+  - the address follows the account directory: first initial + full surname,
+    `.res` + agency (`fir`, `bfp`, `pol`, `med`, `bar`), `@replit.com` —
+    `jdelacruz.resfir@replit.com`; when the same role already has that name,
+    the next number goes straight after the surname (`jdelacruz1.resfir`);
+  - the password is generated and returned **once**, for the captain to hand
+    over in person (@replit.com has no mailboxes);
+  - **Reset password** (a new temporary one, once) and **Deactivate /
+    Reactivate**.
+- `GET /team/responders`, `GET /team/responders/email-preview`,
+  `POST /team/responders`, `POST /team/responders/{id}/reset-password`,
+  `/deactivate`, `/reactivate` (sub-admins only, own agency and team).
+- Observer Console: a **Responders** section (sidebar and phone bar).
+
+**Modified**
+- A deactivated account is refused on **every** request and on the socket
+  (401, "This account has been deactivated. Ask your coordinator to reactivate
+  it."), not only at its next sign-in; signing in says the same instead of
+  Supabase's "User is banned".
+
+### Files Changed
+- New: `app/api/routes/team.py`, `app/schemas/team.py`,
+  `app/services/responder_accounts.py`,
+  `supabase/migrations/20261005090000_responder_accounts.sql`,
+  `observer-web/src/pages/RespondersPage.jsx`, `tests/test_team.py`.
+- `app/api/deps.py` (`SubAdminUser`, the active check), `app/api/routes/ws.py`
+  (the active check), `app/api/routes/auth.py` (the deactivated sign-in
+  message), `app/api/routes/__init__.py`.
+- `observer-web/src/App.jsx`, `observer-web/src/components/ObserverShell.jsx`,
+  `observer-web/src/api/client.js`, `observer-web/src/index.css`.
+- `MASTER_CONTEXT_v12.md` — §2.6.1 navigation, new §2.6.3, §5.1.
+- `pyproject.toml`, `uv.lock`, `app/core/config.py`, `admin-web/package.json`,
+  `observer-web/package.json` — version 1.12.4.
+
+### Database Changes
+- `public.users` + `is_active boolean not null default true`,
+  `deactivated_at timestamptz`, `deactivated_by uuid`, `created_by uuid`
+  (both → `users`, on delete set null); index `users_staff_roster_idx`
+  (responders by agency and team).
+- **Migration requirement: apply `20261005090000_responder_accounts.sql`
+  before deploying this backend.** The API reads `users.is_active` on every
+  request, so this backend without the column refuses everyone. Additive and
+  idempotent; every existing account stays active.
+
+### API Changes
+| Endpoint | Change |
+|---|---|
+| `GET /team/responders` | **New.** The caller's responders (agency + team), active first; `responding` when on a live response. |
+| `GET /team/responders/email-preview?first_name&last_name` | **New.** The address that name would get now. |
+| `POST /team/responders` | **New.** `{first_name, last_name, mobile?}` → 201 `{responder, email, temporary_password}`. A race for the same address takes the next number. |
+| `POST /team/responders/{id}/reset-password` | **New.** → `{responder, email, temporary_password}`; 409 while deactivated. |
+| `POST /team/responders/{id}/deactivate` · `/reactivate` | **New.** Ban / unban in Supabase Auth, `users.is_active`; deactivate releases a live response and stops pushes. |
+| Every authenticated route, the socket | A deactivated account → 401 / socket refused. |
+| `POST /auth/login` | A deactivated account → 401 with the deactivated message. |
+
+Another team's or agency's responder → 404; anyone but a sub-admin → 403.
+Audit actions: `user.responder_created`, `user.responder_password_reset`,
+`user.responder_deactivated`, `user.responder_reactivated`.
+
+### Frontend Changes
+- Observer Console: Responders (list, New responder with the live address,
+  the one-time credentials with Copy, Reset password, Deactivate/Reactivate);
+  a card per responder on a phone.
+- Mobile (`replit-android` v1.12.4): menu → Responders for coordinators — see
+  that repository's `CHANGELOG.md`.
+
+### Testing
+- The address: every agency's suffix; the directory's own examples; accents,
+  spaces and case flattened; the first keeps the plain address, later ones
+  numbered after the surname; numbers count only the same role and name and
+  run on after a removal; unknown agencies refused.
+- The password: strong, readable, unique.
+- Create: own agency and team, mobile normalised, audit row; a race for the
+  address takes the next number; only a sub-admin (responder, citizen and
+  Admin → 403); the preview.
+- Roster: own team and agency only; another team's responder 404 for every
+  action.
+- Reset: a new password, once. Deactivate: banned, response released, pushes
+  stopped, account kept, audit row; reset refused until reactivated;
+  reactivate lifts the ban. A deactivated account is refused on a request.
+- Observer Console page driven in a browser against a local stand-in API
+  (create with a live third-of-a-name address, reset, reactivate, phone
+  layout); no console errors.
+- Result: the whole backend suite passes; `ruff` clean; `mypy` clean apart
+  from the pre-existing `app/services/ai_summary.py:72` (not touched here);
+  both consoles build.
+
+### Regression Check
+Full backend suite passes. Every existing account is active by default, so
+nothing changes for anyone until a captain deactivates someone.
+
+---
+
 ## v1.12.1 — 30 September 2026 — Who verified a fire, and for which organization
 
 ### Changes

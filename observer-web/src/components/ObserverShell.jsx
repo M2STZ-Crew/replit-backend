@@ -16,6 +16,10 @@ const Icon = {
   doc: <><path d="M6 3h9l4 4v14H6z" /><path d="M9 9h7M9 13h7M9 17h4" /></>,
   out: <><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3" /><path d="M10 8l-4 4 4 4M6 12h9" /></>,
   user: <><circle cx="12" cy="8" r="3.6" /><path d="M4.5 20.5c1.4-3.6 4.2-5.5 7.5-5.5s6.1 1.9 7.5 5.5" /></>,
+  team: (
+    <><circle cx="9" cy="8" r="3.2" /><path d="M2.5 20c1.1-3.2 3.6-5 6.5-5s5.4 1.8 6.5 5" />
+      <path d="M16 4.6a3.2 3.2 0 010 6.3M18.6 15.4c1.4.8 2.4 2.4 2.9 4.6" /></>
+  ),
   close: <path d="M6 6l12 12M18 6L6 18" />,
 };
 
@@ -28,12 +32,14 @@ function Svg({ path, size = 14, stroke = 'currentColor' }) {
   );
 }
 
-/// Three surfaces and nothing else (v10 Section 2.6.1). Equipment, affiliate
-/// organisations and account management are Admin and Coordinator concerns, so
-/// they are not in this menu at all — not greyed out, absent.
+/// Four surfaces and nothing else (v10 Section 2.6.1, plus v1.12.4's responder
+/// accounts — the captain makes their own team's). Equipment, affiliate
+/// organisations and every other account are Admin concerns, so they are not
+/// in this menu at all — not greyed out, absent.
 const NAV = [
   { key: 'dashboard', label: 'Dashboard', sub: 'Your agency at a glance', icon: Icon.grid },
   { key: 'map', label: 'Map', sub: 'Monitoring', icon: Icon.map },
+  { key: 'responders', label: 'Responders', sub: 'Your team’s accounts', icon: Icon.team },
   { key: 'history', label: 'Audit log', sub: 'History', icon: Icon.doc },
 ];
 

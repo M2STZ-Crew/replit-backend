@@ -27,6 +27,7 @@ from app.api.routes import (
     password_reset,
     post_incident_reports,
     reports,
+    team,
     verification,
     ws,
 )
@@ -48,6 +49,7 @@ api_router.include_router(ai.router)
 api_router.include_router(equipment.router)
 api_router.include_router(affiliates.router)
 api_router.include_router(organizations.router)
+api_router.include_router(team.router)
 api_router.include_router(map_layers.router)
 api_router.include_router(map_layers_admin.router)
 api_router.include_router(hydrant_ops.router)

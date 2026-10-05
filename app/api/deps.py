@@ -98,6 +98,11 @@ async def get_access_token(
 
 AccessTokenDep = Annotated[str, Depends(get_access_token)]
 
+# What a deactivated account is told — at sign-in, on a request, on the socket.
+DEACTIVATED_MESSAGE = (
+    "This account has been deactivated. Ask your coordinator to reactivate it."
+)
+
 
 async def get_current_user(
     request: Request,
@@ -121,7 +126,8 @@ async def get_current_user(
     row = await db.fetchrow(
         """
         select id, email, phone, role, agency_type, verified_percent, badge,
-               full_name, primary_org_id, mobile, date_of_birth, gender, phone_verified
+               full_name, primary_org_id, mobile, date_of_birth, gender, phone_verified,
+               is_active
         from public.users
         where id = $1
         """,
@@ -129,7 +135,12 @@ async def get_current_user(
     )
     if row is None:
         raise UnauthorizedError("Authenticated user has no profile record.")
-    user = AuthenticatedUser.model_validate(dict(row))
+    profile = dict(row)
+    # A deactivated account (a coordinator turned it off) is refused on every
+    # request, not only at the next sign-in: its token may still be valid.
+    if profile.pop("is_active", True) is False:
+        raise UnauthorizedError(DEACTIVATED_MESSAGE)
+    user = AuthenticatedUser.model_validate(profile)
     request.state.actor_id = user.id
     request.state.actor_role = user.role
     request.state.actor_agency = user.agency_type
@@ -205,6 +216,10 @@ def require_role(*roles: str) -> Callable[[AuthenticatedUser], Awaitable[Authent
 
 
 AdminUser = Annotated[AuthenticatedUser, Depends(require_role("admin"))]
+
+# Any sub-admin — a Fire Volunteer or BFP coordinator, or a police, medical or
+# barangay one (the user calls them all coordinators). Responder accounts.
+SubAdminUser = Annotated[AuthenticatedUser, Depends(require_role("sub_admin"))]
 StaffUser = Annotated[
     AuthenticatedUser, Depends(require_role("admin", "sub_admin", "response_team"))
 ]

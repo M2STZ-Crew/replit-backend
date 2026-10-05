@@ -12,6 +12,7 @@ from typing import Any
 from fastapi import APIRouter, BackgroundTasks, Response, status
 
 from app.api.deps import (
+    DEACTIVATED_MESSAGE,
     AccessTokenDep,
     AuthClientDep,
     CurrentUser,
@@ -135,7 +136,15 @@ async def login(payload: LoginRequest, auth: AuthClientDep, db: DatabaseDep) -> 
         email = found
     else:
         email = str(payload.email)
-    data = await auth.sign_in_with_password(email=email, password=payload.password)
+    try:
+        data = await auth.sign_in_with_password(email=email, password=payload.password)
+    except AuthError as exc:
+        # Supabase Auth says "User is banned" for an account a coordinator
+        # deactivated; say it the way a responder would understand.
+        if "banned" in exc.message.lower():
+            log.info("login_deactivated_account")
+            raise AuthError(DEACTIVATED_MESSAGE, details=exc.details) from exc
+        raise
     log.info("user_logged_in", method="phone" if payload.phone else "email")
     return _to_token_response(data)
 

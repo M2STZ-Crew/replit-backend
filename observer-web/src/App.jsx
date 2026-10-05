@@ -8,6 +8,7 @@ import DashboardPage from './pages/DashboardPage.jsx';
 import HistoryPage from './pages/HistoryPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import MonitoringPage from './pages/MonitoringPage.jsx';
+import RespondersPage from './pages/RespondersPage.jsx';
 
 function Console() {
   const { user } = useAuth();
@@ -27,6 +28,8 @@ function Console() {
           <DashboardPage onNavigate={go} />
         ) : active === 'map' ? (
           <MonitoringPage key={focusId ?? 'map'} focusId={focusId} />
+        ) : active === 'responders' ? (
+          <RespondersPage />
         ) : (
           <HistoryPage />
         )}

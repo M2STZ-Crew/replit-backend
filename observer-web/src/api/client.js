@@ -59,7 +59,8 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
 }
 
 /// Only what an observer may do: read the incidents that involve their agency,
-/// read the part of the action record about them, and press Accept.
+/// read the part of the action record about them, press Accept, and look
+/// after their own responders' accounts.
 export const api = {
   login: (email, password) =>
     request('/auth/login', { method: 'POST', auth: false, body: { email, password } }),
@@ -96,6 +97,25 @@ export const api = {
   },
 
   mapLayer: (name) => request(`/map/${name}`),
+
+  // Responder accounts (v1.12.4): the captain makes their own agency's and
+  // team's Response Team accounts. The server names them
+  // (jdelacruz.respol@replit.com) and returns the password once.
+  responders: () => request('/team/responders'),
+  responderEmailPreview: (firstName, lastName) =>
+    request(`/team/responders/email-preview?${new URLSearchParams({
+      first_name: firstName,
+      last_name: lastName,
+    })}`),
+  createResponder: ({ firstName, lastName, mobile }) =>
+    request('/team/responders', {
+      method: 'POST',
+      body: { first_name: firstName, last_name: lastName, mobile: mobile || null },
+    }),
+  resetResponderPassword: (id) =>
+    request(`/team/responders/${id}/reset-password`, { method: 'POST' }),
+  deactivateResponder: (id) => request(`/team/responders/${id}/deactivate`, { method: 'POST' }),
+  reactivateResponder: (id) => request(`/team/responders/${id}/reactivate`, { method: 'POST' }),
 };
 
 export { BASE };

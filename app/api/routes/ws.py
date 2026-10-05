@@ -71,7 +71,7 @@ async def authenticate_websocket(websocket: WebSocket) -> AuthenticatedUser | No
     row = await database.fetchrow(
         """
         select id, email, phone, role, agency_type, verified_percent, badge,
-               full_name, primary_org_id, phone_verified
+               full_name, primary_org_id, phone_verified, is_active
         from public.users
         where id = $1
         """,
@@ -79,7 +79,11 @@ async def authenticate_websocket(websocket: WebSocket) -> AuthenticatedUser | No
     )
     if row is None:
         return None
-    return AuthenticatedUser.model_validate(dict(row))
+    profile = dict(row)
+    # A deactivated account gets no socket, as it gets no HTTP request.
+    if profile.pop("is_active", True) is False:
+        return None
+    return AuthenticatedUser.model_validate(profile)
 
 
 async def _incident_visible(

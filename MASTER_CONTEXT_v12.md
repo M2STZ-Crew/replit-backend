@@ -379,9 +379,10 @@ Observer access to their own `selected_agencies`. UI predicates mirror the
 server (`admin-web/src/auth.jsx`, `observer-web/src/auth.jsx`).
 **The UI mirror is a courtesy; the server is the authority.**
 
-**Observer navigation is three items only** — Dashboard, Map (Monitoring),
-Audit Log (History). Equipment, Affiliate Organization and Account
-Management are Admin and Coordinator concerns.
+**Observer navigation is four items** — Dashboard, Map (Monitoring),
+Responders (their own team's accounts, §2.6.3, *v1.12.4*), Audit Log
+(History). Equipment, Affiliate Organization and every other account are
+Admin concerns.
 
 Visibility remains scoped by `reports.selected_agencies` — an observer sees
 the incidents where a reporter asked for their agency, and no others.
@@ -394,6 +395,34 @@ selected agency's surface displays the Area with its own Accept button.
 Admin's Accept is available as a safety net — for cases where the Fire
 Volunteer coordinator is offline and Observers are on the fence, so the Area
 does not sit unaccepted while a fire grows. Every Admin Accept is logged.
+
+#### 2.6.3 Responder accounts — *new in v1.12.4*
+
+A Response Team member's account comes from their team captain, not from
+Admin and not from self-signup. Every Sub-Admin — Coordinator (in the app,
+menu → Responders) or Observer (Observer Console → Responders) — creates the
+`response_team` accounts of **their own agency and team**
+(`app/api/routes/team.py`):
+
+- **Address** — first initial and full surname, `.res` and the agency, at
+  `replit.com`: `fir` Fire Volunteer, `bfp` BFP, `pol` police, `med` medical,
+  `bar` barangay (Juan Dela Cruz, Fire Volunteer → `jdelacruz.resfir@replit.com`).
+  When the same role already has that initial and surname, the first keeps the
+  plain address and each later one gets the next number straight after the
+  surname (`jdelacruz1.resfir`, `jdelacruz2.resfir`). Shown as the name is
+  typed; computed by the server (`app/services/responder_accounts.py`).
+- **Password** — generated (three groups of four, no look-alike characters)
+  and shown to the captain **once**, to hand over in person. `@replit.com`
+  has no mailboxes, so nothing is emailed and the captain is where a
+  forgotten password is reset ("Reset password" → a new one, once).
+- **Deactivate / reactivate** — the account keeps its history (dispatches,
+  GPS, reports, audit) but cannot sign in: Supabase Auth bans it,
+  `get_current_user` and the socket refuse it (`users.is_active`), its pushes
+  stop, and any response it is on is released. Reactivating lifts all of it.
+- **Scope** — a captain sees and manages only responders of their agency on
+  their team (or, for a captain with no team, the agency's responders with
+  none). Another team's responder is not found (404). Every create, reset,
+  deactivate and reactivate is in the audit log (`user.responder_*`).
 
 ### 2.7 Design System
 
@@ -673,8 +702,9 @@ adds one Accept endpoint. Net: one fewer.
 
 | Dependency | Who |
 |---|---|
-| `CurrentUser` | Any signed-in account |
-| `StaffUser` | `admin` or `sub_admin` |
+| `CurrentUser` | Any signed-in, active account (a deactivated one is refused, §2.6.3) |
+| `StaffUser` | `admin`, `sub_admin` or `response_team` |
+| `SubAdminUser` | `sub_admin` only — responder accounts (§2.6.3) |
 | `AdminUser` | `admin` only |
 
 Plus the Coordinator/Observer check inside the incident routes (§2.6). The

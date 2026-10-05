@@ -370,6 +370,36 @@ strong { font-weight: 700; }
 .log-role { display: block; font-weight: 700; text-transform: capitalize; color: var(--text); }
 .log-agency, .log-detail { font-size: 11px; color: var(--muted); }
 
+/* ── responders (v1.12.4) ────────────────────────────────────────────────── */
+.resp-form .resp-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.resp-preview { display: flex; flex-direction: column; gap: 6px; }
+.resp-email { font-size: 15px; font-weight: 700; color: var(--accent); word-break: break-all; }
+.resp-head { padding: 16px 18px 4px; }
+.resp-table tr.is-off td { opacity: 0.6; }
+.resp-table td[data-cell="name"] { font-weight: 700; color: var(--text); }
+.resp-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.resp-danger { color: var(--live); }
+.resp-on { color: var(--settled); }
+.resp-run { color: var(--accent); }
+.resp-off { color: var(--muted); }
+.cred-row {
+  display: grid; grid-template-columns: 80px minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: var(--r-control); border: 1px solid var(--hairline);
+  background: var(--ground);
+}
+.cred-value { font-size: 15px; font-weight: 700; color: var(--text); word-break: break-all; }
+/* On a phone each responder is a card: name and status, then the sign-in,
+   then the actions — the same restyle the audit log's rows get. */
+@media (max-width: 700px) {
+  .resp-table td[data-cell="name"] { grid-column: 1; grid-row: 1; }
+  .resp-table td[data-cell="status"] { grid-column: 2; grid-row: 1; text-align: right; }
+  .resp-table td[data-cell="email"],
+  .resp-table td[data-cell="actions"] { grid-column: 1 / -1; }
+  .resp-actions { justify-content: flex-start; margin-top: 6px; }
+  .cred-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .cred-row .os-eyebrow { grid-column: 1 / -1; }
+}
+
 /* ── notification sound settings (shared markup with the Admin Console) ─── */
 .ss { position: relative; width: 100%; }
 .ss-toggle {
