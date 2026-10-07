@@ -26,6 +26,7 @@ from app.services.clustering import cluster_report
 from app.services.exif import extract_gps, validate_image
 from app.services.geo import haversine_m
 from app.services.incident import active_area_sql
+from app.services.incident_notify import notify_staff_new_incident
 from app.services.map_feed import publish_area_change
 from app.workers.neighborhood import notify_area_neighbors
 
@@ -209,7 +210,8 @@ async def submit_report(
 
     area_id = await cluster_report(db, report_id=report_id, lat=device_lat, lng=device_lng)
     area = await db.fetchrow(
-        "select designation, centroid_lat, centroid_lng from public.areas where id = $1",
+        "select designation, centroid_lat, centroid_lng, report_count "
+        "from public.areas where id = $1",
         area_id,
     )
     assert area is not None
@@ -237,6 +239,14 @@ async def submit_report(
         )
     except Exception:
         log.error("immediate_neighbor_notify_failed", area_id=str(area_id), exc_info=True)
+    # The first report makes the incident: tell the staff who can see it, with
+    # the fire alarm (v1.12.6). A report joining a known fire is news on the
+    # dashboard, not another alarm.
+    if area["report_count"] == 1:
+        try:
+            await notify_staff_new_incident(db, area_id)
+        except Exception:
+            log.error("staff_new_incident_notify_failed", area_id=str(area_id), exc_info=True)
     await publish_area_change(db, area_id)
 
     if not has_exif:

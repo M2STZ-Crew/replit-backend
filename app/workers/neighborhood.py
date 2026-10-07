@@ -39,7 +39,11 @@ async def notify_area_neighbors(
     point = f"SRID=4326;POINT({lng} {lat})"
     users = await db.fetch(
         f"""
-        select u.id as user_id
+        select u.id as user_id,
+               exists (
+                   select 1 from public.neighborhood_notifications nn
+                   where nn.area_id = $1 and nn.user_id = u.id and nn.alerts_sent > 0
+               ) as alerted_before
         from public.users u
         where u.location is not null
           and extensions.ST_DWithin(
@@ -69,25 +73,14 @@ async def notify_area_neighbors(
         return 0
     user_ids = [u["user_id"] for u in users]
 
-    token_rows = await db.fetch(
-        "select fcm_token from public.device_tokens "
-        "where user_id = any($1::uuid[]) and is_active",
-        user_ids,
-    )
-    tokens = [t["fcm_token"] for t in token_rows]
-    if tokens:
-        result = await push.send_to_tokens(
-            tokens=tokens,
-            title=_ALERT_TITLE,
-            body=_ALERT_BODY,
-            data={"type": "neighborhood_alert", "area_id": str(area_id)},
-        )
-        if result.invalid_tokens:
-            await db.execute(
-                "update public.device_tokens set is_active = false "
-                "where fcm_token = any($1::text[])",
-                result.invalid_tokens,
-            )
+    # The first alert rings the fire alarm; the reminders after it (one a minute,
+    # up to ten, until they answer) come with the phone's own tone and replace
+    # the last one in the shade — ten sirens would teach people to mute the app.
+    first = [u["user_id"] for u in users if not u["alerted_before"]]
+    again = [u["user_id"] for u in users if u["alerted_before"]]
+    for ids, alert in ((first, True), (again, False)):
+        if ids:
+            await _push_alert(db, push, area_id, ids, alert=alert)
 
     await db.execute(
         f"""
@@ -106,6 +99,34 @@ async def notify_area_neighbors(
     )
     log.info("neighborhood_alerts_sent", area_id=str(area_id), users=len(user_ids))
     return len(user_ids)
+
+
+async def _push_alert(
+    db: Database, push: PushService, area_id: UUID, user_ids: list[UUID], *, alert: bool
+) -> None:
+    """Push the neighbourhood alert to these users' phones; retire dead tokens."""
+    token_rows = await db.fetch(
+        "select fcm_token from public.device_tokens "
+        "where user_id = any($1::uuid[]) and is_active",
+        user_ids,
+    )
+    tokens = [t["fcm_token"] for t in token_rows]
+    if not tokens:
+        return
+    result = await push.send_to_tokens(
+        tokens=tokens,
+        title=_ALERT_TITLE,
+        body=_ALERT_BODY,
+        data={"type": "neighborhood_alert", "area_id": str(area_id)},
+        alert=alert,
+        tag=f"nearby-{area_id}",
+    )
+    if result.invalid_tokens:
+        await db.execute(
+            "update public.device_tokens set is_active = false "
+            "where fcm_token = any($1::text[])",
+            result.invalid_tokens,
+        )
 
 
 async def neighborhood_tick() -> None:

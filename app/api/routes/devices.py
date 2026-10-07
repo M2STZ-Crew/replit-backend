@@ -11,7 +11,7 @@ from fastapi import APIRouter, Response, status
 from app.api.deps import CurrentUser, DatabaseDep, PushServiceDep
 from app.core.exceptions import AppError, BadRequestError
 from app.core.logging import get_logger
-from app.integrations.fcm import fcm_status
+from app.integrations.fcm import fcm_failure_reason, fcm_status
 from app.schemas.common import MessageResponse
 from app.schemas.device import DeviceTokenCreate, DeviceTokenResponse
 
@@ -101,6 +101,7 @@ async def send_test_push(
                 if state == "unconfigured"
                 else "Push notifications could not start on this server — its "
                 "Firebase credentials did not load."
+                + (f" {fcm_failure_reason()}" if fcm_failure_reason() else "")
             )
             + " Your phone is fine; an administrator needs to fix the server.",
             status_code=503,

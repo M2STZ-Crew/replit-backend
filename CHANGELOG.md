@@ -6,6 +6,107 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.6 — 7 October 2026 — Notifications outside the app, a fire alarm, and taps that open
+
+### Changes
+
+**Found**
+- **No push had left the live server.** `/health/ready` on Render reported
+  `"push": "failed"`: Firebase would not start there, so not one notification
+  went out. The app and its registered phones were fine; the server could not
+  send. Most likely cause: `FCM_CREDENTIALS_FILE` copied from a laptop `.env`,
+  naming a key file that is gitignored and was never deployed. Render needs
+  `FCM_CREDENTIALS_JSON` set to the key file's contents. That is a dashboard
+  change, not code; see Regression Check.
+- **Staff were never told about a new fire.** Under v10 a responder learnt of
+  an incident from the dispatch push. v11 removed dispatch, and with it the
+  only push staff got. `notify_responder_dispatched` and
+  `notify_route_recipients` have had no caller since.
+
+**Added**
+- **A new fire alerts the staff who can see it**: every active responder and
+  coordinator of each agency it was asked of. The two fire agencies see each
+  other's fires, as in incident visibility. It goes out once, when the first
+  report makes the incident; a report joining a known fire does not repeat it.
+  Push type `incident_new`, plus an Alerts row of the same type for phones
+  without a token (and the Observer Console's bell).
+- **The fire alarm.** A push that says there is a fire (a new incident for
+  staff, a neighbour's *first* alert, an alarm escalation) goes to the app's
+  `fire_alerts` channel, which rings the app's fire alarm. Everything else goes
+  to `updates` with the phone's own tone. The 300 m reminders after a
+  neighbour's first alert (one a minute, up to ten) use the normal tone and
+  replace one another in the shade; ten sirens would teach people to mute the
+  app.
+- **The server says why push will not start.** `/health/ready` adds
+  `push_detail` when push failed: which variable to set and how. It never
+  includes any of the credentials. The test push (`POST /devices/test`) says the
+  same.
+
+**Modified**
+- `FCM_CREDENTIALS_JSON` forgives the usual paste mistakes: quotes around the
+  value (as on a `.env` line) and doubled backslashes in the private key.
+- Every push carries a `tag`, so news about the same incident replaces the
+  last notification instead of stacking: `incident-`, `nearby-`, `report-`,
+  `alarm-` + the incident id.
+
+### Files Changed
+- New: `tests/test_push_alerts.py`.
+- `app/integrations/fcm.py` (channels, `android_config`, `fcm_failure_reason`,
+  tolerant credentials), `app/services/incident_notify.py`
+  (`notify_staff_new_incident`, `staff_agencies_for`; alarm requests ring;
+  tags), `app/workers/neighborhood.py` (first alert rings, reminders do not),
+  `app/api/routes/reports.py` (staff alert on a new incident),
+  `app/api/routes/health.py` (`push_detail`), `app/api/routes/devices.py`.
+- `tests/test_map_feed.py`, `tests/test_report_in_progress.py`: their stand-in
+  database gives `report_count`.
+- `pyproject.toml`, `uv.lock`, `app/core/config.py`, `admin-web/package.json`,
+  `observer-web/package.json`: version 1.12.6.
+
+### Database Changes
+None. `incident_new` is a new value in `notifications.type`, which is text.
+
+### API Changes
+| Endpoint | Change |
+|---|---|
+| `POST /reports/submit` | When the report makes a new incident, staff who can see it get an `incident_new` push (fire alarm) and Alerts row. Best-effort: a failure never fails the report. |
+| `GET /health/ready` | `checks.push_detail` when `push` is `failed`. |
+| `POST /devices/test` | A failed start's 503 names what to fix. |
+| FCM payloads | `android.notification.channel_id` `fire_alerts` (`sound: fire_alarm`, priority max) or `updates`; `tag` per incident; `visibility: public`. `data.type` is unchanged except for the new `incident_new`. |
+
+### Frontend Changes
+- Mobile (`replit-android` v1.12.6) creates the two channels, ships the
+  alarm, and opens every notification where it belongs. See that
+  repository's `CHANGELOG.md`.
+
+### Testing
+- Channels: a fire uses `fire_alerts`, the `fire_alarm` sound, priority max,
+  public on the lock screen, with its tag. Anything else uses `updates` and the
+  phone's tone. Both are high priority.
+- Who hears about a new fire: Fire Volunteer ↔ BFP both ways; fire + medical;
+  police alone; barangay + police; nothing asked → nobody. The staff query
+  takes responders and coordinators and active accounts only. The push rings,
+  carries `incident_new` and the incident, and is tagged. No staff → no push
+  and no row. Staff without a phone still get the Alerts row.
+- Only the report that makes the incident alerts staff (`report_count` 1 vs
+  2). A failing staff alert does not fail the report.
+- Neighbours: a first alert rings, a reminder does not, both carry the same
+  tag.
+- Why push will not start: a laptop path, JSON that isn't JSON, and a key
+  Firebase refuses each give their own `push_detail`, and none quotes the key.
+  Quotes around a pasted key and doubled backslashes are undone. A working
+  push has no detail.
+- Result: 503 backend tests pass (23 new); `ruff` clean; `mypy` clean apart
+  from the pre-existing `app/services/ai_summary.py:74`.
+
+### Regression Check
+Full backend suite passes. Citizens' report updates and neighbour alerts
+carry the same `data` as before, so older app builds still open them. **To
+make any of this reach a phone, Render needs `FCM_CREDENTIALS_JSON`** (the
+whole service-account file, pasted as it is). Check `/health/ready` for
+`"push": "ok"` after the redeploy.
+
+---
+
 ## v1.12.5 — 5 October 2026 — AI summaries for coordinators, and the PDF in a browser
 
 ### Changes

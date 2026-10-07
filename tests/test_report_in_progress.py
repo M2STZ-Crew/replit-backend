@@ -44,7 +44,12 @@ class _Db:
             self.inserted = True
             return {"id": args[0], "created_at": datetime.now(UTC)}
         if "from public.areas" in query:
-            return {"designation": "Area 3", "centroid_lat": 14.54, "centroid_lng": 121.0}
+            return {
+                "designation": "Area 3",
+                "centroid_lat": 14.54,
+                "centroid_lng": 121.0,
+                "report_count": 1,
+            }
         return None
 
     async def execute(self, query: str, *args: Any) -> str:
@@ -84,6 +89,7 @@ def _wire(db: _Db, storage: _Storage, monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(reports, "cluster_report", _cluster)
     monkeypatch.setattr(reports, "notify_area_neighbors", _notify)
+    monkeypatch.setattr(reports, "notify_staff_new_incident", _notify)
 
 
 def _submit(client: TestClient) -> Any:

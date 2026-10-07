@@ -498,7 +498,8 @@ recorded in a code comment.
 
 Per-agency audio cues distinguish incident category at a glance without
 requiring the operator to look at the screen. The Admin Console and the
-Observer Console both play them; the mobile app is silent on inbound.
+Observer Console both play them. The mobile app rings for a fire only
+(*v1.12.6*, below).
 
 | Category | Placeholder cue | Where it plays |
 |---|---|---|
@@ -516,6 +517,22 @@ TBD.
 
 **Controls.** Users can turn sounds off in settings. Per-category volume is
 available; muting the category mutes only that stream.
+
+**Mobile push — *v1.12.6*.** Pushes reach the phone with the app closed, in
+one of two Android channels the app creates:
+- **Fire alerts**: rings RepLiT's fire alarm (a synthesized placeholder,
+  `res/raw/fire_alarm.wav`). Used for a new fire (to every active responder
+  and coordinator whose agency can see it, sent when the first report makes
+  the incident), a neighbour's first 300 m alert, and an alarm escalation
+  request. The 300 m reminders after the first alert use the normal tone.
+- **Updates**: the phone's own tone. Used for everything else (a resident's
+  report progress).
+
+Every notification opens what it is about: the incident for staff, "Do you see
+it too?" for a neighbour, the live tracker for the resident who reported it,
+the alarm queue for BFP. That applies from the shade, from the in-app banner,
+and from Alerts. People can change either channel in the phone's settings. A
+channel's sound is fixed once created, so a new sound needs a new channel id.
 
 ### 2.9 Admin Console Enhancements
 

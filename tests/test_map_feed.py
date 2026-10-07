@@ -71,7 +71,12 @@ class _Db:
         if "insert into public.reports" in query:
             return {"id": args[0], "created_at": NOW}
         if "from public.areas" in query:
-            return {"designation": "Area 7", "centroid_lat": 14.5378, "centroid_lng": 121.0014}
+            return {
+                "designation": "Area 7",
+                "centroid_lat": 14.5378,
+                "centroid_lng": 121.0014,
+                "report_count": 1,
+            }
         return None
 
     async def execute(self, query: str, *args: Any) -> str:
@@ -190,6 +195,7 @@ def test_a_submitted_report_appears_on_an_open_map(
     monkeypatch.setattr(ws_route, "authenticate_websocket", _auth)
     monkeypatch.setattr(reports, "cluster_report", _cluster)
     monkeypatch.setattr(reports, "notify_area_neighbors", _quiet)
+    monkeypatch.setattr(reports, "notify_staff_new_incident", _quiet)
     app.dependency_overrides[get_current_user] = lambda: reporter
     app.dependency_overrides[get_database] = lambda: _Db()
     app.dependency_overrides[get_storage_client] = lambda: _Storage()

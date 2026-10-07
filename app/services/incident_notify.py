@@ -4,6 +4,12 @@ When staff act on an incident (verify / dispatch / en route / arrived / resolve 
 reject), the citizens who reported it get a push — delivered even when the app is
 closed (FCM notification payload). Complements the 300 m neighborhood worker,
 which notifies *neighbors* (and excludes the reporter).
+
+v1.12.6: staff hear about a new fire. Under v10 a responder learnt of an
+incident from the dispatch push; v11 removed dispatch, and with it the only push
+staff ever got for a new fire. Now every active responder and coordinator whose
+agency can see the incident gets one, with the fire alarm, the moment the first
+report makes it.
 """
 
 from __future__ import annotations
@@ -13,10 +19,98 @@ from uuid import UUID
 from app.core.logging import get_logger
 from app.db.session import Database
 from app.integrations.fcm import PushService
+from app.services.incident import COORDINATING_AGENCIES, OBSERVER_AGENCIES
 from app.services.notification_inbox import record_inbox
 from app.services.verifier import fetch_verifier
 
 log = get_logger(__name__)
+
+
+def staff_agencies_for(asked: list[str]) -> list[str]:
+    """The staff agencies that can see an incident whose reports asked ``asked``.
+
+    Incident visibility (``visible_agencies``) read the other way round: each
+    agency sees what was asked of it, and the two fire agencies see each other's
+    — so a fire asked of the Fire Volunteers reaches BFP too.
+    """
+    wanted = set(asked)
+    fire = bool(wanted & set(COORDINATING_AGENCIES))
+    return [
+        agency
+        for agency in (*COORDINATING_AGENCIES, *OBSERVER_AGENCIES)
+        if agency in wanted or (fire and agency in COORDINATING_AGENCIES)
+    ]
+
+
+async def notify_staff_new_incident(db: Database, area_id: UUID) -> int:
+    """Inbox + push, with the fire alarm, every staff member who can see a new fire.
+
+    Responders and coordinators (sub-admins) of each agency that can see it,
+    active accounts only. Best-effort. Returns the number of staff notified.
+    """
+    area = await db.fetchrow(
+        """
+        select a.designation,
+               array(select distinct unnest(r.selected_agencies)::text
+                     from public.area_reports ar
+                     join public.reports r on r.id = ar.report_id
+                     where ar.area_id = a.id) as asked
+        from public.areas a
+        where a.id = $1
+        """,
+        area_id,
+    )
+    if area is None:
+        return 0
+    agencies = staff_agencies_for(list(area["asked"] or []))
+    if not agencies:
+        return 0
+    staff_rows = await db.fetch(
+        """
+        select u.id from public.users u
+        where u.role in ('sub_admin', 'response_team')
+          and u.is_active
+          and u.agency_type = any($1::public.agency_type[])
+        """,
+        agencies,
+    )
+    staff_ids = [r["id"] for r in staff_rows]
+    if not staff_ids:
+        return 0
+
+    title = f"Fire reported: {area['designation'] or 'new incident'}"
+    body = "A resident reported a fire. Tap to open it, verify it and respond."
+    data = {"area_id": str(area_id), "event": "incident_new"}
+    await record_inbox(db, staff_ids, "incident_new", title, body, data)
+
+    token_rows = await db.fetch(
+        "select fcm_token from public.device_tokens "
+        "where user_id = any($1::uuid[]) and is_active",
+        staff_ids,
+    )
+    tokens = [t["fcm_token"] for t in token_rows]
+    if tokens:
+        result = await PushService().send_to_tokens(
+            tokens=tokens,
+            title=title,
+            body=body,
+            data={"type": "incident_new", **data},
+            alert=True,
+            tag=f"incident-{area_id}",
+        )
+        if result.invalid_tokens:
+            await db.execute(
+                "update public.device_tokens set is_active = false "
+                "where fcm_token = any($1::text[])",
+                result.invalid_tokens,
+            )
+    log.info(
+        "staff_new_incident_notified",
+        area_id=str(area_id),
+        staff=len(staff_ids),
+        devices=len(tokens),
+    )
+    return len(staff_ids)
 
 # Broadcast event_type -> (title, body) for the citizen who filed the report.
 _REPORTER_MESSAGES: dict[str, tuple[str, str]] = {
@@ -106,6 +200,8 @@ async def notify_incident_reporters(db: Database, area_id: UUID, event_type: str
         title=title,
         body=body,
         data={"type": "incident_update", "area_id": str(area_id), "event": event_type},
+        # One per incident in the shade: the latest news replaces the last.
+        tag=f"report-{area_id}",
     )
     if result.invalid_tokens:
         await db.execute(
@@ -291,6 +387,9 @@ async def notify_bfp_alarm_request(
             title=title,
             body=body,
             data={"type": "alarm_request", "area_id": str(area_id)},
+            # A fire getting bigger: the alarm, like a new one.
+            alert=True,
+            tag=f"alarm-{area_id}",
         )
         if result.invalid_tokens:
             await db.execute(
