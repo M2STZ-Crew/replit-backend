@@ -43,12 +43,17 @@ const TABS = [
 /// Accept shows here. After fire out the same screen shows the Post-Incident
 /// Report once the team captain has filed it.
 export default function IncidentDesk({ focusId = null }) {
-  const { incidents: live, refresh: refreshFeed } = useLiveFeed();
+  const { incidents: live, refresh: refreshFeed, acknowledge } = useLiveFeed();
   const lastViewed = useSurfaceVisit('incidents');
 
   const [tab, setTab] = useState(focusId ? 'live' : 'incoming');
   const [fetched, setFetched] = useState({ report: null, closed: null });
   const [selectedId, setSelectedId] = useState(focusId);
+  // Arriving on an incident from the alarm banner, a desktop alert, the board
+  // or the map is seeing it: its alarm stops. So does picking it in the list.
+  useEffect(() => {
+    if (focusId) acknowledge(focusId);
+  }, [focusId, acknowledge]);
   const [detail, setDetail] = useState(null);
   const [evidence, setEvidence] = useState([]);
   const [reports, setReports] = useState([]);
@@ -188,6 +193,7 @@ export default function IncidentDesk({ focusId = null }) {
                 className={`vq-item${inc.id === selectedId ? ' is-active' : ''}`}
                 onClick={(e) => {
                   setSelectedId(inc.id);
+                  acknowledge(inc.id);
                   // Below 900px the detail stacks under the list, out of sight:
                   // bring it into view so the tap visibly does something.
                   if (window.matchMedia('(max-width: 900px)').matches) {

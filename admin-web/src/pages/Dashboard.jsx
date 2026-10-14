@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useAuth } from '../auth.jsx';
+import AlarmBanner from '../components/AlarmBanner.jsx';
 import ConsoleShell from '../components/ConsoleShell.jsx';
 import { LiveFeedProvider } from '../live/LiveFeed.jsx';
+import { OPEN_INCIDENT_EVENT } from '../sound/alarm.js';
 import Accounts from './Accounts.jsx';
 import ActionRecord from './ActionRecord.jsx';
 import Affiliates from './Affiliates.jsx';
@@ -64,6 +66,14 @@ function Console() {
     setQuery('');
   }
 
+  // A desktop alert was clicked: bring its incident up. Opening it there
+  // acknowledges it, as any open of an incident does.
+  useEffect(() => {
+    const open = (e) => go('incidents', { incidentId: e.detail });
+    window.addEventListener(OPEN_INCIDENT_EVENT, open);
+    return () => window.removeEventListener(OPEN_INCIDENT_EVENT, open);
+  }, []);
+
   const name = user?.full_name || user?.email || 'Admin';
   const head = HEAD[active];
 
@@ -95,6 +105,8 @@ function Console() {
             </div>
           )}
         </header>
+
+        <AlarmBanner onOpen={(incidentId) => go('incidents', { incidentId })} />
 
         <div className={`db-scroll${active === 'map' ? ' db-scroll-flush' : ''}`}>
           {active === 'dashboard' ? (

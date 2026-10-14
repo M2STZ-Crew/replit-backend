@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 
 import {
+  REPEAT_CHOICES,
+  askDesktopPermission,
+  setAlarmSettings,
+  useAlarmSettings,
+} from '../sound/alarm.js';
+import {
   CATEGORIES,
   CATEGORY_LABEL,
   PLACEHOLDER_CUE,
@@ -31,6 +37,7 @@ const Speaker = ({ on }) => (
 /// `categories` limits the rows, for a console that only ever plays some.
 export default function SoundSettings({ slim = false, categories = CATEGORIES }) {
   const settings = useSoundSettings();
+  const alarm = useAlarmSettings();
   const [open, setOpen] = useState(false);
   const root = useRef(null);
 
@@ -125,6 +132,66 @@ export default function SoundSettings({ slim = false, categories = CATEGORIES })
               </div>
             );
           })}
+
+          {/* The repeating alarm: how often an unanswered incident rings again,
+              and whether it also raises a desktop alert while out of sight. */}
+          <div className="ss-alarm">
+            <div className="ss-head">
+              <div>
+                <span className="dc-eyebrow">Repeat until acknowledged</span>
+                <p className="ss-note">
+                  A new incident keeps ringing, and stays on screen, until you open or
+                  acknowledge it.
+                </p>
+              </div>
+              <label className="ss-switch">
+                <input
+                  type="checkbox"
+                  checked={alarm.repeat}
+                  onChange={(e) => setAlarmSettings({ repeat: e.target.checked })}
+                />
+                <span aria-hidden="true" />
+                <span className="ss-sr">Repeat until acknowledged</span>
+              </label>
+            </div>
+            <div className="ss-every" role="group" aria-label="Ring again every">
+              <span className="ss-every-label">Every</span>
+              {REPEAT_CHOICES.map((sec) => (
+                <button
+                  key={sec}
+                  className={`ss-every-btn${alarm.everySec === sec ? ' is-on' : ''}`}
+                  onClick={() => setAlarmSettings({ everySec: sec })}
+                  disabled={!alarm.repeat}
+                  aria-pressed={alarm.everySec === sec}
+                >
+                  {sec} s
+                </button>
+              ))}
+            </div>
+            <div className="ss-desk">
+              <div>
+                <span className="ss-cat">Desktop alerts</span>
+                <p className="ss-note">When this tab is behind another window.</p>
+              </div>
+              {alarm.permission === 'granted' ? (
+                <label className="ss-switch">
+                  <input
+                    type="checkbox"
+                    checked={alarm.desktop}
+                    onChange={(e) => setAlarmSettings({ desktop: e.target.checked })}
+                  />
+                  <span aria-hidden="true" />
+                  <span className="ss-sr">Desktop alerts</span>
+                </label>
+              ) : alarm.permission === 'default' ? (
+                <button className="ss-test" onClick={askDesktopPermission}>Allow</button>
+              ) : (
+                <span className="ss-cue">
+                  {alarm.permission === 'denied' ? 'Blocked in browser settings' : 'Not available here'}
+                </span>
+              )}
+            </div>
+          </div>
 
           <p className="ss-foot">
             Placeholder cues. The final recordings are chosen with the client during the
