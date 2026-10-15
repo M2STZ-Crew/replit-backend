@@ -149,6 +149,55 @@ async def assert_incident_visible(
     return str(status_val)
 
 
+def is_team_captain(user: AuthenticatedUser) -> bool:
+    """A Fire Volunteer or BFP sub-admin: the captain who files for a team."""
+    return user.role == "sub_admin" and user.agency_type in COORDINATING_AGENCIES
+
+
+def responded_sql(area: str, user_param: int, team_param: int, captain_param: int) -> str:
+    """SQL predicate: the caller responded to ``area``, or their team did.
+
+    Someone responded if they have a response on the Area that was not
+    withdrawn. A team captain also counts when anyone on their team responded,
+    or their team filed a Post-Incident Report for it — they file for the team
+    whether or not they rode the truck. ``area`` is an SQL expression (a column
+    or a parameter); the three parameters are :func:`responded_params`.
+    """
+    return (
+        "(exists (select 1 from public.dispatch_logs d "
+        f"where d.area_id = {area} and d.status <> 'withdrawn' "
+        f"and (d.responder_id = ${user_param} "
+        f"or (${captain_param}::boolean and d.organization_id = ${team_param}))) "
+        f"or (${captain_param}::boolean and exists ("
+        "select 1 from public.post_incident_reports pr "
+        f"where pr.area_id = {area} "
+        f"and coalesce(pr.organization_id, pr.filed_by) = ${team_param})))"
+    )
+
+
+def responded_params(user: AuthenticatedUser) -> tuple[UUID, UUID, bool]:
+    """The values :func:`responded_sql` compares: the user, their team, captain or not."""
+    return user.id, user.primary_org_id or user.id, is_team_captain(user)
+
+
+async def assert_responded(db: Database, incident_id: UUID, user: AuthenticatedUser) -> None:
+    """Raise 403 unless the caller responded to the incident (Admin: always).
+
+    Post-Incident Reports — and what is made from them, the AI summary and the
+    PDF — are for the people who went, not every firefighter who can see the
+    incident on the map.
+    """
+    if user.role == "admin":
+        return
+    responded = await db.fetchval(
+        f"select {responded_sql('$1', 2, 3, 4)}", incident_id, *responded_params(user)
+    )
+    if not responded:
+        raise ForbiddenError(
+            "Only the people who responded to this incident can read its reports."
+        )
+
+
 def is_coordinator(user: AuthenticatedUser) -> bool:
     """True when the user may change an incident's state.
 

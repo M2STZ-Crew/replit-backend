@@ -34,7 +34,12 @@ from app.services.ai_summary import (
     summarize_in_background,
     summary_state,
 )
-from app.services.incident import assert_coordinator, visible_agencies
+from app.services.incident import (
+    assert_coordinator,
+    assert_responded,
+    responded_params,
+    visible_agencies,
+)
 
 log = get_logger(__name__)
 
@@ -85,6 +90,7 @@ async def generate_summary(
     if status_val is None:
         raise NotFoundError("Incident not found.")
     await _assert_visible(db, incident_id, user)
+    await assert_responded(db, incident_id, user)
     # Fire out passes through 'fire_out' into the Post-Incident Report step and
     # then 'closed' (v11 Section 2.5); each of them is after the fire.
     if status_val not in ("fire_out", "post_incident_report", "closed"):
@@ -110,6 +116,7 @@ async def list_summaries(
     if exists is None:
         raise NotFoundError("Incident not found.")
     await _assert_visible(db, incident_id, user)
+    await assert_responded(db, incident_id, user)
     rows = await list_incident_summaries(db, incident_id)
     return [AISummaryResponse.model_validate(r) for r in rows]
 
@@ -132,7 +139,12 @@ async def list_summarized(
     most BACKFILL_PER_LOAD per load, and once per incident in ten minutes.
     """
     assert_coordinator(user, "read the AI summaries")
-    rows = await list_summarized_incidents(db, visible_agencies(user), limit=limit)
+    rows = await list_summarized_incidents(
+        db,
+        visible_agencies(user),
+        limit=limit,
+        responder=None if user.role == "admin" else responded_params(user),
+    )
     configured = get_settings().deepseek_configured
     started: list[str] = []
     items: list[SummarizedIncident] = []

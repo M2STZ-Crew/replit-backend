@@ -44,8 +44,11 @@ from app.services.audit import record_audit
 from app.services.incident import (
     COORDINATING_AGENCIES,
     assert_incident_visible,
+    assert_responded,
     assert_team_captain,
     assert_transition,
+    responded_params,
+    responded_sql,
     visible_agencies,
     visible_area_sql,
 )
@@ -287,6 +290,7 @@ async def get_post_incident_report(
     below) returns every team's.
     """
     await assert_incident_visible(db, incident_id, user)
+    await assert_responded(db, incident_id, user)
     report = await _load_team_report(db, incident_id, _team_of(user))
     if report is None:
         reports = await _load_reports(db, incident_id)
@@ -306,6 +310,7 @@ async def list_incident_post_incident_reports(
 ) -> list[PostIncidentReportResponse]:
     """All the reports filed on an incident, in filing order; empty while none is."""
     await assert_incident_visible(db, incident_id, user)
+    await assert_responded(db, incident_id, user)
     return await _load_reports(db, incident_id)
 
 
@@ -373,7 +378,8 @@ async def list_post_incident_reports(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ) -> list[PostIncidentReportResponse]:
-    """Filed reports, newest first, scoped by agency visibility (admin: all)."""
+    """Filed reports, newest first: those of incidents the caller responded to
+    (a captain: their team did) and their agency can see. Admin: all."""
     agencies = visible_agencies(user)
     if agencies is not None and not agencies:
         return []
@@ -382,6 +388,10 @@ async def list_post_incident_reports(
     if agencies is not None:
         params.append(agencies)
         conditions.append(visible_area_sql(len(params)))
+    if user.role != "admin":
+        start = len(params) + 1
+        params.extend(responded_params(user))
+        conditions.append(responded_sql("p.area_id", start, start + 1, start + 2))
     if area_id is not None:
         params.append(area_id)
         conditions.append(f"p.area_id = ${len(params)}")

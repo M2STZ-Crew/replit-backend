@@ -14,6 +14,7 @@ Nothing here talks to Firebase.
 
 from __future__ import annotations
 
+import base64
 import json
 from collections.abc import Iterator
 from types import SimpleNamespace
@@ -282,6 +283,34 @@ def test_a_pasted_key_survives_quotes_around_it() -> None:
 def test_doubled_backslashes_in_the_private_key_are_undone() -> None:
     doubled = json.dumps(_KEY).replace("\\n", "\\\\n")
     assert "\n" in str(_service_account(doubled)["private_key"])
+
+
+def test_real_line_breaks_in_the_private_key_are_accepted() -> None:
+    # A dashboard that turned the key's \n escapes into real line breaks.
+    broken = json.dumps(_KEY).replace("\\n", "\n")
+    assert "\n" in broken
+    key = str(_service_account(broken)["private_key"])
+    assert key.startswith("-----BEGIN PRIVATE KEY-----\n")
+
+
+def test_a_base64_encoded_key_is_decoded() -> None:
+    encoded = base64.b64encode(json.dumps(_KEY).encode()).decode()
+    assert _service_account(encoded)["project_id"] == "replit-test"
+
+
+@pytest.mark.parametrize(
+    ("value", "where"),
+    [
+        (json.dumps(_KEY)[:60], "stops before the closing }"),
+        ('{"type": "service_account", SECRETSECRET}', "line 1, column"),
+    ],
+)
+def test_a_broken_paste_says_where_without_quoting_it(value: str, where: str) -> None:
+    with pytest.raises(_CredentialsError) as caught:
+        _service_account(value)
+    assert where in str(caught.value)
+    assert "SECRETSECRET" not in str(caught.value)
+    assert "/etc/secrets/" in str(caught.value), "the Secret File way out"
 
 
 def test_a_key_that_is_not_json_says_so_without_quoting_it() -> None:

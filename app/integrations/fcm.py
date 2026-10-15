@@ -15,6 +15,8 @@ the server now says why, in words safe to show anyone (no credential content).
 from __future__ import annotations
 
 import asyncio
+import base64
+import binascii
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -69,22 +71,44 @@ class _CredentialsError(Exception):
     """Credentials that cannot be used, with a reason safe to show."""
 
 
+def _json_problem(text: str, exc: json.JSONDecodeError) -> str:
+    """Where a pasted value stops being JSON, without quoting any of it."""
+    if not text.startswith("{"):
+        return "it does not start with {"
+    if not text.endswith("}"):
+        return "it stops before the closing } (was only part of the file pasted?)"
+    return f"{exc.msg} at line {exc.lineno}, column {exc.colno}"
+
+
 def _service_account(raw: str) -> dict[str, object]:
     """Parse FCM_CREDENTIALS_JSON, forgiving the usual ways a paste goes wrong.
 
     Hosts take the value as typed, so a value copied from a .env line keeps its
-    surrounding quotes, and some dashboards double the backslashes in the
-    private key's line breaks. Both are undone here; anything else is reported.
+    surrounding quotes; some dashboards double the backslashes in the private
+    key's line breaks, and some turn them into real line breaks, which strict
+    JSON refuses inside a string. A value saved base64-encoded (one line, so
+    nothing can mangle it) is decoded. All of these are undone here; anything
+    else is reported with where it went wrong, never with what it says.
     """
     text = raw.strip()
     if len(text) >= 2 and text[0] == text[-1] and text[0] in "'\"":
         text = text[1:-1].strip()
+    if text and not text.startswith("{"):
+        try:
+            decoded = base64.b64decode(text, validate=True).decode("utf-8").strip()
+        except (binascii.Error, UnicodeDecodeError):
+            decoded = ""
+        if decoded.startswith("{"):
+            text = decoded
     try:
-        data = json.loads(text)
-    except ValueError as exc:
+        # strict=False: real line breaks inside the private key are accepted.
+        data = json.loads(text, strict=False)
+    except json.JSONDecodeError as exc:
         raise _CredentialsError(
-            "FCM_CREDENTIALS_JSON is not valid JSON. Paste the whole service-account "
-            "file, from { to }, with nothing around it."
+            f"FCM_CREDENTIALS_JSON is not valid JSON: {_json_problem(text, exc)}. "
+            "Paste the whole service-account file, from { to }, with nothing "
+            "around it — or use a Render Secret File and set FCM_CREDENTIALS_FILE "
+            "to its path (/etc/secrets/<name>.json)."
         ) from exc
     if not isinstance(data, dict) or data.get("type") != "service_account":
         raise _CredentialsError(

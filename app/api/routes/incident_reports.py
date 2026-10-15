@@ -28,7 +28,7 @@ from app.db.session import Database
 from app.schemas.ai import ReportLinkResponse
 from app.schemas.auth import AuthenticatedUser
 from app.services.ai_summary import PH_TIME, gather_incident_facts
-from app.services.incident import visible_agencies
+from app.services.incident import assert_responded, visible_agencies
 from app.services.pdf_report import build_fire_out_pdf
 from app.services.report_links import (
     ExpiredReportLinkError,
@@ -80,6 +80,7 @@ async def incident_report_pdf(
     if exists is None:
         raise NotFoundError("Incident not found.")
     await _assert_visible(db, incident_id, user)
+    await assert_responded(db, incident_id, user)
     pdf_bytes, _ = await _build_pdf(db, incident_id)
     log.info("incident_pdf_generated", incident_id=str(incident_id), by=str(user.id))
     return Response(
@@ -141,6 +142,7 @@ async def incident_report_link(
     if exists is None:
         raise NotFoundError("Incident not found.")
     await _assert_visible(db, incident_id, user)
+    await assert_responded(db, incident_id, user)
     token, expires_at = sign_report_link(incident_id, user.id)
     return ReportLinkResponse(
         path=f"/incidents/{incident_id}/report-download?token={token}",
@@ -185,19 +187,28 @@ async def incident_report_download(
         return _browser_message(403, f"This download link is not valid. {_TRY_AGAIN}")
 
     row = await db.fetchrow(
-        "select id, role::text as role, agency_type::text as agency_type, is_active "
-        "from public.users where id = $1",
+        "select id, role::text as role, agency_type::text as agency_type, is_active, "
+        "primary_org_id from public.users where id = $1",
         user_id,
     )
     if row is None or row["is_active"] is False or row["role"] not in _STAFF_ROLES:
         return _browser_message(403, "This account can no longer download reports.")
-    user = AuthenticatedUser(id=row["id"], role=row["role"], agency_type=row["agency_type"])
+    user = AuthenticatedUser(
+        id=row["id"],
+        role=row["role"],
+        agency_type=row["agency_type"],
+        primary_org_id=row["primary_org_id"],
+    )
     if await db.fetchval("select 1 from public.areas where id = $1", incident_id) is None:
         return _browser_message(404, "This incident no longer exists.")
     try:
         await _assert_visible(db, incident_id, user)
     except ForbiddenError:
         return _browser_message(403, "This incident is not visible to your agency.")
+    try:
+        await assert_responded(db, incident_id, user)
+    except ForbiddenError as exc:
+        return _browser_message(403, exc.message)
 
     pdf_bytes, file_name = await _build_pdf(db, incident_id)
     log.info("incident_pdf_downloaded", incident_id=str(incident_id), by=str(user_id))

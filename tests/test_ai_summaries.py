@@ -313,11 +313,15 @@ def test_the_list_needs_a_sign_in(client: TestClient) -> None:
 # POST /incidents/{id}/report-link and GET .../report-download
 # --------------------------------------------------------------------------- #
 class _PdfDb:
-    """An incident, whether the caller's agency can see it, and the users."""
+    """An incident, whether the caller's agency can see it, whether they
+    responded to it, and the users."""
 
-    def __init__(self, area_id: UUID, *, visible: bool = True) -> None:
+    def __init__(
+        self, area_id: UUID, *, visible: bool = True, responded: bool = True
+    ) -> None:
         self.area_id = area_id
         self.visible = visible
+        self.responded = responded
         self.users: dict[UUID, dict[str, Any]] = {}
 
     def add(self, user: AuthenticatedUser, *, is_active: bool = True) -> None:
@@ -326,11 +330,14 @@ class _PdfDb:
             "role": user.role,
             "agency_type": user.agency_type,
             "is_active": is_active,
+            "primary_org_id": user.primary_org_id,
         }
 
     async def fetchval(self, query: str, *args: Any) -> Any:
         if "select 1 from public.areas" in query:
             return 1 if args[0] == self.area_id else None
+        if "public.dispatch_logs d" in query:
+            return self.responded
         assert "selected_agencies" in query
         return self.visible
 
@@ -384,6 +391,36 @@ def test_no_link_for_an_incident_another_agency_owns(client: TestClient) -> None
     app.dependency_overrides[get_current_user] = lambda: _user("sub_admin", "police")
     app.dependency_overrides[get_database] = lambda: db
     assert client.post(f"/incidents/{db.area_id}/report-link").status_code == 403
+
+
+def test_someone_who_did_not_respond_gets_no_pdf(
+    client: TestClient, pdf: list[UUID]
+) -> None:
+    # The PDF carries the post-incident reports and the summary: it is for
+    # the people who went, not every firefighter who can see the incident.
+    db = _PdfDb(uuid4(), responded=False)
+    coordinator = _user()
+    db.add(coordinator)
+    app.dependency_overrides[get_current_user] = lambda: coordinator
+    app.dependency_overrides[get_database] = lambda: db
+    resp = client.post(f"/incidents/{db.area_id}/report-link")
+    assert resp.status_code == 403
+    assert "responded" in resp.json()["message"]
+    assert pdf == []
+
+
+def test_a_link_stops_working_for_someone_who_did_not_respond(
+    client: TestClient, pdf: list[UUID]
+) -> None:
+    db = _PdfDb(uuid4())
+    coordinator = _user()
+    db.add(coordinator)
+    path = _link(client, db, coordinator)
+    db.responded = False
+    resp = client.get(path)
+    assert resp.status_code == 403
+    assert "responded" in resp.text
+    assert pdf == []
 
 
 def test_a_deactivated_account_link_stops_working(
