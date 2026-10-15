@@ -199,6 +199,15 @@ class SelfDispatchRequest(BaseModel):
     organization_id: UUID | None = Field(
         default=None, description="Responder's organization, if applicable."
     )
+    vehicle_name: str | None = Field(
+        default=None,
+        max_length=200,
+        description=(
+            "The unit this person is going on (a coordinator's Accept with "
+            "\"I am going too\"). A label on the response, as on the citizen's "
+            "tracking card; the Post-Incident Report still records the truck."
+        ),
+    )
     notes: str | None = Field(default=None, max_length=1000)
 
 

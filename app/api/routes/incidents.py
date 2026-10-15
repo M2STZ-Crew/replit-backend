@@ -867,14 +867,15 @@ async def self_dispatch(
                 """
                 insert into public.dispatch_logs
                     (area_id, responder_id, organization_id, dispatch_type,
-                     dispatched_by, status, notes)
-                values ($1, $2, $3, 'self_select', null, 'active', $4)
+                     dispatched_by, status, notes, vehicle_name)
+                values ($1, $2, $3, 'self_select', null, 'active', $4, $5)
                 returning id
                 """,
                 incident_id,
                 user.id,
                 org_id,
                 payload.notes,
+                (payload.vehicle_name or "").strip() or None,
             )
             if current == "verified":
                 # The first to respond: now the reporter sees "On the way".
@@ -902,6 +903,7 @@ async def self_dispatch(
                     "organization_id": str(org_id) if org_id else None,
                     "status_at_join": current,
                     "role": user.role,
+                    "vehicle_name": (payload.vehicle_name or "").strip() or None,
                 },
             )
     except asyncpg.UniqueViolationError as exc:

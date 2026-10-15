@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from app.api.deps import CurrentUser, DatabaseDep, StaffUser
 from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
@@ -19,6 +19,7 @@ from app.schemas.area import (
 )
 from app.schemas.common import MessageResponse
 from app.schemas.tracking import TrackingSnapshot
+from app.services.audit import record_audit
 from app.services.clustering import recompute_area
 from app.services.incident import active_area_sql, assert_transition
 from app.services.map_feed import AREA_SUMMARY_COLS, publish_area_change
@@ -180,20 +181,33 @@ async def list_pending_overlaps(staff: StaffUser, db: DatabaseDep) -> list[AreaO
     summary="Keep two overlapping areas separate",
 )
 async def keep_areas_separate(
-    overlap_id: UUID, staff: StaffUser, db: DatabaseDep
+    overlap_id: UUID, request: Request, staff: StaffUser, db: DatabaseDep
 ) -> MessageResponse:
     """Record an explicit Keep-Separate decision (the 120 s default outcome)."""
-    result = await db.execute(
+    kept = await db.fetchrow(
         """
         update public.area_overlaps
            set decision = 'keep_separate', decided_by = $2, decided_at = now()
          where id = $1 and decision is null
+        returning area_a_id, area_b_id
         """,
         overlap_id,
         staff.id,
     )
-    if result.endswith(" 0"):
+    if kept is None:
         raise NotFoundError("No pending overlap found for that id.")
+    # On the newer Area, which is the one the decision was about. A
+    # coordinator's "My decisions" reads these rows back (GET /audit-logs).
+    await record_audit(
+        db,
+        request,
+        staff,
+        action="area.keep_separate",
+        entity_type="area_overlap",
+        entity_id=overlap_id,
+        area_id=kept["area_b_id"],
+        metadata={"other_area_id": str(kept["area_a_id"])},
+    )
     log.info("overlap_kept_separate", overlap_id=str(overlap_id), staff_id=str(staff.id))
     return MessageResponse(message="Areas kept separate.")
 
@@ -203,7 +217,9 @@ async def keep_areas_separate(
     response_model=MessageResponse,
     summary="Merge two overlapping areas",
 )
-async def merge_areas(overlap_id: UUID, staff: StaffUser, db: DatabaseDep) -> MessageResponse:
+async def merge_areas(
+    overlap_id: UUID, request: Request, staff: StaffUser, db: DatabaseDep
+) -> MessageResponse:
     """Merge area B into area A: move reports, recompute A, mark B merged (120 s window)."""
     overlap = await db.fetchrow(
         "select area_a_id, area_b_id, decision, expires_at from public.area_overlaps where id = $1",
@@ -260,6 +276,29 @@ async def merge_areas(overlap_id: UUID, staff: StaffUser, db: DatabaseDep) -> Me
         """,
         overlap_id,
         staff.id,
+    )
+    # Filed against the Area that lives on: the merged one has no reports left,
+    # so an agency-scoped read of the audit log would never find it there.
+    names = await db.fetchrow(
+        "select (select designation from public.areas where id = $1) as kept, "
+        "(select designation from public.areas where id = $2) as merged",
+        keep_id,
+        drop_id,
+    )
+    await record_audit(
+        db,
+        request,
+        staff,
+        action="area.merge",
+        entity_type="area",
+        entity_id=drop_id,
+        area_id=keep_id,
+        metadata={
+            "overlap_id": str(overlap_id),
+            "merged_area_id": str(drop_id),
+            "merged_designation": names.get("merged") if names else None,
+            "kept_designation": names.get("kept") if names else None,
+        },
     )
     await recompute_area(db, keep_id)
     await publish_area_change(db, keep_id)
