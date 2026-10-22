@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 import { api, getToken, setToken } from './api/client.js';
 
@@ -75,21 +75,31 @@ export function agencyLabel(agency) {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Why the stored session could not be checked on load (server unreachable,
+  // slow to wake, an error page), with the session kept so Retry can resume
+  // it. Only a refused session (401/403) or a non-console role signs out.
+  const [startupError, setStartupError] = useState(null);
 
-  useEffect(() => {
-    (async () => {
-      if (getToken()) {
-        try {
-          const me = await api.me();
-          if (isConsoleRole(me.role)) setUser(me);
-          else setToken(null);
-        } catch {
-          setToken(null);
-        }
-      }
+  const resume = useCallback(async () => {
+    if (!getToken()) {
       setLoading(false);
-    })();
+      return;
+    }
+    setLoading(true);
+    setStartupError(null);
+    try {
+      const me = await api.me();
+      if (isConsoleRole(me.role)) setUser(me);
+      else setToken(null);
+    } catch (e) {
+      if (e?.status === 401 || e?.status === 403) setToken(null);
+      else setStartupError(e?.message || 'Could not reach the server.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { resume(); }, [resume]);
 
   async function login(email, password) {
     const res = await api.login(email, password);
@@ -108,10 +118,11 @@ export function AuthProvider({ children }) {
     await api.logout();
     setToken(null);
     setUser(null);
+    setStartupError(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, startupError, retry: resume, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

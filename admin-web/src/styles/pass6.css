@@ -19,10 +19,15 @@
 }
 
 /* ── Frame ────────────────────────────────────────────────────────────── */
+/* Pinned to the window, so the page itself can never scroll. Anything that
+   overflows inside (a long sidebar, screen-reader text) used to make the
+   document scrollable; a reload then restored that scroll and slid the
+   console up out of view — the sidebar's top gone, or nothing but the
+   dark ground. Fixed, the shell is also the containing block that clips it. */
 .ad-shell {
+  position: fixed;
+  inset: 0;
   display: flex;
-  width: 100%;
-  height: 100vh;
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
@@ -433,3 +438,21 @@
 }
 .ad-sheet-head { display: flex; align-items: center; justify-content: space-between; }
 .ad-sheet-title { margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.6px; }
+
+/* ── Opening the console (StartupScreen) ──────────────────────────────── */
+.ad-startup {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+}
+.ad-startup-mark { width: 44px; height: 62px; margin-bottom: 8px; }
+.ad-startup-title { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
+.ad-startup-body { margin: 0; max-width: 46ch; color: var(--text-2); font-size: 14px; line-height: 20px; }
+.ad-startup-actions { display: flex; gap: 8px; margin-top: 8px; }

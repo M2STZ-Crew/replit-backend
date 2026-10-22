@@ -1,7 +1,6 @@
 /* Existing destinations, using the measured pass 6 components:
  * A22/23 incident row + panels, A05/47/48/50 list/detail, A64 audit.
  * This file changes presentation only; all current controls remain available. */
-.ad-shell { height: 100dvh; }
 .ad-scroll > :is(.ar, .vq, .idr) { padding: 0; margin: 0; max-width: none; }
 .ad-scroll .ar { gap: 24px; }
 .ad-scroll .ar-panel { border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: none; overflow: hidden; }

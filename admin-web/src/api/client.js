@@ -19,26 +19,62 @@ export function setToken(token) {
   else localStorage.removeItem(TOKEN_KEY);
 }
 
+/// How long a request may take before it is given up. The free-tier API can
+/// take most of a minute to wake after being idle; a request that never
+/// answers must still end, so the console can say so instead of waiting
+/// forever on a blank screen.
+const TIMEOUT_MS = 60_000;
+
+/// A failed request. `status` is the HTTP status, or 0 when the server could
+/// not be reached or did not answer in time, so a caller can tell "your
+/// session ended" (401/403) apart from "the server is unreachable".
+export class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 async function request(path, { method = 'GET', body, auth = true } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) {
     const t = getToken();
     if (t) headers.Authorization = `Bearer ${t}`;
   }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   let resp;
+  let text;
   try {
     resp = await fetch(`${BASE}${path}`, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
     });
-  } catch {
-    throw new Error('Cannot reach the server. Is the API running?');
+    text = await resp.text();
+  } catch (e) {
+    throw new ApiError(
+      e?.name === 'AbortError'
+        ? 'The server did not answer in time. It may be starting up; try again in a minute.'
+        : 'Cannot reach the server. Check your connection and try again.',
+      0,
+    );
+  } finally {
+    clearTimeout(timer);
   }
-  const text = await resp.text();
-  const data = text ? JSON.parse(text) : {};
+  let data = {};
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      // A host's own error page (HTML) rather than the API's JSON.
+      throw new ApiError(`The server sent an unexpected answer (${resp.status}). Try again in a minute.`, resp.status);
+    }
+  }
   if (!resp.ok) {
-    throw new Error(data.message || `Request failed (${resp.status}).`);
+    throw new ApiError(data.message || `Request failed (${resp.status}).`, resp.status);
   }
   return data;
 }
