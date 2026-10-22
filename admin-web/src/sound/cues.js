@@ -115,6 +115,14 @@ let ctx = null;
 /// Each recording, decoded once: category -> Promise<AudioBuffer | null>.
 const buffers = {};
 
+/// Every source started and not yet ended, so [stopCues] can silence them.
+const sounding = new Set();
+
+function track(node) {
+  sounding.add(node);
+  node.onended = () => sounding.delete(node);
+}
+
 function bufferFor(category) {
   if (!ctx) return Promise.resolve(null);
   buffers[category] ??= fetch(FILES[category])
@@ -154,6 +162,7 @@ function synth(pattern, volume, at) {
     amp.gain.exponentialRampToValueAtTime(peak, t0 + 0.015);
     amp.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     osc.connect(amp).connect(ctx.destination);
+    track(osc);
     osc.start(t0);
     osc.stop(t0 + dur + 0.02);
   }
@@ -175,6 +184,7 @@ async function playAt(category, volume, at) {
   source.buffer = buffer;
   amp.gain.value = Math.max(0, Math.min(1, volume));
   source.connect(amp).connect(ctx.destination);
+  track(source);
   source.start(Math.max(at, ctx.currentTime));
   return buffer.duration;
 }
@@ -186,23 +196,39 @@ export function previewCue(category, volume = settings.volume[category]) {
   playAt(category, volume, ctx.currentTime + 0.02);
 }
 
-/// Play the cues for a batch of newly arrived incidents, one after another, each
-/// category at most once and within the user's settings. Muting a category mutes
-/// only its stream — the badge and the card still announce the incident.
+/// Silence everything playing or scheduled now (PRD v14 §4.13.1: the loop
+/// stops the moment the operator answers it).
+export function stopCues() {
+  for (const node of sounding) {
+    try {
+      node.stop();
+    } catch {
+      /* already stopped */
+    }
+  }
+  sounding.clear();
+}
+
+/// Play the cues for a batch of incidents, one after another, each category at
+/// most once and within the user's settings. Muting a category mutes only its
+/// stream — the badge and the card still announce the incident. Resolves to
+/// how long the batch lasts, in seconds (0 when nothing could sound).
 export async function announce(incidents) {
   const s = settings;
-  if (!s.enabled) return;
+  if (!s.enabled) return 0;
   const wanted = [];
   for (const inc of incidents) {
     for (const c of categoriesOf(inc)) {
       if (!wanted.includes(c) && !s.muted[c] && s.volume[c] > 0) wanted.push(c);
     }
   }
-  if (wanted.length === 0) return;
+  if (wanted.length === 0) return 0;
   unlock();
-  if (!ctx || ctx.state !== 'running') return;
-  let at = ctx.currentTime + 0.02;
+  if (!ctx || ctx.state !== 'running') return 0;
+  const start = ctx.currentTime + 0.02;
+  let at = start;
   for (const c of wanted) {
     at += (await playAt(c, s.volume[c], at)) + 0.35;
   }
+  return at - start;
 }

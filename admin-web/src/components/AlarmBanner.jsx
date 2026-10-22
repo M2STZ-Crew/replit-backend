@@ -108,7 +108,7 @@ export default function AlarmBanner({ onOpen }) {
             </span>
             <div className="ad-alarm-text">
               <p className="ad-alarm-eyebrow">
-                New incident · {kind} sound {alarm.repeat ? 'playing' : 'played once'}
+                New incident · {kind} sound playing
               </p>
               <p className="ad-alarm-title">{kind} reported — {inc.designation}</p>
               <p className="ad-alarm-body">
@@ -121,7 +121,7 @@ export default function AlarmBanner({ onOpen }) {
             </div>
             <span className="ad-alarm-loop">
               <img src="/icons/volume.svg" alt="" width="16" height="16" />
-              {alarm.repeat ? `Looping · every ${alarm.everySec} s` : 'Rang once'}
+              Looping until answered
             </span>
             <button type="button" className="ad-text-button" onClick={() => acknowledge(inc.id)}>
               Stop the sound

@@ -15,8 +15,6 @@ import { CATEGORY_LABEL, categoriesOf } from './cues.js';
 /// alarm nobody answered, and does not re-ring one that was. Each admin answers
 /// their own alarm: acknowledging on one machine does not silence another.
 
-export const REPEAT_CHOICES = [15, 30, 60];
-
 /// After sign-in or a reload, incidents reported this recently that this
 /// browser never acknowledged ring again. Older ones do not, or a first sign-in
 /// would ring for every open incident at once.
@@ -28,15 +26,13 @@ export const OPEN_INCIDENT_EVENT = 'replit:open-incident';
 const KEY = 'replit.alarm.v1';
 const ACK_KEY = 'replit.ack.v1';
 const ACK_KEEP_MS = 7 * 24 * 60 * 60 * 1000;
-const DEFAULTS = { repeat: true, everySec: 30, desktop: true };
+const DEFAULTS = { desktop: true };
 
 // ── settings ────────────────────────────────────────────────────────────────
 function loadSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
-    const merged = { ...DEFAULTS, ...saved };
-    if (!REPEAT_CHOICES.includes(merged.everySec)) merged.everySec = DEFAULTS.everySec;
-    return merged;
+    return { ...DEFAULTS, desktop: saved?.desktop ?? DEFAULTS.desktop };
   } catch {
     return { ...DEFAULTS };
   }

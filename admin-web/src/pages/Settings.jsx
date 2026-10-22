@@ -4,7 +4,6 @@ import { useConsole } from '../components/ConsoleShell.jsx';
 import { useSoundSettings } from '../components/SoundSettings.jsx';
 import { Icon, PageHeader } from '../components/ui/index.js';
 import {
-  REPEAT_CHOICES,
   askDesktopPermission,
   setAlarmSettings,
   useAlarmSettings,
@@ -18,8 +17,10 @@ import {
 } from '../sound/cues.js';
 import { applyTheme, storedTheme } from '../theme.js';
 
-/* Settings (REPLIT (MAIN) 10 · A70): notification sounds per category, the
- * repeating alarm and desktop alerts, kept in this browser.
+/* Settings (REPLIT (MAIN) 10 · A70): notification sounds per category and
+ * desktop alerts, kept in this browser. A new incident's sound loops until an
+ * admin answers it (PRD v14 §4.13.1); muting its category is the way to
+ * silence it here.
  *
  * Availability (AFK, A71) is not here: no endpoint stores or reports it yet
  * (PRD v13 §4.6.5, §17.3), so the switch is prepared as AvailabilityPanel
@@ -148,30 +149,7 @@ export default function Settings() {
       </section>
 
       <section className="ad-panel" aria-labelledby="ad-repeat-title">
-        <div className="ad-panel-head">
-          <h2 className="ad-panel-title" id="ad-repeat-title">Ring until opened</h2>
-          <Switch
-            checked={alarm.repeat}
-            onChange={(repeat) => setAlarmSettings({ repeat })}
-            label="Ring until opened"
-          />
-        </div>
-        <Row title="Ring again every" dim={!alarm.repeat}>
-          <div className="ad-segment" role="group" aria-label="Ring again every">
-            {REPEAT_CHOICES.map((sec) => (
-              <button
-                key={sec}
-                type="button"
-                className={`ad-chip${alarm.everySec === sec ? ' is-selected' : ''}`}
-                onClick={() => setAlarmSettings({ everySec: sec })}
-                disabled={!alarm.repeat}
-                aria-pressed={alarm.everySec === sec}
-              >
-                {sec} s
-              </button>
-            ))}
-          </div>
-        </Row>
+        <h2 className="ad-panel-title" id="ad-repeat-title">Alerts</h2>
         <Row title="Desktop alerts" detail="When this tab is behind another window.">
           {alarm.permission === 'granted' ? (
             <Switch

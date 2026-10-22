@@ -8,9 +8,8 @@ import {
   isAcknowledged,
   notifyDesktop,
   recordAcknowledged,
-  useAlarmSettings,
 } from '../sound/alarm.js';
-import { announce } from '../sound/cues.js';
+import { announce, stopCues } from '../sound/cues.js';
 
 /// The live incident feed behind the console's red badges and sounds
 /// (Master Context v10, Sections 2.8 and 2.9).
@@ -29,6 +28,9 @@ const POLL_MS = 12_000;
 const SEEN_KEY = 'replit.seen.v1';
 
 const LiveFeedContext = createContext(null);
+
+/// How often a still-unanswered alarm's desktop alert is shown again.
+const DESKTOP_AGAIN_MS = 30 * 1000;
 
 function readSeen() {
   try {
@@ -61,7 +63,6 @@ export function LiveFeedProvider({ children }) {
       let ring;
       if (known.current) {
         const fresh = list.filter((inc) => !known.current.has(inc.id));
-        if (fresh.length) announce(fresh);
         ring = fresh.filter((inc) => !isAcknowledged(inc.id));
         notifyDesktop(ring);
       } else {
@@ -69,7 +70,6 @@ export function LiveFeedProvider({ children }) {
         const now = Date.now();
         ring = list.filter((inc) => !isAcknowledged(inc.id)
           && now - new Date(inc.reported_at).getTime() < CATCH_UP_MS);
-        if (ring.length) announce(ring);
       }
       list.forEach((inc) => known.current.add(inc.id));
       // An incident that has left the feed (closed, rejected, merged) stops ringing.
@@ -115,27 +115,43 @@ export function LiveFeedProvider({ children }) {
   const acknowledge = useCallback((ids) => {
     const list = Array.isArray(ids) ? ids : [ids];
     recordAcknowledged(list);
+    stopCues();
     setAlarmIds((prev) => {
       const next = prev.filter((id) => !list.includes(id));
       return next.length === prev.length ? prev : next;
     });
   }, []);
 
-  // Ring again on the repeat interval while anything is unanswered. The timer
-  // reads the alarms through a ref: restarting it on every 12 s poll would
-  // keep pushing a 30 s repeat back so that it never fired.
-  const { repeat, everySec } = useAlarmSettings();
+  // PRD v14 §4.13.1: a true loop. While anything is unanswered its sounds play
+  // back to back, with no gap to miss them in, until an admin answers it
+  // (acknowledge stops the sound at once). The loop reads the alarms through a
+  // ref, so an alarm that joins is heard on the next pass, and a 12 s poll
+  // does not restart it. A desktop alert is shown again every 30 s.
   const ringing = useRef(alarms);
   ringing.current = alarms;
   const anyRinging = alarms.length > 0;
   useEffect(() => {
-    if (!anyRinging || !repeat) return undefined;
-    const timer = setInterval(() => {
-      announce(ringing.current);
-      notifyDesktop(ringing.current, { again: true });
-    }, everySec * 1000);
-    return () => clearInterval(timer);
-  }, [anyRinging, repeat, everySec]);
+    if (!anyRinging) return undefined;
+    let alive = true;
+    let timer = null;
+    let desktopAt = Date.now();
+    const ring = async () => {
+      const seconds = await announce(ringing.current);
+      if (!alive) return;
+      if (Date.now() - desktopAt >= DESKTOP_AGAIN_MS) {
+        notifyDesktop(ringing.current, { again: true });
+        desktopAt = Date.now();
+      }
+      // Nothing could sound (muted, or audio not unlocked yet): look again soon.
+      timer = setTimeout(ring, seconds > 0 ? seconds * 1000 : 1000);
+    };
+    ring();
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+      stopCues();
+    };
+  }, [anyRinging]);
 
   const newSince = useCallback(
     (iso) => {
