@@ -1,61 +1,90 @@
 /* Design tokens.
  *
- * Values come from the "Admin Console" Claude Design file. The accent, danger
- * and muted values already matched what this console shipped, so the design is
- * a refinement of the existing identity rather than a rebrand — the surface
- * ramp below is the substantive change: five deliberate steps from page to
- * raised panel, where the console previously had two. */
+ * Pass 6 (REPLIT (MAIN) 03 · Design Foundations, 04 · Desktop · Admin web):
+ * the console draws on the same tokens as the mobile app (PRD v13 §8.2,
+ * lib/theme.dart) — no web-only palette. The names below are the console's
+ * own; each comment gives the Figma variable it carries. */
 :root {
   /* Surfaces, darkest to lightest. */
-  --bg: #0a0a0a;
-  --surface-1: #0f0f0f;
-  --surface-2: #121212;
-  --surface-3: #151515;
-  --surface-4: #181818;
+  --bg: #131313; /* color/background/ground */
+  --surface-1: #1a1a1a; /* color/surface/subtle — the sidebar */
+  --surface-2: #1d1d1d; /* color/surface/default — cards, rows, panels */
+  --surface-3: #242424;
+  --surface-4: #303030; /* raised */
 
-  /* Hairlines. The design leans on inset box-shadows rather than borders so a
-   * 1px line never adds to an element's box size. */
-  --line: #1a1a1a;
-  --line-2: #1f1f1f;
-  --line-3: #262626;
+  /* Hairlines and control edges. */
+  --line: rgba(72, 72, 71, 0.35); /* color/border/subtle */
+  --line-2: rgba(72, 72, 71, 0.35);
+  --line-3: #686868; /* color/border/default — the 3 : 1 control edge */
 
   /* Type ramp. */
-  --text: #ffffff;
-  --text-2: #e0e0e0;
-  --text-3: #cfcfcf;
-  --label: #adaaaa;
-  --muted: #8a8a8a;
-  --placeholder: #767575;
-  --faint: #706e6e;
+  --text: #f3f3f3; /* color/text/primary */
+  --text-2: #c9c9c9; /* color/text/secondary */
+  --text-3: #c9c9c9;
+  --label: #a1a1a1; /* color/text/tertiary */
+  --muted: #8a8a8a; /* color/text/muted */
+  --placeholder: #8a8a8a;
+  --faint: #8a8a8a;
   --fainter: #484847;
 
-  --accent: #ff9066;
-  --accent-end: #eb4800;
-  --accent-text: #381000;
-  --accent-soft: rgba(255, 144, 102, 0.08);
-  --accent-line: rgba(255, 144, 102, 0.25);
+  --accent: #ff9066; /* color/brand/primary, color/text/accent */
+  --accent-end: #ff7943;
+  --accent-text: #581a00; /* color/text/on-primary */
+  --accent-soft: rgba(255, 144, 102, 0.16); /* color/action/selected */
+  --accent-line: #ff9066; /* color/border/selected */
+  --brand-deep: #6b3c2b; /* color/brand/primary-deep */
+  --brand-solid: #b56648; /* color/brand/primary-solid */
 
-  --danger: #ff544e;
-  --warn: #ffb63c;
-  --ok: #22c55e;
-  --info: #6098d6;
+  --danger: #ff544e; /* color/status/live */
+  --live-solid: #b53c37; /* color/status/live-solid — the count badge */
+  --warn: #ffb020; /* color/status/warning */
+  --ok: #22c55e; /* color/status/success */
+  --ok-solid: #188c43; /* color/status/success-solid */
+  --info: #5b93f5; /* color/status/info, color/map/water */
+  --live-tint: rgba(255, 84, 78, 0.12);
+  --ok-tint: rgba(34, 197, 94, 0.14);
+  --warn-tint: rgba(255, 176, 32, 0.14);
+  --info-tint: rgba(91, 147, 245, 0.14);
+
+  /* Agency plates (white glyph on the agency's deep step). */
+  --plate-fire: #6b3c2b;
+  --plate-police: #3a2767;
+  --plate-medical: #0d4a43;
+  --plate-barangay: #6b4a0d;
+
+  /* Interaction overlays. */
+  --hover: rgba(255, 255, 255, 0.06); /* color/action/hover */
+  --pressed: rgba(255, 255, 255, 0.12);
+  --focus: #ff9066; /* color/border/focus */
+
+  /* Materials over a map (03 · pass 6): Glass over the dark tiles, Glass
+   * strong over the light OpenStreetMap fallback and wherever body text
+   * sits on a map. */
+  --glass: rgba(19, 19, 19, 0.5);
+  --glass-strong: rgba(19, 19, 19, 0.88);
+  --scrim: rgba(0, 0, 0, 0.64);
 
   /* Kept so existing pages keep rendering while they are restyled one by one. */
   --card: var(--surface-2);
   --card-border: var(--line-2);
-  --input-bg: #121212;
+  --input-bg: #131313; /* color/surface/inset */
   --input-border: var(--line-3);
-  --sidebar: #0f0f0f;
+  --sidebar: #1a1a1a;
 
-  --grad-accent: linear-gradient(135deg, var(--accent-fill) 0%, var(--accent-fill-end) 100%);
-  --radius: 12px;
-  --radius-lg: 14px;
+  /* PRIMARY/GRADIENT runs top to bottom. */
+  --grad-accent: linear-gradient(180deg, var(--accent-fill) 0%, var(--accent-fill-end) 100%);
+  --radius-sm: 8px;
+  --radius-chip: 11px;
+  --radius: 12px; /* radius/control */
+  --radius-lg: 14px; /* radius/card */
+  --radius-panel: 16px;
+  --radius-sheet: 20px;
   --radius-pill: 100px;
 
   /* The coral a primary control is filled with — the same in both
    * themes, so the one button that means "act now" never changes. */
   --accent-fill: #ff9066;
-  --accent-fill-end: #eb4800;
+  --accent-fill-end: #ff7943;
 }
 
 /* The light ground.
@@ -105,6 +134,28 @@
   --input-bg: #ffffff;
   --input-border: var(--line-3);
   --sidebar: #f1f0ed;
+
+  /* Pass 6 additions, darkened the way the mobile light palette is. */
+  --accent-text: #581a00;
+  --accent-soft: rgba(166, 58, 10, 0.12);
+  --accent-line: #a63a0a;
+  --brand-deep: #a63a0a;
+  --brand-solid: #a63a0a;
+  --live-solid: #b01712;
+  --ok-solid: #106633;
+  --live-tint: rgba(176, 23, 18, 0.1);
+  --ok-tint: rgba(16, 102, 51, 0.12);
+  --warn-tint: rgba(138, 97, 0, 0.12);
+  --info-tint: rgba(43, 108, 176, 0.12);
+  --plate-fire: #a63a0a;
+  --plate-police: #6d28d9;
+  --plate-medical: #0f766e;
+  --plate-barangay: #8a5308;
+  --hover: rgba(0, 0, 0, 0.06);
+  --pressed: rgba(0, 0, 0, 0.12);
+  --focus: #a63a0a;
+  --glass: rgba(243, 243, 241, 0.86);
+  --glass-strong: rgba(243, 243, 241, 0.94);
 }
 
 
@@ -138,6 +189,127 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Shared Admin foundations. Scoped to web-* components while the existing
+ * destinations await their baseline captures and Figma comparison. */
+.web-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.web-page { display: grid; gap: 24px; min-width: 0; }
+.web-page-header { display: flex; flex-wrap: wrap; align-items: start; gap: 20px; }
+.web-page-header-copy { flex: 1 1 280px; min-width: 0; }
+.web-eyebrow { color: var(--label); font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; }
+.web-page-title { margin: 8px 0; font-size: clamp(24px, 2.2vw, 32px); line-height: 1.2; font-weight: 650; letter-spacing: -0.6px; }
+.web-page-description, .web-state-description, .web-dialog-description { margin: 0; max-width: 70ch; color: var(--label); line-height: 1.6; font-size: 14px; }
+.web-page-header-actions { display: flex; align-items: center; gap: 12px; }
+.web-page-header-content { flex-basis: 100%; }
+.web-button, .web-table-row-action {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 40px; padding: 8px 16px; border: 1px solid var(--line-3);
+  border-radius: var(--radius); background: var(--surface-3); color: var(--text);
+  font: inherit; font-size: 13px; font-weight: 600; line-height: 1.4;
+  cursor: pointer; text-decoration: none; box-shadow: none;
+}
+.web-button--primary { color: var(--accent-text); background: var(--accent-fill); border-color: var(--accent-fill); }
+.web-button--danger { color: var(--danger); border-color: var(--danger); background: var(--surface-2); }
+.web-button--secondary { background: var(--surface-2); }
+.web-button:hover:not(:disabled), .web-table-row-action:hover:not(:disabled) { border-color: var(--accent); }
+.web-button:disabled, .web-table-row-action:disabled { opacity: 0.55; cursor: not-allowed; }
+.web-button:focus-visible, .web-table-row-action:focus-visible,
+.web-page :is(button, a, input, select, textarea):focus-visible,
+.web-dialog :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 4px;
+}
+.web-chip, .web-count-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-3); background: var(--surface-3); border: 1px solid var(--line-3);
+  border-radius: var(--radius-pill); padding: 4px 10px; font-size: 12px;
+  font-weight: 600; line-height: 1.3; white-space: nowrap;
+}
+.web-chip--accent, .web-count-badge--accent { color: var(--accent); border-color: var(--accent-line); }
+.web-chip--danger, .web-count-badge--danger { color: var(--danger); border-color: currentColor; }
+.web-chip--warn, .web-count-badge--warn { color: var(--warn); border-color: currentColor; }
+.web-chip--ok, .web-count-badge--ok { color: var(--ok); border-color: currentColor; }
+.web-chip--info, .web-count-badge--info { color: var(--info); border-color: currentColor; }
+.web-count-badge { min-width: 24px; padding: 3px 7px; font-variant-numeric: tabular-nums; }
+.web-table-wrap { overflow-x: auto; border: 1px solid var(--line-3); border-radius: var(--radius-lg); background: var(--surface-1); }
+.web-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+.web-table-caption { padding: 20px; text-align: left; color: var(--text); font-weight: 600; }
+.web-table th, .web-table td { padding: 16px 20px; border-bottom: 1px solid var(--line-2); line-height: 1.5; vertical-align: middle; }
+.web-table thead th { color: var(--label); background: var(--surface-2); font-size: 11px; font-weight: 600; letter-spacing: 0.9px; text-transform: uppercase; }
+.web-table tbody th { font-weight: 600; }
+.web-table tbody tr:last-child > * { border-bottom: 0; }
+.web-table tbody td { color: var(--text-3); }
+.web-table-row.is-selected { background: var(--accent-soft); }
+.web-table-action-heading, .web-table-action-cell { text-align: right; }
+.web-table-row-action { min-height: 36px; background: transparent; font-size: 12px; white-space: nowrap; }
+.web-table-empty { text-align: center; color: var(--label); }
+.web-state { padding: 40px 24px; border: 1px solid var(--line-3); border-radius: var(--radius-lg); background: var(--surface-1); text-align: center; }
+.web-state-title { margin: 0 0 8px; color: var(--text); font-size: 18px; line-height: 1.4; font-weight: 600; }
+.web-state-description { margin-inline: auto; }
+.web-state > .web-button, .web-state-content { margin-top: 20px; }
+.web-state--error { border-color: var(--danger); }
+.web-dialog { width: min(520px, calc(100% - 32px)); max-height: calc(100% - 48px); padding: 0; border: 1px solid var(--line-3); border-radius: var(--radius-lg); background: var(--surface-3); color: var(--text); box-shadow: none; }
+.web-dialog::backdrop { background: var(--bg); opacity: 0.8; }
+.web-dialog-panel { padding: 28px; }
+.web-dialog-title { margin: 0 0 12px; font-size: 22px; line-height: 1.3; font-weight: 600; }
+.web-dialog-content { margin-top: 24px; }
+.web-dialog-error { color: var(--danger); line-height: 1.5; }
+.web-dialog-actions { display: flex; justify-content: end; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.web-preview { max-width: 1160px; margin: 0 auto; padding: 32px; }
+.web-preview-section { display: grid; gap: 16px; padding-block: 20px; border-top: 1px solid var(--line-3); }
+.web-preview-section h2 { margin: 0; font-size: 18px; }
+.web-preview-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.web-preview label { color: var(--label); font-size: 14px; }
+.web-panel { min-width: 0; border: 1px solid var(--line-3); border-radius: var(--radius-lg); padding: 24px; background: var(--surface-1); }
+.web-panel-header, .web-section-header, .web-report-detail-header, .web-report-heading { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
+.web-panel :is(h2, h3) { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.4; }
+.web-panel h3 { font-size: 16px; }
+.web-filters, .web-report-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+.web-report-filters { margin-bottom: 20px; }
+.web-field { display: grid; gap: 8px; }
+.web-field > span, .web-report-filters label { font-size: 12px; color: var(--label); }
+.web-field :is(input, select), .web-input { min-height: 40px; max-width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); border-radius: var(--radius); background: var(--input-bg); color: var(--text); font: inherit; font-size: 14px; }
+.web-field input { width: 260px; }
+.web-report-filters .web-input { flex: 1 1 260px; }
+.web-tabs, .web-view-switch { display: flex; flex-wrap: wrap; gap: 8px; }
+.web-tabs { border-bottom: 1px solid var(--line-3); }
+.web-tab { padding: 12px 16px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--label); font: inherit; font-size: 14px; cursor: pointer; }
+.web-tab[aria-pressed='true'] { border-bottom-color: var(--accent); color: var(--accent); }
+.web-view-switch { margin-block: 20px; }
+.web-view-switch [aria-pressed='true'] { border-color: var(--accent); color: var(--accent); }
+.web-meta, .web-note, .web-report-meta, .web-pagination-range { color: var(--label); font-size: 13px; line-height: 1.6; }
+.web-detail-list { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(0, 3fr); gap: 16px 24px; }
+.web-detail-list dt, .web-report-facts dt { color: var(--label); font-size: 13px; line-height: 1.6; }
+.web-detail-list dd, .web-report-facts dd { margin: 0; color: var(--text-2); font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.web-prose, .web-report-notes { white-space: pre-wrap; }
+.web-reports, .web-reports-layout { display: grid; gap: 24px; min-width: 0; }
+.web-report-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.web-report-facts > div { display: grid; gap: 8px; align-content: start; }
+.web-report-list { margin: 0; padding-left: 20px; }
+.web-pagination { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+.web-summary-narrative { color: var(--text-2); font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
+.web-incident-summary > .web-state { margin-block: 16px; }
+.web-reports :is(button, a, input, select, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+@media (max-width: 767px) {
+  .web-page { gap: 20px; }
+  .web-preview { padding: 20px; }
+  .web-dialog-panel { padding: 20px; }
+  .web-table th, .web-table td { padding: 12px; }
+  .web-panel { padding: 16px; }
+  .web-detail-list, .web-report-facts { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .web-detail-list dd { margin-bottom: 16px; }
+  .web-report-facts { gap: 20px; }
 }
 
 * {

@@ -2,7 +2,9 @@ import { createContext, useContext, useEffect, useState } from 'react';
 
 import { api, getToken, setToken } from './api/client.js';
 
-const AuthContext = createContext(null);
+// Exported for the development previews in docs/, which supply a fictional
+// signed-in Admin without touching the stored session.
+export const AuthContext = createContext(null);
 
 /// Roles admitted to this console.
 ///

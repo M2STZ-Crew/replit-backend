@@ -1,0 +1,435 @@
+/* Pass 6 — the Admin web shell and its shared pieces (REPLIT (MAIN) 04 ·
+ * Desktop · Admin web; 10 · Admin Web Experience). Every colour, radius and
+ * size here is a token from index.css or a measurement from the design. */
+
+/* ── Icon ─────────────────────────────────────────────────────────────── */
+.ad-icon {
+  display: inline-block;
+  flex: none;
+  background-color: currentColor;
+  -webkit-mask: var(--ad-icon) center / contain no-repeat;
+  mask: var(--ad-icon) center / contain no-repeat;
+}
+
+/* ── Focus: 2 px coral, outside the control ───────────────────────────── */
+.ad-shell :focus-visible,
+.ad-sheet :focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ── Frame ────────────────────────────────────────────────────────────── */
+.ad-shell {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+}
+.ad-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ad-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* ── Sidebar ──────────────────────────────────────────────────────────── */
+.ad-sidebar {
+  width: 248px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-3) transparent;
+  background: var(--surface-1);
+  border-right: 1px solid var(--line);
+}
+.ad-sidebar.is-rail {
+  width: 72px;
+  padding: 16px 8px;
+  align-items: center;
+  gap: 12px;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+.ad-sidebar.is-rail::-webkit-scrollbar { display: none; }
+/* The rail carries the destinations only (10 · A85); the top bar names the
+   organisation. */
+.ad-sidebar.is-rail .ad-org { display: none; }
+
+.ad-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+}
+.ad-sidebar.is-rail .ad-brand { padding: 0; }
+.ad-brand-icon {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  border-radius: 7px;
+}
+.ad-brand-words { display: flex; flex-direction: column; }
+.ad-brand-name {
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 20px;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.ad-brand-sub {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--label);
+}
+
+.ad-org {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 10px 10px;
+  background: var(--input-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.ad-org.is-rail { padding: 6px; }
+.ad-org-text { display: flex; flex-direction: column; min-width: 0; }
+.ad-org-name {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  color: var(--text);
+}
+.ad-org-role { font-size: 12px; line-height: 16px; color: var(--label); }
+
+.ad-plate {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 6.4px;
+  color: #fff;
+  background: var(--surface-3);
+}
+.ad-plate--fire { background: var(--plate-fire); }
+.ad-plate--police { background: var(--plate-police); }
+.ad-plate--medical { background: var(--plate-medical); }
+.ad-plate--barangay { background: var(--plate-barangay); }
+
+.ad-nav { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+.ad-nav-group { display: flex; flex-direction: column; }
+.ad-sidebar.is-rail .ad-nav-group { align-items: center; gap: 4px; }
+.ad-nav-group-label {
+  padding: 0 12px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ad-rail-rule {
+  width: 24px;
+  height: 1px;
+  margin: 4px 0;
+  background: var(--line);
+}
+.ad-nav-group:first-child .ad-rail-rule { display: none; }
+
+.ad-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: -0.1px;
+  text-align: left;
+  cursor: pointer;
+}
+.ad-nav-item .ad-icon { color: var(--text-2); }
+.ad-nav-item:hover { background: var(--hover); }
+.ad-nav-item.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--text);
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+.ad-nav-item.is-active .ad-icon { color: var(--text); }
+.ad-nav-label { flex: 1; min-width: 0; }
+
+.ad-rail-item {
+  position: relative;
+  width: 56px;
+  height: 48px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.ad-rail-item:hover { background: var(--hover); }
+.ad-rail-item.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--text);
+}
+.ad-rail-count { position: absolute; left: 34px; top: 4px; }
+
+.ad-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--live-solid);
+  color: #f3f3f3;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 14px;
+  letter-spacing: 0.2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ad-spacer { flex: 1; min-height: 8px; }
+
+.ad-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 8px 0;
+  border-top: 1px solid var(--line);
+}
+.ad-user.is-rail { flex-direction: column; padding: 12px 0 0; }
+.ad-avatar {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--brand-deep);
+  color: #f3f3f3;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.ad-user-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ad-user-name,
+.ad-user-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ad-user-name { font-size: 13px; font-weight: 800; line-height: 16px; letter-spacing: -0.2px; }
+.ad-user-email { font-size: 12px; line-height: 16px; color: var(--label); }
+
+.ad-icon-button {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.ad-icon-button:hover { background: var(--hover); }
+
+/* ── Top bar ──────────────────────────────────────────────────────────── */
+.ad-topbar {
+  height: 64px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 32px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+.ad-topbar-context {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 16px;
+}
+.ad-topbar-org {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  color: var(--text);
+}
+.ad-topbar-sep { color: var(--muted); }
+.ad-topbar-scope {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--label);
+}
+
+.ad-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ad-pill .ad-icon { color: var(--text); }
+.ad-pill:hover { background: var(--hover); }
+/* A 44 px target round a 32 px pill. */
+.ad-pill::after {
+  content: '';
+  position: absolute;
+  inset: -6px -2px;
+}
+
+.ad-availability {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 10px;
+  border: 1px solid var(--ok);
+  border-radius: 999px;
+  background: var(--ok-tint);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+.ad-availability-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+.ad-availability.is-afk { border-color: var(--warn); background: var(--warn-tint); }
+.ad-availability.is-afk .ad-availability-dot { background: var(--warn); }
+
+@media (max-width: 1279px) {
+  .ad-topbar { padding: 0 24px; }
+}
+
+/* ── Phone layout (not in the design; kept so a phone still works) ────── */
+.ad-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  height: 64px;
+  display: flex;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+}
+.ad-bar-item {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ad-bar-item.is-active {
+  color: var(--text);
+  background: var(--accent-soft);
+  box-shadow: inset 0 2px 0 var(--accent-line);
+}
+.ad-bar-item .ad-count { position: absolute; top: 6px; left: calc(50% + 6px); }
+
+@media (max-width: 899px) {
+  .ad-content { padding-bottom: 64px; }
+  .ad-topbar { padding: 0 16px; }
+  .ad-topbar-scope, .ad-topbar-sep { display: none; }
+}
+
+.ad-sheet-layer { position: fixed; inset: 0; z-index: 40; }
+.ad-scrim { position: absolute; inset: 0; background: var(--scrim); }
+.ad-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px 24px;
+  background: var(--surface-2);
+  border-top: 1px solid var(--line);
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+}
+.ad-sheet-grip {
+  width: 80px;
+  height: 4px;
+  margin: 0 auto 8px;
+  border-radius: 2px;
+  background: var(--line-3);
+}
+.ad-sheet-head { display: flex; align-items: center; justify-content: space-between; }
+.ad-sheet-title { margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.6px; }

@@ -5,11 +5,19 @@
 /// En route. Either way there
 /// is no step between the two to label. 'post_incident_report' is the wait
 /// between fire out and the team captain filing; 'closed' is terminal.
+/// Pass 6 (REPLIT (MAIN) 04 · Lifecycle chip; PRD v13 §4.5.1, §19.2): the
+/// org's digital "seen it, going to check" is now called Acknowledged. The
+/// server still sends it as 'verified' (v13 renames the enum, not the act);
+/// 'acknowledged' and the new terminal 'declined' are drawn the same way the
+/// day the server sends them. A person's identity "Verified" badge is a
+/// different thing and keeps its word.
 export const STATUS = {
-  reported: { label: 'Reported', color: '#EAB308' },
-  verified: { label: 'Verified', color: '#42A5F5' },
+  reported: { label: 'Reported', color: '#FFB020' },
+  verified: { label: 'Acknowledged', color: '#5B93F5' },
+  acknowledged: { label: 'Acknowledged', color: '#5B93F5' },
+  declined: { label: 'Declined', color: '#9E9E9E' },
   en_route: { label: 'En route', color: '#FF9066' },
-  arrived: { label: 'On scene', color: '#F4511E' },
+  arrived: { label: 'Arrived', color: '#FF544E' },
   fire_out: { label: 'Fire out', color: '#22C55E' },
   post_incident_report: { label: 'Report due', color: '#2DD4BF' },
   closed: { label: 'Closed', color: '#16A34A' },
@@ -22,7 +30,7 @@ export function statusOf(status) {
 }
 
 /// Mirrors OFF_FEED_STATUSES in app/services/incident.py.
-export const OFF_FEED = ['fire_out', 'post_incident_report', 'closed', 'rejected', 'merged'];
+export const OFF_FEED = ['fire_out', 'post_incident_report', 'closed', 'rejected', 'declined', 'merged'];
 
 export const AGENCY_LABEL = {
   fire_volunteer: 'Fire Volunteers',
@@ -36,6 +44,22 @@ export const AGENCY_LABEL = {
 /// the reporter's selected_agencies already decides which agencies see an
 /// incident, and each of them now presses its own Accept.
 
+/// public.alarm_level, the BFP alarm ladder. Fire Volunteers can set no more
+/// than positive_fire_alarm; BFP sets any level.
+export const ALARM_LEVEL = {
+  positive_fire_alarm: 'Positive fire alarm',
+  first_alarm: '1st alarm',
+  second_alarm: '2nd alarm',
+  third_alarm: '3rd alarm',
+  fourth_alarm: '4th alarm',
+  fifth_alarm: '5th alarm',
+  general_alarm: 'General alarm',
+};
+
+export function alarmLabel(level) {
+  return ALARM_LEVEL[level] ?? (level ? level.replace(/_/g, ' ') : '—');
+}
+
 export function since(iso) {
   if (!iso) return '—';
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -44,6 +68,18 @@ export function since(iso) {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ${mins % 60}m`;
   return `${Math.floor(hrs / 24)}d`;
+}
+
+/// "Just now", "1 min ago", "9 min ago", "2 h ago", "3 d ago" — the age a
+/// row's Updated column reads in (04 · Incident row).
+export function ago(iso) {
+  if (!iso) return '—';
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} h ago`;
+  return `${Math.floor(hrs / 24)} d ago`;
 }
 
 export function when(iso) {

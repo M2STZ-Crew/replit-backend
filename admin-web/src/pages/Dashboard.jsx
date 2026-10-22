@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 
-import { useAuth } from '../auth.jsx';
 import AlarmBanner from '../components/AlarmBanner.jsx';
 import ConsoleShell from '../components/ConsoleShell.jsx';
+import * as records from '../integrations/records.js';
 import { LiveFeedProvider } from '../live/LiveFeed.jsx';
 import { OPEN_INCIDENT_EVENT } from '../sound/alarm.js';
 import Accounts from './Accounts.jsx';
@@ -10,38 +10,13 @@ import ActionRecord from './ActionRecord.jsx';
 import Affiliates from './Affiliates.jsx';
 import IdReview from './IdReview.jsx';
 import IncidentDesk from './IncidentDesk.jsx';
-import MapManagement from './MapManagement.jsx';
+import LiveMapPage from './LiveMapPage.jsx';
+import Organization from './Organization.jsx';
+import Reports from './Reports.jsx';
+import Requests from './Requests.jsx';
+import Settings from './Settings.jsx';
 import SituationBoard from './SituationBoard.jsx';
-
-/* Topbar heading per section. The titles match the nav labels in ConsoleShell —
-   a screen whose heading disagrees with the item you clicked is disorienting.
-   `dashboard` is absent on purpose: it gets the personalised welcome. */
-const HEAD = {
-  incidents: {
-    title: 'Incidents',
-    sub: 'Accept incoming reports and route them to the agencies they asked for.',
-  },
-  map: {
-    title: 'Live map',
-    sub: 'Risk zones, evacuation sites, hydrants and water sources — Pasay City and beyond.',
-  },
-  affiliates: {
-    title: 'Affiliates',
-    sub: 'Applications for accreditation, and the organisations already on the network.',
-  },
-  accounts: {
-    title: 'Accounts',
-    sub: 'Everyone attached to an accredited organisation.',
-  },
-  idreview: {
-    title: 'ID review',
-    sub: 'National ID submissions awaiting approval.',
-  },
-  audit: {
-    title: 'Audit log',
-    sub: 'Append-only record of every consequential action.',
-  },
-};
+import WaterResources from './WaterResources.jsx';
 
 export default function Dashboard() {
   return (
@@ -51,83 +26,71 @@ export default function Dashboard() {
   );
 }
 
+function Destination({ active, focusId, go }) {
+  switch (active) {
+    case 'dashboard':
+      return <SituationBoard onNavigate={go} />;
+    case 'incidents':
+      return <IncidentDesk key={focusId ?? 'desk'} focusId={focusId} />;
+    case 'map':
+      return <LiveMapPage onOpenIncident={(incidentId) => go('incidents', { incidentId })} />;
+    case 'requests':
+      return <Requests readRequests={records.readRequests} onOpenIncident={(incidentId) => go('incidents', { incidentId })} />;
+    case 'water':
+      return <WaterResources />;
+    case 'reports':
+      return (
+        <Reports
+          readReports={records.readReports}
+          readIncidentReports={records.readIncidentReports}
+          readSummary={records.readSummary}
+          downloadIncidentPdf={records.downloadIncidentPdf}
+        />
+      );
+    case 'audit':
+      return <ActionRecord />;
+    case 'organization':
+      return <Organization onNavigate={go} />;
+    case 'idreview':
+      return <IdReview />;
+    case 'affiliates':
+      return <Affiliates />;
+    case 'settings':
+      return <Settings />;
+    default:
+      return <Accounts />;
+  }
+}
+
 function Console() {
-  const { user } = useAuth();
   const [active, setActive] = useState('dashboard');
   // The incident a dashboard card was clicked for, so the Incidents screen
-  // opens on it directly (Section 2.9: no separate list drill-down step).
+  // opens on it directly (no separate list drill-down step).
   const [focusId, setFocusId] = useState(null);
-  const [query, setQuery] = useState('');
 
-  // Switch sections and clear the search so it doesn't carry across views.
   function go(key, opts = {}) {
     setActive(key);
     setFocusId(opts.incidentId ?? null);
-    setQuery('');
   }
 
   // A desktop alert was clicked: bring its incident up. Opening it there
-  // acknowledges it, as any open of an incident does.
+  // acknowledges the alarm, as any open of an incident does.
   useEffect(() => {
     const open = (e) => go('incidents', { incidentId: e.detail });
     window.addEventListener(OPEN_INCIDENT_EVENT, open);
     return () => window.removeEventListener(OPEN_INCIDENT_EVENT, open);
   }, []);
 
-  const name = user?.full_name || user?.email || 'Admin';
-  const head = HEAD[active];
+  const flush = active === 'map';
 
   return (
     <ConsoleShell active={active} onNavigate={go}>
-      <div className="db-main">
-        <header className="db-topbar">
-          <div>
-            <div className="db-hello">
-              {head?.title || `Welcome back, ${name.split(/\s+/)[0]}`}
-            </div>
-            <div className="db-hello-sub">
-              {head?.sub || 'Here’s what’s happening across Pasay City right now.'}
-            </div>
-          </div>
-          {/* Only the map reads this box. Every other screen carries its own
-              filter, and a search field that silently does nothing is worse
-              than no search field. */}
-          {active === 'map' && (
-            <div className="db-search">
-              <span className="db-search-icon">🔍</span>
-              <input
-                className="db-search-input"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Find a marker…"
-                aria-label="Find a marker"
-              />
-            </div>
-          )}
-        </header>
-
-        <AlarmBanner onOpen={(incidentId) => go('incidents', { incidentId })} />
-
-        <div className={`db-scroll${active === 'map' ? ' db-scroll-flush' : ''}`}>
-          {active === 'dashboard' ? (
-            <SituationBoard onNavigate={go} />
-          ) : active === 'incidents' ? (
-            <IncidentDesk key={focusId ?? 'desk'} focusId={focusId} />
-          ) : active === 'map' ? (
-            <MapManagement
-              query={query}
-              onOpenIncident={(incidentId) => go('incidents', { incidentId })}
-            />
-          ) : active === 'affiliates' ? (
-            <Affiliates />
-          ) : active === 'idreview' ? (
-            <IdReview />
-          ) : active === 'audit' ? (
-            <ActionRecord />
-          ) : (
-            <Accounts />
-          )}
-        </div>
+      {/* The ringing Areas sit at the top of the page (A21); over the
+          full-bleed map they sit above it instead. */}
+      {flush && <AlarmBanner onOpen={(incidentId) => go('incidents', { incidentId })} />}
+      <div className={`db-scroll ad-scroll${flush ? ' db-scroll-flush' : ''}`}>
+        {!flush && <AlarmBanner onOpen={(incidentId) => go('incidents', { incidentId })} />}
+        <Destination active={active} focusId={focusId} go={go} />
       </div>
     </ConsoleShell>
   );

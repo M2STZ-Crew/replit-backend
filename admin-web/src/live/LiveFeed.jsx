@@ -42,6 +42,11 @@ export function LiveFeedProvider({ children }) {
   const [incidents, setIncidents] = useState([]);
   const [stats, setStats] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  // Whether the latest poll failed, and when the feed last arrived. A failed
+  // poll keeps the last list on screen but must say so (10 · A82): a stale
+  // list read as a live one is worse than an error.
+  const [failed, setFailed] = useState(false);
+  const [loadedAt, setLoadedAt] = useState(null);
   const [seenAt, setSeenAt] = useState(readSeen);
   // Incidents ringing until acknowledged, newest first.
   const [alarmIds, setAlarmIds] = useState([]);
@@ -76,6 +81,10 @@ export function LiveFeedProvider({ children }) {
       });
       setIncidents(list);
       setLoaded(true);
+      setFailed(false);
+      setLoadedAt(new Date().toISOString());
+    } else {
+      setFailed(true);
     }
     if (s) setStats(s);
   }, []);
@@ -139,7 +148,7 @@ export function LiveFeedProvider({ children }) {
   return (
     <LiveFeedContext.Provider
       value={{
-        incidents, stats, loaded, seenAt, markSeen, newSince, refresh, alarms, acknowledge,
+        incidents, stats, loaded, failed, loadedAt, seenAt, markSeen, newSince, refresh, alarms, acknowledge,
       }}
     >
       {children}

@@ -80,67 +80,71 @@ export default function AlarmBanner({ onOpen }) {
 
   const many = alarms.length > 1;
 
+  // REPLIT (MAIN) 10 · A21 (865:1722): each ringing Area as a live-tinted
+  // card — what came in and where, that its sound is looping, and Open
+  // incident. Opening it stops the sound; it does not acknowledge the Area
+  // (that is a separate act in the incident). "Stop the sound" silences it
+  // without leaving the page.
   return (
-    <section className="al" role="alert" aria-live="assertive">
-      <header className="al-head">
-        <span className="al-beacon" aria-hidden="true" />
-        <span className="al-kicker">
-          {many ? `${alarms.length} new incidents` : 'New incident'}
-        </span>
-        <span className="al-repeat">
-          {alarm.repeat
-            ? `Rings every ${alarm.everySec} s until acknowledged`
-            : 'Repeat is off: this rang once'}
-        </span>
-        {many && (
+    <section className="ad-alarms" role="alert" aria-live="assertive">
+      {many && (
+        <div className="ad-alarms-head">
+          <span>{alarms.length} new incidents are ringing</span>
           <button
             type="button"
-            className="al-btn al-all"
+            className="ad-text-button"
             onClick={() => acknowledge(alarms.map((inc) => inc.id))}
           >
-            Acknowledge all
+            Stop every sound
           </button>
-        )}
-      </header>
-
-      <ul className="al-list">
-        {alarms.map((inc) => (
-          <li className="al-item" key={inc.id}>
-            <div className="al-what">
-              <span className="al-name">{inc.designation}</span>
-              <span className="al-meta">
-                <span className="al-kind">{kindOf(inc)}</span>
-                <span>{reportsOf(inc)}</span>
-                <span>{statusLabel(inc.status)}</span>
+        </div>
+      )}
+      {alarms.map((inc) => {
+        const kind = kindOf(inc);
+        return (
+          <div className="ad-alarm" key={inc.id}>
+            <span className="ad-alarm-plate" aria-hidden="true">
+              <img src="/icons/fire.svg" alt="" width="20" height="20" />
+            </span>
+            <div className="ad-alarm-text">
+              <p className="ad-alarm-eyebrow">
+                New incident · {kind} sound {alarm.repeat ? 'playing' : 'played once'}
+              </p>
+              <p className="ad-alarm-title">{kind} reported — {inc.designation}</p>
+              <p className="ad-alarm-body">
+                {reportsOf(inc)} · {statusLabel(inc.status)} ·{' '}
                 <span title={new Date(inc.reported_at).toLocaleString()}>
-                  {clock(inc.reported_at)} · {ago(inc.reported_at, now)}
+                  {clock(inc.reported_at)}, {ago(inc.reported_at, now)}
                 </span>
-              </span>
+                . Opening the incident stops the sound; it doesn’t acknowledge it.
+              </p>
             </div>
-            <div className="al-actions">
-              <button type="button" className="al-btn is-primary" onClick={() => onOpen(inc.id)}>
-                Open
-              </button>
-              <button type="button" className="al-btn" onClick={() => acknowledge(inc.id)}>
-                Acknowledge
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+            <span className="ad-alarm-loop">
+              <img src="/icons/volume.svg" alt="" width="16" height="16" />
+              {alarm.repeat ? `Looping · every ${alarm.everySec} s` : 'Rang once'}
+            </span>
+            <button type="button" className="ad-text-button" onClick={() => acknowledge(inc.id)}>
+              Stop the sound
+            </button>
+            <button type="button" className="ad-button ad-button--primary" onClick={() => onOpen(inc.id)}>
+              Open incident
+            </button>
+          </div>
+        );
+      })}
 
       {(!canSound || alarm.permission === 'default') && (
-        <div className="al-hints">
+        <div className="ad-alarms-hints">
           {!canSound && (
-            <p className="al-hint">
+            <p>
               The browser is holding the alarm sound back. Click anywhere on this page to let
               it ring.
             </p>
           )}
           {alarm.permission === 'default' && (
-            <p className="al-hint">
+            <p>
               Want an alert when this tab is in the background?{' '}
-              <button type="button" className="al-link" onClick={askDesktopPermission}>
+              <button type="button" className="ad-text-button" onClick={askDesktopPermission}>
                 Turn on desktop alerts
               </button>
             </p>

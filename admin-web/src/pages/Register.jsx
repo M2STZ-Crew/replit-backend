@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { api } from '../api/client.js';
+import AuthBrand from '../components/AuthBrand.jsx';
 
 const AGENCY_TYPES = [
   { value: 'fire_volunteer', label: 'Fire Volunteer' },
@@ -55,65 +56,6 @@ function Label({ children, required }) {
       <span className="dc-eyebrow">{children}</span>
       {required && <span className="rg-req">Required</span>}
     </span>
-  );
-}
-
-/// The identity panel, shared by the form and the "received" screen. Hidden
-/// below 900px with the sign-in screen's, so a phone gets straight to the form.
-function Brand() {
-  return (
-    <aside className="lg-brand rg-brand">
-      <div className="lg-ember" aria-hidden="true" />
-      <div className="lg-grid" aria-hidden="true" />
-
-      <div className="lg-mark">
-        <img src="/assets/logo-mark.png" alt="" width="44" height="44" />
-        <div className="lg-mark-text">
-          <span className="lg-wordmark">RepLiT</span>
-          <span className="lg-tagline">Fire Response Network</span>
-        </div>
-      </div>
-
-      <div className="lg-pitch">
-        <div className="lg-pill">
-          <span className="lg-pill-dot" />
-          <span>Affiliate application</span>
-        </div>
-        <h1 className="lg-headline">
-          Join the<br />response<br />network.
-        </h1>
-        <p className="lg-lede">
-          Fire brigades, BFP stations, police, medical and barangay teams apply
-          here. An admin reviews every application before any account is made.
-        </p>
-
-        <ol className="rg-steps">
-          <li>
-            <span className="rg-step-n">1</span>
-            <span className="rg-step-text">
-              <strong>Apply</strong>
-              Your organisation, its roster and equipment, and its SEC certificate.
-            </span>
-          </li>
-          <li>
-            <span className="rg-step-n">2</span>
-            <span className="rg-step-text">
-              <strong>Review</strong>
-              A confirmation email arrives now. An admin then checks the application.
-            </span>
-          </li>
-          <li>
-            <span className="rg-step-n">3</span>
-            <span className="rg-step-text">
-              <strong>Sign in</strong>
-              Once approved, a second email lets you set your password.
-            </span>
-          </li>
-        </ol>
-      </div>
-
-      <div className="lg-foot">Republic of the Philippines · NCR · City of Pasay</div>
-    </aside>
   );
 }
 
@@ -190,7 +132,7 @@ export default function Register() {
   if (done) {
     return (
       <div className="lg rg">
-        <Brand />
+        <AuthBrand />
         <div className="lg-panel rg-panel is-done">
           <div className="lg-form rg-done">
             <div className="lg-head">
@@ -222,13 +164,13 @@ export default function Register() {
 
   return (
     <div className="lg rg">
-      <Brand />
+      <AuthBrand />
 
       <div className="lg-panel rg-panel">
         <form className="lg-form rg-form" onSubmit={onSubmit} noValidate>
           <div className="lg-head">
-            <span className="lg-kicker">Affiliate registration</span>
-            <h2 className="lg-title">Apply to join</h2>
+            <span className="lg-kicker">Join RepLiT · Pasay City</span>
+            <h2 className="lg-title">Request to join as an organisation</h2>
             <p className="lg-sub">
               Tell us who you are and what you bring to a fire. No account is needed
               to apply; we email you once an admin has decided.

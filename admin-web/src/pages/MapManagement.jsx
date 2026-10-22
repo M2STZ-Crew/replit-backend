@@ -109,6 +109,12 @@ const FIELDS = {
   ],
 };
 
+// What this editor may add, change and delete: shelters and risk zones.
+// Water sources are drawn read-only: adding or updating one is blocked in
+// the pass 6 design pending a product decision (REPLIT (MAIN) 10 · A35), and
+// deleting one lives on Water resources (A34).
+const MANAGED = new Set(['risk', 'evac']);
+
 function cfgOf(key) {
   return EDIT_LAYERS.find((l) => l.key === key);
 }
@@ -408,7 +414,7 @@ export default function MapManagement({ query = '', onOpenIncident }) {
                       ? OUTSIDE_PASAY_STYLE
                       : { color: '#fff', weight: 1, fillColor: color, fillOpacity: 0.95 }
                   }
-                  eventHandlers={{ click: () => openEdit(l.key, r) }}
+                  eventHandlers={MANAGED.has(l.key) ? { click: () => openEdit(l.key, r) } : undefined}
                 >
                   <Tooltip>
                     {title}
@@ -488,7 +494,7 @@ export default function MapManagement({ query = '', onOpenIncident }) {
             {!form ? (
               <div className="mm-panel-body">
                 <div className="mm-grid">
-                  {EDIT_LAYERS.map((l) => (
+                  {EDIT_LAYERS.filter((l) => MANAGED.has(l.key)).map((l) => (
                     <button
                       key={l.key}
                       className={`mm-gcard${selected === l.key ? ' active' : ''}`}

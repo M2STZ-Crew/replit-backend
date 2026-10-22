@@ -1,28 +1,9 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { api } from '../api/client.js';
 import { useAuth } from '../auth.jsx';
-
-function EyeIcon({ off }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-      {off && <line x1="3" y1="3" x2="21" y2="21" />}
-    </svg>
-  );
-}
-
-function ShieldIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)"
-         strokeWidth="2" strokeLinecap="round">
-      <path d="M12 3l8 4v5c0 5-3.4 8.3-8 9-4.6-.7-8-4-8-9V7l8-4z" />
-      <path d="M9 12l2 2 4-4" />
-    </svg>
-  );
-}
+import AuthBrand from '../components/AuthBrand.jsx';
 
 export default function Login() {
   const { login } = useAuth();
@@ -32,6 +13,8 @@ export default function Login() {
   const [showPw, setShowPw] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [reset, setReset] = useState(null);
+  const emailInput = useRef(null);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -48,38 +31,28 @@ export default function Login() {
     }
   }
 
+  // Sends the reset link to the address typed above (A01). The answer never
+  // says whether the address has an account.
+  async function forgot() {
+    const address = email.trim();
+    setError(null);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) {
+      setReset({ tone: 'error', text: 'Type your Admin email above first, then press Forgot password? again.' });
+      emailInput.current?.focus();
+      return;
+    }
+    setReset({ tone: 'busy', text: 'Sending…' });
+    try {
+      const res = await api.recover(address);
+      setReset({ tone: 'ok', text: res?.message || 'If that email is registered, a reset link has been sent.' });
+    } catch (err) {
+      setReset({ tone: 'error', text: err.message || 'The reset email could not be sent. Try again.' });
+    }
+  }
+
   return (
     <div className="lg">
-      {/* Left: the identity panel. Decorative only, and hidden below 900px so a
-          phone gets straight to the form rather than a screenful of artwork. */}
-      <div className="lg-brand" aria-hidden="true">
-        <div className="lg-ember" />
-        <div className="lg-grid" />
-
-        <div className="lg-mark">
-          <img src="/assets/logo-mark.png" alt="" width="44" height="44" />
-          <div className="lg-mark-text">
-            <span className="lg-wordmark">RepLiT</span>
-            <span className="lg-tagline">Fire Response Network</span>
-          </div>
-        </div>
-
-        <div className="lg-pitch">
-          <div className="lg-pill">
-            <span className="lg-pill-dot" />
-            <span>Pasay City · Barangay 76</span>
-          </div>
-          <h1 className="lg-headline">
-            Eyes on the<br />whole city,<br />all at once.
-          </h1>
-          <p className="lg-lede">
-            Live incident awareness, affiliate governance and a permanent record
-            of every response decision.
-          </p>
-        </div>
-
-        <div className="lg-foot">Republic of the Philippines · NCR · City of Pasay</div>
-      </div>
+      <AuthBrand />
 
       {/* Right: the form. */}
       <div className="lg-panel">
@@ -88,17 +61,18 @@ export default function Login() {
             <span className="lg-kicker">Admin Console</span>
             <h2 className="lg-title">Sign in</h2>
             <p className="lg-sub">
-              Credentialed officials only. Every session is recorded in the audit log.
+              Use your organisation’s Admin email.
             </p>
           </div>
 
           <div className="lg-fields">
             <label className="lg-field">
-              <span className="dc-eyebrow">Official email</span>
+              <span className="dc-eyebrow">Admin email</span>
               <input
+                ref={emailInput}
                 type="email"
                 autoComplete="username"
-                placeholder="name@agency.gov.ph"
+                placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -120,7 +94,7 @@ export default function Login() {
                   onClick={() => setShowPw((s) => !s)}
                   aria-label={showPw ? 'Hide password' : 'Show password'}
                 >
-                  <EyeIcon off={showPw} />
+                  <img src="/icons/visibility.svg" alt="" />
                 </button>
               </span>
             </label>
@@ -132,18 +106,18 @@ export default function Login() {
             {busy ? 'Signing in…' : 'Sign in'}
           </button>
 
-          <div className="lg-note">
-            <ShieldIcon />
-            <span>
-              Fire Volunteer and BFP coordinators accept and reject. Police,
-              medical and barangay accounts see incidents for awareness only.
-            </span>
-          </div>
+          {reset && (
+            <p className={`lg-reset is-${reset.tone}`} role={reset.tone === 'error' ? 'alert' : 'status'}>
+              {reset.text}
+            </p>
+          )}
 
           <div className="lg-affiliate">
-            Want your organisation to join?{' '}
+            <button type="button" className="lg-link" onClick={forgot} disabled={reset?.tone === 'busy'}>
+              Forgot password?
+            </button>
             <button type="button" className="lg-link" onClick={() => navigate('/register')}>
-              Register as an affiliate
+              New affiliate? Request access
             </button>
           </div>
         </form>

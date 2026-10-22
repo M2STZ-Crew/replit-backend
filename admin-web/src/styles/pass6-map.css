@@ -1,0 +1,168 @@
+/* Pass 6 — the live map (REPLIT (MAIN) 10 · A30, A31; 04 · Map marker, Map
+ * layer chip, Map overlays). Overlays over the dark tiles use Glass; panels
+ * that carry body text use Glass strong (03 · pass 6 materials). */
+
+/* ── Markers ──────────────────────────────────────────────────────────── */
+.ad-marker { background: none; border: 0; }
+.ad-marker-backing {
+  position: absolute;
+  left: 5px;
+  top: 5px;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: #131313;
+}
+.ad-marker-backing.is-selected { left: 0; top: 0; width: 48px; height: 48px; border-radius: 14px; }
+.ad-marker-disc {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid #fff;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+.ad-marker-disc.is-selected { left: 4px; top: 4px; width: 40px; height: 40px; border-width: 2px; border-radius: 10px; }
+.ad-marker-disc--incident { background: #b56648; }
+.ad-marker-disc--water { background: #4168ae; }
+.ad-marker-disc--shelter { background: #188c43; }
+.ad-marker-disc--risk { background: #b53c37; }
+.ad-marker-disc--unit { background: #626262; }
+
+/* ── Map frame ────────────────────────────────────────────────────────── */
+.ad-map { position: relative; height: 100%; min-height: 0; background: #0b0b0b; }
+.ad-map .leaflet-container { background: #0b0b0b; }
+.ad-map-chips {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 120px;
+  z-index: 500;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ad-map-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-chip);
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  color: var(--text);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.ad-map-chip.is-on { border-width: 1.5px; }
+.ad-map-chip--accent.is-on { border-color: var(--accent); background: rgba(107, 60, 43, 0.6); }
+.ad-map-chip--info.is-on { border-color: var(--info); background: rgba(31, 52, 92, 0.6); }
+.ad-map-chip--ok.is-on { border-color: var(--ok); background: rgba(12, 60, 31, 0.6); }
+.ad-map-chip--danger.is-on { border-color: var(--danger); background: rgba(92, 28, 26, 0.6); }
+.ad-map-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.ad-map-chip--danger .ad-map-chip-dot { background: var(--danger); }
+.ad-map-chip--info .ad-map-chip-dot { background: var(--info); }
+.ad-map-chip--ok .ad-map-chip-dot { background: var(--ok); }
+.ad-map-chip--accent .ad-map-chip-dot { background: var(--accent); }
+
+.ad-map-tools {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ad-map-tool {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--glass-strong);
+  backdrop-filter: blur(12px);
+  color: var(--text);
+  cursor: pointer;
+}
+.ad-map-tool[aria-pressed="true"] { border-color: var(--accent-line); }
+
+.ad-map-legend {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 500;
+  width: 232px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--glass-strong);
+  backdrop-filter: blur(12px);
+}
+.ad-map-legend ul { display: flex; flex-direction: column; gap: 10px; margin: 10px 0 0; padding: 0; list-style: none; }
+.ad-map-legend li { display: flex; align-items: center; gap: 10px; color: var(--text-2); font-size: 13px; }
+.ad-legend-mark {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 1px solid #fff;
+  border-radius: 5px;
+}
+
+.ad-map-panel {
+  position: absolute;
+  top: 16px;
+  right: 80px;
+  z-index: 600;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--glass-strong);
+  backdrop-filter: blur(16px);
+}
+.ad-map-panel .web-chip { align-self: flex-start; }
+
+.ad-map .leaflet-control-zoom a {
+  background: var(--glass-strong);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.ad-map-manage { position: relative; height: 100%; }
+.ad-map-back { position: absolute; left: 16px; bottom: 72px; z-index: 700; }
+
+@media (max-width: 1023px) {
+  .ad-map-panel { right: 16px; left: 16px; top: auto; bottom: 16px; width: auto; }
+  .ad-map-legend { display: none; }
+}
+
+/* ── Water resources map (A33) ────────────────────────────────────────── */
+.ad-water-map {
+  position: relative;
+  height: max(520px, calc(100vh - 360px));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: #0b0b0b;
+}
+.ad-water-panel { right: 16px; }
+.ad-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }

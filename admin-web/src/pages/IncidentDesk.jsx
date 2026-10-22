@@ -1,539 +1,396 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { api } from '../api/client.js';
+import { useConsole } from '../components/ConsoleShell.jsx';
+import IncidentDetail from '../components/incidents/IncidentDetail.jsx';
+import IncidentTable, { degrees } from '../components/incidents/IncidentTable.jsx';
+import OverlapReview from '../components/incidents/OverlapReview.jsx';
+import Icon from '../components/ui/Icon.jsx';
+import { EmptyState, PageHeader, StatePanel } from '../components/ui/index.js';
 import { useLiveFeed, useSurfaceVisit } from '../live/LiveFeed.jsx';
-import {
-  AGENCY_LABEL,
-  OFF_FEED,
-  since,
-  statusOf,
-  when,
-} from '../lib/status.js';
+import { AGENCY_LABEL } from '../lib/status.js';
 
-// Confidence bands from the backend's generated column (Section 2.3).
-const BAND = {
-  high: { label: 'High confidence', color: '#22C55E' },
-  medium: { label: 'Medium confidence', color: '#EAB308' },
-  low: { label: 'Low confidence', color: '#FF544E' },
-};
+/* Incidents (REPLIT (MAIN) 10 · A22 865:2061, A23–A28, A80–A82, A84).
+ *
+ * The list: every active Area, searchable and filtered by status, agency and
+ * confidence, a page at a time. Opening one shows it in full (IncidentDetail)
+ * where this Admin may acknowledge it.
+ *
+ * Two of the design's pieces wait on the server. "Routed to you" needs the
+ * server to route an Area to an Admin's organisation; today every Admin may
+ * act on every Area, so the tab is not drawn. And an Admin no longer rejects
+ * an Area (PRD v13 §4.5.2: Reject is the Coordinator's, before anyone goes),
+ * so the console's old Reject is gone. */
 
-// Reporter credibility badges (Section 2.1) — advisory, never gating.
-function badgeOf(pct) {
-  if (pct >= 100) return { label: '100% verified', color: '#22C55E' };
-  if (pct >= 90) return { label: 'High credibility', color: '#22C55E' };
-  if (pct >= 50) return { label: 'Partly verified', color: '#EAB308' };
-  return { label: 'Low credibility', color: '#EAB308' };
+const PAGE = 10;
+
+const STATUSES = [
+  { key: 'all', label: 'All active' },
+  { key: 'reported', label: 'Reported' },
+  { key: 'verified', label: 'Acknowledged' },
+  { key: 'en_route', label: 'En route' },
+  { key: 'arrived', label: 'Arrived' },
+  { key: 'post_incident_report', label: 'Report due' },
+];
+const CONFIDENCE = [
+  { key: 'any', label: 'Any' },
+  { key: 'high', label: 'High' },
+  { key: 'medium', label: 'Medium' },
+  { key: 'low', label: 'Low' },
+];
+const AGENCIES = ['any', 'fire_volunteer', 'bfp', 'police', 'medical', 'barangay'];
+
+function Select({ label, value, onChange, options }) {
+  return (
+    <label className="ad-select">
+      <span className="ad-select-label">{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+      </select>
+    </label>
+  );
 }
 
-const OBSERVERS = ['police', 'medical', 'barangay'];
-
-const TABS = [
-  { key: 'incoming', label: 'Incoming', hint: 'Waiting for someone to Accept' },
-  { key: 'live', label: 'Live', hint: 'Every open incident' },
-  { key: 'report', label: 'Report due', hint: 'Fire out; Post-Incident Report owed' },
-  { key: 'closed', label: 'Closed', hint: 'Report filed' },
-];
-
-/// Admin's incident desk (Master Context v10, Section 2.6.2).
-///
-/// Admin accepts an incoming report and routes it to the agencies the reporter
-/// asked for — several at once when the fire needs it — choosing which teams
-/// within each to alert. Routing does not verify: the Fire Volunteer coordinator
-/// still owns that, from the mobile app. Once routed, an observer agency's
-/// Accept shows here. After fire out the same screen shows the Post-Incident
-/// Report once the team captain has filed it.
 export default function IncidentDesk({ focusId = null }) {
-  const { incidents: live, refresh: refreshFeed, acknowledge } = useLiveFeed();
+  const { incidents: live, loaded, failed, loadedAt, refresh: refreshFeed, acknowledge } = useLiveFeed();
+  const { org } = useConsole();
   const lastViewed = useSurfaceVisit('incidents');
 
-  const [tab, setTab] = useState(focusId ? 'live' : 'incoming');
-  const [fetched, setFetched] = useState({ report: null, closed: null });
+  const [tab, setTab] = useState('active');
+  const [status, setStatus] = useState('all');
+  const [agency, setAgency] = useState('any');
+  const [band, setBand] = useState('any');
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const [fetched, setFetched] = useState({ post_incident_report: null, closed: null });
+  const [fetchError, setFetchError] = useState(null);
+
   const [selectedId, setSelectedId] = useState(focusId);
-  // Arriving on an incident from the alarm banner, a desktop alert, the board
-  // or the map is seeing it: its alarm stops. So does picking it in the list.
+  const [detail, setDetail] = useState(null);
+  const [detailState, setDetailState] = useState('idle');
+  const [evidence, setEvidence] = useState([]);
+  const [dispatches, setDispatches] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [reports, setReports] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [confirming, setConfirming] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const [overlaps, setOverlaps] = useState([]);
+  const [reviewing, setReviewing] = useState(null);
+  useEffect(() => {
+    if (!notice) return undefined;
+    const t = setTimeout(() => setNotice(null), 6000);
+    return () => clearTimeout(t);
+  }, [notice]);
+
+  // Arriving on an incident from the alarm, a desktop alert, the board or the
+  // map is seeing it: its alarm stops. So does opening it from the list.
   useEffect(() => {
     if (focusId) acknowledge(focusId);
   }, [focusId, acknowledge]);
-  const [detail, setDetail] = useState(null);
-  const [evidence, setEvidence] = useState([]);
-  const [reports, setReports] = useState([]);
-  const [orgs, setOrgs] = useState([]);
-  const [error, setError] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [rejecting, setRejecting] = useState(false);
-  const [reason, setReason] = useState('');
 
-  useEffect(() => {
-    api.organizations().then(setOrgs).catch(() => setOrgs([]));
+  // Pending overlaps (A27) come and go within two minutes, so they are read
+  // again whenever the live feed moves.
+  const loadOverlaps = useCallback(() => {
+    api.pendingOverlaps()
+      .then((rows) => setOverlaps(Array.isArray(rows) ? rows : []))
+      .catch(() => setOverlaps([]));
   }, []);
+  const feedSig = live.map((i) => `${i.id}:${i.updated_at}`).join('|');
+  useEffect(() => { loadOverlaps(); }, [feedSig, loadOverlaps]);
 
-  const loadTab = useCallback(async (key) => {
-    if (key !== 'report' && key !== 'closed') return;
-    const status = key === 'report' ? 'post_incident_report' : 'closed';
-    const rows = await api.incidents({ activeOnly: false, status, limit: 100 }).catch(() => []);
-    setFetched((f) => ({ ...f, [key]: rows }));
+  const needs = tab === 'closed' ? 'closed' : status === 'post_incident_report' ? 'post_incident_report' : null;
+  const loadList = useCallback(async (key) => {
+    if (!key) return;
+    setFetchError(null);
+    try {
+      const rows = await api.incidents({ activeOnly: false, status: key, limit: 200 });
+      setFetched((f) => ({ ...f, [key]: Array.isArray(rows) ? rows : [] }));
+    } catch (e) {
+      setFetchError(e.message || 'The incidents could not be loaded.');
+    }
   }, []);
+  useEffect(() => { loadList(needs); }, [needs, loadList]);
 
-  useEffect(() => { loadTab(tab); }, [tab, loadTab]);
-
-  const lists = useMemo(() => ({
-    // v11: nothing is routed any more. Incoming is what nobody has accepted
-    // yet — an Area stays 'reported' until the first Accept moves it.
-    incoming: live.filter((i) => i.status === 'reported'),
-    live,
-    // Longest-waiting first: a report that has been owed for a day matters
-    // more than one owed for ten minutes (§10.2).
-    report: [...(fetched.report ?? [])].sort(
-      (a, b) => new Date(a.resolved_at ?? 0) - new Date(b.resolved_at ?? 0),
-    ),
-    closed: fetched.closed ?? [],
-  }), [live, fetched]);
-  const rows = lists[tab];
-
-  // Keep a selection on screen: the focused/last-picked incident while it is in
-  // the current list, otherwise the first one.
-  useEffect(() => {
-    if (rows.length === 0) return;
-    if (!selectedId || !rows.some((r) => r.id === selectedId)) setSelectedId(rows[0].id);
-  }, [rows, selectedId]);
+  const source = needs ? fetched[needs] : live;
+  const rows = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    return (source ?? []).filter((inc) => {
+      if (tab === 'active' && status !== 'all' && status !== 'post_incident_report' && inc.status !== status) return false;
+      if (agency !== 'any' && !(inc.requested_agencies ?? []).includes(agency)) return false;
+      if (band !== 'any' && inc.confidence_band !== band) return false;
+      if (term && !`${inc.designation} ${degrees(inc.centroid_lat, inc.centroid_lng)}`.toLowerCase().includes(term)) return false;
+      return true;
+    });
+  }, [source, tab, status, agency, band, query]);
+  useEffect(() => { setPage(0); }, [tab, status, agency, band, query]);
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+  const shown = rows.slice(page * PAGE, page * PAGE + PAGE);
 
   const loadDetail = useCallback(async (id) => {
-    if (!id) { setDetail(null); setEvidence([]); setReports([]); return; }
-    const [d, r] = await Promise.all([
-      api.incident(id).catch(() => null),
-      api.incidentReports(id).catch(() => []),
-    ]);
-    setDetail(d);
-    setEvidence(r);
-    // One per responding team. An API from before that returns a single one.
-    setReports(d?.has_post_incident_report
-      ? await api.postIncidentReports(id)
-          .catch(() => api.postIncidentReport(id).then((one) => [one]).catch(() => []))
-      : []);
+    if (!id) { setDetail(null); setDetailState('idle'); return; }
+    setDetailState((s) => (s === 'ready' ? 'ready' : 'loading'));
+    try {
+      const [d, r, x, q] = await Promise.all([
+        api.incident(id),
+        api.incidentReports(id).catch(() => []),
+        api.incidentDispatches(id).catch(() => []),
+        api.alarmRequests().catch(() => []),
+      ]);
+      setDetail(d);
+      setEvidence(Array.isArray(r) ? [...r].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)) : []);
+      setDispatches(Array.isArray(x) ? x : []);
+      setRequests(Array.isArray(q) ? q.filter((row) => row.area_id === id) : []);
+      // One per responding team. An API from before that returns a single one.
+      setReports(d?.has_post_incident_report
+        ? await api.postIncidentReports(id)
+            .catch(() => api.postIncidentReport(id).then((one) => [one]).catch(() => []))
+        : []);
+      setDetailState('ready');
+    } catch (e) {
+      setDetailState('error');
+      setError(e.message || 'This incident could not be loaded.');
+    }
   }, []);
 
   useEffect(() => {
-    setRejecting(false);
-    setReason('');
     setError(null);
+    setConfirming(false);
     loadDetail(selectedId);
   }, [selectedId, loadDetail]);
 
-  // The feed polls every 12 s; when the selected incident's summary changes
-  // (a new report, a status move, an observer's Accept) re-read its detail.
+  // The feed polls; when the open incident's summary changes (a new report, a
+  // status move, another Accept) read its detail again.
   const liveSig = useMemo(() => {
     const s = live.find((i) => i.id === selectedId);
-    return s ? JSON.stringify([s.updated_at, s.status, s.routed_agencies, s.accepted_agencies]) : '';
+    return s ? JSON.stringify([s.updated_at, s.status, s.accepted_agencies]) : '';
   }, [live, selectedId]);
   useEffect(() => {
     if (liveSig) loadDetail(selectedId);
   }, [liveSig]); // selectedId is folded into liveSig
 
-  async function act(fn) {
+  function open(inc) {
+    setNotice(null);
+    setSelectedId(inc.id);
+    acknowledge(inc.id);
+  }
+
+  async function confirmAcknowledge() {
     setBusy(true);
     setError(null);
     try {
-      await fn();
-      await Promise.all([refreshFeed(), loadDetail(selectedId), loadTab(tab)]);
-      return true;
-    } catch (e) {
-      setError(e.message);
-      return false;
+      await api.incidentAccept(detail.id);
+      await Promise.all([refreshFeed(), loadDetail(detail.id)]);
+      setConfirming(false);
+      setNotice(`${detail.designation} acknowledged${org?.name ? ` for ${org.name}` : ''}`);
     } finally {
       setBusy(false);
     }
   }
 
-  const isNew = (inc) =>
-    tab !== 'report' && tab !== 'closed' &&
-    new Date(inc.reported_at).getTime() > (lastViewed ? new Date(lastViewed).getTime() : 0);
-  const band = detail?.confidence_band ? BAND[detail.confidence_band] : null;
-  const st = detail ? statusOf(detail.status) : null;
-  const isLive = detail && !OFF_FEED.includes(detail.status);
+  async function downloadPdf() {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.incidentReportPdf(detail.id, detail.designation);
+    } catch (e) {
+      setError(e.message || 'The report could not be downloaded.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (reviewing) {
+    return (
+      <>
+        <OverlapReview
+          overlap={reviewing}
+          onBack={() => setReviewing(null)}
+          onDone={async (message) => {
+            setReviewing(null);
+            setNotice(message);
+            await refreshFeed();
+            loadOverlaps();
+          }}
+        />
+      </>
+    );
+  }
+
+  if (selectedId) {
+    if (detailState === 'error' && !detail) {
+      return (
+        <div className="ad-page">
+          <button type="button" className="ad-text-button ad-back" onClick={() => setSelectedId(null)}>← All incidents</button>
+          <StatePanel kind="error" title="This incident couldn’t load" description={error} onRetry={() => loadDetail(selectedId)} />
+        </div>
+      );
+    }
+    if (!detail || detail.id !== selectedId) {
+      return <div className="ad-page"><StatePanel kind="loading" title="Loading the incident…" /></div>;
+    }
+    return (
+      <>
+        <IncidentDetail
+          detail={detail}
+          evidence={evidence}
+          dispatches={dispatches}
+          requests={requests}
+          reports={reports}
+          busy={busy}
+          error={error}
+          confirming={confirming}
+          acknowledgedNow={!!notice}
+          onAskAcknowledge={() => setConfirming(true)}
+          onCancelAcknowledge={() => setConfirming(false)}
+          onConfirmAcknowledge={confirmAcknowledge}
+          onBack={() => { setSelectedId(null); setNotice(null); }}
+          onPdf={downloadPdf}
+        />
+        {notice && (
+          <div className="ad-toast" role="status">
+            <span aria-hidden="true">✓</span>
+            {notice}
+          </div>
+        )}
+      </>
+    );
+  }
+
+  const listLoading = needs ? fetched[needs] == null && !fetchError : !loaded;
+  const emptyMessage = query || agency !== 'any' || band !== 'any' || status !== 'all'
+    ? 'Nothing matches these filters.'
+    : tab === 'closed' ? 'Nothing closed yet.' : 'No active incidents. A new Area appears here the moment its first report is clustered.';
 
   return (
-    <div className="vq dk">
-      <div className="dk-tabs" role="tablist" aria-label="Incident lists">
-        {TABS.map((t) => (
+    <div className="ad-page">
+      <PageHeader
+        eyebrow={org?.name ?? 'Operations'}
+        title="Incidents"
+        description="Every active incident in Pasay. Open one to see it in full and acknowledge it."
+      />
+
+      {overlaps.map((o) => (
+        <div className="ad-overlap-alert" key={o.id} role="status">
+          <span className="ad-overlap-alert-mark" aria-hidden="true">!</span>
+          <span className="ad-overlap-alert-text">
+            <span className="ad-cell-title">{o.area_a_designation} and {o.area_b_designation} may be the same fire</span>
+            <span className="ad-cell-meta">{Math.round(o.distance_m)} m apart · decide in the next two minutes, or they stay separate</span>
+          </span>
+          <button type="button" className="ad-button ad-button--secondary ad-button--compact" onClick={() => setReviewing(o)}>
+            Review
+          </button>
+        </div>
+      ))}
+
+      {notice && (
+        <div className="ad-toast" role="status">
+          <span aria-hidden="true">✓</span>
+          {notice}
+        </div>
+      )}
+
+      <div className="ad-tabs ad-tabs--page" role="tablist" aria-label="Incident lists">
+        {[{ key: 'active', label: 'All active' }, { key: 'closed', label: 'Closed' }].map((t) => (
           <button
             key={t.key}
+            type="button"
             role="tab"
             aria-selected={tab === t.key}
-            className={`dk-tab${tab === t.key ? ' is-on' : ''}`}
-            onClick={() => { setTab(t.key); setSelectedId(null); }}
-            title={t.hint}
+            className={`ad-tab${tab === t.key ? ' is-active' : ''}`}
+            onClick={() => setTab(t.key)}
           >
             {t.label}
-            {(t.key === 'incoming' || t.key === 'live' || fetched[t.key]) && (
-              <span className="dk-tab-n">{lists[t.key].length}</span>
-            )}
           </button>
         ))}
-        <button className="vq-refresh dk-refresh" onClick={() => { refreshFeed(); loadTab(tab); }}>
-          Refresh
-        </button>
       </div>
 
-      {error && <div className="vq-error">{error}</div>}
-
-      <div className="vq-cols">
-        <div className="vq-list">
-          {rows.length === 0 && (
-            <div className="vq-empty">
-              {tab === 'incoming' ? 'Nothing waiting to be accepted.' :
-               tab === 'live' ? 'No live incidents.' :
-               tab === 'report' ? 'No Post-Incident Reports owed.' : 'Nothing closed yet.'}
-            </div>
-          )}
-          {rows.map((inc) => {
-            const s = statusOf(inc.status);
-            return (
-              <button
-                key={inc.id}
-                className={`vq-item${inc.id === selectedId ? ' is-active' : ''}`}
-                onClick={(e) => {
-                  setSelectedId(inc.id);
-                  acknowledge(inc.id);
-                  // Below 900px the detail stacks under the list, out of sight:
-                  // bring it into view so the tap visibly does something.
-                  if (window.matchMedia('(max-width: 900px)').matches) {
-                    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-                    e.currentTarget.closest('.vq-cols')?.querySelector('.vq-detail')
-                      ?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
-                  }
-                }}
-              >
-                <div className="vq-item-top">
-                  <span className="vq-item-name">
-                    {isNew(inc) && <span className="dk-new" aria-label="New">NEW</span>}
-                    {inc.designation}
-                  </span>
-                  <span className="dk-status" style={{ color: s.color }}>{s.label}</span>
-                </div>
-                <div className="vq-item-sub">
-                  {tab === 'report'
-                    ? `Fire out ${since(inc.resolved_at)} ago · report owed`
-                    : tab === 'closed'
-                      ? `Closed ${since(inc.closed_at)} ago`
-                      : `${inc.report_count} report${inc.report_count === 1 ? '' : 's'} · ${since(inc.reported_at)} ago`}
-                </div>
-                <div className="dk-agencies">
-                  {(inc.requested_agencies ?? []).map((a) => (
-                    <span
-                      key={a}
-                      className={`dk-ag${(inc.accepted_agencies ?? []).includes(a) ? ' is-routed' : ''}`}
-                      title={(inc.accepted_agencies ?? []).includes(a) ? 'Accepted' : 'Not accepted yet'}
-                    >
-                      {AGENCY_LABEL[a] ?? a}
-                    </span>
-                  ))}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="vq-detail">
-          {!detail && <div className="vq-empty">Select an incident.</div>}
-          {detail && (
-            <>
-              <div className="vq-detail-head">
-                <div>
-                  <h3 className="vq-detail-title">{detail.designation}</h3>
-                  <div className="vq-detail-sub">
-                    <span style={{ color: st.color, fontWeight: 700 }}>{st.label}</span>
-                    {' · '}Reported {when(detail.reported_at)} · {detail.centroid_lat?.toFixed(5)}, {detail.centroid_lng?.toFixed(5)}
-                  </div>
-                </div>
-                {band && (
-                  <span className="vq-band" style={{ color: band.color, borderColor: band.color }}>
-                    {band.label} · {Math.round((detail.confidence_score ?? 0) * 100)}%
-                  </span>
-                )}
-              </div>
-
-              <Timeline d={detail} />
-
-              {detail.status === 'reported' && (
-                <AcceptPanel
-                  detail={detail}
-                  busy={busy}
-                  onAccept={() => act(() => api.incidentAccept(detail.id))}
-                />
-              )}
-
-              {detail.acceptances?.length > 0 && (
-                <AcceptanceList acceptances={detail.acceptances} />
-              )}
-
-              {/* Admin routing (v10) — only incidents from before v11 have any. */}
-              {detail.routes?.length > 0 && <RouteList routes={detail.routes} />}
-
-              {detail.status === 'post_incident_report' && (
-                <div className="vq-note">
-                  Fire out {since(detail.resolved_at)} ago. Waiting on the responding team
-                  captain&apos;s Post-Incident Report — the incident closes when they file it.
-                </div>
-              )}
-              {reports.map((r, i) => (
-                <ReportView
-                  key={r.id}
-                  report={r}
-                  position={reports.length > 1 ? `${i + 1} of ${reports.length}` : null}
-                />
-              ))}
-
-              {reports.length > 0 && (
-                <div className="dk-route-foot">
-                  <button
-                    className="vq-btn"
-                    disabled={busy}
-                    onClick={() => act(() => api.incidentReportPdf(detail.id, detail.designation))}
-                  >
-                    Download report (PDF)
-                  </button>
-                  <span className="vq-muted">
-                    Timeline, every team&apos;s report, and the AI summary.
-                  </span>
-                </div>
-              )}
-
-              <div className="vq-scores">
-                <div className="vq-score">
-                  <span className="vq-score-v">{detail.report_count}</span>
-                  <span className="vq-score-l">reports</span>
-                </div>
-                <div className="vq-score">
-                  <span className="vq-score-v">{Math.round((detail.s_score ?? 0) * 100)}%</span>
-                  <span className="vq-score-l">spatial agreement</span>
-                </div>
-                <div className="vq-score">
-                  <span className="vq-score-v">{Math.round((detail.v_score ?? 0) * 100)}%</span>
-                  <span className="vq-score-l">reporter credibility</span>
-                </div>
-              </div>
-
-              <h4 className="vq-section">Evidence ({evidence.length})</h4>
-              <div className="vq-reports">
-                {evidence.map((r) => {
-                  const b = badgeOf(r.user_verified_percent ?? 0);
-                  return (
-                    <div key={r.id} className="vq-report">
-                      {r.photo_url
-                        ? <img className="vq-photo" src={r.photo_url} alt="Reported scene" />
-                        : <div className="vq-photo vq-photo-missing">No photo</div>}
-                      <div className="vq-report-meta">
-                        <div className="vq-reporter">{r.reporter_name || 'Unnamed reporter'}</div>
-                        <div className="vq-badge" style={{ color: b.color }}>
-                          {r.user_verified_percent ?? 0}% · {b.label}
-                        </div>
-                        {r.gps_discrepancy_flag && (
-                          <div className="vq-flag">Photo GPS disagrees with device GPS — possible spoofing</div>
-                        )}
-                        {!r.has_exif && <div className="vq-muted">No photo GPS</div>}
-                        {r.notes && <div className="vq-muted">“{r.notes}”</div>}
-                      </div>
-                    </div>
-                  );
-                })}
-                {evidence.length === 0 && <div className="vq-empty">No member reports.</div>}
-              </div>
-
-              {(detail.status === 'reported' || detail.status === 'verified') && (
-                <div className="vq-actions">
-                  {rejecting ? (
-                    <>
-                      <input
-                        className="vq-reason"
-                        placeholder="Why is this being rejected? (required)"
-                        value={reason}
-                        onChange={(e) => setReason(e.target.value)}
-                        autoFocus
-                      />
-                      <button
-                        className="vq-btn vq-btn-reject"
-                        disabled={busy || reason.trim().length === 0}
-                        onClick={async () => {
-                          if (await act(() => api.incidentReject(detail.id, reason.trim()))) {
-                            setRejecting(false);
-                          }
-                        }}
-                      >
-                        {busy ? 'Rejecting…' : 'Confirm reject'}
-                      </button>
-                      <button className="vq-btn" onClick={() => setRejecting(false)} disabled={busy}>
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button className="vq-btn vq-btn-reject" disabled={busy} onClick={() => setRejecting(true)}>
-                        Reject as false report
-                      </button>
-                      {detail.status === 'reported' && (
-                        <span className="vq-muted">
-                          Accepting verifies this incident. Responders go when they choose to respond.
-                        </span>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Timeline({ d }) {
-  const steps = [
-    ['Reported', d.reported_at],
-    ['Verified', d.verified_at],
-    // v11 removed the dispatch step, but incidents that ran under v10 still
-    // carry a real dispatched_at and deserve their true history. Shown only
-    // when it happened — otherwise it would sit here as a step that can never
-    // complete.
-    ...(d.dispatched_at ? [['Dispatched', d.dispatched_at]] : []),
-    ['En route', d.en_route_at],
-    ['On scene', d.arrived_at],
-    ['Fire out', d.resolved_at],
-    ['Closed', d.closed_at],
-  ];
-  if (d.rejected_at) steps.splice(1, steps.length, ['Rejected', d.rejected_at]);
-  if (d.merged_at) steps.splice(1, steps.length, ['Merged', d.merged_at]);
-  return (
-    <ol className="dk-timeline" aria-label="Lifecycle">
-      {steps.map(([label, at]) => (
-        <li key={label} className={at ? 'is-done' : ''}>
-          <span className="dk-tl-dot" />
-          <span className="dk-tl-label">{label}</span>
-          <span className="dk-tl-time">
-            {at ? new Date(at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '—'}
-          </span>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-/// Admin's Accept (v11 §2.6.2). There is no routing to do: the reporter already
-/// named the agencies they wanted, and each of those sees this incident on its
-/// own surface with its own Accept. Admin's is the safety net — for when the
-/// Fire Volunteer coordinator is offline and the observers are on the fence, so
-/// an incident does not sit unaccepted while a fire grows.
-function AcceptPanel({ detail, busy, onAccept }) {
-  const asked = detail.requested_agencies ?? [];
-  return (
-    <section className="dk-routes">
-      <span className="dc-eyebrow">Accept</span>
-      <p className="vq-muted">
-        {asked.length > 0 ? (
-          <>
-            The reporter asked for{' '}
-            {asked.map((a) => AGENCY_LABEL[a] ?? a).join(', ')}. Each of them can accept
-            this themselves.
-          </>
-        ) : (
-          <>This report named no agency, so only Admin can accept it.</>
+      <div className="ad-filters">
+        <label className="ad-search">
+          <Icon name="search" />
+          <span className="web-sr-only">Search incidents</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search areas and coordinates"
+          />
+        </label>
+        {tab === 'active' && (
+          <Select label="Status" value={status} onChange={setStatus} options={STATUSES} />
         )}
-      </p>
-      <div className="dk-route-foot">
-        <button className="vq-btn vq-btn-verify" disabled={busy} onClick={onAccept}>
-          {busy ? 'Accepting…' : 'Accept (verify)'}
-        </button>
+        <Select
+          label="Agency"
+          value={agency}
+          onChange={setAgency}
+          options={AGENCIES.map((a) => ({ key: a, label: a === 'any' ? 'Any' : AGENCY_LABEL[a] ?? a }))}
+        />
+        <Select label="Confidence" value={band} onChange={setBand} options={CONFIDENCE} />
       </div>
-    </section>
-  );
-}
 
-/// Who has accepted (v11 §2.5.1). The first Accept verified the incident and
-/// sent responders; each later one is another agency saying it is coming too.
-function AcceptanceList({ acceptances }) {
-  return (
-    <section className="dk-routes">
-      <span className="dc-eyebrow">Accepted</span>
-      {acceptances.map((a) => (
-        <div className="dk-routed" key={a.user_id}>
-          <span className="dk-routed-who">
-            {a.agency ? (AGENCY_LABEL[a.agency] ?? a.agency) : 'Admin'}
-            {a.organization_name && <span className="vq-muted"> · {a.organization_name}</span>}
-          </span>
-          <span className="vq-muted">{when(a.accepted_at)}{a.user_name ? ` by ${a.user_name}` : ''}</span>
-          <span className="dk-accepted">
-            {a.is_first ? '✓ Verified it' : '✓ Coming too'}
-          </span>
+      {(fetchError || (!needs && failed)) && (
+        <div className="ad-alert ad-alert--danger" role="alert">
+          <span className="ad-alert-mark" aria-hidden="true">!</span>
+          <div className="ad-alert-text">
+            <p className="ad-alert-title">Couldn’t load incidents</p>
+            <p className="ad-alert-body">
+              {fetchError
+                ? `${fetchError} Check your connection, then try again.`
+                : 'Check your connection. Alerts with sound start again when the console reconnects.'}
+            </p>
+            <button
+              type="button"
+              className="ad-text-button"
+              onClick={() => (fetchError ? loadList(needs) : refreshFeed())}
+            >
+              Try again
+            </button>
+          </div>
         </div>
-      ))}
-    </section>
-  );
-}
+      )}
 
-function RouteList({ routes }) {
-  return (
-    <section className="dk-routes">
-      <span className="dc-eyebrow">Routed</span>
-      {routes.map((r) => (
-        <div className="dk-routed" key={r.id}>
-          <span className="dk-routed-who">
-            {AGENCY_LABEL[r.agency] ?? r.agency}
-            <span className="vq-muted"> · {r.organization_name || 'whole agency'}</span>
-          </span>
-          <span className="vq-muted">{when(r.routed_at)}{r.routed_by_name ? ` by ${r.routed_by_name}` : ''}</span>
-          {OBSERVERS.includes(r.agency) ? (
-            r.accepted_at ? (
-              <span className="dk-accepted">✓ Accepted{r.accepted_by_name ? ` by ${r.accepted_by_name}` : ''} · {when(r.accepted_at)}</span>
-            ) : (
-              <span className="dk-awaiting">Awaiting Accept</span>
-            )
-          ) : (
-            <span className="vq-muted">Coordinator — verifies &amp; dispatches</span>
-          )}
-        </div>
-      ))}
-    </section>
-  );
-}
-
-function ReportView({ report, position = null }) {
-  const mins = report.resolved_at
-    ? Math.max(0, Math.round((new Date(report.submitted_at) - new Date(report.resolved_at)) / 60000))
-    : null;
-  return (
-    <section className="dk-pir">
-      <div className="dk-route-head">
-        <span className="dc-eyebrow">
-          Post-Incident Report{position ? ` · ${position}` : ''}
-        </span>
-        <span className="vq-muted">
-          Filed {when(report.submitted_at)} by {report.filed_by_name || 'the team captain'}
-          {report.organization_name ? ` · ${report.organization_name}` : ''}
-          {mins != null ? ` · ${mins} min after fire out` : ''}
-        </span>
-      </div>
-      <dl className="dk-pir-grid">
-        <dt>Incident</dt><dd>{report.incident_at ? when(report.incident_at) : '—'}</dd>
-        <dt>Fire out</dt><dd>{report.fire_out_at ? when(report.fire_out_at) : '—'}</dd>
-        <dt>{(report.units ?? []).length > 1 ? 'Units' : 'Unit'}</dt>
-        <dd>
-          {(report.units ?? []).length > 0
-            ? report.units.map((u, i) => (
-              <span className="dk-chip" key={`${u.name}-${i}`}>{u.name}{u.type ? ` · ${u.type}` : ''}</span>
-            ))
-            : <>{report.truck_label} <span className="vq-muted">· {report.truck_type}</span></>}
-        </dd>
-        <dt>Driver</dt><dd>{report.driver_name}</dd>
-        <dt>Roster</dt>
-        <dd>
-          {report.roster.map((m, i) => (
-            <span className="dk-chip" key={`${m.name}-${i}`}>{m.name}{m.role ? ` · ${m.role}` : ''}</span>
-          ))}
-        </dd>
-        <dt>Equipment</dt>
-        <dd>{report.equipment_taken.map((e) => <span className="dk-chip" key={e}>{e}</span>)}</dd>
-        {report.notes && (<><dt>Notes</dt><dd className="dk-pir-notes">{report.notes}</dd></>)}
-      </dl>
-    </section>
+      {listLoading && !failed ? (
+        <StatePanel kind="loading" title="Loading incidents…" />
+      ) : rows.length === 0 && !(query || agency !== 'any' || band !== 'any' || status !== 'all') && !(fetchError || failed) ? (
+        <EmptyState icon="requests" title={tab === 'closed' ? 'Nothing closed yet' : 'No active incidents in Pasay'}>
+          {tab === 'closed'
+            ? 'An Area lands here once its post-incident report is filed.'
+            : 'New reports appear here with a sound. Closed incidents are under Closed.'}
+        </EmptyState>
+      ) : (rows.length > 0 || !(fetchError || failed)) ? (
+        <>
+          <IncidentTable
+            incidents={shown}
+            lastViewed={tab === 'active' ? lastViewed : null}
+            onOpen={open}
+            emptyMessage={emptyMessage}
+            staleAt={!needs && failed ? loadedAt : null}
+          />
+          <div className="ad-pager">
+            <span className="ad-pager-range">
+              {rows.length === 0 ? 'Showing 0 of 0' : `Showing ${page * PAGE + 1}–${Math.min(rows.length, page * PAGE + PAGE)} of ${rows.length}`}
+            </span>
+            {pages > 1 && (
+              <nav className="ad-pager-pages" aria-label="Pages">
+                <button type="button" className="ad-page-button" onClick={() => setPage((p) => p - 1)} disabled={page === 0} aria-label="Previous page">‹</button>
+                {Array.from({ length: pages }, (_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className={`ad-page-button${i === page ? ' is-current' : ''}`}
+                    onClick={() => setPage(i)}
+                    aria-current={i === page ? 'page' : undefined}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+                <button type="button" className="ad-page-button" onClick={() => setPage((p) => p + 1)} disabled={page >= pages - 1} aria-label="Next page">›</button>
+              </nav>
+            )}
+          </div>
+        </>
+      ) : null}
+    </div>
   );
 }

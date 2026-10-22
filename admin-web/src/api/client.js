@@ -73,6 +73,9 @@ export const api = {
     request('/auth/login', { method: 'POST', auth: false, body: { email, password } }),
   me: () => request('/auth/me'),
   logout: () => request('/auth/logout', { method: 'POST' }).catch(() => {}),
+  // "Forgot password?": the server emails a reset link and answers the same
+  // way whether or not the address has an account.
+  recover: (email) => request('/auth/recover', { method: 'POST', auth: false, body: { email } }),
   // Public affiliate registration (no account required).
   registerAffiliate: (payload) =>
     request('/affiliates/register', { method: 'POST', auth: false, body: payload }),
@@ -146,6 +149,23 @@ export const api = {
     request(`/affiliates/${id}/accept`, { method: 'POST', body: { notes: notes || null } }),
   affiliateReject: (id, notes) =>
     request(`/affiliates/${id}/reject`, { method: 'POST', body: { notes: notes || null } }),
+
+  // Alarm escalation requests (read-only here). A Fire Volunteer or BFP
+  // Coordinator raises one; executing or declining it is a BFP Coordinator's
+  // act on mobile, so the console only lists them.
+  alarmRequests: (statusFilter) =>
+    request(`/alarm-requests${statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : ''}`),
+
+  // Areas that grew within range of each other, waiting for a dispatcher to
+  // merge them or keep them apart (120 s; Keep separate is the default).
+  pendingOverlaps: () => request('/areas/overlaps/pending'),
+  overlapMerge: (id) => request(`/areas/overlaps/${id}/merge`, { method: 'POST' }),
+  overlapKeepSeparate: (id) => request(`/areas/overlaps/${id}/keep-separate`, { method: 'POST' }),
+
+  // Filed post-incident reports, newest first, a page at a time.
+  postIncidentReportList: ({ limit = 50, offset = 0 } = {}) =>
+    request(`/post-incident-reports?limit=${limit}&offset=${offset}`),
+  incidentSummaries: (id) => request(`/incidents/${id}/summaries`),
 
   // Affiliate organization directory (admin).
   organizations: () => request('/organizations'),

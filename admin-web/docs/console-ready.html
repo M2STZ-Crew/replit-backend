@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RepLiT Admin — UI READY preview (fictional data)</title>
+    <style>
+      body { margin: 0; background: var(--bg); color: var(--text); }
+      .ready { max-width: 1200px; margin: 0 auto; padding: 40px 24px 80px; display: flex; flex-direction: column; gap: 40px; }
+      .ready-section { display: flex; flex-direction: column; gap: 16px; padding-top: 32px; border-top: 1px solid var(--line); }
+      .ready-head .web-eyebrow { margin: 0 0 4px; }
+      .ready-head .ad-decision-body { margin: 6px 0 0; }
+      .ready-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+      .ready-toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); font-size: 13px; }
+      .ready-frame { padding: 24px; border: 1px dashed var(--line-3); border-radius: var(--radius-lg); }
+      .ready-frame--narrow { max-width: 640px; }
+      .ready-frame--auth { padding: 0; overflow: hidden; }
+      .ready-frame--auth .lg, .ready-frame--auth .lg-panel { min-height: 640px; }
+      .ready-out { margin: 0; padding: 12px; border-radius: var(--radius); background: var(--input-bg); color: var(--text-2); font-size: 12px; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./console-ready.jsx"></script>
+  </body>
+</html>

@@ -1,0 +1,100 @@
+/* Figma A01/A03: 520px identity panel, 440/760px cards, 54px fields.
+ * Existing validation, payloads and submission handlers are unchanged.
+ * The affiliate form retains the certificate/roster/equipment fields that
+ * the existing workflow requires; the Figma registration contract differs. */
+.lg { flex-wrap: nowrap; background: var(--bg); min-height: 100dvh; }
+.lg .lg-brand {
+  flex: 0 0 520px;
+  width: 520px;
+  min-height: 100dvh;
+  padding: 64px 56px;
+  border-right: 1px solid var(--line);
+  background: var(--surface-1);
+  gap: 48px;
+}
+.lg-mark { gap: 12px; }
+.auth-app-icon {
+  width: 48px; height: 48px; flex: none; position: relative;
+  background: var(--bg);
+}
+.auth-app-icon img { position: absolute; left: 30.18%; top: 20.76%; }
+.lg-wordmark { font-size: 17px; line-height: 20px; letter-spacing: -.5px; }
+.lg-tagline { font-size: 12px; font-weight: 400; line-height: 16px; letter-spacing: 0; text-transform: none; color: var(--text-2); }
+.lg .lg-pitch { gap: 16px; width: 100%; }
+.lg .lg-headline { font-size: 28px; line-height: 32px; letter-spacing: -1.1px; text-wrap: initial; }
+.lg-lede { font-size: 16px; line-height: 24px; font-weight: 300; color: var(--text-2); }
+.lg-foot { font-size: 12px; font-weight: 400; line-height: 16px; letter-spacing: 0; text-transform: none; color: var(--label); }
+.lg-panel { flex: 1; min-width: 0; min-height: 100dvh; padding: 48px 32px; box-shadow: none; }
+.lg-form {
+  width: min(440px, 100%); padding: 40px; gap: 20px;
+  border: 1px solid var(--line); border-radius: var(--radius-panel);
+  background: var(--surface-2); animation: none;
+}
+.lg-head { gap: 6px; }
+.lg-kicker { font-size: 10px; line-height: 12px; letter-spacing: 1px; }
+.lg-title { margin: 0; font-size: 24px; font-weight: 900; line-height: 26px; letter-spacing: -.9px; text-transform: uppercase; }
+.lg-sub { color: var(--text-2); font-size: 14px; font-weight: 300; line-height: 20px; }
+.lg-fields { gap: 20px; }
+.lg-field .dc-eyebrow { color: var(--text-2); font-size: 12px; font-weight: 700; line-height: 16px; letter-spacing: .2px; text-transform: none; }
+.lg-field input, .lg-field select {
+  width: 100%; min-width: 0; height: 54px; padding: 0 16px;
+  border: 1px solid var(--line-3); border-radius: var(--radius);
+  background: var(--input-bg); color: var(--text);
+  font-size: 16px; font-weight: 500; line-height: 22px; box-shadow: none;
+}
+.lg-field input::placeholder { color: var(--placeholder); }
+.lg-field input:focus, .lg-field select:focus { outline: 2px solid var(--focus); outline-offset: 1px; box-shadow: none; }
+.lg-pw input { padding-right: 56px; }
+.lg-eye { right: 5px; width: 44px; height: 44px; color: var(--text); }
+.lg-submit {
+  height: 56px; flex: none; border: 0; border-radius: var(--radius);
+  background: var(--grad-accent); color: var(--accent-text);
+  font-size: 15px; font-weight: 900; line-height: 20px; letter-spacing: 1px;
+  text-transform: uppercase; box-shadow: none; transition: none;
+}
+.lg-submit:hover:not(:disabled) { box-shadow: none; filter: brightness(1.04); transform: none; }
+.lg-submit:disabled { opacity: .38; }
+.lg-affiliate { display: flex; justify-content: flex-end; }
+.lg-link { min-height: 44px; padding: 0 12px; font-size: 12px; font-weight: 700; letter-spacing: .2px; }
+.lg-error { margin: 0; font-size: 14px; line-height: 20px; border-radius: var(--radius); }
+.rg .lg-brand { position: sticky; top: 0; height: 100dvh; }
+.rg-panel { align-items: flex-start; }
+.rg-form { width: min(760px, 100%); gap: 20px; }
+.rg-section { gap: 16px; }
+.rg-section-title { color: var(--text); font-size: 15px; font-weight: 800; line-height: 20px; }
+.rg-pair { gap: 16px; }
+.rg-hint, .rg-req, .rg-upload-meta { font-size: 12px; line-height: 16px; }
+.rg-upload { border-radius: var(--radius); border-color: var(--line-3); background: var(--input-bg); }
+.rg-add, .rg-remove { min-height: 44px; }
+.rg-remove { min-width: 44px; }
+.rg-done { width: min(560px, 100%); }
+@media (max-width: 1279px) {
+  .lg .lg-brand { flex-basis: 36%; width: 36%; padding: 48px 32px; }
+  .lg-panel { padding: 32px 24px; }
+  .rg-form { padding: 32px; }
+}
+@media (max-width: 899px) {
+  .lg .lg-brand { display: none; }
+  .lg-panel { padding: 24px 16px; min-height: 100dvh; }
+  .lg-form { padding: 24px; }
+}
+@media (max-width: 540px) {
+  .rg-pair { grid-template-columns: minmax(0, 1fr); }
+  .rg-form { padding: 20px; }
+  .rg-row { flex-wrap: wrap; }
+}
+.lg-affiliate { justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.lg-reset { margin: 0; font-size: 13px; line-height: 18px; color: var(--text-2); }
+.lg-reset.is-ok { color: var(--ok); }
+.lg-reset.is-error { color: var(--danger); }
+/* A07–A11: the one-time Admin registration (UI READY). */
+.lg-prefix { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.lg-prefix-domain { display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border-radius: var(--radius); background: var(--input-bg); color: var(--text-2); font-size: 14px; white-space: nowrap; }
+.lg-help { margin: 0; color: var(--label); font-size: 12px; line-height: 16px; }
+.lg-preview { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: var(--radius); background: var(--input-bg); }
+.lg-preview-email { color: var(--text); font-size: 14px; font-weight: 700; overflow-wrap: anywhere; }
+.lg-preview-status { font-size: 12px; }
+.lg-preview-status.is-ok { color: var(--ok); }
+.lg-preview-status.is-danger { color: var(--danger); }
+.lg-preview-status.is-quiet { color: var(--label); }
+.lg-submit--link { display: grid; place-items: center; text-decoration: none; }

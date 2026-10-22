@@ -2,237 +2,199 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { api } from '../api/client.js';
 import { agencyLabel } from '../auth.jsx';
+import { useConsole } from '../components/ConsoleShell.jsx';
+import { EmptyState, Icon, PageHeader, StatePanel } from '../components/ui/index.js';
 
-/* Categories are derived from the action's "<entity>.<verb>" prefix, which the
-   migration documents as the naming convention. Anything unrecognised falls
-   through to "Other" rather than being dropped. */
+/* Audit log (REPLIT (MAIN) 10 · A64 879:8852; Section 2.5 audit trail): the
+ * append-only record of consequential actions, newest first.
+ *
+ * Each entry keeps the actor's role and agency as they were at the time.
+ * The server stores no actor name, so the actor column names the role and
+ * agency instead. The design's correction entries (A65) wait on server
+ * support. An earlier design showed a hash-chained digest; audit_logs has
+ * no hash or chain, so no such property is claimed. */
+
+const CLOCK = new Intl.DateTimeFormat('en-PH', {
+  timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', second: '2-digit',
+});
+const DAY = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', day: 'numeric', month: 'short' });
+
+/* Categories come from the action's "<entity>.<verb>" prefix, the naming
+ * convention the migration documents. Anything unrecognised is "Other"
+ * rather than dropped. */
 const CATEGORY = {
-  incident: { label: 'Incident', color: '#FF9066' },
-  alarm: { label: 'Alarm', color: '#FF544E' },
-  kyc: { label: 'Identity', color: '#22C55E' },
-  hydrant: { label: 'Hydrant', color: '#6098D6' },
-  map_layer: { label: 'Map layer', color: '#6098D6' },
-  user: { label: 'Account', color: '#EAB308' },
-  report: { label: 'Report', color: '#FF9066' },
-  dispatch: { label: 'Dispatch', color: '#7E57C2' },
+  incident: 'Incident',
+  area: 'Incident',
+  alarm: 'Alarm',
+  kyc: 'Identity',
+  hydrant: 'Water',
+  map_layer: 'Map layer',
+  user: 'Account',
+  report: 'Report',
+  dispatch: 'Dispatch',
 };
+const categoryOf = (action = '') => CATEGORY[action.split('.')[0]] ?? 'Other';
 
-function categoryOf(action = '') {
-  const key = action.split('.')[0];
-  return { key, ...(CATEGORY[key] ?? { label: 'Other', color: '#8a8a8a' }) };
-}
-
-/* v10 verbs read better spelled out than split on underscores. */
 const VERB = {
-  'incident.route': 'routed to agencies',
-  'incident.accept': 'accepted (observer)',
-  'incident.verify': 'verified',
-  'incident.post_incident_report': 'filed Post-Incident Report',
+  'incident.route': 'Routed to agencies',
+  'incident.accept': 'Acknowledged',
+  'incident.verify': 'Acknowledged',
+  'incident.post_incident_report': 'Filed post-incident report',
 };
-
-function verbOf(action = '') {
+function labelOf(action = '') {
   if (VERB[action]) return VERB[action];
-  const verb = action.split('.').slice(1).join(' ') || action;
-  return verb.replace(/_/g, ' ');
+  const words = (action.split('.').slice(1).join(' ') || action).replace(/_/g, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-/* What the action was about. v10 routing lists the agencies it sent to. */
+const ROLE = { admin: 'Admin', sub_admin: 'Coordinator', response_team: 'Responder', general_user: 'Citizen' };
+
 function detailOf(r) {
   if (r.action === 'incident.route' && Array.isArray(r.metadata?.routes)) {
     return r.metadata.routes
       .map((x) => `${agencyLabel(x.agency)}${x.organization_name ? ` (${x.organization_name})` : ''}`)
       .join(', ');
   }
+  if (r.metadata?.notes) return r.metadata.notes;
   return null;
 }
 
-function when(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString(undefined, {
-    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
-  });
+const shortId = (id) => (id ? String(id).slice(0, 8) : '—');
+
+function timeOf(iso) {
+  const d = new Date(iso);
+  const today = new Date().toDateString() === d.toDateString();
+  return today ? CLOCK.format(d) : `${DAY.format(d)}, ${CLOCK.format(d)}`;
 }
 
-function shortId(id) {
-  return id ? String(id).slice(0, 8) : '—';
-}
-
-/* The immutable action record (Section 2.5 audit trail).
- *
- * The design showed a "Digest" column with "hash-chained · retained 7 years"
- * and "Chain verified · no gaps detected". public.audit_logs has no hash, chain
- * or digest column and no retention policy, so none of that is claimed here —
- * it would be a fabricated security property. What the table does record is
- * genuinely strong provenance (actor role and agency at the time, before/after
- * state, IP, request id) and that is what the footer states instead. */
 export default function ActionRecord() {
+  const { org } = useConsole();
   const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [phase, setPhase] = useState('loading');
   const [error, setError] = useState(null);
   const [query, setQuery] = useState('');
+  const [area, setArea] = useState('all');
   const [category, setCategory] = useState('all');
 
   const load = useCallback(async () => {
-    setLoading(true);
+    setPhase('loading');
+    setError(null);
     try {
-      setRows(await api.auditLogs({ limit: 200 }));
-      setError(null);
+      const list = await api.auditLogs({ limit: 200 });
+      setRows(Array.isArray(list) ? list : []);
+      setPhase('ready');
     } catch (e) {
-      setError(e.message);
-      setRows([]);
-    } finally {
-      setLoading(false);
+      setError(e.message || 'The audit log could not be loaded.');
+      setPhase('error');
     }
   }, []);
-
   useEffect(() => { load(); }, [load]);
 
-  const categories = useMemo(() => {
-    const seen = new Map();
-    for (const r of rows) {
-      const c = categoryOf(r.action);
-      seen.set(c.key, c);
-    }
-    return [...seen.values()].sort((a, b) => a.label.localeCompare(b.label));
-  }, [rows]);
+  const areas = useMemo(() => [...new Set(rows.map((r) => r.area_designation).filter(Boolean))].sort(), [rows]);
+  const categories = useMemo(() => [...new Set(rows.map((r) => categoryOf(r.action)))].sort(), [rows]);
 
-  const filtered = useMemo(() => {
+  const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter((r) => {
-      if (category !== 'all' && categoryOf(r.action).key !== category) return false;
+      if (area !== 'all' && r.area_designation !== area) return false;
+      if (category !== 'all' && categoryOf(r.action) !== category) return false;
       if (!q) return true;
-      return [r.action, r.actor_role, r.actor_agency, r.entity_type, r.request_id, r.area_designation]
+      return [r.action, labelOf(r.action), r.actor_role, r.actor_agency, r.entity_type, r.area_designation, detailOf(r)]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q));
     });
-  }, [rows, query, category]);
-
-  const stats = useMemo(() => {
-    const actors = new Set(rows.map((r) => r.actor_user_id).filter(Boolean));
-    const day = Date.now() - 864e5;
-    const recent = rows.filter((r) => r.created_at && new Date(r.created_at).getTime() > day);
-    return [
-      { k: 'Entries held', v: rows.length, foot: 'Most recent 200', color: '#ffffff' },
-      { k: 'Last 24 hours', v: recent.length, foot: 'Actions recorded', color: '#FF9066' },
-      { k: 'Distinct actors', v: actors.size, foot: 'Accounts represented', color: '#ffffff' },
-      { k: 'Categories', v: categories.length, foot: 'Kinds of action', color: '#ffffff' },
-    ];
-  }, [rows, categories]);
+  }, [rows, query, area, category]);
 
   return (
-    <div className="ar">
-      <div className="ar-stats">
-        {stats.map((s) => (
-          <section className="ar-stat" key={s.k}>
-            <span className="dc-eyebrow">{s.k}</span>
-            <span className="ar-stat-v" style={{ color: s.color }}>{loading ? '·' : s.v}</span>
-            <span className="sb-kpi-foot">{s.foot}</span>
-          </section>
-        ))}
+    <div className="ad-page">
+      <PageHeader
+        eyebrow={org?.name ?? 'Records'}
+        title="Audit log"
+        description="Append-only. Each entry keeps the actor’s role and agency as they were at the time."
+        actions={(
+          <button type="button" className="ad-button ad-button--secondary" onClick={load} disabled={phase === 'loading'}>
+            Refresh
+          </button>
+        )}
+      />
+
+      <div className="ad-filters">
+        <label className="ad-search">
+          <Icon name="search" />
+          <span className="web-sr-only">Search the audit log</span>
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search actions, areas, agencies" />
+        </label>
+        <label className="ad-select">
+          <span className="ad-select-label">Area</span>
+          <select value={area} onChange={(e) => setArea(e.target.value)}>
+            <option value="all">All areas</option>
+            {areas.map((a) => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </label>
+        <label className="ad-select">
+          <span className="ad-select-label">Action</span>
+          <select value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option value="all">All actions</option>
+            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
       </div>
 
-      <section className="ar-panel">
-        <header className="ar-head">
-          <div className="sb-map-title">
-            <span className="sb-panel-title">Immutable action record</span>
-            <span className="sb-panel-sub">
-              {loading ? 'Loading…' : `${filtered.length} of ${rows.length} entries`}
-              {' · append-only · actor, role and agency captured at the time'}
-            </span>
+      {phase === 'loading' ? (
+        <StatePanel kind="loading" title="Loading the audit log…" busy />
+      ) : phase === 'error' ? (
+        <StatePanel kind="error" title="The audit log couldn’t load" description={error} onRetry={load} />
+      ) : rows.length === 0 ? (
+        <EmptyState icon="audit" title="Nothing recorded yet">
+          Entries appear as incidents are acknowledged, reports are filed and requests are decided.
+        </EmptyState>
+      ) : (
+        <>
+          <div className="web-table-wrap">
+            <table className="web-table ad-audit">
+              <caption className="web-sr-only">Audit log, newest first</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Time (PHT)</th>
+                  <th scope="col">Actor at the time</th>
+                  <th scope="col">Action</th>
+                  <th scope="col">Target</th>
+                  <th scope="col">Detail</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((r) => (
+                  <tr key={r.id} className="web-table-row">
+                    <td className="ad-cell-strong ad-audit-time">
+                      <time dateTime={r.created_at}>{timeOf(r.created_at)}</time>
+                    </td>
+                    <td>
+                      <span className="ad-cell-text">
+                        <span className="ad-cell-title">{r.actor_role ? (ROLE[r.actor_role] ?? r.actor_role) : 'System'}</span>
+                        <span className="ad-cell-meta">{r.actor_agency ? agencyLabel(r.actor_agency) : r.actor_user_id ? `Account ${shortId(r.actor_user_id)}` : 'Automatic'}</span>
+                      </span>
+                    </td>
+                    <th scope="row">
+                      <span className="ad-cell-text">
+                        <span className="ad-cell-title">{labelOf(r.action)}</span>
+                        <span className="ad-cell-meta">{r.action}</span>
+                      </span>
+                    </th>
+                    <td className="ad-cell-strong">
+                      {r.area_designation || (r.entity_type ? `${r.entity_type.replace(/_/g, ' ')} ${shortId(r.entity_id ?? r.area_id)}` : '—')}
+                    </td>
+                    <td className="ad-audit-detail">{detailOf(r) ?? '—'}</td>
+                  </tr>
+                ))}
+                {shown.length === 0 && (
+                  <tr><td className="web-table-empty" colSpan={5}>No entries match these filters.</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
-
-          <label className="ar-search">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--faint)"
-                 strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-              <circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" />
-            </svg>
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filter by actor, action, target…"
-              aria-label="Filter the action record"
-            />
-          </label>
-
-          {categories.length > 0 && (
-            <div className="ar-chips">
-              <button
-                className={`ar-chip${category === 'all' ? ' is-on' : ''}`}
-                onClick={() => setCategory('all')}
-              >
-                All
-              </button>
-              {categories.map((c) => (
-                <button
-                  key={c.key}
-                  className={`ar-chip${category === c.key ? ' is-on' : ''}`}
-                  style={{ color: category === c.key ? c.color : undefined }}
-                  onClick={() => setCategory(c.key)}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </header>
-
-        {error && <div className="vq-error" style={{ margin: '16px 22px' }}>{error}</div>}
-
-        <div className="ar-scroll">
-          <div className="ar-cols">
-            <span className="ar-c-time">Time</span>
-            <span className="ar-c-cat">Category</span>
-            <span className="ar-c-actor">Actor</span>
-            <span className="ar-c-action">Action</span>
-            <span className="ar-c-target">Target</span>
-          </div>
-
-          {!loading && filtered.length === 0 && (
-            <p className="sb-empty" style={{ padding: '20px 22px' }}>
-              {rows.length === 0
-                ? 'Nothing recorded yet. Entries appear as verifications, dispatches and approvals happen.'
-                : 'No entries match that filter.'}
-            </p>
-          )}
-
-          {filtered.map((r) => {
-            const cat = categoryOf(r.action);
-            return (
-              <div className="ar-row" key={r.id}>
-                <span className="ar-c-time ar-time">{when(r.created_at)}</span>
-                <span className="ar-c-cat">
-                  <span className="ar-tag" style={{ color: cat.color, background: `${cat.color}1f` }}>
-                    {cat.label}
-                  </span>
-                </span>
-                <span className="ar-c-actor ar-actor">
-                  <span className="ar-actor-role">{(r.actor_role || 'system').replace(/_/g, ' ')}</span>
-                  <span className="ar-actor-sub">
-                    {r.actor_agency ? agencyLabel(r.actor_agency) : shortId(r.actor_user_id)}
-                  </span>
-                </span>
-                <span className="ar-c-action ar-action">
-                  {verbOf(r.action)}
-                  {detailOf(r) && <span className="ar-actor-sub"> · {detailOf(r)}</span>}
-                </span>
-                <span className="ar-c-target ar-target">
-                  {r.area_designation
-                    ? r.area_designation
-                    : r.entity_type ? `${r.entity_type} ${shortId(r.entity_id ?? r.area_id)}` : '—'}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        <footer className="ar-foot">
-          <span className="sb-kpi-foot">
-            Append-only. Each entry keeps the actor&apos;s role and agency as they were at
-            the time, plus before and after state where the change was diffable.
-          </span>
-          <button className="sb-ghost" onClick={load} disabled={loading}>Refresh</button>
-        </footer>
-      </section>
+          <p className="ad-table-foot">Showing {shown.length} of the latest {rows.length} entries</p>
+        </>
+      )}
     </div>
   );
 }

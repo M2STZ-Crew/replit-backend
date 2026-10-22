@@ -1,0 +1,147 @@
+/* Existing destinations, using the measured pass 6 components:
+ * A22/23 incident row + panels, A05/47/48/50 list/detail, A64 audit.
+ * This file changes presentation only; all current controls remain available. */
+.ad-shell { height: 100dvh; }
+.ad-scroll > :is(.ar, .vq, .idr) { padding: 0; margin: 0; max-width: none; }
+.ad-scroll .ar { gap: 24px; }
+.ad-scroll .ar-panel { border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: none; overflow: hidden; }
+.ad-scroll .ar-head { padding: 16px; gap: 12px; background: var(--bg); box-shadow: none; border-bottom: 1px solid var(--line); }
+.ad-scroll .ar-search { width: 320px; max-width: 100%; height: 44px; padding: 0 12px; border: 1px solid var(--line-3); border-radius: var(--radius); background: var(--input-bg); box-shadow: none; }
+.ad-scroll .ar-search:focus-within { outline: 2px solid var(--focus); outline-offset: 1px; }
+.ad-scroll .ar-search input { font-size: 14px; font-weight: 300; outline: 0; }
+.ad-scroll .ar-cols { min-height: 40px; padding: 10px 16px; background: var(--surface-1); border-bottom: 1px solid var(--line); box-shadow: none; }
+.ad-scroll .ar-cols > span { font-size: 10px; font-weight: 700; line-height: 12px; letter-spacing: 1px; color: var(--label); }
+.ad-scroll .ar-row { min-height: 64px; padding: 12px 16px; border-bottom: 1px solid var(--line); box-shadow: none; background: var(--surface-2); }
+.ad-scroll .ar-row:last-child { border-bottom: 0; }
+.ad-scroll .ar-row:hover { background: var(--hover); }
+.ad-scroll :is(.ar-time, .ar-action, .af-sector, .ar-target) { font-size: 13px; font-weight: 600; line-height: 16px; letter-spacing: -.1px; color: var(--text-2); }
+.ad-scroll :is(.ar-actor-role, .af-org-name) { font-size: 13px; font-weight: 800; line-height: 16px; letter-spacing: -.2px; color: var(--text); }
+.ad-scroll :is(.ar-actor-sub, .sb-panel-sub, .ar-foot, .af-app-when, .af-app-effect) { font-size: 12px; font-weight: 400; line-height: 16px; letter-spacing: 0; color: var(--label); }
+.ad-scroll :is(.ar-tag, .af-status, .idr-wait) { font-size: 11px; font-weight: 700; line-height: 14px; letter-spacing: .2px; text-transform: none; padding: 4px 10px; border-radius: 999px; }
+.ad-scroll .ac-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--brand-deep); color: #f3f3f3; font-size: 11px; }
+.ad-scroll .ar-chips { background: transparent; box-shadow: none; padding: 0; gap: 4px; }
+.ad-scroll .ar-chip { min-height: 44px; padding: 0 12px; font-size: 13px; font-weight: 600; letter-spacing: -.1px; text-transform: none; border-radius: 0; border-bottom: 2px solid transparent; }
+.ad-scroll .ar-chip.is-on { background: transparent; box-shadow: none; border-bottom-color: var(--accent); color: var(--text); font-weight: 800; }
+.ad-scroll .sb-panel-title { font-size: 17px; line-height: 20px; font-weight: 900; letter-spacing: -.5px; text-transform: uppercase; }
+.ad-scroll .sb-empty { font-size: 14px; font-weight: 300; line-height: 20px; color: var(--text-2); }
+
+/* A22: the existing tabs retain their filters; the list uses Incident row. */
+.ad-scroll .dk-tabs { gap: 4px; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.ad-scroll .dk-tab { min-height: 44px; padding: 0 4px; margin-right: 12px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--text-2); font-size: 13px; line-height: 16px; font-weight: 600; letter-spacing: -.1px; box-shadow: none; }
+.ad-scroll .dk-tab.is-on { color: var(--text); border-bottom-color: var(--accent); background: transparent; font-weight: 800; box-shadow: none; }
+.ad-scroll .dk-tab-n { min-width: 20px; height: 20px; border-radius: 999px; font-size: 11px; }
+.ad-scroll .dk .vq-cols { display: flex; flex-direction: column; gap: 24px; margin-top: 24px; }
+.dk-table-wrap, .ad-scroll .vq-detail { width: 100%; min-width: 0; }
+.ad-scroll .vq-detail { padding: 24px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-2); }
+.ad-scroll .vq-detail-title { font-size: 26px; font-weight: 900; line-height: 28px; letter-spacing: -1px; text-transform: uppercase; }
+.ad-scroll .vq-detail-sub { font-size: 12px; line-height: 16px; color: var(--label); }
+.ad-scroll .vq-section { font-size: 17px; font-weight: 900; line-height: 20px; letter-spacing: -.5px; text-transform: uppercase; }
+.ad-scroll :is(.vq-note, .vq-error, .idr-error) { padding: 14px 16px; font-size: 14px; line-height: 20px; border-radius: var(--radius-lg); }
+.ad-scroll .vq-note { background: var(--surface-2); border: 1px solid var(--info); color: var(--text-2); }
+.ad-scroll .vq-scores { gap: 12px; }
+.ad-scroll .vq-score { background: var(--input-bg); border: 0; border-radius: var(--radius); padding: 12px 16px; }
+.ad-scroll .vq-score-v { font-size: 26px; font-weight: 900; line-height: 28px; }
+.ad-scroll .vq-score-l { font-size: 12px; line-height: 16px; }
+.ad-scroll .dk-status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--hover); font-size: 11px; font-weight: 700; line-height: 14px; letter-spacing: .2px; }
+.ad-scroll .dk-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.ad-scroll :is(.vq-btn, .vq-refresh, .idr-btn, .idr-refresh) { min-height: 44px; padding: 0 16px; border: 1px solid var(--line-3); border-radius: var(--radius); background: var(--surface-2); color: var(--text); font-size: 12px; font-weight: 900; line-height: 16px; letter-spacing: 1.2px; text-transform: uppercase; box-shadow: none; }
+.ad-scroll :is(.vq-btn-verify, .idr-btn-approve) { border: 0; background: var(--grad-accent); color: var(--accent-text); }
+.ad-scroll :is(.vq-btn-reject, .idr-btn-reject) { border-color: var(--danger); background: var(--live-tint); color: var(--danger); }
+.ad-scroll :is(.vq-reason, .idr-notes) { min-height: 44px; border: 1px solid var(--line-3); border-radius: var(--radius); background: var(--input-bg); font-size: 14px; }
+.ad-scroll .vq-actions { flex-wrap: wrap; }
+
+/* A05/A47/A50: opaque information panels and readable field rows. */
+.ad-scroll :is(.af-apps, .idr-card) { padding: 24px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-2); box-shadow: none; }
+.ad-scroll .af-app-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 24px; }
+.ad-scroll .af-app { width: auto; min-width: 0; flex: auto; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: none; background: var(--surface-2); gap: 16px; }
+.ad-scroll .af-app-name { font-size: 17px; line-height: 20px; font-weight: 900; letter-spacing: -.5px; text-transform: uppercase; }
+.ad-scroll .af-app-facts > div { gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.ad-scroll .af-app-facts dt { font-size: 12px; line-height: 16px; color: var(--label); }
+.ad-scroll .af-app-facts dd { font-size: 13px; line-height: 16px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+.ad-scroll .idr-list { gap: 24px; }
+.ad-scroll .idr-title { font-size: 17px; line-height: 20px; font-weight: 900; letter-spacing: -.5px; text-transform: uppercase; }
+.ad-scroll .idr-name { font-size: 15px; line-height: 20px; font-weight: 800; }
+.ad-scroll :is(.idr-sub, .idr-meta, .idr-hint) { font-size: 12px; line-height: 16px; color: var(--label); }
+.ad-scroll .idr-empty { padding: 40px 24px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-2); font-size: 14px; line-height: 20px; }
+.od { border: 1px solid var(--line); border-radius: var(--radius-panel); background: var(--surface-2); box-shadow: none; }
+.od-title { font-size: 26px; line-height: 28px; letter-spacing: -1px; }
+.od-section-title { font-size: 17px; line-height: 20px; letter-spacing: -.5px; }
+.od-facts { gap: 0; }
+.od-fact { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.od-fact dt { font-size: 12px; line-height: 16px; }
+.od-fact dd { font-size: 13px; line-height: 16px; }
+
+/* The incident table comes first on A20. Keep the working map and measures
+ * below it rather than removing existing controls or data. */
+.ad-board-section { order: 1; padding: 24px 0 0; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-2); overflow: hidden; }
+.ad-board-section .ad-section-head { padding: 0 24px 12px; }
+.ad-board-section .ad-section-title { flex: 1; font-size: 17px; line-height: 20px; font-weight: 900; letter-spacing: -.5px; color: var(--text); }
+.ad-section-meta { color: var(--label); font-size: 12px; line-height: 16px; }
+.ad-board-section .web-table-wrap { border: 0; border-radius: 0; }
+.ad-board-row { order: 2; }
+.ad-board > .ad-panel { order: 3; }
+.ad-queues { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.ad-queue { min-height: 80px; }
+
+@media (max-width: 1279px) {
+  .ad-queues { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ad-scroll .vq-detail-head { flex-wrap: wrap; }
+}
+
+/* A30/A31: map chips and the existing resource editor share the panel,
+ * field and button treatments. Editing permissions and map data stay intact. */
+.mm-layers { padding: 0; border: 0; border-radius: 0; background: transparent; }
+.mm-layers-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.mm-chip { min-height: 36px; border-radius: var(--radius); background: var(--surface-2); font-size: 10px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
+.mm-chip.on { background: var(--surface-2); }
+.mm-chip-dot { width: 6px; height: 6px; }
+.mm-panel { border-color: var(--line); border-radius: var(--radius-panel); }
+.mm-panel-head, .mm-panel-body { padding: 24px; }
+.mm-panel-eyebrow { font-size: 10px; line-height: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.mm-panel-title { margin-top: 6px; font-size: 17px; line-height: 20px; font-weight: 900; letter-spacing: -.5px; text-transform: uppercase; }
+.mm-glabel, .mm-section-title { font-size: 13px; line-height: 16px; font-weight: 800; }
+.mm-input, .mm-select, .mm-textarea { min-height: 44px; border-radius: var(--radius); border-color: var(--line-3); background: var(--input-bg); font-size: 14px; }
+.mm-add, .mm-back { min-height: 44px; border-radius: var(--radius); font-size: 12px; font-weight: 900; letter-spacing: 1.2px; text-transform: uppercase; }
+
+/* A85: the incident rows become two-column cards below the full sidebar
+ * breakpoint. Cell labels keep the same data understandable in card order. */
+@media (min-width: 900px) and (max-width: 1279px) {
+  .dk-table-wrap { border: 0; overflow: visible; background: transparent; }
+  .dk .ad-incidents { display: block; min-width: 0; }
+  .dk .ad-incidents thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .dk .ad-incidents tbody { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .dk .ad-incidents tr.web-table-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-2); box-shadow: none; }
+  .dk .ad-incidents tr.is-unread, .dk .ad-incidents tr.is-selected { border-color: var(--accent); }
+  .dk .ad-incidents tr > :is(th, td) { border: 0; padding: 0; min-width: 0; white-space: normal; }
+  .dk .ad-incidents th[scope="row"] { grid-column: 1 / -1; grid-row: 2; padding-top: 4px; }
+  .dk .ad-incidents td[data-label="Status"] { grid-column: 1 / -1; grid-row: 1; }
+  .dk .ad-incidents td[data-label="Requested"] { grid-column: 1 / -1; color: var(--label); font-size: 12px; }
+  .dk .ad-incidents td:is([data-label="Confidence"], [data-label="Reports"], [data-label="Updated"]) { padding: 10px; border-radius: var(--radius-lg); background: var(--bg); font-size: 13px; }
+  .dk .ad-incidents td:is([data-label="Confidence"], [data-label="Reports"], [data-label="Updated"])::before { content: attr(data-label); display: block; margin-bottom: 2px; color: var(--label); font-size: 12px; font-weight: 400; }
+  .dk .ad-incidents .web-table-action-cell { grid-column: 1 / -1; }
+  .dk .ad-incidents .web-table-row-action { width: 100%; min-height: 54px; border: 1px solid var(--line-3); border-radius: var(--radius); color: var(--text); font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
+}
+@media (max-width: 699px) {
+  .ad-scroll .ar-row { min-height: 64px; }
+  .ad-scroll :is(.vq-detail, .af-apps, .af-app, .idr-card) { padding: 16px; }
+  .ad-scroll .ar-search { width: 100%; }
+  .ad-scroll .vq-scores { flex-wrap: wrap; }
+  .ad-scroll .vq-score { flex: 1 1 120px; }
+  .ad-scroll .dk-tabs { flex-wrap: wrap; }
+}
+
+/* ── Ringing Areas (10 · A21) ─────────────────────────────────────────── */
+.ad-alarms { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+.db-scroll-flush ~ .ad-alarms, .ad-content > .ad-alarms { margin: 16px 24px; }
+.ad-alarms-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; color: var(--danger); font-size: 12px; font-weight: 700; letter-spacing: .2px; }
+.ad-alarm { display: flex; align-items: center; gap: 16px; padding: 16px; border: 1px solid var(--danger); border-radius: var(--radius-lg); background: var(--live-tint); }
+.ad-alarm-plate { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: var(--radius-sm); background: var(--live-tint); box-shadow: inset 0 0 0 1px var(--danger); }
+.ad-alarm-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ad-alarm-text p { margin: 0; }
+.ad-alarm-eyebrow { color: var(--danger); font-size: 10px; font-weight: 700; line-height: 12px; letter-spacing: 1px; text-transform: uppercase; }
+.ad-alarm-title { color: var(--text); font-size: 15px; font-weight: 800; line-height: 20px; letter-spacing: -.2px; }
+.ad-alarm-body { color: var(--text-2); font-size: 12px; line-height: 16px; }
+.ad-alarm-loop { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); font-size: 12px; font-weight: 700; letter-spacing: .2px; white-space: nowrap; }
+.ad-alarms-hints p { margin: 0; color: var(--label); font-size: 12px; line-height: 16px; }
+@media (max-width: 1023px) { .ad-alarm { flex-wrap: wrap; } .ad-alarm-text { flex-basis: calc(100% - 56px); } }
+.ad-board-section > .ad-incident-cards { padding: 0 24px 24px; }
