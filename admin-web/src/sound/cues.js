@@ -1,16 +1,13 @@
 /// Per-agency notification sounds (Master Context v10, Section 2.8).
 ///
 /// Each incident category has a cue that is recognisable without looking at the
-/// screen. The final audio has not been chosen — Section 2.8 records the
-/// placeholders ("mamang pulis, tulong!" and so on) as text only, and selection
-/// happens with the client during the pilot. Until then each category plays a
-/// synthesized pattern that differs in rhythm and pitch from the others, so the
-/// console is usable now rather than silent.
+/// screen. Since v1.12.9 they are the recordings chosen for the pilot, in
+/// `public/sounds/` (the mobile app plays the same files). They are decoded
+/// once into the page's audio context, which the first click or key press
+/// unlocks, so they play on the same timing rules as before.
 ///
-/// When the recordings exist, drop them in `public/sounds/` and set the path in
-/// FILES below; a category with a file plays the file instead of its pattern.
-///
-/// This file is mirrored in observer-web/src/sound/cues.js — keep the two in step.
+/// If a recording cannot be fetched or decoded, that category falls back to a
+/// synthesized pattern, so an alarm is never silent because of a missing file.
 
 export const CATEGORIES = ['fire', 'police', 'medical', 'barangay'];
 
@@ -21,18 +18,23 @@ export const CATEGORY_LABEL = {
   barangay: 'Barangay',
 };
 
-/// What Section 2.8 records as each category's intended cue.
-export const PLACEHOLDER_CUE = {
-  fire: 'Cue to be chosen',
-  police: '“Mamang pulis, tulong!”',
-  medical: '“Doc, doc, tulong!”',
-  barangay: '“Bakbak kol!”',
+/// Who each category's sound is for.
+export const CATEGORY_FOR = {
+  fire: 'Fire Volunteers and BFP',
+  police: 'Police',
+  medical: 'Medical teams',
+  barangay: 'Barangay',
 };
 
-/// Recorded cues, once chosen — e.g. police: '/sounds/police.mp3'.
-const FILES = { fire: null, police: null, medical: null, barangay: null };
+/// The recordings.
+const FILES = {
+  fire: '/sounds/fire.mp3',
+  police: '/sounds/police.mp3',
+  medical: '/sounds/medical.mp3',
+  barangay: '/sounds/barangay.mp3',
+};
 
-/// Synthesized placeholders. [frequency Hz, start s, duration s, optional end Hz]
+/// Fallbacks when a recording will not load. [frequency Hz, start s, duration s, optional end Hz]
 const PATTERNS = {
   // Urgent two-tone hi-lo, four beats.
   fire: { wave: 'square', gain: 0.18, notes: [
@@ -110,12 +112,26 @@ export function subscribeSoundSettings(fn) {
 // ── playback ────────────────────────────────────────────────────────────────
 let ctx = null;
 
+/// Each recording, decoded once: category -> Promise<AudioBuffer | null>.
+const buffers = {};
+
+function bufferFor(category) {
+  if (!ctx) return Promise.resolve(null);
+  buffers[category] ??= fetch(FILES[category])
+    .then((res) => (res.ok ? res.arrayBuffer() : Promise.reject(new Error(res.statusText))))
+    .then((bytes) => ctx.decodeAudioData(bytes))
+    .catch(() => null);
+  return buffers[category];
+}
+
 /// Browsers refuse to start audio before the user has interacted with the page,
-/// so the context is created (or resumed) on the first click or key press.
+/// so the context is created (or resumed) on the first click or key press, and
+/// the recordings start loading then, ready for the first alarm.
 function unlock() {
   try {
     ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
     if (ctx.state === 'suspended') ctx.resume();
+    CATEGORIES.forEach(bufferFor);
   } catch {
     ctx = null;
   }
@@ -147,43 +163,46 @@ function lengthOf(pattern) {
   return Math.max(...pattern.notes.map(([, start, dur]) => start + dur));
 }
 
+/// Schedule one category's cue at `at` (context time); returns how long it lasts.
+async function playAt(category, volume, at) {
+  const buffer = await bufferFor(category);
+  if (!buffer) {
+    synth(PATTERNS[category], volume, at);
+    return lengthOf(PATTERNS[category]);
+  }
+  const source = ctx.createBufferSource();
+  const amp = ctx.createGain();
+  source.buffer = buffer;
+  amp.gain.value = Math.max(0, Math.min(1, volume));
+  source.connect(amp).connect(ctx.destination);
+  source.start(Math.max(at, ctx.currentTime));
+  return buffer.duration;
+}
+
 /// Play one category's cue now (ignores the mute settings — used by "Test").
 export function previewCue(category, volume = settings.volume[category]) {
-  if (FILES[category]) {
-    const audio = new Audio(FILES[category]);
-    audio.volume = Math.max(0, Math.min(1, volume));
-    audio.play().catch(() => {});
-    return;
-  }
   unlock();
   if (!ctx || ctx.state !== 'running') return;
-  synth(PATTERNS[category], volume, ctx.currentTime + 0.02);
+  playAt(category, volume, ctx.currentTime + 0.02);
 }
 
 /// Play the cues for a batch of newly arrived incidents, one after another, each
 /// category at most once and within the user's settings. Muting a category mutes
 /// only its stream — the badge and the card still announce the incident.
-///
-/// `only` limits the categories that may sound: the Admin Console plays every
-/// category, an Observer Console only its own agency's (Section 2.8).
-export function announce(incidents, only = CATEGORIES) {
+export async function announce(incidents) {
   const s = settings;
   if (!s.enabled) return;
   const wanted = [];
   for (const inc of incidents) {
     for (const c of categoriesOf(inc)) {
-      if (only.includes(c) && !wanted.includes(c) && !s.muted[c] && s.volume[c] > 0) {
-        wanted.push(c);
-      }
+      if (!wanted.includes(c) && !s.muted[c] && s.volume[c] > 0) wanted.push(c);
     }
   }
   if (wanted.length === 0) return;
   unlock();
-  let delayMs = 0;
+  if (!ctx || ctx.state !== 'running') return;
+  let at = ctx.currentTime + 0.02;
   for (const c of wanted) {
-    const play = () => previewCue(c, s.volume[c]);
-    if (delayMs === 0) play();
-    else setTimeout(play, delayMs);
-    delayMs += (FILES[c] ? 1500 : lengthOf(PATTERNS[c]) * 1000) + 350;
+    at += (await playAt(c, s.volume[c], at)) + 0.35;
   }
 }

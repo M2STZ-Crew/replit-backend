@@ -4,12 +4,17 @@ The Firebase Admin SDK is synchronous, so sends run in a worker thread. The push
 service is FCM-only (no DB): callers fetch device tokens / choose topics and pass
 them in. Used by Phase 8 (neighborhood alerts) and Phase 9 (lifecycle pushes).
 
-v1.12.6: two Android notification channels, created by the app
-(MainActivity.kt). A push that says there is a fire — a new incident for
-staff, a neighbour's first alert, an alarm escalation — goes to
-``fire_alerts``, which rings with the app's fire alarm sound; everything else
-goes to ``updates`` with the phone's own tone. And when FCM will not start,
-the server now says why, in words safe to show anyone (no credential content).
+v1.12.6: Android notification channels, created by the app (MainActivity.kt),
+pick the sound. And when FCM will not start, the server says why, in words
+safe to show anyone (no credential content).
+
+v1.12.9: one channel per sound, playing the recordings chosen for the pilot.
+Staff hear their own agency's sound (fire for Fire Volunteers and BFP,
+police, medical, barangay); a neighbour's first alert plays the fire sound;
+a resident's other pushes play the citizen sound. A silent channel only
+vibrates, for the coordinator's reminder pings. Every push with a sound also
+says which in its data (``sound_category``), so the app plays the same
+recording when the push arrives while it is open.
 """
 
 from __future__ import annotations
@@ -35,12 +40,37 @@ _fcm_app: firebase_admin.App | None = None
 
 FcmState = Literal["unconfigured", "failed", "ready"]
 
+SoundCategory = Literal["fire", "police", "medical", "barangay", "citizen"]
+
 # The channels the app creates (android/app/src/main/kotlin/.../MainActivity.kt)
-# and the sound file the fire channel plays (res/raw/fire_alarm.wav). Android
-# picks the sound from the channel; ``sound`` is for phones before Android 8.
-FIRE_CHANNEL = "fire_alerts"
+# and the recording each plays (res/raw/sound_<category>.mp3). Android picks
+# the sound from the channel; ``sound`` is for phones before Android 8. A
+# channel's sound is fixed once the phone has made it, so a new recording
+# needs a new channel id here and in the app.
+SOUND_CHANNELS: dict[SoundCategory, str] = {
+    "fire": "alert_fire",
+    "police": "alert_police",
+    "medical": "alert_medical",
+    "barangay": "alert_barangay",
+    "citizen": "citizen_updates",
+}
 UPDATES_CHANNEL = "updates"
-FIRE_SOUND = "fire_alarm"
+SILENT_CHANNEL = "silent_ping"
+
+# Whose sound a staff member hears: their own agency's. The two fire agencies
+# share the fire recording.
+_AGENCY_SOUND: dict[str, SoundCategory] = {
+    "fire_volunteer": "fire",
+    "bfp": "fire",
+    "police": "police",
+    "medical": "medical",
+    "barangay": "barangay",
+}
+
+
+def sound_for_agency(agency: str | None) -> SoundCategory:
+    """The sound a staff member of ``agency`` hears for their alerts."""
+    return _AGENCY_SOUND.get(agency or "", "fire")
 
 # Why push is or is not working, kept so a caller can say so. Without it, a
 # server with no credentials and a server whose credentials would not load both
@@ -183,21 +213,35 @@ def shutdown_fcm() -> None:
         _fcm_state = "unconfigured"
 
 
-def android_config(*, alert: bool, tag: str | None = None) -> messaging.AndroidConfig:
-    """How Android shows the push: the fire channel and its alarm, or an update.
+def android_config(
+    *,
+    sound: SoundCategory | None = None,
+    silent: bool = False,
+    tag: str | None = None,
+) -> messaging.AndroidConfig:
+    """How Android shows the push: which channel, and so which sound.
 
-    High priority either way, so it is delivered at once and shown while the app
-    is closed. ``tag`` makes a later push about the same thing replace the
-    earlier one in the shade instead of stacking under it.
+    ``sound`` names a recording (its channel plays it); ``silent`` only
+    vibrates; neither is an update with the phone's own tone. High priority
+    either way, so it is delivered at once and shown while the app is closed.
+    ``tag`` makes a later push about the same thing replace the earlier one in
+    the shade instead of stacking under it.
     """
+    if silent:
+        channel, file, phone_tone, urgent = SILENT_CHANNEL, None, False, True
+    elif sound is not None:
+        channel, file, phone_tone = SOUND_CHANNELS[sound], f"sound_{sound}", False
+        urgent = sound != "citizen"
+    else:
+        channel, file, phone_tone, urgent = UPDATES_CHANNEL, None, True, False
     return messaging.AndroidConfig(
         priority="high",
         notification=messaging.AndroidNotification(
-            channel_id=FIRE_CHANNEL if alert else UPDATES_CHANNEL,
-            sound=FIRE_SOUND if alert else None,
-            default_sound=not alert,
+            channel_id=channel,
+            sound=file,
+            default_sound=phone_tone,
             default_vibrate_timings=True,
-            priority="max" if alert else "high",
+            priority="max" if urgent else "high",
             visibility="public",
             tag=tag,
         ),
@@ -228,23 +272,29 @@ class PushService:
         title: str,
         body: str,
         data: dict[str, str] | None = None,
-        alert: bool = False,
+        sound: SoundCategory | None = None,
+        silent: bool = False,
         tag: str | None = None,
     ) -> PushResult:
         """Send a notification to many device tokens; report invalid ones for cleanup.
 
-        ``alert`` sends it to the fire channel, which rings with the fire alarm:
-        only for a push that says there is a fire.
+        ``sound`` plays that category's recording (see [android_config]);
+        ``silent`` only vibrates. The data says which, for the open app.
         """
         if not tokens or _fcm_app is None:
             return PushResult()
+        payload = dict(data or {})
+        if silent:
+            payload["silent"] = "true"
+        elif sound is not None:
+            payload["sound_category"] = sound
 
         def _send() -> PushResult:
             message = messaging.MulticastMessage(
                 tokens=tokens,
                 notification=messaging.Notification(title=title, body=body),
-                data=data or {},
-                android=android_config(alert=alert, tag=tag),
+                data=payload,
+                android=android_config(sound=sound, silent=silent, tag=tag),
             )
             batch = messaging.send_each_for_multicast(message, app=_fcm_app)
             invalid: list[str] = []

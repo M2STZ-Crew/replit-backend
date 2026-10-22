@@ -924,3 +924,8 @@
 .ad-ciar-body { display: flex; flex-direction: column; gap: 24px; }
 .ad-ciar-lock { margin: 0; color: var(--text-2); font-size: 13px; }
 .ad-ciar-part .web-eyebrow { margin: 0 0 2px; }
+
+/* ── A console crash, kept on screen (ErrorBoundary) ──────────────────── */
+.ad-crash { max-width: 640px; margin: 15vh auto; padding: 0 24px; display: flex; flex-direction: column; gap: 12px; }
+.ad-crash-message { margin: 0; padding: 12px 14px; border: 1px solid var(--danger); border-radius: var(--radius); background: var(--live-tint); color: var(--text); font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ad-crash-actions { display: flex; gap: 8px; }

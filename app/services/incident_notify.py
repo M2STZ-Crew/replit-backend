@@ -10,6 +10,10 @@ incident from the dispatch push; v11 removed dispatch, and with it the only push
 staff ever got for a new fire. Now every active responder and coordinator whose
 agency can see the incident gets one, with the fire alarm, the moment the first
 report makes it.
+
+v1.12.9: each hears their own agency's recording, and a coordinator who does
+not open it is reminded (app/workers/coordinator_pings.py). Residents' pushes
+play the citizen recording.
 """
 
 from __future__ import annotations
@@ -18,10 +22,11 @@ from uuid import UUID
 
 from app.core.logging import get_logger
 from app.db.session import Database
-from app.integrations.fcm import PushService
+from app.integrations.fcm import PushService, SoundCategory, sound_for_agency
 from app.services.incident import COORDINATING_AGENCIES, OBSERVER_AGENCIES
 from app.services.notification_inbox import record_inbox
 from app.services.verifier import fetch_verifier
+from app.workers.coordinator_pings import start_pings
 
 log = get_logger(__name__)
 
@@ -43,10 +48,11 @@ def staff_agencies_for(asked: list[str]) -> list[str]:
 
 
 async def notify_staff_new_incident(db: Database, area_id: UUID) -> int:
-    """Inbox + push, with the fire alarm, every staff member who can see a new fire.
+    """Inbox + push, with their agency's alarm, every staff member who can see a new fire.
 
     Responders and coordinators (sub-admins) of each agency that can see it,
-    active accounts only. Best-effort. Returns the number of staff notified.
+    active accounts only; coordinators are then reminded until they open it.
+    Best-effort. Returns the number of staff notified.
     """
     area = await db.fetchrow(
         """
@@ -67,7 +73,8 @@ async def notify_staff_new_incident(db: Database, area_id: UUID) -> int:
         return 0
     staff_rows = await db.fetch(
         """
-        select u.id from public.users u
+        select u.id, u.role::text as role, u.agency_type::text as agency_type
+        from public.users u
         where u.role in ('sub_admin', 'response_team')
           and u.is_active
           and u.agency_type = any($1::public.agency_type[])
@@ -83,19 +90,23 @@ async def notify_staff_new_incident(db: Database, area_id: UUID) -> int:
     data = {"area_id": str(area_id), "event": "incident_new"}
     await record_inbox(db, staff_ids, "incident_new", title, body, data)
 
+    sound_of = {r["id"]: sound_for_agency(r["agency_type"]) for r in staff_rows}
     token_rows = await db.fetch(
-        "select fcm_token from public.device_tokens "
+        "select user_id, fcm_token from public.device_tokens "
         "where user_id = any($1::uuid[]) and is_active",
         staff_ids,
     )
-    tokens = [t["fcm_token"] for t in token_rows]
-    if tokens:
-        result = await PushService().send_to_tokens(
+    by_sound: dict[SoundCategory, list[str]] = {}
+    for t in token_rows:
+        by_sound.setdefault(sound_of.get(t["user_id"], "fire"), []).append(t["fcm_token"])
+    push = PushService()
+    for sound, tokens in by_sound.items():
+        result = await push.send_to_tokens(
             tokens=tokens,
             title=title,
             body=body,
             data={"type": "incident_new", **data},
-            alert=True,
+            sound=sound,
             tag=f"incident-{area_id}",
         )
         if result.invalid_tokens:
@@ -104,11 +115,18 @@ async def notify_staff_new_incident(db: Database, area_id: UUID) -> int:
                 "where fcm_token = any($1::text[])",
                 result.invalid_tokens,
             )
+
+    coordinators = [r["id"] for r in staff_rows if r["role"] == "sub_admin"]
+    if coordinators:
+        try:
+            await start_pings(db, area_id, coordinators)
+        except Exception:
+            log.error("coordinator_pings_start_failed", area_id=str(area_id), exc_info=True)
     log.info(
         "staff_new_incident_notified",
         area_id=str(area_id),
         staff=len(staff_ids),
-        devices=len(tokens),
+        devices=len(token_rows),
     )
     return len(staff_ids)
 
@@ -200,6 +218,7 @@ async def notify_incident_reporters(db: Database, area_id: UUID, event_type: str
         title=title,
         body=body,
         data={"type": "incident_update", "area_id": str(area_id), "event": event_type},
+        sound="citizen",
         # One per incident in the shade: the latest news replaces the last.
         tag=f"report-{area_id}",
     )
@@ -388,7 +407,7 @@ async def notify_bfp_alarm_request(
             body=body,
             data={"type": "alarm_request", "area_id": str(area_id)},
             # A fire getting bigger: the alarm, like a new one.
-            alert=True,
+            sound="fire",
             tag=f"alarm-{area_id}",
         )
         if result.invalid_tokens:

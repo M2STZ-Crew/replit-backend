@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { useAuth } from './auth.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
@@ -14,7 +15,7 @@ function Protected({ children }) {
 }
 
 export default function App() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
@@ -23,7 +24,9 @@ export default function App() {
         path="/"
         element={
           <Protected>
-            <Dashboard />
+            <ErrorBoundary onSignOut={logout}>
+              <Dashboard />
+            </ErrorBoundary>
           </Protected>
         }
       />

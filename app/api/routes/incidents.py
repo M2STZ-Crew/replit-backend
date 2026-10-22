@@ -78,6 +78,7 @@ from app.services.incident_notify import (
 from app.services.map_feed import publish_area_change
 from app.services.tracking import gps_arrival_distance, publish_tracking
 from app.services.verifier import fetch_verifier
+from app.workers.coordinator_pings import stop_pings
 
 log = get_logger(__name__)
 
@@ -633,6 +634,29 @@ async def resolve_incident(
         )
     log.info("incident_resolved", incident_id=str(incident_id), user_id=str(user.id))
     return await finish_incident_change(db, incident_id, "incident_resolved")
+
+
+# --------------------------------------------------------------------------- #
+# Seen (PRD v14 §4.13.2) — stops a coordinator's reminder pings
+# --------------------------------------------------------------------------- #
+@router.post(
+    "/{incident_id}/seen",
+    response_model=MessageResponse,
+    summary="I have seen this incident: stop my reminder pings for it",
+)
+async def mark_incident_seen(
+    incident_id: UUID, user: StaffUser, db: DatabaseDep
+) -> MessageResponse:
+    """Stop the caller's reminder pings for this incident.
+
+    The app calls it when a coordinator taps the push or opens the incident.
+    Anyone on staff may call it; for someone with no pings running it changes
+    nothing, so it is safe to call on every open.
+    """
+    stopped = await stop_pings(db, incident_id, user.id, "opened")
+    if stopped:
+        log.info("coordinator_pings_stopped", area_id=str(incident_id), user_id=str(user.id))
+    return MessageResponse(message="Reminders stopped." if stopped else "No reminders running.")
 
 
 # --------------------------------------------------------------------------- #

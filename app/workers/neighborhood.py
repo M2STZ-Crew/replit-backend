@@ -15,7 +15,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.core.logging import get_logger
 from app.db.session import Database, database
-from app.integrations.fcm import PushService
+from app.integrations.fcm import PushService, SoundCategory
 from app.services.incident import active_area_sql
 from app.services.notification_inbox import record_inbox
 
@@ -73,14 +73,16 @@ async def notify_area_neighbors(
         return 0
     user_ids = [u["user_id"] for u in users]
 
-    # The first alert rings the fire alarm; the reminders after it (one a minute,
-    # up to ten, until they answer) come with the phone's own tone and replace
-    # the last one in the shade — ten sirens would teach people to mute the app.
+    # The first alert plays the fire recording; the reminders after it (one a
+    # minute, up to ten, until they answer) play the citizen recording and
+    # replace the last one in the shade — ten sirens would teach people to mute
+    # the app.
     first = [u["user_id"] for u in users if not u["alerted_before"]]
     again = [u["user_id"] for u in users if u["alerted_before"]]
-    for ids, alert in ((first, True), (again, False)):
+    sounds: tuple[tuple[list[UUID], SoundCategory], ...] = ((first, "fire"), (again, "citizen"))
+    for ids, sound in sounds:
         if ids:
-            await _push_alert(db, push, area_id, ids, alert=alert)
+            await _push_alert(db, push, area_id, ids, sound=sound)
 
     await db.execute(
         f"""
@@ -102,7 +104,12 @@ async def notify_area_neighbors(
 
 
 async def _push_alert(
-    db: Database, push: PushService, area_id: UUID, user_ids: list[UUID], *, alert: bool
+    db: Database,
+    push: PushService,
+    area_id: UUID,
+    user_ids: list[UUID],
+    *,
+    sound: SoundCategory,
 ) -> None:
     """Push the neighbourhood alert to these users' phones; retire dead tokens."""
     token_rows = await db.fetch(
@@ -118,7 +125,7 @@ async def _push_alert(
         title=_ALERT_TITLE,
         body=_ALERT_BODY,
         data={"type": "neighborhood_alert", "area_id": str(area_id)},
-        alert=alert,
+        sound=sound,
         tag=f"nearby-{area_id}",
     )
     if result.invalid_tokens:

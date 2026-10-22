@@ -11,8 +11,8 @@ import {
 } from '../sound/alarm.js';
 import {
   CATEGORIES,
+  CATEGORY_FOR,
   CATEGORY_LABEL,
-  PLACEHOLDER_CUE,
   previewCue,
   setSoundSettings,
 } from '../sound/cues.js';
@@ -106,7 +106,7 @@ export default function Settings() {
             <Row
               key={c}
               title={CATEGORY_LABEL[c]}
-              detail={PLACEHOLDER_CUE[c]}
+              detail={CATEGORY_FOR[c]}
               dim={off || muted}
             >
               <button
@@ -145,9 +145,6 @@ export default function Settings() {
             </Row>
           );
         })}
-        <p className="ad-panel-foot">
-          Placeholder sounds. The final recordings are chosen with the client during the pilot.
-        </p>
       </section>
 
       <section className="ad-panel" aria-labelledby="ad-repeat-title">

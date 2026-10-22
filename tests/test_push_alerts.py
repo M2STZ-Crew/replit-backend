@@ -1,11 +1,12 @@
 """Pushes that reach people outside the app, and ring for a fire (hermetic, v1.12.6).
 
 What these pin:
-- a push that says there is a fire goes to the app's fire channel with the
-  fire alarm; everything else to the updates channel with the phone's tone;
+- each sound has its own channel and recording; a silent push only vibrates;
+  anything without a sound is an update with the phone's tone (v1.12.9);
 - staff hear about a new fire: every active responder and coordinator whose
-  agency can see it — the first report only, not each one that joins it;
-- a neighbour's first alert rings the alarm, the reminders after it do not;
+  agency can see it, each with their own agency's sound — the first report
+  only, not each one that joins it — and coordinators start a reminder cycle;
+- a neighbour's first alert plays the fire sound, the reminders the citizen one;
 - when FCM will not start, the server says why in words that never quote the
   credentials.
 
@@ -26,7 +27,13 @@ from fastapi.testclient import TestClient
 
 from app.api.routes import reports
 from app.integrations import fcm
-from app.integrations.fcm import PushResult, _CredentialsError, _service_account, android_config
+from app.integrations.fcm import (
+    PushResult,
+    _CredentialsError,
+    _service_account,
+    android_config,
+    sound_for_agency,
+)
 from app.main import app
 from app.services import incident_notify
 from app.services.incident_notify import notify_staff_new_incident, staff_agencies_for
@@ -49,27 +56,87 @@ class _Push:
 
 
 # --------------------------------------------------------------------------- #
-# The two channels
+# The channels
 # --------------------------------------------------------------------------- #
-def test_a_fire_rings_the_fire_alarm_channel() -> None:
-    note = android_config(alert=True, tag="incident-1").notification
+@pytest.mark.parametrize(
+    ("sound", "channel"),
+    [
+        ("fire", "alert_fire"),
+        ("police", "alert_police"),
+        ("medical", "alert_medical"),
+        ("barangay", "alert_barangay"),
+    ],
+)
+def test_an_alert_plays_its_recording_on_its_own_channel(sound: Any, channel: str) -> None:
+    note = android_config(sound=sound, tag="incident-1").notification
     assert note is not None
-    assert note.channel_id == "fire_alerts"
-    assert note.sound == "fire_alarm"
+    assert note.channel_id == channel
+    assert note.sound == f"sound_{sound}"
     assert note.default_sound is False
     assert note.priority == "max"
     assert note.visibility == "public"
     assert note.tag == "incident-1"
 
 
+def test_a_residents_update_plays_the_citizen_recording() -> None:
+    note = android_config(sound="citizen").notification
+    assert note is not None
+    assert note.channel_id == "citizen_updates"
+    assert note.sound == "sound_citizen"
+    assert note.priority == "high", "news, not an emergency"
+
+
+def test_a_silent_ping_only_vibrates() -> None:
+    note = android_config(silent=True).notification
+    assert note is not None
+    assert note.channel_id == "silent_ping"
+    assert note.sound is None and note.default_sound is False
+    assert note.default_vibrate_timings is True
+
+
 def test_anything_else_is_an_update_with_the_phones_tone() -> None:
-    config = android_config(alert=False)
+    config = android_config()
     note = config.notification
     assert note is not None
     assert note.channel_id == "updates"
     assert note.sound is None
     assert note.default_sound is True
     assert config.priority == "high", "delivered at once either way"
+
+
+@pytest.mark.parametrize(
+    ("agency", "sound"),
+    [
+        ("fire_volunteer", "fire"),
+        ("bfp", "fire"),
+        ("police", "police"),
+        ("medical", "medical"),
+        ("barangay", "barangay"),
+        (None, "fire"),
+    ],
+)
+def test_staff_hear_their_own_agencys_sound(agency: str | None, sound: str) -> None:
+    assert sound_for_agency(agency) == sound
+
+
+async def test_the_data_says_which_sound_for_the_open_app(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sent: list[Any] = []
+
+    def send(message: Any, app: Any) -> Any:
+        sent.append(message)
+        return SimpleNamespace(success_count=1, failure_count=0, responses=[])
+
+    monkeypatch.setattr(fcm, "_fcm_app", object())
+    monkeypatch.setattr(fcm.messaging, "send_each_for_multicast", send)
+    service = fcm.PushService()
+    await service.send_to_tokens(tokens=["t"], title="x", body="y", data={"a": "1"}, sound="police")
+    await service.send_to_tokens(tokens=["t"], title="x", body="y", silent=True)
+    await service.send_to_tokens(tokens=["t"], title="x", body="y")
+    assert sent[0].data == {"a": "1", "sound_category": "police"}
+    assert sent[1].data == {"silent": "true"}
+    assert sent[2].data == {}
 
 
 # --------------------------------------------------------------------------- #
@@ -91,12 +158,16 @@ def test_staff_hear_about_the_fires_they_can_see(asked: list[str], reached: list
 
 
 class _NotifyDb:
-    def __init__(self, *, asked: list[str], staff: list[UUID], tokens: list[str]) -> None:
+    """Staff as (id, role, agency); each has one phone, token ``tok-<n>``."""
+
+    def __init__(
+        self, *, asked: list[str], staff: list[tuple[UUID, str, str]], phones: bool = True
+    ) -> None:
         self.asked = asked
         self.staff = staff
-        self.tokens = tokens
+        self.phones = phones
         self.staff_query: tuple[str, tuple[Any, ...]] | None = None
-        self.inbox: list[tuple[Any, ...]] = []
+        self.pings: list[tuple[Any, ...]] = []
 
     async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
         return {"designation": "Area 12", "asked": self.asked}
@@ -104,14 +175,16 @@ class _NotifyDb:
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
         if "from public.users u" in query:
             self.staff_query = (query, args)
-            return [{"id": s} for s in self.staff]
-        if "device_tokens" in query:
-            return [{"fcm_token": t} for t in self.tokens]
+            return [{"id": i, "role": r, "agency_type": a} for i, r, a in self.staff]
+        if "device_tokens" in query and self.phones:
+            return [
+                {"user_id": i, "fcm_token": f"tok-{n}"} for n, (i, _, _) in enumerate(self.staff)
+            ]
         return []
 
     async def execute(self, query: str, *args: Any) -> str:
-        if "notifications" in query:
-            self.inbox.append(args)
+        if "coordinator_pings" in query:
+            self.pings.append(args)
         return "OK"
 
 
@@ -133,43 +206,58 @@ def inbox(monkeypatch: pytest.MonkeyPatch) -> list[tuple[Any, ...]]:
     return rows
 
 
-async def test_a_new_fire_alerts_staff_with_the_alarm(
+async def test_a_new_fire_alerts_staff_each_with_their_agencys_sound(
     push: _Push, inbox: list[tuple[Any, ...]]
 ) -> None:
-    staff = [uuid4(), uuid4()]
-    db = _NotifyDb(asked=["fire_volunteer"], staff=staff, tokens=["t1", "t2"])
+    captain, firefighter, medic = uuid4(), uuid4(), uuid4()
+    db = _NotifyDb(
+        asked=["fire_volunteer", "medical"],
+        staff=[
+            (captain, "sub_admin", "fire_volunteer"),
+            (firefighter, "response_team", "bfp"),
+            (medic, "response_team", "medical"),
+        ],
+    )
 
-    assert await notify_staff_new_incident(db, AREA) == 2  # type: ignore[arg-type]
+    assert await notify_staff_new_incident(db, AREA) == 3  # type: ignore[arg-type]
 
     query, args = db.staff_query  # type: ignore[misc]
     assert "role in ('sub_admin', 'response_team')" in query
     assert "u.is_active" in query, "a deactivated account hears nothing"
-    assert args == (["fire_volunteer", "bfp"],)
+    assert args == (["fire_volunteer", "bfp", "medical"],)
 
     [(users, kind, title, body, data)] = inbox
-    assert users == staff and kind == "incident_new"
+    assert users == [captain, firefighter, medic] and kind == "incident_new"
     assert title == "Fire reported: Area 12"
     assert data == {"area_id": str(AREA), "event": "incident_new"}
 
-    [sent] = push.sent
-    assert sent["tokens"] == ["t1", "t2"]
-    assert sent["alert"] is True
-    assert sent["data"] == {"type": "incident_new", "area_id": str(AREA), "event": "incident_new"}
-    assert sent["tag"] == f"incident-{AREA}"
+    by_sound = {s["sound"]: s["tokens"] for s in push.sent}
+    assert by_sound == {"fire": ["tok-0", "tok-1"], "medical": ["tok-2"]}
+    for sent in push.sent:
+        assert sent["data"] == {
+            "type": "incident_new",
+            "area_id": str(AREA),
+            "event": "incident_new",
+        }
+        assert sent["tag"] == f"incident-{AREA}"
+
+    [(area, coordinators)] = db.pings
+    assert area == AREA and coordinators == [captain], "only coordinators are reminded"
 
 
 async def test_no_staff_no_push(push: _Push, inbox: list[tuple[Any, ...]]) -> None:
-    db = _NotifyDb(asked=["fire_volunteer"], staff=[], tokens=["t1"])
+    db = _NotifyDb(asked=["fire_volunteer"], staff=[])
     assert await notify_staff_new_incident(db, AREA) == 0  # type: ignore[arg-type]
-    assert push.sent == [] and inbox == []
+    assert push.sent == [] and inbox == [] and db.pings == []
 
 
 async def test_staff_without_a_phone_still_get_the_inbox_row(
     push: _Push, inbox: list[tuple[Any, ...]]
 ) -> None:
-    db = _NotifyDb(asked=["bfp"], staff=[uuid4()], tokens=[])
+    db = _NotifyDb(asked=["bfp"], staff=[(uuid4(), "sub_admin", "bfp")], phones=False)
     assert await notify_staff_new_incident(db, AREA) == 1  # type: ignore[arg-type]
     assert len(inbox) == 1 and push.sent == []
+    assert len(db.pings) == 1, "the cycle starts; it reaches a phone once one is registered"
 
 
 # --------------------------------------------------------------------------- #
@@ -238,7 +326,7 @@ class _NeighbourDb:
         return "OK"
 
 
-async def test_a_neighbours_first_alert_rings_and_the_reminders_do_not(
+async def test_a_neighbours_first_alert_plays_fire_and_the_reminders_citizen(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def no_inbox(*_: Any, **__: Any) -> None:
@@ -257,8 +345,8 @@ async def test_a_neighbours_first_alert_rings_and_the_reminders_do_not(
     )
 
     assert alerted == 2
-    by_alarm = {s["alert"]: s["tokens"] for s in push.sent}
-    assert by_alarm == {True: [f"tok-{new}"], False: [f"tok-{seen}"]}
+    by_sound = {s["sound"]: s["tokens"] for s in push.sent}
+    assert by_sound == {"fire": [f"tok-{new}"], "citizen": [f"tok-{seen}"]}
     assert {s["tag"] for s in push.sent} == {f"nearby-{AREA}"}, "reminders replace"
     assert {s["data"]["type"] for s in push.sent} == {"neighborhood_alert"}
 
