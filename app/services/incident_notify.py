@@ -2,7 +2,7 @@
 
 When staff act on an incident (verify / dispatch / en route / arrived / resolve /
 reject), the citizens who reported it get a push — delivered even when the app is
-closed (FCM notification payload). Complements the 300 m neighborhood worker,
+closed (FCM notification payload). Complements the 150 m neighborhood worker,
 which notifies *neighbors* (and excludes the reporter).
 
 v1.12.6: staff hear about a new fire. Under v10 a responder learnt of an

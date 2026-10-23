@@ -122,6 +122,10 @@ class EvacuationSiteResponse(BaseModel):
 # --------------------------------------------------------------------------- #
 # Risk zones
 # --------------------------------------------------------------------------- #
+# A new risk zone's circle until the Admin sets one (migration 20261024090100).
+RISK_ZONE_RADIUS_M = 150.0
+
+
 class RiskZoneCreate(BaseModel):
     """Create a risk zone (representative centroid required; polygon optional)."""
 
@@ -131,6 +135,10 @@ class RiskZoneCreate(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
     centroid_lat: float = Field(ge=-90, le=90)
     centroid_lng: float = Field(ge=-180, le=180)
+    radius_m: float = Field(
+        default=RISK_ZONE_RADIUS_M, ge=10, le=5000,
+        description="The zone's circle around its centre, in metres.",
+    )
     area_geojson: str | None = Field(default=None, description="GeoJSON Polygon geometry.")
 
 
@@ -143,6 +151,7 @@ class RiskZoneUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
     centroid_lat: float | None = Field(default=None, ge=-90, le=90)
     centroid_lng: float | None = Field(default=None, ge=-180, le=180)
+    radius_m: float | None = Field(default=None, ge=10, le=5000)
     area_geojson: str | None = None
 
 
@@ -156,6 +165,7 @@ class RiskZoneResponse(BaseModel):
     description: str | None = None
     centroid_lat: float
     centroid_lng: float
+    radius_m: float = RISK_ZONE_RADIUS_M
     area_geojson: str | None = None
     created_at: datetime
     updated_at: datetime

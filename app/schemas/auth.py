@@ -149,7 +149,7 @@ class RefreshRequest(BaseModel):
 
 
 class LocationUpdateRequest(BaseModel):
-    """Update the caller's last-known location (for 300 m neighborhood alerts)."""
+    """Update the caller's last-known location (for 150 m neighborhood alerts)."""
 
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)

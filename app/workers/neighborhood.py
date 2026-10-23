@@ -1,10 +1,11 @@
 """Crowdsourced neighborhood notification worker (Section 3.5).
 
-Every 60 s, for each active area, pushes a Tagalog alert to registered users within
-300 m of the centroid — excluding the area's reporters, users who already responded
-(Report/Ignore), users at the 10-alert cap, and anyone alerted in the last 60 s — and
-records per-(area, user) state. Stops automatically once an incident is resolved or
-rejected (only active areas are processed).
+Every 60 s, for each active area, pushes a Tagalog alert to registered users whose
+last known location is within 150 m of the centroid (PRD v13/v14 §4.2: 300 m dragged
+in too many unrelated households in dense Pasay) — excluding the area's reporters,
+users who already responded (Report/Ignore), users at the 10-alert cap, and anyone
+alerted in the last 60 s — and records per-(area, user) state. Stops automatically
+once an incident is resolved or rejected (only active areas are processed).
 """
 
 from __future__ import annotations
@@ -26,7 +27,8 @@ _ALERT_BODY = (
     "May sunog ba sa lugar na ito? "
     "I-click ang notif na ito para makapag-submit ka rin ng report!"
 )
-_NEIGHBORHOOD_RADIUS_M = 300
+# Nobody farther than this from the fire is alerted (PRD v14 §4.2, §4.13.3).
+NEIGHBORHOOD_RADIUS_M = 150
 _MAX_ALERTS = 10
 
 _scheduler: AsyncIOScheduler | None = None
@@ -47,7 +49,7 @@ async def notify_area_neighbors(
         from public.users u
         where u.location is not null
           and extensions.ST_DWithin(
-                u.location, extensions.ST_GeographyFromText($2), {_NEIGHBORHOOD_RADIUS_M})
+                u.location, extensions.ST_GeographyFromText($2), $3::double precision)
           and exists (
               select 1 from public.device_tokens dt
               where dt.user_id = u.id and dt.is_active
@@ -68,6 +70,7 @@ async def notify_area_neighbors(
         """,
         area_id,
         point,
+        NEIGHBORHOOD_RADIUS_M,
     )
     if not users:
         return 0

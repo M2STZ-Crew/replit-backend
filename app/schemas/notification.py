@@ -28,7 +28,7 @@ class UnreadCount(BaseModel):
 
 
 class NotificationRespondRequest(BaseModel):
-    """Caller's response to a 300 m crowdsourced neighborhood alert.
+    """Caller's response to a 150 m crowdsourced neighborhood alert.
 
     ``report`` confirms a fire nearby; ``ignore`` dismisses it. Either value, once
     recorded, stops further alerts for this (area, user) — the neighborhood worker

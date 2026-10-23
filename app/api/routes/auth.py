@@ -257,7 +257,7 @@ async def update_my_profile(
 async def update_my_location(
     payload: LocationUpdateRequest, user: CurrentUser, db: DatabaseDep
 ) -> Response:
-    """Store the caller's location so they receive 300 m neighborhood alerts.
+    """Store the caller's location so they receive 150 m neighborhood alerts.
 
     public.users.location is generated from latitude/longitude, so updating those
     columns refreshes the geography used by the neighborhood-notification worker.

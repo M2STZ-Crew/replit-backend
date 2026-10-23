@@ -55,7 +55,7 @@ _EVAC_COLS = (
 )
 _RISK_COLS = (
     "id, barangay, name, risk_level::text as risk_level, description, "
-    "centroid_lat, centroid_lng, "
+    "centroid_lat, centroid_lng, radius_m, "
     "extensions.ST_AsGeoJSON(area_geom) as area_geojson, created_at, updated_at"
 )
 _WATER_COLS = (
@@ -266,9 +266,10 @@ async def create_risk_zone(
     row = await db.fetchrow(
         f"""
         insert into public.risk_zones
-            (barangay, name, risk_level, description, centroid_lat, centroid_lng, area_geom)
-        values ($1, $2, $3::public.risk_level, $4, $5, $6,
-                extensions.ST_GeomFromGeoJSON($7)::geography)
+            (barangay, name, risk_level, description, centroid_lat, centroid_lng,
+             radius_m, area_geom)
+        values ($1, $2, $3::public.risk_level, $4, $5, $6, $7,
+                extensions.ST_GeomFromGeoJSON($8)::geography)
         returning {_RISK_COLS}
         """,
         payload.barangay,
@@ -277,6 +278,7 @@ async def create_risk_zone(
         payload.description,
         payload.centroid_lat,
         payload.centroid_lng,
+        payload.radius_m,
         payload.area_geojson,
     )
     assert row is not None

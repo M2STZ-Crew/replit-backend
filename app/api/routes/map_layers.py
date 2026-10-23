@@ -37,7 +37,7 @@ _EVAC_COLS = (
 )
 _RISK_COLS = (
     "id, barangay, name, risk_level::text as risk_level, description, "
-    "centroid_lat, centroid_lng, "
+    "centroid_lat, centroid_lng, radius_m, "
     "extensions.ST_AsGeoJSON(area_geom) as area_geojson, created_at, updated_at"
 )
 _WATER_COLS = (

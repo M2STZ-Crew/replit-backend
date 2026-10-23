@@ -62,6 +62,8 @@ def _rule(method: str, path_regex: str, action: str, entity: str, is_area: bool 
 _RULES: list[_Rule] = [
     _rule("POST", rf"^/alarm-requests/({_UUID})/execute$", "alarm.execute", "alarm_request"),
     _rule("POST", rf"^/alarm-requests/({_UUID})/reject$", "alarm.reject", "alarm_request"),
+    _rule("POST", rf"^/alarm-requests/({_UUID})/cancel$", "alarm.cancel", "alarm_request"),
+    _rule("DELETE", rf"^/alarm-requests/({_UUID})$", "alarm.delete", "alarm_request"),
     _rule("POST", r"^/admin/users$", "user.create", "user"),
     _rule("POST", rf"^/admin/verifications/({_UUID})/approve$", "kyc.approve", "user_verification"),
     _rule("POST", rf"^/admin/verifications/({_UUID})/reject$", "kyc.reject", "user_verification"),

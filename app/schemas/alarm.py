@@ -41,6 +41,8 @@ class AlarmRequestResponse(BaseModel):
     area_designation: str | None = None
     requested_by: UUID
     requested_by_name: str | None = None
+    # The asker's organisation: its Admin may cancel or delete the request.
+    requested_by_organization_id: UUID | None = None
     requested_alarm_level: str
     justification: str | None = None
     status: str

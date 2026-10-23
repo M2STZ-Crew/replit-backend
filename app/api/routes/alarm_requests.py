@@ -8,6 +8,11 @@ incident's WebSocket channel.
 In the Admin console (PRD v14 §3.4, §4.7; pass 6 A45, A46): a Fire Volunteer
 organisation's Admin asks BFP to raise the alarm on an incident routed to it,
 and the BFP Admin decides — the same acts as their Coordinators on mobile.
+
+A request still waiting can be cancelled, and any request BFP did not approve
+can be deleted, by whoever asked, an Admin of their organisation, or the
+system Admin. An approved request stays: it is the record of why the alarm
+level changed.
 """
 
 from __future__ import annotations
@@ -16,11 +21,12 @@ from typing import Annotated, Any
 from uuid import UUID
 
 import asyncpg
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Query, Response, status
 
 from app.api.deps import CurrentUser, DatabaseDep, StaffUser
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.core.logging import get_logger
+from app.db.session import Database
 from app.realtime.manager import manager
 from app.schemas.alarm import AlarmRequestCreate, AlarmRequestResponse, AlarmReviewRequest
 from app.schemas.auth import AuthenticatedUser
@@ -50,6 +56,48 @@ def _may_decide(user: AuthenticatedUser) -> bool:
     """A BFP Coordinator, or the BFP Admin in the console (PRD v14 §3.4)."""
     access = admin_access(user)
     return _is_bfp_subadmin(user) or (access is not None and access.can(DECIDE_ALARM))
+
+
+def _may_withdraw(
+    user: AuthenticatedUser, requested_by: UUID, requester_org: UUID | None
+) -> bool:
+    """Whoever asked, an Admin of their (active) organisation, or the system Admin."""
+    if user.id == requested_by:
+        return True
+    access = admin_access(user)
+    if access is None:
+        return False
+    if access.is_system:
+        return True
+    # A turned-off organisation's Admin has no permissions: it may look, not act.
+    return (
+        bool(access.permissions)
+        and requester_org is not None
+        and access.organization_id == requester_org
+    )
+
+
+async def _withdrawable(
+    db: Database, request_id: UUID, user: AuthenticatedUser
+) -> asyncpg.Record:
+    """The request, once the caller is someone who may cancel or delete it."""
+    row = await db.fetchrow(
+        """
+        select a.status::text as status, a.requested_by, u.primary_org_id as requester_org
+        from public.alarm_requests a
+        left join public.users u on u.id = a.requested_by
+        where a.id = $1
+        """,
+        request_id,
+    )
+    if row is None:
+        raise NotFoundError("Alarm request not found.")
+    if not _may_withdraw(user, row["requested_by"], row["requester_org"]):
+        raise ForbiddenError(
+            "Only whoever asked, an Admin of their organisation, or the system Admin "
+            "may cancel or delete this request."
+        )
+    return row
 
 
 def _may_request(user: AuthenticatedUser) -> bool:
@@ -160,6 +208,7 @@ async def list_alarm_requests(
         f"""
         select a.id, a.area_id, ar.designation as area_designation, a.requested_by,
                u.full_name as requested_by_name,
+               u.primary_org_id as requested_by_organization_id,
                a.requested_alarm_level::text as requested_alarm_level, a.justification,
                a.status::text as status, a.reviewed_by, a.reviewed_at, a.review_notes,
                a.executed_at, a.created_at, a.updated_at
@@ -283,3 +332,67 @@ async def reject_alarm_request(
         raise NotFoundError("No pending alarm request found for that id.")
     log.info("alarm_request_rejected", request_id=str(request_id), by=str(user.id))
     return AlarmRequestResponse.model_validate(dict(row))
+
+
+@router.post(
+    "/{request_id}/cancel",
+    response_model=AlarmRequestResponse,
+    summary="Cancel a pending alarm request (whoever asked)",
+)
+async def cancel_alarm_request(
+    request_id: UUID, payload: AlarmReviewRequest, user: StaffUser, db: DatabaseDep
+) -> AlarmRequestResponse:
+    """Withdraw a request BFP has not answered; it moves to the history as Cancelled."""
+    await _withdrawable(db, request_id, user)
+    try:
+        row = await db.fetchrow(
+            f"""
+            update public.alarm_requests
+               set status = 'cancelled', reviewed_by = $2, reviewed_at = now(),
+                   review_notes = $3
+             where id = $1 and status = 'pending'
+            returning {_COLS}
+            """,
+            request_id,
+            user.id,
+            payload.notes,
+        )
+    except asyncpg.InvalidTextRepresentationError as exc:
+        # request_status gains 'cancelled' in migration 20261024090000.
+        log.warning("alarm_cancel_before_migration", error=str(exc))
+        raise ConflictError(
+            "The database cannot record a cancelled request yet. Delete the request "
+            "instead, or apply the latest database migration."
+        ) from exc
+    if row is None:
+        # Answered (or cancelled) between the read and the write.
+        raise ConflictError("BFP has already answered this request.")
+    log.info("alarm_request_cancelled", request_id=str(request_id), by=str(user.id))
+    return AlarmRequestResponse.model_validate(dict(row))
+
+
+@router.delete(
+    "/{request_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete an alarm request BFP did not approve (whoever asked)",
+)
+async def delete_alarm_request(
+    request_id: UUID, user: StaffUser, db: DatabaseDep
+) -> Response:
+    """Remove a pending, declined or cancelled request; an approved one stays."""
+    row = await _withdrawable(db, request_id, user)
+    if row["status"] == "approved":
+        raise ConflictError(
+            "BFP approved this request, so it stays: it is the record of why the "
+            "alarm level changed."
+        )
+    deleted = await db.fetchval(
+        "delete from public.alarm_requests where id = $1 and status <> 'approved' "
+        "returning id",
+        request_id,
+    )
+    if deleted is None:
+        # Approved (or already gone) between the read and the delete.
+        raise ConflictError("This request was just answered or removed. Refresh the list.")
+    log.info("alarm_request_deleted", request_id=str(request_id), by=str(user.id))
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
