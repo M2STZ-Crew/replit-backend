@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { api } from '../api/client.js';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import IncidentDetail from '../components/incidents/IncidentDetail.jsx';
 import IncidentTable from '../components/incidents/IncidentTable.jsx';
 import OverlapReview from '../components/incidents/OverlapReview.jsx';
+import AlarmEscalationDialog from '../components/requests/AlarmEscalationDialog.jsx';
 import Icon from '../components/ui/Icon.jsx';
 import { EmptyState, PageHeader, StatePanel } from '../components/ui/index.js';
 import { useLiveFeed, useSurfaceVisit } from '../live/LiveFeed.jsx';
+import { actsOn, splitsIncidents, yourOrg } from '../lib/access.js';
 import { degrees, knownAddress } from '../lib/place.js';
 import { AGENCY_LABEL } from '../lib/status.js';
 
@@ -17,11 +19,10 @@ import { AGENCY_LABEL } from '../lib/status.js';
  * confidence, a page at a time. Opening one shows it in full (IncidentDetail)
  * where this Admin may acknowledge it.
  *
- * Two of the design's pieces wait on the server. "Routed to you" needs the
- * server to route an Area to an Admin's organisation; today every Admin may
- * act on every Area, so the tab is not drawn. And an Admin no longer rejects
- * an Area (PRD v13 §4.5.2: Reject is the Coordinator's, before anyone goes),
- * so the console's old Reject is gone. */
+ * An Admin that acts on some Areas only gets "Routed to you" — the Areas that
+ * asked for its agency — and the "Your org" column (lib/access.js). Every
+ * other Area it can open and follow, view only (A25). An Admin never rejects
+ * an Area (PRD v13 §4.5.2: Reject is the Coordinator's, before anyone goes). */
 
 const PAGE = 10;
 
@@ -52,12 +53,20 @@ function Select({ label, value, onChange, options }) {
   );
 }
 
-export default function IncidentDesk({ focusId = null }) {
+export default function IncidentDesk({ focusId = null, initialTab = null }) {
   const { incidents: live, loaded, failed, loadedAt, refresh: refreshFeed, acknowledge } = useLiveFeed();
-  const { org } = useConsole();
+  const { org, console: access } = useConsole();
   const lastViewed = useSurfaceVisit('incidents');
+  const split = splitsIncidents(access);
+  const orgStatus = split ? (inc) => yourOrg(access, inc) : null;
+  // Read by loadDetail through refs, so a 12 s poll does not reload the open
+  // incident (that is what liveSig below is for).
+  const liveRef = useRef(live);
+  liveRef.current = live;
+  const accessRef = useRef(access);
+  accessRef.current = access;
 
-  const [tab, setTab] = useState('active');
+  const [tab, setTab] = useState(split && initialTab === 'routed' ? 'routed' : 'active');
   const [status, setStatus] = useState('all');
   const [agency, setAgency] = useState('any');
   const [band, setBand] = useState('any');
@@ -79,6 +88,7 @@ export default function IncidentDesk({ focusId = null }) {
   const [notice, setNotice] = useState(null);
   const [overlaps, setOverlaps] = useState([]);
   const [reviewing, setReviewing] = useState(null);
+  const [askingAlarm, setAskingAlarm] = useState(false);
   useEffect(() => {
     if (!notice) return undefined;
     const t = setTimeout(() => setNotice(null), 6000);
@@ -115,16 +125,18 @@ export default function IncidentDesk({ focusId = null }) {
   useEffect(() => { loadList(needs); }, [needs, loadList]);
 
   const source = needs ? fetched[needs] : live;
+  const routedCount = useMemo(() => live.filter((inc) => actsOn(access, inc)).length, [live, access]);
   const rows = useMemo(() => {
     const term = query.trim().toLowerCase();
     return (source ?? []).filter((inc) => {
-      if (tab === 'active' && status !== 'all' && status !== 'post_incident_report' && inc.status !== status) return false;
+      if (tab === 'routed' && !actsOn(access, inc)) return false;
+      if (tab !== 'closed' && status !== 'all' && status !== 'post_incident_report' && inc.status !== status) return false;
       if (agency !== 'any' && !(inc.requested_agencies ?? []).includes(agency)) return false;
       if (band !== 'any' && inc.confidence_band !== band) return false;
       if (term && !`${inc.designation} ${knownAddress(inc.centroid_lat, inc.centroid_lng) ?? ''} ${degrees(inc.centroid_lat, inc.centroid_lng)}`.toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [source, tab, status, agency, band, query]);
+  }, [source, tab, status, agency, band, query, access]);
   useEffect(() => { setPage(0); }, [tab, status, agency, band, query]);
   const pages = Math.max(1, Math.ceil(rows.length / PAGE));
   const shown = rows.slice(page * PAGE, page * PAGE + PAGE);
@@ -133,9 +145,13 @@ export default function IncidentDesk({ focusId = null }) {
     if (!id) { setDetail(null); setDetailState('idle'); return; }
     setDetailState((s) => (s === 'ready' ? 'ready' : 'loading'));
     try {
+      // Who reported is for the organisations the Area asked for (A25): an
+      // Area routed elsewhere is opened without it.
+      const summary = liveRef.current.find((i) => i.id === id);
+      const routed = !summary || actsOn(accessRef.current, summary);
       const [d, r, x, q] = await Promise.all([
         api.incident(id),
-        api.incidentReports(id).catch(() => []),
+        routed ? api.incidentReports(id).catch(() => []) : Promise.resolve([]),
         api.incidentDispatches(id).catch(() => []),
         api.alarmRequests().catch(() => []),
       ]);
@@ -184,7 +200,7 @@ export default function IncidentDesk({ focusId = null }) {
       await api.incidentAccept(detail.id);
       await Promise.all([refreshFeed(), loadDetail(detail.id)]);
       setConfirming(false);
-      setNotice(`${detail.designation} acknowledged${org?.name ? ` for ${org.name}` : ''}`);
+      setNotice(`${detail.designation} acknowledged${org?.id && org?.name ? ` for ${org.name}` : ''}`);
     } finally {
       setBusy(false);
     }
@@ -248,6 +264,21 @@ export default function IncidentDesk({ focusId = null }) {
           onConfirmAcknowledge={confirmAcknowledge}
           onBack={() => { setSelectedId(null); setNotice(null); }}
           onPdf={downloadPdf}
+          access={access}
+          orgName={org?.name ?? 'your organisation'}
+          onAskAlarm={() => setAskingAlarm(true)}
+        />
+        <AlarmEscalationDialog
+          open={askingAlarm}
+          areas={[detail]}
+          bfpName="BFP"
+          onClose={() => setAskingAlarm(false)}
+          onSend={async ({ areaId, level, justification }) => {
+            await api.alarmRequestCreate({ areaId, level, justification });
+            setAskingAlarm(false);
+            setNotice(`Asked BFP to raise ${detail.designation} to ${level.replace(/_/g, ' ')}`);
+            await loadDetail(detail.id);
+          }}
         />
         {notice && (
           <div className="ad-toast" role="status">
@@ -262,14 +293,20 @@ export default function IncidentDesk({ focusId = null }) {
   const listLoading = needs ? fetched[needs] == null && !fetchError : !loaded;
   const emptyMessage = query || agency !== 'any' || band !== 'any' || status !== 'all'
     ? 'Nothing matches these filters.'
-    : tab === 'closed' ? 'Nothing closed yet.' : 'No active incidents. A new Area appears here the moment its first report is clustered.';
+    : tab === 'closed'
+      ? 'Nothing closed yet.'
+      : tab === 'routed'
+        ? 'Nothing is routed to you right now. An Area that asks for your agency appears here, with its sound.'
+        : 'No active incidents. A new Area appears here the moment its first report is clustered.';
 
   return (
     <div className="ad-page">
       <PageHeader
         eyebrow={org?.name ?? 'Operations'}
         title="Incidents"
-        description="Every active incident in Pasay. Open one to see it in full and acknowledge it."
+        description={split
+          ? 'Every active incident in Pasay. You can act on the ones routed to you.'
+          : 'Every active incident in Pasay. Open one to see it in full and acknowledge it.'}
       />
 
       {overlaps.map((o) => (
@@ -293,7 +330,11 @@ export default function IncidentDesk({ focusId = null }) {
       )}
 
       <div className="ad-tabs ad-tabs--page" role="tablist" aria-label="Incident lists">
-        {[{ key: 'active', label: 'All active' }, { key: 'closed', label: 'Closed' }].map((t) => (
+        {[
+          { key: 'active', label: 'All active' },
+          ...(split ? [{ key: 'routed', label: 'Routed to you', count: routedCount }] : []),
+          { key: 'closed', label: 'Closed' },
+        ].map((t) => (
           <button
             key={t.key}
             type="button"
@@ -303,6 +344,7 @@ export default function IncidentDesk({ focusId = null }) {
             onClick={() => setTab(t.key)}
           >
             {t.label}
+            {t.count > 0 && <span className="web-count-badge" aria-label={`${t.count} routed to you`}>{t.count}</span>}
           </button>
         ))}
       </div>
@@ -318,7 +360,7 @@ export default function IncidentDesk({ focusId = null }) {
             placeholder="Search areas and coordinates"
           />
         </label>
-        {tab === 'active' && (
+        {tab !== 'closed' && (
           <Select label="Status" value={status} onChange={setStatus} options={STATUSES} />
         )}
         <Select
@@ -354,19 +396,25 @@ export default function IncidentDesk({ focusId = null }) {
       {listLoading && !failed ? (
         <StatePanel kind="loading" title="Loading incidents…" />
       ) : rows.length === 0 && !(query || agency !== 'any' || band !== 'any' || status !== 'all') && !(fetchError || failed) ? (
-        <EmptyState icon="requests" title={tab === 'closed' ? 'Nothing closed yet' : 'No active incidents in Pasay'}>
+        <EmptyState
+          icon="requests"
+          title={tab === 'closed' ? 'Nothing closed yet' : tab === 'routed' ? 'Nothing routed to you' : 'No active incidents in Pasay'}
+        >
           {tab === 'closed'
             ? 'An Area lands here once its post-incident report is filed.'
-            : 'New reports appear here with a sound. Closed incidents are under Closed.'}
+            : tab === 'routed'
+              ? 'An Area that asks for your agency appears here, with its sound. Every other one is under All active.'
+              : 'New reports appear here with a sound. Closed incidents are under Closed.'}
         </EmptyState>
       ) : (rows.length > 0 || !(fetchError || failed)) ? (
         <>
           <IncidentTable
             incidents={shown}
-            lastViewed={tab === 'active' ? lastViewed : null}
+            lastViewed={tab !== 'closed' ? lastViewed : null}
             onOpen={open}
             emptyMessage={emptyMessage}
             staleAt={!needs && failed ? loadedAt : null}
+            yourOrg={orgStatus}
           />
           <div className="ad-pager">
             <span className="ad-pager-range">

@@ -6,18 +6,20 @@ import IncidentTable from '../components/incidents/IncidentTable.jsx';
 import Icon from '../components/ui/Icon.jsx';
 import { PageHeader } from '../components/ui/index.js';
 import { useLiveFeed, useSurfaceVisit } from '../live/LiveFeed.jsx';
+import {
+  PERM, acknowledgedByUs, actsOn, can, splitsIncidents, variantLabel, yourOrg,
+} from '../lib/access.js';
 import { formatMinutes, formatShare, responseMetrics } from '../lib/metrics.js';
 
-/* Dashboard (REPLIT (MAIN) 10 · A20 865:1310, A21, A83; PRD v13 §4.6.2,
- * §4.14): this organisation's work first — the queues it must answer, one
- * click from their destination — then the active Areas.
+/* Dashboard (REPLIT (MAIN) 10 · A20 865:1310, A21 865:1722, A83; PRD v13
+ * §4.6.2, §4.14): this organisation's work first — the queues it must answer,
+ * one click from their destination — then the active Areas.
  *
- * The design splits the Areas into "Routed to <org>" and "Other
- * organisations' incidents (view only)" and closes with each organisation's
- * availability (A72). Both wait on the server: it does not yet route an Area
- * to an Admin's organisation, so every Admin may act on every Area, and it
- * reports no AFK state. Until then the Areas are one table and the
- * availability strip is not drawn.
+ * An Admin that acts on some Areas only (every organisation's, the central
+ * hub's) gets them split as the design draws them: "Routed to <org>" with
+ * its "Your org" chip, then "Other organisations' incidents", view only. The
+ * system Admin acts on every Area, so it keeps one table. The availability
+ * strip (A72) is not drawn: the server stores no AFK state yet.
  *
  * The response measures under the fold are the console's existing pilot
  * measures (PRD v13 §13.2), kept below the design's content. */
@@ -52,7 +54,7 @@ export default function SituationBoard({ onNavigate }) {
   // Live incidents come from the console-wide feed, so this board updates on
   // the same poll that drives the badges and sounds.
   const { incidents, loaded } = useLiveFeed();
-  const { org, access } = useConsole();
+  const { org, console: access } = useConsole();
   const lastViewed = useSurfaceVisit('dashboard');
   const [allIncidents, setAllIncidents] = useState([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
@@ -71,23 +73,34 @@ export default function SituationBoard({ onNavigate }) {
     return () => { cancelled = true; };
   }, []);
 
+  // What this Admin answers: alarm escalations for whoever sets the level
+  // (BFP, or the system Admin), affiliates and IDs for the hub.
+  const answersAlarms = can(access, PERM.DECIDE_ALARM) || access.variant === 'system';
+  const reviewsAffiliates = can(access, PERM.REVIEW_AFFILIATES);
+  const reviewsIds = can(access, PERM.REVIEW_IDS);
+
   // The queues this Admin answers. A queue that cannot be read is left out
   // rather than shown as zero.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const read = (p) => p.then((rows) => (Array.isArray(rows) ? rows.length : null)).catch(() => null);
+      const skip = Promise.resolve(null);
       const [requests, ids, affiliates] = await Promise.all([
-        read(api.alarmRequests('pending')),
-        read(api.pendingVerifications()),
-        read(api.affiliates('pending')),
+        answersAlarms ? read(api.alarmRequests('pending')) : skip,
+        reviewsIds ? read(api.pendingVerifications()) : skip,
+        reviewsAffiliates ? read(api.affiliates('pending')) : skip,
       ]);
       if (!cancelled) setQueues({ requests, ids, affiliates });
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [answersAlarms, reviewsIds, reviewsAffiliates]);
 
-  const toAcknowledge = incidents.filter((inc) => inc.status === 'reported').length;
+  const split = splitsIncidents(access);
+  const routed = split ? incidents.filter((inc) => actsOn(access, inc)) : incidents;
+  const others = split ? incidents.filter((inc) => !actsOn(access, inc)) : [];
+  const toAcknowledge = routed.filter((inc) => !acknowledgedByUs(access, inc)).length;
+  const orgStatus = split ? (inc) => yourOrg(access, inc) : null;
   const metrics = useMemo(
     () => responseMetrics(allIncidents, { days: METRICS_DAYS }),
     [allIncidents],
@@ -99,56 +112,80 @@ export default function SituationBoard({ onNavigate }) {
     Date.now() - new Date(allIncidents[allIncidents.length - 1]?.reported_at).getTime() <
       METRICS_DAYS * 864e5;
 
-  const central = access === 'central';
   const queueList = [
-    { key: 'incidents', icon: 'flame', label: 'To acknowledge', count: toAcknowledge, loading: !loaded, urgent: true },
-    { key: 'requests', icon: 'requests', label: 'Requests to answer', count: queues?.requests },
-    central && { key: 'affiliates', icon: 'organization', label: 'Affiliate requests', count: queues?.affiliates },
-    central && { key: 'idreview', icon: 'verification', label: 'ID reviews', count: queues?.ids },
-  ].filter((q) => q && (q.loading || queues == null || q.count != null));
+    { key: 'incidents', icon: 'flame', label: 'To acknowledge', count: toAcknowledge, loading: !loaded, urgent: true, live: true },
+    split && { key: 'incidents', id: 'routed', icon: 'incidents', label: 'Active, routed to you', count: routed.length, loading: !loaded, live: true },
+    answersAlarms && { key: 'requests', icon: 'requests', label: 'Requests to answer', count: queues?.requests },
+    reviewsAffiliates && { key: 'affiliates', icon: 'organization', label: 'Affiliate requests', count: queues?.affiliates },
+    reviewsIds && { key: 'idreview', icon: 'verification', label: 'ID reviews', count: queues?.ids },
+  ].filter((q) => q && (q.live || queues == null || q.count != null));
 
-  const eyebrow = org?.name ? `${org.name}${central ? ' · Central hub' : ''}` : 'Operations';
+  const eyebrow = org?.name ? `${org.name} · ${variantLabel(access)}` : 'Operations';
 
   return (
     <div className="ad-page ad-board">
       <PageHeader
         eyebrow={eyebrow}
         title="Dashboard"
-        description="Your work first, then every active Area across Pasay City."
+        description={split
+          ? 'Your work first. Other organisations’ incidents are below for awareness.'
+          : 'Your work first, then every active Area across Pasay City.'}
       />
 
       <section aria-label="Your queues" className="ad-queues">
         {queueList.map((q) => (
           <QueueCount
-            key={q.key}
+            key={q.id ?? q.key}
             icon={q.icon}
             label={q.label}
             count={q.count ?? 0}
             urgent={q.urgent}
-            loading={q.loading || (q.key !== 'incidents' && queues == null)}
-            onOpen={() => onNavigate(q.key)}
+            loading={q.loading || (!q.live && queues == null)}
+            onOpen={() => onNavigate(q.key, split && q.key === 'incidents' ? { tab: 'routed' } : {})}
           />
         ))}
       </section>
 
       <section className="ad-board-section" aria-labelledby="ad-board-incidents-title">
         <div className="ad-section-head">
-          <h2 className="ad-section-title" id="ad-board-incidents-title">Active incidents</h2>
+          <h2 className="ad-section-title" id="ad-board-incidents-title">
+            {split ? `Routed to ${org?.name ?? 'your organisation'}` : 'Active incidents'}
+          </h2>
           <span className="ad-section-meta">
-            {loaded ? `${incidents.length} active` : ''}
+            {loaded ? `${routed.length} active` : ''}
           </span>
           <button type="button" className="ad-text-button" onClick={() => onNavigate('incidents')}>
             All incidents
           </button>
         </div>
         <IncidentTable
-          incidents={incidents}
+          incidents={routed}
           lastViewed={lastViewed}
           loading={!loaded}
+          yourOrg={orgStatus}
           onOpen={(inc) => onNavigate('incidents', { incidentId: inc.id })}
-          emptyMessage="No active incidents. A new Area appears here the moment its first report is clustered."
+          emptyMessage={split
+            ? 'Nothing is routed to you right now. An Area that asks for your agency appears here, with its sound.'
+            : 'No active incidents. A new Area appears here the moment its first report is clustered.'}
         />
       </section>
+
+      {split && (
+        <section className="ad-board-section" aria-labelledby="ad-board-others-title">
+          <div className="ad-section-head">
+            <h2 className="ad-section-title" id="ad-board-others-title">Other organisations’ incidents</h2>
+            <span className="ad-section-meta">View only</span>
+          </div>
+          <IncidentTable
+            incidents={others}
+            lastViewed={lastViewed}
+            loading={!loaded}
+            yourOrg={orgStatus}
+            onOpen={(inc) => onNavigate('incidents', { incidentId: inc.id })}
+            emptyMessage="No other active incidents in Pasay right now."
+          />
+        </section>
+      )}
 
       <section className="ad-panel" aria-labelledby="ad-board-metrics-title">
         <h2 className="ad-panel-title" id="ad-board-metrics-title">Response measures · last {METRICS_DAYS} days</h2>

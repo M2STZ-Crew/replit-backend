@@ -28,8 +28,11 @@ from app.db.session import Database
 from app.integrations.supabase_auth import AuthError
 from app.schemas.auth import (
     AuthenticatedUser,
+    ConsoleAccess,
+    ConsoleOrganization,
     LocationUpdateRequest,
     LoginRequest,
+    MeResponse,
     ProfileUpdateRequest,
     RecoverRequest,
     RefreshRequest,
@@ -37,6 +40,7 @@ from app.schemas.auth import (
     TokenResponse,
 )
 from app.schemas.common import MessageResponse
+from app.services.access import admin_access
 from app.services.phone_verification import PhoneNumberTakenError, normalize_ph_mobile
 
 log = get_logger(__name__)
@@ -174,14 +178,44 @@ async def recover(
     return MessageResponse(message="If that email is registered, a reset link has been sent.")
 
 
-@router.get("/me", response_model=AuthenticatedUser, summary="Current user profile")
-async def me(user: SessionUser) -> AuthenticatedUser:
+@router.get("/me", response_model=MeResponse, summary="Current user profile")
+async def me(user: SessionUser) -> MeResponse:
     """Return the authenticated user's profile (role/agency/verified_percent from DB).
 
     Reachable before the phone gate is passed — it is how the app learns it has
-    to show the gate (``phone_verification_required``).
+    to show the gate (``phone_verification_required``). For an Admin it also
+    says what the Admin console may offer it (``console``): its organisation,
+    the agencies it acts for, and its permissions (app/services/access.py).
     """
-    return user.model_copy(update={"phone_verification_required": phone_gate_applies(user)})
+    return MeResponse.model_validate(
+        {
+            **user.model_dump(),
+            "phone_verification_required": phone_gate_applies(user),
+            "console": _console_of(user),
+        }
+    )
+
+
+def _console_of(user: AuthenticatedUser) -> ConsoleAccess | None:
+    """An Admin's standing in the console, or None for everyone else."""
+    access = admin_access(user)
+    if access is None:
+        return None
+    organization = None
+    if access.organization_id is not None:
+        organization = ConsoleOrganization(
+            id=access.organization_id,
+            name=access.organization_name,
+            agency_type=access.agency,
+            is_central_hub=access.variant == "central",
+        )
+    return ConsoleAccess(
+        variant=access.variant,
+        scope=access.scope,
+        organization=organization,
+        act_agencies=None if access.act_agencies is None else list(access.act_agencies),
+        permissions=sorted(access.permissions),
+    )
 
 
 @router.patch("/me/profile", response_model=AuthenticatedUser, summary="Update my profile")

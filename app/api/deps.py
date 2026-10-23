@@ -26,6 +26,8 @@ from app.integrations.semaphore_sms import SemaphoreClient
 from app.integrations.supabase_auth import SupabaseAuthClient
 from app.integrations.supabase_storage import SupabaseStorageClient
 from app.schemas.auth import AuthenticatedUser
+from app.services import access as console_access
+from app.services.access import acting_agency, admin_access
 
 
 # --------------------------------------------------------------------------- #
@@ -104,6 +106,24 @@ DEACTIVATED_MESSAGE = (
 )
 
 
+# The account and its organisation's attributes, which decide an Admin's
+# access (app/services/access.py). is_central_hub is read through to_jsonb so
+# the API keeps working on a database that has not had migration
+# 20261023180000 yet: there it reads as false, and no organisation is the hub.
+CURRENT_USER_SQL = """
+    select u.id, u.email, u.phone, u.role, u.agency_type, u.verified_percent, u.badge,
+           u.full_name, u.primary_org_id, u.mobile, u.date_of_birth, u.gender,
+           u.phone_verified, u.is_active,
+           o.name as org_name, o.agency_type::text as org_agency_type,
+           o.is_active as org_is_active,
+           coalesce((to_jsonb(o) ->> 'is_central_hub')::boolean, false)
+               as org_is_central_hub
+    from public.users u
+    left join public.organizations o on o.id = u.primary_org_id
+    where u.id = $1
+"""
+
+
 async def get_current_user(
     request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
@@ -123,16 +143,7 @@ async def get_current_user(
     except ValueError as exc:
         raise UnauthorizedError("Token subject is not a valid user id.") from exc
 
-    row = await db.fetchrow(
-        """
-        select id, email, phone, role, agency_type, verified_percent, badge,
-               full_name, primary_org_id, mobile, date_of_birth, gender, phone_verified,
-               is_active
-        from public.users
-        where id = $1
-        """,
-        user_id,
-    )
+    row = await db.fetchrow(CURRENT_USER_SQL, user_id)
     if row is None:
         raise UnauthorizedError("Authenticated user has no profile record.")
     profile = dict(row)
@@ -143,7 +154,7 @@ async def get_current_user(
     user = AuthenticatedUser.model_validate(profile)
     request.state.actor_id = user.id
     request.state.actor_role = user.role
-    request.state.actor_agency = user.agency_type
+    request.state.actor_agency = acting_agency(user)
     return user
 
 
@@ -215,7 +226,95 @@ def require_role(*roles: str) -> Callable[[AuthenticatedUser], Awaitable[Authent
     return dependency
 
 
+# Any Admin, of any organisation. Most routes that take it then narrow what the
+# Admin may reach with app/services/access.py; those that need one specific
+# capability use the aliases below instead.
 AdminUser = Annotated[AuthenticatedUser, Depends(require_role("admin"))]
+
+
+def require_admin_permission(
+    permission: str, refusal: str
+) -> Callable[[AuthenticatedUser], Awaitable[AuthenticatedUser]]:
+    """Build a dependency for an Admin act only some Admins may do (ARBAC).
+
+    ``refusal`` is what an Admin without it is told: who does this instead,
+    so the console can show it as it is.
+    """
+
+    async def dependency(user: CurrentUser) -> AuthenticatedUser:
+        access = admin_access(user)
+        if access is None:
+            raise ForbiddenError(
+                "You do not have permission to perform this action.",
+                details={"required_roles": ["admin"], "your_role": user.role},
+            )
+        if not access.can(permission):
+            raise ForbiddenError(
+                refusal,
+                details={"required_permission": permission, "variant": access.variant},
+            )
+        return user
+
+    return dependency
+
+
+AffiliateReviewer = Annotated[
+    AuthenticatedUser,
+    Depends(
+        require_admin_permission(
+            console_access.REVIEW_AFFILIATES,
+            "Affiliate applications are reviewed by the central hub (Barangay 76).",
+        )
+    ),
+]
+IdReviewer = Annotated[
+    AuthenticatedUser,
+    Depends(
+        require_admin_permission(
+            console_access.REVIEW_IDS,
+            "National ID reviews are done by the central hub (Barangay 76).",
+        )
+    ),
+]
+MapManager = Annotated[
+    AuthenticatedUser,
+    Depends(
+        require_admin_permission(
+            console_access.MANAGE_MAP,
+            "Map layers are added and changed by the system administrator.",
+        )
+    ),
+]
+WaterDeleter = Annotated[
+    AuthenticatedUser,
+    Depends(
+        require_admin_permission(
+            console_access.DELETE_WATER,
+            "Your organisation's Admin account is not active, so it cannot delete "
+            "water resources.",
+        )
+    ),
+]
+CoordinatorManager = Annotated[
+    AuthenticatedUser,
+    Depends(
+        require_admin_permission(
+            console_access.CREATE_COORDINATORS,
+            "Your organisation's Admin account is not active, so it cannot manage "
+            "Coordinator accounts.",
+        )
+    ),
+]
+AnyAccountAdmin = Annotated[
+    AuthenticatedUser,
+    Depends(
+        require_admin_permission(
+            console_access.MANAGE_ANY_ACCOUNT,
+            "Only the system administrator creates accounts of any role. An "
+            "organisation's Admin creates its own Coordinators under Accounts.",
+        )
+    ),
+]
 
 # Any sub-admin — a Fire Volunteer or BFP coordinator, or a police, medical or
 # barangay one (the user calls them all coordinators). Responder accounts.

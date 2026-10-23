@@ -10,13 +10,18 @@ import '../src/styles/pass6-pages.css';
 import '../src/styles/pass6-existing.css';
 import '../src/styles/pass6-incidents.css';
 import '../src/styles/pass6-map.css';
+import '../src/styles/pass6-access.css';
 
 /* DEVELOPMENT PREVIEW ONLY — the whole console, signed in as a fictional
  * Admin, on fictional data. Every request the console makes to the API base
  * is answered here in memory; nothing reaches a server, the stored session is
  * never read or written, and a "delete" only removes the row from this page.
  * Open http://localhost:5173/docs/console-preview.html on the Vite dev server.
- * Not part of the production build (vite builds index.html only). */
+ * Not part of the production build (vite builds index.html only).
+ *
+ * ?as= picks which organisation's Admin is signed in (A00 permission
+ * variants): central (the default), police, medical, barangay,
+ * fire_volunteer, bfp, or system. */
 
 if (import.meta.env.DEV) {
   const at = (minutesAgo) => new Date(Date.now() - minutesAgo * 60000).toISOString();
@@ -47,6 +52,41 @@ if (import.meta.env.DEV) {
     `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300"><rect width="480" height="300" rx="16" fill="#2a2a2a"/><text x="240" y="160" fill="#a1a1a1" font-family="sans-serif" font-size="22" text-anchor="middle">${label}</text></svg>`,
   )}`;
 
+  // Which Admin is signed in, as the server would describe it on /auth/me.
+  const EVERY = ['incidents.acknowledge', 'incidents.overlaps', 'water.delete', 'accounts.coordinators'];
+  const ORGS = {
+    central: { id: id(10), name: 'Example Barangay Hub', agency: 'barangay', hub: true },
+    barangay: { id: id(15), name: 'Example Barangay Office', agency: 'barangay' },
+    fire_volunteer: { id: id(11), name: 'Example Fire Volunteers', agency: 'fire_volunteer' },
+    bfp: { id: id(13), name: 'Example BFP Station', agency: 'bfp' },
+    police: { id: id(12), name: 'Example Police Station', agency: 'police' },
+    medical: { id: id(14), name: 'Example Medical Team', agency: 'medical' },
+  };
+  const as = new URLSearchParams(window.location.search).get('as') || 'central';
+  const signedIn = ORGS[as] ?? null;
+  const consoleFor = () => {
+    if (!signedIn) {
+      return {
+        variant: 'system', scope: 'system', organization: null, act_agencies: null,
+        permissions: [...EVERY, 'incidents.coordinate', 'affiliates.review', 'verifications.review',
+          'map.manage', 'accounts.any', 'organizations.all', 'records.all'],
+      };
+    }
+    const fire = ['fire_volunteer', 'bfp'].includes(signedIn.agency);
+    return {
+      variant: signedIn.hub ? 'central' : signedIn.agency,
+      scope: signedIn.hub ? 'central' : 'organization',
+      organization: { id: signedIn.id, name: signedIn.name, agency_type: signedIn.agency, is_central_hub: Boolean(signedIn.hub) },
+      act_agencies: fire ? ['fire_volunteer', 'bfp'] : [signedIn.agency],
+      permissions: [
+        ...EVERY,
+        ...(signedIn.agency === 'fire_volunteer' ? ['alarm.request'] : []),
+        ...(signedIn.agency === 'bfp' ? ['alarm.decide'] : []),
+        ...(signedIn.hub ? ['affiliates.review', 'verifications.review', 'organizations.all'] : []),
+      ],
+    };
+  };
+
   const fixtures = {
     me: {
       id: id(1),
@@ -54,18 +94,23 @@ if (import.meta.env.DEV) {
       full_name: 'Example Admin',
       role: 'admin',
       agency_type: null,
-      primary_org_id: id(10),
+      primary_org_id: signedIn?.id ?? null,
+      console: consoleFor(),
     },
     incidents: [
-      incident(0, 'Example Area 1.2', 'reported', 3),
-      incident(1, 'Example Area 2.1', 'verified', 14),
-      incident(2, 'Example Area 3', 'en_route', 26),
-      incident(3, 'Example Area 4.1', 'arrived', 41),
-      incident(4, 'Example Area 1.3', 'reported', 1, { centroid_lat: 14.5384, centroid_lng: 121.0021 }),
+      incident(0, 'Example Area 1.2', 'reported', 3, { requested_agencies: ['fire_volunteer', 'police'] }),
+      incident(1, 'Example Area 2.1', 'verified', 14, { accepted_organization_ids: [id(11)] }),
+      incident(2, 'Example Area 3', 'en_route', 26, { requested_agencies: ['fire_volunteer', 'police', 'barangay'], accepted_agencies: ['fire_volunteer'], accepted_organization_ids: [id(11)] }),
+      incident(3, 'Example Area 4.1', 'arrived', 41, { requested_agencies: ['bfp', 'medical'], accepted_agencies: ['bfp', 'medical'], accepted_organization_ids: [id(13), id(14)] }),
+      incident(4, 'Example Area 1.3', 'reported', 1, { centroid_lat: 14.5384, centroid_lng: 121.0021, requested_agencies: ['medical'] }),
     ],
     organizations: [
-      { id: id(10), name: 'Example Barangay Hub', agency_type: 'barangay', is_active: true, personnel_count: 4, equipment_count: 1, address: 'Example Street, Sample Barangay', contact_email: 'hub@example.test', contact_phone: null, created_at: at(60 * 24 * 40) },
+      { id: id(10), name: 'Example Barangay Hub', agency_type: 'barangay', is_active: true, is_central_hub: true, personnel_count: 4, equipment_count: 1, address: 'Example Street, Sample Barangay', contact_email: 'hub@example.test', contact_phone: null, created_at: at(60 * 24 * 40) },
       { id: id(11), name: 'Example Fire Volunteers', agency_type: 'fire_volunteer', is_active: true, personnel_count: 9, equipment_count: 3 },
+      { id: id(12), name: 'Example Police Station', agency_type: 'police', is_active: true, personnel_count: 3, equipment_count: 0, address: 'Sample Avenue, Example City', contact_email: 'police@example.test', contact_phone: null, created_at: at(60 * 24 * 30) },
+      { id: id(13), name: 'Example BFP Station', agency_type: 'bfp', is_active: true, personnel_count: 2, equipment_count: 1 },
+      { id: id(14), name: 'Example Medical Team', agency_type: 'medical', is_active: true, personnel_count: 2, equipment_count: 0 },
+      { id: id(15), name: 'Example Barangay Office', agency_type: 'barangay', is_active: true, personnel_count: 1, equipment_count: 0 },
     ],
     hydrants: [
       { id: id(200), code: 'EX-074', latitude: 14.538, longitude: 121.0, address: 'Example Avenue corner Sample Street', bfp_status: 'operational', ground_truth_status: 'operational', ground_truth_at: at(180), effective_status: 'operational', source: 'manual', is_active: true, created_at: at(9000), updated_at: at(180) },
@@ -88,6 +133,12 @@ if (import.meta.env.DEV) {
       [id(11)]: [
         { id: id(22), full_name: 'Example Captain', role: 'sub_admin', agency_type: 'fire_volunteer', verified_percent: 85, badge: 'green' },
         { id: id(23), full_name: 'Example Lieutenant', role: 'response_team', agency_type: 'fire_volunteer', verified_percent: 40, badge: 'yellow' },
+      ],
+      [id(12)]: [
+        { id: id(1), full_name: 'Example Admin', role: 'admin', agency_type: null, email: 'example.admin@example.test', is_active: true, created_at: at(60 * 24 * 30) },
+        { id: id(24), full_name: 'Example Desk Officer', role: 'sub_admin', agency_type: 'police', email: 'desk.officer@example.test', title: 'Desk officer', is_active: true, created_at: at(60 * 24 * 12), created_by_name: 'Example Admin' },
+        { id: id(25), full_name: 'Sample Patrol Lead', role: 'sub_admin', agency_type: 'police', email: 'patrol.lead@example.test', title: 'Patrol lead', is_active: false, created_at: at(60 * 24 * 20), created_by_name: 'Example Admin', deactivated_at: at(60 * 24 * 2) },
+        { id: id(26), full_name: 'Example Patrol Officer', role: 'response_team', agency_type: 'police', email: 'patrol.officer@example.test', is_active: true, created_at: at(60 * 24 * 10), created_by_name: 'Example Desk Officer' },
       ],
     },
     equipment: [
@@ -150,8 +201,15 @@ if (import.meta.env.DEV) {
     // Simulated in this page only: Acknowledge moves the fictional Area on.
     const accept = method === 'POST' && pathname.match(/^\/incidents\/([^/]+)\/accept$/);
     if (accept) {
+      const ours = fixtures.me.console?.organization;
       fixtures.incidents = fixtures.incidents.map((i) => (i.id === accept[1]
-        ? { ...i, status: 'verified', verified_at: new Date().toISOString(), verified_by_name: fixtures.me.full_name, updated_at: new Date().toISOString() }
+        ? {
+          ...i,
+          ...(i.status === 'reported' ? { status: 'verified', verified_at: new Date().toISOString(), verified_by_name: fixtures.me.full_name } : {}),
+          accepted_agencies: ours ? [...new Set([...(i.accepted_agencies ?? []), ours.agency_type])] : i.accepted_agencies,
+          accepted_organization_ids: ours ? [...new Set([...(i.accepted_organization_ids ?? []), ours.id])] : i.accepted_organization_ids,
+          updated_at: new Date().toISOString(),
+        }
         : i));
       return json({ ok: true });
     }
@@ -172,6 +230,39 @@ if (import.meta.env.DEV) {
     if (review) {
       fixtures.verifications = fixtures.verifications.filter((v) => v.id !== review[1]);
       return json({ verified: review[2] === 'approve', verified_percent: review[2] === 'approve' ? 60 : 10, badge: 'light_green', message: 'ok' });
+    }
+    // Simulated in this page only: a Coordinator account made, or turned off/on.
+    if (method === 'POST' && pathname === '/admin/coordinators') {
+      const body = JSON.parse(init.body || '{}');
+      const orgId = body.organization_id || fixtures.me.primary_org_id;
+      const row = { id: id(40 + Math.floor(Math.random() * 900)), full_name: body.full_name, role: 'sub_admin', agency_type: signedIn?.agency ?? 'police', email: body.email, title: body.title, is_active: true, created_at: new Date().toISOString(), created_by_name: fixtures.me.full_name };
+      fixtures.personnel[orgId] = [...(fixtures.personnel[orgId] ?? []), row];
+      return json({ coordinator: row, invite_email_sent: true, detail: null }, 201);
+    }
+    const flip = method === 'POST' && pathname.match(/^\/admin\/coordinators\/([^/]+)\/(deactivate|reactivate)$/);
+    if (flip) {
+      const on = flip[2] === 'reactivate';
+      Object.keys(fixtures.personnel).forEach((k) => {
+        fixtures.personnel[k] = fixtures.personnel[k].map((p) => (p.id === flip[1]
+          ? { ...p, is_active: on, deactivated_at: on ? null : new Date().toISOString() } : p));
+      });
+      return json({});
+    }
+    // Simulated in this page only: alarm escalations raised and decided.
+    if (method === 'POST' && pathname === '/alarm-requests') {
+      const body = JSON.parse(init.body || '{}');
+      const area = fixtures.incidents.find((i) => i.id === body.area_id);
+      const row = { id: id(390 + fixtures.alarmRequests.length), area_id: body.area_id, area_designation: area?.designation, requested_by: id(1), requested_by_name: fixtures.me.full_name, requested_alarm_level: body.requested_alarm_level, justification: body.justification, status: 'pending', created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      fixtures.alarmRequests = [row, ...fixtures.alarmRequests];
+      return json(row, 201);
+    }
+    const answer = method === 'POST' && pathname.match(/^\/alarm-requests\/([^/]+)\/(execute|reject)$/);
+    if (answer) {
+      const now = new Date().toISOString();
+      fixtures.alarmRequests = fixtures.alarmRequests.map((r) => (r.id === answer[1]
+        ? { ...r, status: answer[2] === 'execute' ? 'approved' : 'rejected', reviewed_at: now, executed_at: answer[2] === 'execute' ? now : null, review_notes: JSON.parse(init.body || '{}').notes ?? null }
+        : r));
+      return json(fixtures.alarmRequests.find((r) => r.id === answer[1]));
     }
     if (method !== 'GET') return json({ detail: 'This preview does not save changes.' }, 409);
 

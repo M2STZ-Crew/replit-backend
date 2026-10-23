@@ -186,11 +186,36 @@ export const api = {
   affiliateReject: (id, notes) =>
     request(`/affiliates/${id}/reject`, { method: 'POST', body: { notes: notes || null } }),
 
-  // Alarm escalation requests (read-only here). A Fire Volunteer or BFP
-  // Coordinator raises one; executing or declining it is a BFP Coordinator's
-  // act on mobile, so the console only lists them.
+  // Alarm escalation requests. Every Admin reads them; a Fire Volunteer
+  // organisation's Admin asks BFP to raise the alarm (A45), and the BFP
+  // Admin sets the level or declines (A46, A46b) — as their Coordinators do
+  // on mobile.
   alarmRequests: (statusFilter) =>
     request(`/alarm-requests${statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : ''}`),
+  alarmRequestCreate: ({ areaId, level, justification }) =>
+    request('/alarm-requests', {
+      method: 'POST',
+      body: { area_id: areaId, requested_alarm_level: level, justification: justification || null },
+    }),
+  alarmRequestExecute: (id, notes) =>
+    request(`/alarm-requests/${id}/execute`, { method: 'POST', body: { notes: notes || null } }),
+  alarmRequestReject: (id, notes) =>
+    request(`/alarm-requests/${id}/reject`, { method: 'POST', body: { notes: notes || null } }),
+
+  // An Admin's Coordinator accounts (A48, A49): created for its own
+  // organisation and emailed a link to set their password; turned off and on.
+  createCoordinator: ({ fullName, email, title, organizationId }) =>
+    request('/admin/coordinators', {
+      method: 'POST',
+      body: {
+        full_name: fullName,
+        email,
+        title: title || null,
+        ...(organizationId ? { organization_id: organizationId } : {}),
+      },
+    }),
+  deactivateCoordinator: (id) => request(`/admin/coordinators/${id}/deactivate`, { method: 'POST' }),
+  reactivateCoordinator: (id) => request(`/admin/coordinators/${id}/reactivate`, { method: 'POST' }),
 
   // Areas that grew within range of each other, waiting for a dispatcher to
   // merge them or keep them apart (120 s; Keep separate is the default).

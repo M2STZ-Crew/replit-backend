@@ -11,6 +11,7 @@ import './styles/pass6-auth.css';
 import './styles/pass6-existing.css';
 import './styles/pass6-incidents.css';
 import './styles/pass6-map.css';
+import './styles/pass6-access.css';
 import { initTheme } from './theme.js';
 
 // Before the first paint, so a reload never flashes the other ground.

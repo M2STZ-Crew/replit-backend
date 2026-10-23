@@ -16,7 +16,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, File, UploadFile
 
-from app.api.deps import AdminUser, DatabaseDep, StaffUser
+from app.api.deps import DatabaseDep, MapManager, StaffUser
 from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
 from app.core.logging import get_logger
 from app.db.session import Database
@@ -153,7 +153,7 @@ async def clear_hydrant_ground_truth(
     summary="Import/sync BFP hydrants from a CSV (admin)",
 )
 async def import_hydrants_csv(
-    admin: AdminUser,
+    admin: MapManager,
     db: DatabaseDep,
     file: Annotated[UploadFile, File()],
 ) -> HydrantImportResult:

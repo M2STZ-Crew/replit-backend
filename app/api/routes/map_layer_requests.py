@@ -13,7 +13,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, status
 
-from app.api.deps import AdminUser, CurrentUser, DatabaseDep, StaffUser
+from app.api.deps import CurrentUser, DatabaseDep, MapManager, StaffUser
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.core.logging import get_logger
 from app.schemas.map_layer_request import (
@@ -100,7 +100,7 @@ async def my_requests(
     summary="List map-layer update requests (admin)",
 )
 async def list_requests(
-    admin: AdminUser,
+    admin: MapManager,
     db: DatabaseDep,
     status_filter: Annotated[str | None, Query(alias="status")] = None,
 ) -> list[MapLayerRequestResponse]:
@@ -124,7 +124,7 @@ async def list_requests(
     summary="Approve a request (admin) — applies the change",
 )
 async def approve_request(
-    request_id: UUID, payload: MapLayerReviewRequest, admin: AdminUser, db: DatabaseDep
+    request_id: UUID, payload: MapLayerReviewRequest, admin: MapManager, db: DatabaseDep
 ) -> MapLayerRequestResponse:
     """Approve a pending request and apply the proposed change to the target layer."""
     req = await db.fetchrow(
@@ -175,7 +175,7 @@ async def approve_request(
     summary="Reject a request (admin)",
 )
 async def reject_request(
-    request_id: UUID, payload: MapLayerReviewRequest, admin: AdminUser, db: DatabaseDep
+    request_id: UUID, payload: MapLayerReviewRequest, admin: MapManager, db: DatabaseDep
 ) -> MapLayerRequestResponse:
     """Reject a pending map-layer update request (admin)."""
     row = await db.fetchrow(

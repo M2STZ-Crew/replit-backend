@@ -4,6 +4,10 @@ Fire Volunteer (or BFP) sub-admins raise an alarm request on an incident; BFP
 sub-admins execute (apply areas.alarm_level + alarm_level_set_by, validated by the
 enforce_alarm_authority DB trigger) or reject. The execute broadcasts to the
 incident's WebSocket channel.
+
+In the Admin console (PRD v14 §3.4, §4.7; pass 6 A45, A46): a Fire Volunteer
+organisation's Admin asks BFP to raise the alarm on an incident routed to it,
+and the BFP Admin decides — the same acts as their Coordinators on mobile.
 """
 
 from __future__ import annotations
@@ -11,6 +15,7 @@ from __future__ import annotations
 from typing import Annotated, Any
 from uuid import UUID
 
+import asyncpg
 from fastapi import APIRouter, Query, status
 
 from app.api.deps import CurrentUser, DatabaseDep, StaffUser
@@ -19,7 +24,8 @@ from app.core.logging import get_logger
 from app.realtime.manager import manager
 from app.schemas.alarm import AlarmRequestCreate, AlarmRequestResponse, AlarmReviewRequest
 from app.schemas.auth import AuthenticatedUser
-from app.services.incident import OFF_FEED_STATUSES
+from app.services.access import DECIDE_ALARM, REQUEST_ALARM, admin_access
+from app.services.incident import OFF_FEED_STATUSES, assert_admin_routed
 from app.services.incident_notify import notify_bfp_alarm_request
 from app.services.map_feed import publish_area_change
 
@@ -40,6 +46,23 @@ def _is_bfp_subadmin(user: AuthenticatedUser) -> bool:
     return user.role == "sub_admin" and user.agency_type == "bfp"
 
 
+def _may_decide(user: AuthenticatedUser) -> bool:
+    """A BFP Coordinator, or the BFP Admin in the console (PRD v14 §3.4)."""
+    access = admin_access(user)
+    return _is_bfp_subadmin(user) or (access is not None and access.can(DECIDE_ALARM))
+
+
+def _may_request(user: AuthenticatedUser) -> bool:
+    """Fire Volunteer or BFP Coordinators, a Fire Volunteer responder in the
+    field, or a Fire Volunteer organisation's Admin in the console (A45)."""
+    access = admin_access(user)
+    if access is not None:
+        return access.can(REQUEST_ALARM)
+    return (user.role == "sub_admin" and user.agency_type in ("fire_volunteer", "bfp")) or (
+        user.role == "response_team" and user.agency_type == "fire_volunteer"
+    )
+
+
 @router.post(
     "",
     response_model=AlarmRequestResponse,
@@ -51,14 +74,12 @@ async def create_alarm_request(
 ) -> AlarmRequestResponse:
     """Submit a pending alarm-raise request for an active incident."""
     # Fire-Vol/BFP sub-admins, or a fire-volunteer responder in the field, may
-    # request an alarm raise; BFP sub-admins still execute it (Section 6).
-    allowed = (user.role == "sub_admin" and user.agency_type in ("fire_volunteer", "bfp")) or (
-        user.role == "response_team" and user.agency_type == "fire_volunteer"
-    )
-    if not allowed:
+    # request an alarm raise; BFP sub-admins still execute it (Section 6). In the
+    # console, a Fire Volunteer organisation's Admin asks too.
+    if not _may_request(user):
         raise ForbiddenError(
-            "Only Fire Volunteer responders/sub-admins or BFP sub-admins may raise an "
-            "alarm request."
+            "Only Fire Volunteer responders, Coordinators and Admins, or BFP "
+            "Coordinators, may raise an alarm request."
         )
     area = await db.fetchrow(
         "select status::text as status from public.areas where id = $1", payload.area_id
@@ -67,6 +88,7 @@ async def create_alarm_request(
         raise NotFoundError("Incident (area) not found.")
     if area["status"] in OFF_FEED_STATUSES:
         raise ConflictError("Cannot raise an alarm on a closed incident.")
+    await assert_admin_routed(db, payload.area_id, user, "ask BFP to raise its alarm")
     row = await db.fetchrow(
         f"""
         insert into public.alarm_requests
@@ -160,9 +182,12 @@ async def list_alarm_requests(
 async def execute_alarm_request(
     request_id: UUID, payload: AlarmReviewRequest, user: StaffUser, db: DatabaseDep
 ) -> AlarmRequestResponse:
-    """Apply the requested alarm level to the incident (BFP sub-admin only)."""
-    if not _is_bfp_subadmin(user):
-        raise ForbiddenError("Only a BFP sub-admin may execute alarm requests (Section 6).")
+    """Apply the requested alarm level to the incident (BFP Coordinator or Admin)."""
+    if not _may_decide(user):
+        raise ForbiddenError(
+            "Only BFP sets the alarm level: a BFP Coordinator on the mobile app, or "
+            "the BFP Admin here (Section 6)."
+        )
     req = await db.fetchrow(
         """
         select area_id, requested_alarm_level::text as lvl, status::text as status
@@ -177,16 +202,25 @@ async def execute_alarm_request(
         raise ConflictError("This alarm request has already been reviewed.")
 
     # The enforce_alarm_authority trigger validates BFP authority and stamps the time.
-    await db.execute(
-        """
-        update public.areas
-           set alarm_level = $2::public.alarm_level, alarm_level_set_by = $3
-         where id = $1
-        """,
-        req["area_id"],
-        req["lvl"],
-        user.id,
-    )
+    try:
+        await db.execute(
+            """
+            update public.areas
+               set alarm_level = $2::public.alarm_level, alarm_level_set_by = $3
+             where id = $1
+            """,
+            req["area_id"],
+            req["lvl"],
+            user.id,
+        )
+    except asyncpg.InsufficientPrivilegeError as exc:
+        # The trigger let only BFP Coordinators set a level before migration
+        # 20261023180000; on a database without it the BFP Admin is refused.
+        log.warning("alarm_execute_refused_by_db", by=str(user.id), error=str(exc))
+        raise ForbiddenError(
+            "The database does not let an Admin account set the alarm level yet. "
+            "A BFP Coordinator can set it from the mobile app."
+        ) from exc
     row = await db.fetchrow(
         f"""
         update public.alarm_requests
@@ -228,9 +262,11 @@ async def execute_alarm_request(
 async def reject_alarm_request(
     request_id: UUID, payload: AlarmReviewRequest, user: StaffUser, db: DatabaseDep
 ) -> AlarmRequestResponse:
-    """Reject a pending alarm request (BFP sub-admin only)."""
-    if not _is_bfp_subadmin(user):
-        raise ForbiddenError("Only a BFP sub-admin may reject alarm requests.")
+    """Reject a pending alarm request (BFP Coordinator or Admin)."""
+    if not _may_decide(user):
+        raise ForbiddenError(
+            "Only BFP (a Coordinator or the BFP Admin) may decline alarm requests."
+        )
     row = await db.fetchrow(
         f"""
         update public.alarm_requests

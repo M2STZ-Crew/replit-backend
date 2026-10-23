@@ -25,6 +25,7 @@ from app.core.logging import get_logger
 from app.db.session import Database
 from app.schemas.ai import AISummaryResponse, SummarizedIncident
 from app.schemas.auth import AuthenticatedUser
+from app.services.access import ALL_RECORDS, admin_access
 from app.services.ai_summary import (
     BACKFILL_PER_LOAD,
     claim_summary,
@@ -138,12 +139,20 @@ async def list_summarized(
     returned as "writing" and its summary is started after the response — at
     most BACKFILL_PER_LOAD per load, and once per incident in ten minutes.
     """
-    assert_coordinator(user, "read the AI summaries")
+    access = admin_access(user)
+    if access is None:
+        assert_coordinator(user, "read the AI summaries")
     rows = await list_summarized_incidents(
         db,
         visible_agencies(user),
         limit=limit,
-        responder=None if user.role == "admin" else responded_params(user),
+        responder=None if access is not None else responded_params(user),
+        # An organisation's Admin: the incidents its organisation took part in.
+        organization=(
+            access.organization_id
+            if access is not None and not access.can(ALL_RECORDS)
+            else None
+        ),
     )
     configured = get_settings().deepseek_configured
     started: list[str] = []

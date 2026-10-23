@@ -50,6 +50,46 @@ class AuthenticatedUser(BaseModel):
     date_of_birth: date | None = Field(default=None, description="Date of birth.")
     gender: str | None = Field(default=None, description="Gender.")
 
+    # The primary organisation's attributes, loaded with the account so access
+    # checks need no second query (app/services/access.py). Never serialised:
+    # GET /auth/me reports an Admin's standing as `console` instead.
+    org_name: str | None = Field(default=None, exclude=True)
+    org_agency_type: str | None = Field(default=None, exclude=True)
+    org_is_active: bool | None = Field(default=None, exclude=True)
+    org_is_central_hub: bool = Field(default=False, exclude=True)
+
+
+class ConsoleOrganization(BaseModel):
+    """The organisation an Admin answers for."""
+
+    id: UUID
+    name: str | None = None
+    agency_type: str | None = None
+    is_central_hub: bool = False
+
+
+class ConsoleAccess(BaseModel):
+    """What this Admin may do in the Admin console (app/services/access.py).
+
+    ``variant`` is which of the pass 6 permission variants applies: central,
+    fire_volunteer, bfp, police, medical or barangay — or ``system`` for the
+    Admin account that belongs to no organisation. ``scope`` picks the
+    sidebar. ``act_agencies`` are the agencies whose incidents it acknowledges
+    (null: every incident); ``permissions`` are the acts the API allows it.
+    """
+
+    variant: str
+    scope: str
+    organization: ConsoleOrganization | None = None
+    act_agencies: list[str] | None = None
+    permissions: list[str] = Field(default_factory=list)
+
+
+class MeResponse(AuthenticatedUser):
+    """GET /auth/me: the profile, and for an Admin what it may do in the console."""
+
+    console: ConsoleAccess | None = None
+
 
 class SignupRequest(BaseModel):
     """Citizen self-signup payload."""

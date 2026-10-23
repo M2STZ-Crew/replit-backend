@@ -97,6 +97,9 @@ class IncidentSummary(BaseModel):
     requested_agencies: list[str] = Field(default_factory=list)
     routed_agencies: list[str] = Field(default_factory=list)
     accepted_agencies: list[str] = Field(default_factory=list)
+    # The organisations that acknowledged it. An Admin console shows "Acknowledged"
+    # for its own organisation from this: an agency can have many teams.
+    accepted_organization_ids: list[UUID] = Field(default_factory=list)
     # Routing rows, all agencies and teams. Changes whenever Admin routes more,
     # so a console can tell "routed to another team" from "now routed to mine".
     route_count: int = 0

@@ -1,0 +1,48 @@
+/* ── One console, an Admin per organisation (REPLIT (MAIN) 10 · A00 "Four
+ * permission variants", A21, A22, A25, A45, A46, A48–A49b) ──────────────
+ * Only what the shared pass 6 styles do not already draw. Everything binds to
+ * the existing tokens. */
+
+/* Stacked incident cards (A85) carry the lifecycle and "Your org" chips side
+ * by side. */
+.ad-incident-card-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Form dialogs: a select drawn like the text inputs, a read-only line (the
+ * fixed "Send to"), and a fieldset that is only a group of choices. */
+.ad-field select {
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line-3);
+  border-radius: var(--radius);
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+.ad-field select:focus { outline: none; border: 2px solid var(--focus); padding: 0 11px; }
+.ad-field select option { background: var(--surface-2); color: var(--text); }
+fieldset.ad-field { margin: 0; padding: 0; border: 0; min-width: 0; }
+fieldset.ad-field > legend { padding: 0; margin-bottom: 8px; }
+.ad-field-static {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+.ad-field-static .ad-field-label { color: var(--label); font-weight: 600; }
+
+/* Accounts (A48): who made each account and when, its row action. */
+.ad-account-created { display: flex; flex-direction: column; gap: 2px; }
+.ad-account-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.web-table-row.is-disabled .ad-cell-title { color: var(--text-2); }
+
+/* The BFP Admin's reply to an alarm escalation (A46): one primary act, the
+ * secondary ones side by side under it. */
+.ad-reply-actions { display: flex; flex-direction: column; gap: 12px; }
+.ad-reply-actions > .ad-button { width: 100%; }
+.ad-reply-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }

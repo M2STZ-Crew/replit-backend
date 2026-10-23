@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 
+import { consoleOf, soundCategories } from '../lib/access.js';
 import { useLiveFeed } from '../live/LiveFeed.jsx';
+import { CATEGORY_LABEL, categoriesOf } from '../sound/cues.js';
+import { useConsole } from './ConsoleShell.jsx';
 import {
   askDesktopPermission,
   kindOf,
@@ -52,6 +55,8 @@ function useTitleFlash(count) {
  * console is behind another window. */
 export default function AlarmBanner({ onOpen }) {
   const { alarms, acknowledge } = useLiveFeed();
+  const { console: access } = useConsole() ?? {};
+  const sounding = soundCategories(access ?? consoleOf(null));
   const alarm = useAlarmSettings();
   const [now, setNow] = useState(Date.now);
   const [canSound, setCanSound] = useState(soundUnlocked);
@@ -101,6 +106,8 @@ export default function AlarmBanner({ onOpen }) {
       )}
       {alarms.map((inc) => {
         const kind = kindOf(inc);
+        // The sound this Admin hears for it: its own agency's (lib/access.js).
+        const heard = categoriesOf(inc).filter((c) => sounding.includes(c)).map((c) => CATEGORY_LABEL[c]).join(' · ') || kind;
         return (
           <div className="ad-alarm" key={inc.id}>
             <span className="ad-alarm-plate" aria-hidden="true">
@@ -108,7 +115,7 @@ export default function AlarmBanner({ onOpen }) {
             </span>
             <div className="ad-alarm-text">
               <p className="ad-alarm-eyebrow">
-                New incident · {kind} sound playing
+                New incident · {heard} sound playing
               </p>
               <p className="ad-alarm-title">{kind} reported — {inc.designation}</p>
               <p className="ad-alarm-body">

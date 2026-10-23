@@ -34,7 +34,7 @@ from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
 from app.db.session import Database, database
 from app.integrations.deepseek_ai import DeepSeekClient
-from app.services.incident import responded_sql, visible_area_sql
+from app.services.incident import responded_sql, took_part_sql, visible_area_sql
 
 log = get_logger(__name__)
 
@@ -448,12 +448,14 @@ async def list_summarized_incidents(
     *,
     limit: int,
     responder: tuple[UUID, UUID, bool] | None = None,
+    organization: UUID | None = None,
 ) -> list[dict[str, Any]]:
     """Every incident a team has filed a report for, with its newest summary.
 
     ``agencies`` is visible_agencies(user): None for admin (all). ``responder``
     is responded_params(user): only incidents they (or, a captain, their team)
-    responded to; None for admin. Newest first, by when the summary was
+    responded to; None for admin. ``organization`` limits it to incidents that
+    organisation took part in (an organisation's Admin). Newest first, by when the summary was
     written, or the last report filed if there is none.
     """
     params: list[Any] = [limit]
@@ -465,6 +467,9 @@ async def list_summarized_incidents(
         start = len(params) + 1
         params.extend(responder)
         conditions.append(responded_sql("a.id", start, start + 1, start + 2))
+    if organization is not None:
+        params.append(organization)
+        conditions.append(took_part_sql("a.id", len(params)))
     where = f"where {' and '.join(conditions)}" if conditions else ""
     rows = await db.fetch(
         f"""

@@ -59,10 +59,12 @@ from app.schemas.incident import (
     ResponderLocationItem,
     SelfDispatchRequest,
 )
+from app.services.access import ACKNOWLEDGE, acting_agency, admin_access
 from app.services.audit import record_audit
 from app.services.incident import (
     OFF_FEED_STATUSES,
     active_area_sql,
+    assert_admin_routed,
     assert_can_respond,
     assert_can_verify,
     assert_coordinator,
@@ -120,6 +122,10 @@ _SUMMARY_COLS = """
                     select aa.agency::text from public.area_acceptances aa
                     where aa.area_id = a.id and aa.agency is not null) acc), '{}')
         as accepted_agencies,
+    coalesce((select array_agg(distinct aa.organization_id)
+              from public.area_acceptances aa
+              where aa.area_id = a.id and aa.organization_id is not null), '{}')
+        as accepted_organization_ids,
     (select count(*) from public.area_routes rt where rt.area_id = a.id) as route_count
 """
 
@@ -207,6 +213,16 @@ async def _assert_visible(db: Database, incident_id: UUID, user: AuthenticatedUs
     )
     if not visible:
         raise ForbiddenError("This incident is not visible to your agency.")
+
+
+def _assert_admin_may_acknowledge(user: AuthenticatedUser) -> None:
+    """Raise 403 for an Admin whose organisation can no longer act (turned off)."""
+    access = admin_access(user)
+    if access is not None and not access.can(ACKNOWLEDGE):
+        raise ForbiddenError(
+            "Your organisation is not active on RepLiT, so its Admin follows "
+            "incidents but cannot acknowledge them."
+        )
 
 
 async def _active_dispatch_id(
@@ -481,9 +497,15 @@ async def get_incident(
 async def list_incident_reports(
     incident_id: UUID, user: StaffUser, db: DatabaseDep, storage: StorageClientDep
 ) -> list[IncidentReportDetail]:
-    """Member reports with the reporter's name and a signed photo URL (sub-admin review)."""
+    """Member reports with the reporter's name and a signed photo URL (sub-admin review).
+
+    Who reported, their photos and where they stood are for the agencies the
+    incident asked for: an Admin whose organisation was not asked follows the
+    incident without them (pass 6 A25).
+    """
     await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
+    await assert_admin_routed(db, incident_id, user, "see who reported it")
     rows = await db.fetch(
         """
         select r.id, r.reporter_id, u.full_name as reporter_name, r.photo_url,
@@ -691,8 +713,11 @@ async def accept_incident(
     person is a no-op (unique on ``(area_id, user_id)``).
     """
     assert_can_verify(user)
+    _assert_admin_may_acknowledge(user)
     current = await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
+    await assert_admin_routed(db, incident_id, user, "acknowledge it")
+    agency = acting_agency(user)
     if current in OFF_FEED_STATUSES:
         raise ConflictError(
             "This incident is no longer live, so there is nothing to accept.",
@@ -736,6 +761,8 @@ async def accept_incident(
                     user.id,
                 )
                 moved = True
+            # An organisation's Admin records its organisation's agency: the
+            # row then counts for that agency and team like its Coordinators'.
             await conn.execute(
                 """
                 insert into public.area_acceptances
@@ -744,15 +771,15 @@ async def accept_incident(
                 """,
                 incident_id,
                 user.id,
-                user.agency_type,
-                user.primary_org_id,
+                agency,
+                user.primary_org_id if agency else None,
                 is_first,
             )
             if moved:
                 await _audit_transition(
                     conn, request, user, incident_id,
                     action="incident.verify", before=current, after="verified",
-                    metadata={"agency": user.agency_type, "role": user.role},
+                    metadata={"agency": agency, "role": user.role},
                 )
             else:
                 await record_audit(
@@ -764,7 +791,7 @@ async def accept_incident(
                     entity_id=incident_id,
                     area_id=incident_id,
                     metadata={
-                        "agency": user.agency_type,
+                        "agency": agency,
                         "first_accept": False,
                         "status_at_accept": current,
                     },
@@ -773,7 +800,7 @@ async def accept_incident(
         "incident_verified" if moved else "incident_accepted",
         incident_id=str(incident_id),
         user_id=str(user.id),
-        agency=user.agency_type,
+        agency=agency,
         moved_status=moved,
     )
     return await finish_incident_change(
@@ -1128,18 +1155,29 @@ async def post_responder_location(
 async def list_responder_locations(
     incident_id: UUID, user: StaffUser, db: DatabaseDep
 ) -> list[ResponderLocationItem]:
-    """Return the most recent GPS fix for each responder on the incident (live map)."""
+    """Return the most recent GPS fix for each responder on the incident (live map).
+
+    An organisation's Admin sees its own units only (pass 6 A00, A30).
+    """
     await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
+    access = admin_access(user)
+    own_org = access.organization_id if access is not None and not access.is_system else None
+    if access is not None and not access.is_system and own_org is None:
+        return []
     rows = await db.fetch(
         """
-        select distinct on (responder_id)
-               responder_id, lat, lng, accuracy_m, speed_mps, heading_deg,
-               captured_at, created_at, dispatch_id
-        from public.responder_locations
-        where area_id = $1
-        order by responder_id, captured_at desc
+        select distinct on (l.responder_id)
+               l.responder_id, l.lat, l.lng, l.accuracy_m, l.speed_mps, l.heading_deg,
+               l.captured_at, l.created_at, l.dispatch_id
+        from public.responder_locations l
+        where l.area_id = $1
+          and ($2::uuid is null or exists (
+                select 1 from public.users u
+                where u.id = l.responder_id and u.primary_org_id = $2))
+        order by l.responder_id, l.captured_at desc
         """,
         incident_id,
+        own_org,
     )
     return [ResponderLocationItem.model_validate(dict(r)) for r in rows]

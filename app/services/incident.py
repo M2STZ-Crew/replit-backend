@@ -12,6 +12,7 @@ from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.db.session import Database
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.incident import ResponderLocationCreate
+from app.services.access import ALL_RECORDS, COORDINATE, admin_access
 
 # BFP and Fire Volunteers see each other's fire incidents (Section 6, two-way).
 _FIRE_AGENCIES = ("fire_volunteer", "bfp")
@@ -112,6 +113,60 @@ def visible_agencies(user: AuthenticatedUser) -> list[str] | None:
     return []
 
 
+def requested_sql(area: str, agencies_param: int) -> str:
+    """SQL predicate: the Area ``area`` (an SQL expression) has a member report
+    that asked for one of the agencies in parameter ``agencies_param``."""
+    return (
+        "exists (select 1 from public.area_reports ar "
+        "join public.reports r on r.id = ar.report_id "
+        f"where ar.area_id = {area} "
+        f"and r.selected_agencies && ${agencies_param}::public.agency_type[])"
+    )
+
+
+def took_part_sql(area: str, org_param: int) -> str:
+    """SQL predicate: the organisation in parameter ``org_param`` took part in
+    the Area ``area`` — someone of it acknowledged it, responded to it, or
+    filed its Post-Incident Report.
+
+    What an organisation's Admin may read of an incident's reports (pass 6
+    A00: "Reports and CIAR — Areas you took part in").
+    """
+    return (
+        "(exists (select 1 from public.area_acceptances x "
+        f"where x.area_id = {area} and x.organization_id = ${org_param}) "
+        "or exists (select 1 from public.dispatch_logs d "
+        f"where d.area_id = {area} and d.status <> 'withdrawn' "
+        f"and d.organization_id = ${org_param}) "
+        "or exists (select 1 from public.post_incident_reports pr "
+        f"where pr.area_id = {area} and pr.organization_id = ${org_param}))"
+    )
+
+
+async def assert_admin_routed(
+    db: Database, incident_id: UUID, user: AuthenticatedUser, action: str
+) -> None:
+    """Raise 403 unless this Admin's organisation was asked for the incident.
+
+    Every Admin sees every active incident, but acts only where its agency was
+    asked (PRD §4.6.2; pass 6 A25 "view only"). Does nothing for anyone who is
+    not an Admin, or for the system Admin, who acts on every incident.
+    """
+    access = admin_access(user)
+    if access is None or access.act_agencies is None:
+        return
+    routed = bool(access.act_agencies) and await db.fetchval(
+        f"select {requested_sql('$1', 2)}", incident_id, list(access.act_agencies)
+    )
+    if not routed:
+        raise ForbiddenError(
+            f"This incident didn't ask for {access.routed_word()}, so "
+            f"{access.organization_name or 'your organisation'} can follow it but "
+            f"not {action}.",
+            details={"access": "view_only", "act_agencies": list(access.act_agencies)},
+        )
+
+
 def visible_area_sql(agencies_param: int, alias: str = "a") -> str:
     """SQL predicate: the area has a member report that asked for one of the agencies.
 
@@ -181,13 +236,25 @@ def responded_params(user: AuthenticatedUser) -> tuple[UUID, UUID, bool]:
 
 
 async def assert_responded(db: Database, incident_id: UUID, user: AuthenticatedUser) -> None:
-    """Raise 403 unless the caller responded to the incident (Admin: always).
+    """Raise 403 unless the caller responded to the incident.
 
     Post-Incident Reports — and what is made from them, the AI summary and the
     PDF — are for the people who went, not every firefighter who can see the
-    incident on the map.
+    incident on the map. An organisation's Admin reads them when its
+    organisation took part (pass 6 A00); the system Admin reads every one.
     """
-    if user.role == "admin":
+    access = admin_access(user)
+    if access is not None:
+        if access.can(ALL_RECORDS):
+            return
+        took_part = access.organization_id is not None and await db.fetchval(
+            f"select {took_part_sql('$1', 2)}", incident_id, access.organization_id
+        )
+        if not took_part:
+            raise ForbiddenError(
+                "This incident's reports are for the organisations that took part "
+                "in it, and yours did not."
+            )
         return
     responded = await db.fetchval(
         f"select {responded_sql('$1', 2, 3, 4)}", incident_id, *responded_params(user)
@@ -201,12 +268,16 @@ async def assert_responded(db: Database, incident_id: UUID, user: AuthenticatedU
 def is_coordinator(user: AuthenticatedUser) -> bool:
     """True when the user may change an incident's state.
 
-    Admin keeps full authority as the system owner. Among sub-admins only the
-    fire agencies coordinate; an observer sub-admin (police, medical, barangay)
-    is read-only on incidents no matter which one requested their agency.
+    The system Admin keeps full authority as the system owner. An
+    organisation's Admin acknowledges and nothing more: rejecting, fire out and
+    dispatch are its Coordinators' (PRD §4.5.2, §4.6.1). Among sub-admins only
+    the fire agencies coordinate; an observer sub-admin (police, medical,
+    barangay) is read-only on incidents no matter which one requested their
+    agency.
     """
-    if user.role == "admin":
-        return True
+    access = admin_access(user)
+    if access is not None:
+        return access.can(COORDINATE)
     return user.role == "sub_admin" and user.agency_type in COORDINATING_AGENCIES
 
 
@@ -229,6 +300,12 @@ def assert_coordinator(user: AuthenticatedUser, action: str) -> None:
             f"Your agency takes part for situational awareness only, so it cannot "
             f"{action}. Fire Volunteer or BFP coordinators handle this.",
             details={"agency_type": user.agency_type, "access": "observer"},
+        )
+    if user.role == "admin":
+        raise ForbiddenError(
+            f"An organisation's Admin acknowledges incidents but does not {action}: "
+            "its Coordinators do, from the mobile app.",
+            details={"access": "admin"},
         )
     raise ForbiddenError(f"You do not have permission to {action}.")
 

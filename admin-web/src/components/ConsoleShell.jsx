@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import { api } from '../api/client.js';
 import { useAuth } from '../auth.jsx';
+import { PERM, can, consoleOf, roleLine, scopeLine } from '../lib/access.js';
 import { PHONE_BELOW, RAIL_BELOW, useMedia } from '../lib/useMedia.js';
 import { useLiveFeed } from '../live/LiveFeed.jsx';
 import Sidebar from './shell/Sidebar.jsx';
@@ -18,9 +19,12 @@ import Icon from './ui/Icon.jsx';
 
 const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
 
-/* Who this console belongs to — the organisation and its access — for a page
- * that names it (the Dashboard's eyebrow). */
-const ConsoleContext = createContext({ org: null, access: 'central', refreshQueues: () => {} });
+/* Who this console belongs to — the organisation, which sidebar it gets
+ * (`access`: central or standard) and what the server lets it do (`console`,
+ * lib/access.js) — for the pages that adapt to it. */
+const ConsoleContext = createContext({
+  org: null, access: 'central', console: consoleOf(null), refreshQueues: () => {},
+});
 
 export function useConsole() {
   return useContext(ConsoleContext);
@@ -46,26 +50,34 @@ export default function ConsoleShell({ active, onNavigate, children }) {
   const moreButton = useRef(null);
   const sheet = useRef(null);
 
-  const access = consoleAccess(user);
-  const items = navFor(access);
+  const consoleInfo = useMemo(() => consoleOf(user), [user]);
+  const access = consoleAccess(consoleInfo);
+  const items = useMemo(() => navFor(consoleInfo), [consoleInfo]);
+  // Only the queues this Admin answers are read: the hub's two, and the
+  // pending alarm escalations for whoever sets the level (BFP, or the system
+  // Admin that sees everything).
+  const reviewsAffiliates = can(consoleInfo, PERM.REVIEW_AFFILIATES);
+  const reviewsIds = can(consoleInfo, PERM.REVIEW_IDS);
+  const answersAlarms = can(consoleInfo, PERM.DECIDE_ALARM) || consoleInfo.variant === 'system';
 
   // Pending queues, refreshed whenever the operator moves between screens or
   // a screen settles an item. A queue that cannot be read shows no count
   // rather than a wrong one.
   useEffect(() => {
     let cancelled = false;
+    const none = Promise.resolve([]);
     (async () => {
       const [affs, ids, requests] = await Promise.all([
-        api.affiliates('pending').catch(() => []),
-        api.pendingVerifications().catch(() => []),
-        api.alarmRequests('pending').catch(() => []),
+        reviewsAffiliates ? api.affiliates('pending').catch(() => []) : none,
+        reviewsIds ? api.pendingVerifications().catch(() => []) : none,
+        answersAlarms ? api.alarmRequests('pending').catch(() => []) : none,
       ]);
       if (!cancelled) {
         setQueues({ affiliates: affs.length, ids: ids.length, requests: requests.length });
       }
     })();
     return () => { cancelled = true; };
-  }, [active, queueTick]);
+  }, [active, queueTick, reviewsAffiliates, reviewsIds, answersAlarms]);
 
   useEffect(() => {
     let cancelled = false;
@@ -127,20 +139,22 @@ export default function ConsoleShell({ active, onNavigate, children }) {
     return { count, label: `${count} waiting` };
   }
 
+  // The organisation as the server named it on sign-in, with its full
+  // profile (address, contacts) from the directory once that has loaded.
   const org = useMemo(() => {
-    const own = organizations.find((o) => o.id === user?.primary_org_id);
+    const named = consoleInfo.organization;
+    const id = named?.id ?? user?.primary_org_id ?? null;
+    const own = organizations.find((o) => o.id === id);
     return {
-      id: own?.id ?? null,
+      id,
       profile: own ?? null,
-      name: own?.name ?? 'RepLiT · Pasay City',
-      agency: own?.agency_type ?? null,
-      role: access === 'central' ? 'Central hub · Admin' : 'Admin',
+      name: named?.name ?? own?.name ?? 'RepLiT · Pasay City',
+      agency: named?.agency_type ?? own?.agency_type ?? null,
+      role: roleLine(consoleInfo),
     };
-  }, [organizations, user, access]);
+  }, [organizations, user, consoleInfo]);
 
-  const scope = access === 'central'
-    ? 'Central hub — you review affiliates and act on every incident'
-    : 'You act on incidents routed to your organisation';
+  const scope = scopeLine(consoleInfo);
 
   const person = {
     name: user?.full_name || user?.email || 'Signed in',
@@ -179,7 +193,9 @@ export default function ConsoleShell({ active, onNavigate, children }) {
           onUnread={() => go('incidents')}
         />
         <main className="ad-content">
-          <ConsoleContext.Provider value={{ org, access, refreshQueues }}>{children}</ConsoleContext.Provider>
+          <ConsoleContext.Provider value={{ org, access, console: consoleInfo, refreshQueues }}>
+            {children}
+          </ConsoleContext.Provider>
         </main>
       </div>
 

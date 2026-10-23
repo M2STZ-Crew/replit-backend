@@ -2,6 +2,7 @@ import { AGENCY_LABEL, ago } from '../../lib/status.js';
 import Place from '../Place.jsx';
 import { RAIL_BELOW, useMedia } from '../../lib/useMedia.js';
 import Icon from '../ui/Icon.jsx';
+import StatusChip from '../ui/StatusChip.jsx';
 import LifecycleChip from './LifecycleChip.jsx';
 
 /* The incident list (REPLIT (MAIN) 04 · Incident row; PRD v13 §4.6.2, §4.14):
@@ -9,10 +10,10 @@ import LifecycleChip from './LifecycleChip.jsx';
  * confidence, how many reports, and when it last changed. Unread — reported
  * since this surface was last viewed — is a coral dot and a coral edge.
  *
- * The design's "Your org" column (Routed to you / View only) waits on the
- * server routing Areas per Admin organisation; today every Admin may act on
- * every Area, so the column would say the same thing on every row and is not
- * drawn. The address line is the street, looked up by the console until
+ * "Your org" (Routed to you / Acknowledged / View only) is drawn when the
+ * caller passes `yourOrg(inc)` — for an Admin that acts on some Areas only
+ * (lib/access.js); for one that acts on every Area it would say the same on
+ * every row. The address line is the street, looked up by the console until
  * the server stores resolved_address (PRD v13 §4.10), beside the degrees.
  *
  * Below 1280 px, beside the rail, the rows stack as cards (A85). */
@@ -31,7 +32,9 @@ export function confidenceOf(inc) {
   return `${band} · ${(inc.confidence_score ?? 0).toFixed(2)}`;
 }
 
-function IncidentCards({ incidents, isNew, selectedId, onOpen, loading, emptyMessage, staleAt }) {
+function IncidentCards({
+  incidents, isNew, selectedId, onOpen, loading, emptyMessage, staleAt, yourOrg,
+}) {
   if (incidents.length === 0) {
     return <p className="ad-empty-line">{loading ? 'Loading incidents…' : emptyMessage}</p>;
   }
@@ -46,7 +49,10 @@ function IncidentCards({ incidents, isNew, selectedId, onOpen, loading, emptyMes
         ];
         return (
           <li key={inc.id} className={`ad-incident-card${unread ? ' is-unread' : ''}${inc.id === selectedId ? ' is-selected' : ''}`}>
-            <LifecycleChip status={inc.status} />
+            <span className="ad-incident-card-chips">
+              <LifecycleChip status={inc.status} />
+              {yourOrg && <StatusChip {...yourOrg(inc)} />}
+            </span>
             <div className="ad-cell-resource">
               <span className="ad-plate ad-plate--fire" aria-hidden="true"><Icon name="flame" /></span>
               <span className="ad-cell-text">
@@ -74,6 +80,7 @@ function IncidentCards({ incidents, isNew, selectedId, onOpen, loading, emptyMes
 
 export default function IncidentTable({
   incidents, lastViewed, selectedId, onOpen, loading = false, emptyMessage, staleAt = null,
+  yourOrg = null,
 }) {
   const stacked = useMedia(RAIL_BELOW);
   const lastMs = lastViewed ? new Date(lastViewed).getTime() : Infinity;
@@ -89,9 +96,11 @@ export default function IncidentTable({
         loading={loading}
         emptyMessage={emptyMessage}
         staleAt={staleAt}
+        yourOrg={yourOrg}
       />
     );
   }
+  const columns = yourOrg ? 8 : 7;
 
   return (
     <div className={`web-table-wrap${staleAt ? ' is-stale' : ''}`}>
@@ -104,6 +113,7 @@ export default function IncidentTable({
             <th scope="col">Confidence</th>
             <th scope="col">Reports</th>
             <th scope="col">Updated</th>
+            {yourOrg && <th scope="col">Your org</th>}
             <th scope="col"><span className="web-sr-only">Open</span></th>
           </tr>
         </thead>
@@ -135,6 +145,7 @@ export default function IncidentTable({
                 <td className="ad-cell-quiet">
                   {staleAt ? `Last loaded ${LOADED.format(new Date(staleAt))}` : ago(inc.updated_at ?? inc.reported_at)}
                 </td>
+                {yourOrg && <td><StatusChip {...yourOrg(inc)} /></td>}
                 <td className="web-table-action-cell">
                   <button
                     type="button"
@@ -150,7 +161,7 @@ export default function IncidentTable({
           })}
           {incidents.length === 0 && (
             <tr>
-              <td className="web-table-empty" colSpan={7}>
+              <td className="web-table-empty" colSpan={columns}>
                 {loading ? 'Loading incidents…' : emptyMessage}
               </td>
             </tr>

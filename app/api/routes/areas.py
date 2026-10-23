@@ -10,6 +10,7 @@ from fastapi import APIRouter, Request
 from app.api.deps import CurrentUser, DatabaseDep, StaffUser
 from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
 from app.core.logging import get_logger
+from app.db.session import Database
 from app.schemas.area import (
     AreaAgenciesResponse,
     AreaDetail,
@@ -17,11 +18,13 @@ from app.schemas.area import (
     AreaSummary,
     RequestAgenciesRequest,
 )
+from app.schemas.auth import AuthenticatedUser
 from app.schemas.common import MessageResponse
 from app.schemas.tracking import TrackingSnapshot
+from app.services.access import DECIDE_OVERLAPS, admin_access
 from app.services.audit import record_audit
 from app.services.clustering import recompute_area
-from app.services.incident import active_area_sql, assert_transition
+from app.services.incident import active_area_sql, assert_transition, requested_sql
 from app.services.map_feed import AREA_SUMMARY_COLS, publish_area_change
 from app.services.tracking import build_tracking_snapshot, can_track
 
@@ -159,20 +162,65 @@ async def request_area_agencies(
     summary="List pending area overlaps (dispatcher)",
 )
 async def list_pending_overlaps(staff: StaffUser, db: DatabaseDep) -> list[AreaOverlapItem]:
-    """List undecided overlaps still within the 120 s decision window."""
+    """List undecided overlaps still within the 120 s decision window.
+
+    An organisation's Admin is shown only the overlaps it may decide: both
+    Areas routed to it (pass 6 A00, A27).
+    """
+    conditions = ["o.decision is null", "o.expires_at > now()"]
+    params: list[object] = []
+    access = admin_access(staff)
+    if access is not None and access.act_agencies is not None:
+        if not access.can(DECIDE_OVERLAPS) or not access.act_agencies:
+            return []
+        params.append(list(access.act_agencies))
+        conditions.append(requested_sql("o.area_a_id", 1))
+        conditions.append(requested_sql("o.area_b_id", 1))
     rows = await db.fetch(
-        """
+        f"""
         select o.id, o.area_a_id, o.area_b_id,
                a.designation as area_a_designation, b.designation as area_b_designation,
                o.distance_m, o.expires_at, o.created_at
         from public.area_overlaps o
         join public.areas a on a.id = o.area_a_id
         join public.areas b on b.id = o.area_b_id
-        where o.decision is null and o.expires_at > now()
+        where {' and '.join(conditions)}
         order by o.created_at asc
-        """
+        """,
+        *params,
     )
     return [AreaOverlapItem.model_validate(dict(r)) for r in rows]
+
+
+async def _assert_may_decide_overlap(
+    db: Database, overlap_id: UUID, staff: AuthenticatedUser
+) -> None:
+    """Raise 403 unless an organisation's Admin was routed both Areas.
+
+    Coordinators and the system Admin decide as before. Which Admin decides an
+    overlap is still open (pass 6 Q12); until it is settled the console's
+    assumption holds: the Admin of an organisation both Areas asked for.
+    """
+    access = admin_access(staff)
+    if access is None or access.act_agencies is None:
+        return
+    allowed = (
+        access.can(DECIDE_OVERLAPS)
+        and bool(access.act_agencies)
+        and await db.fetchval(
+            f"""
+            select {requested_sql("o.area_a_id", 2)} and {requested_sql("o.area_b_id", 2)}
+            from public.area_overlaps o where o.id = $1
+            """,
+            overlap_id,
+            list(access.act_agencies),
+        )
+    )
+    if not allowed:
+        raise ForbiddenError(
+            "You can merge or keep apart only Areas that were both routed to your "
+            "organisation."
+        )
 
 
 @router.post(
@@ -184,6 +232,7 @@ async def keep_areas_separate(
     overlap_id: UUID, request: Request, staff: StaffUser, db: DatabaseDep
 ) -> MessageResponse:
     """Record an explicit Keep-Separate decision (the 120 s default outcome)."""
+    await _assert_may_decide_overlap(db, overlap_id, staff)
     kept = await db.fetchrow(
         """
         update public.area_overlaps
@@ -221,6 +270,7 @@ async def merge_areas(
     overlap_id: UUID, request: Request, staff: StaffUser, db: DatabaseDep
 ) -> MessageResponse:
     """Merge area B into area A: move reports, recompute A, mark B merged (120 s window)."""
+    await _assert_may_decide_overlap(db, overlap_id, staff)
     overlap = await db.fetchrow(
         "select area_a_id, area_b_id, decision, expires_at from public.area_overlaps where id = $1",
         overlap_id,

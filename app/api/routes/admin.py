@@ -1,8 +1,10 @@
 """Admin-only endpoints (Section 6 RBAC): user management, KYC manual review, and
 incident routing (v10 Section 2.6.2).
 
-RBAC is enforced by the AdminUser dependency (FastAPI layer) on top of the DB
-authority triggers/RLS (defense in depth).
+RBAC is enforced by permission-scoped Admin dependencies (app/api/deps.py,
+app/services/access.py) on top of the DB authority triggers/RLS (defense in
+depth): creating an account of any role is the system Admin's, National ID
+review the central hub's.
 """
 
 from __future__ import annotations
@@ -11,7 +13,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, status
 
-from app.api.deps import AdminUser, AuthClientDep, DatabaseDep, StorageClientDep
+from app.api.deps import (
+    AnyAccountAdmin,
+    AuthClientDep,
+    DatabaseDep,
+    IdReviewer,
+    StorageClientDep,
+)
 from app.core.config import get_settings
 from app.core.exceptions import (
     ExternalServiceError,
@@ -39,7 +47,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 )
 async def create_user(
     payload: AdminCreateUserRequest,
-    admin: AdminUser,
+    admin: AnyAccountAdmin,
     db: DatabaseDep,
     auth: AuthClientDep,
 ) -> AuthenticatedUser:
@@ -91,7 +99,7 @@ async def create_user(
     summary="Admin: list verifications awaiting manual review",
 )
 async def list_pending_verifications(
-    admin: AdminUser, db: DatabaseDep, storage: StorageClientDep
+    admin: IdReviewer, db: DatabaseDep, storage: StorageClientDep
 ) -> list[PendingVerification]:
     """List manual-review verifications, with signed URLs for any uploaded images."""
     rows = await db.fetch(
@@ -142,7 +150,7 @@ async def list_pending_verifications(
     summary="Admin: approve a verification (+50%)",
 )
 async def approve_verification(
-    verification_id: UUID, admin: AdminUser, db: DatabaseDep
+    verification_id: UUID, admin: IdReviewer, db: DatabaseDep
 ) -> VerificationResultResponse:
     """Approve a manual-review verification, awarding the National ID +50%."""
     settings = get_settings()
@@ -181,7 +189,7 @@ async def approve_verification(
 async def reject_verification(
     verification_id: UUID,
     payload: VerificationReviewRequest,
-    admin: AdminUser,
+    admin: IdReviewer,
     db: DatabaseDep,
 ) -> VerificationResultResponse:
     """Reject a manual-review verification (awards nothing)."""

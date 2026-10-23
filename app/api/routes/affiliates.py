@@ -14,7 +14,7 @@ from uuid import UUID
 from fastapi import APIRouter, BackgroundTasks, Query, status
 
 from app.api.deps import (
-    AdminUser,
+    AffiliateReviewer,
     AuthClientDep,
     CurrentUser,
     DatabaseDep,
@@ -360,7 +360,7 @@ async def my_affiliate_requests(
     summary="List affiliate requests (admin)",
 )
 async def list_affiliate_requests(
-    admin: AdminUser,
+    admin: AffiliateReviewer,
     db: DatabaseDep,
     status_filter: Annotated[str | None, Query(alias="status")] = None,
 ) -> list[AffiliateRequestResponse]:
@@ -386,7 +386,7 @@ async def list_affiliate_requests(
 async def accept_affiliate_request(
     request_id: UUID,
     payload: AffiliateReviewRequest,
-    admin: AdminUser,
+    admin: AffiliateReviewer,
     db: DatabaseDep,
     auth: AuthClientDep,
     email_client: EmailClientDep,
@@ -479,7 +479,7 @@ async def accept_affiliate_request(
     summary="Reject an affiliate request (admin)",
 )
 async def reject_affiliate_request(
-    request_id: UUID, payload: AffiliateReviewRequest, admin: AdminUser, db: DatabaseDep
+    request_id: UUID, payload: AffiliateReviewRequest, admin: AffiliateReviewer, db: DatabaseDep
 ) -> AffiliateRequestResponse:
     """Reject a pending affiliation request (admin)."""
     row = await db.fetchrow(

@@ -1,10 +1,12 @@
 """Audit log query endpoint (Phase 14, Section 7 #20).
 
-Admin reads the whole record. A sub-admin reads the part of it about incidents
-their agency can see — the Observer Console's History surface (v10 Section
-2.6.1) is exactly that — with each entry's request IP and user agent withheld,
-since those identify other people's devices rather than describe the incident.
-Response Team and citizens have no audit view.
+The system Admin reads the whole record. A sub-admin reads the part of it
+about incidents their agency can see — the Observer Console's History surface
+(v10 Section 2.6.1) is exactly that. An organisation's Admin (PRD v13 §4.6)
+reads the entries about incidents routed to its organisation, and every entry
+made by its own people. Everyone but the system Admin has each entry's request
+IP and user agent withheld, since those identify other people's devices rather
+than describe the incident. Response Team and citizens have no audit view.
 """
 
 from __future__ import annotations
@@ -18,7 +20,8 @@ from fastapi import APIRouter, Query
 from app.api.deps import DatabaseDep, StaffUser
 from app.core.exceptions import ForbiddenError
 from app.schemas.audit import AuditLogResponse
-from app.services.incident import visible_agencies
+from app.services.access import ALL_RECORDS, admin_access
+from app.services.incident import requested_sql, visible_agencies
 
 router = APIRouter(prefix="/audit-logs", tags=["audit"])
 
@@ -26,7 +29,12 @@ _COLS = (
     "l.id, l.actor_user_id, l.actor_role::text as actor_role, "
     "l.actor_agency::text as actor_agency, l.action, l.entity_type, l.entity_id, l.area_id, "
     "l.before_state, l.after_state, l.metadata, l.ip_address::text as ip_address, "
-    "l.user_agent, l.request_id, l.created_at, a.designation as area_designation"
+    "l.user_agent, l.request_id, l.created_at, a.designation as area_designation, "
+    # Names only for staff: what a resident did is recorded, not who they are.
+    "case when l.actor_role in ('admin', 'sub_admin', 'response_team') "
+    "then au.full_name end as actor_name, "
+    "case when l.actor_role in ('admin', 'sub_admin', 'response_team') "
+    "then ao.name end as actor_organization"
 )
 
 
@@ -58,16 +66,31 @@ async def list_audit_logs(
 ) -> list[AuditLogResponse]:
     """List audit-log entries with optional filters, newest first.
 
-    Admin: every entry. Sub-admin: entries tied to an incident visible to their
-    agency. Response Team: refused.
+    System Admin: every entry. An organisation's Admin: entries about incidents
+    routed to it, and its own people's. Sub-admin: entries tied to an incident
+    visible to their agency. Response Team: refused.
     """
     if user.role not in ("admin", "sub_admin"):
         raise ForbiddenError("The action record is available to Admin and Sub-Admins only.")
 
     conditions: list[str] = []
     params: list[Any] = []
+    access = admin_access(user)
     agencies = visible_agencies(user)
-    if agencies is not None:
+    if access is not None:
+        if not access.can(ALL_RECORDS):
+            # Incidents routed to this organisation, and its own people's acts.
+            own: list[str] = []
+            if access.act_agencies:
+                params.append(list(access.act_agencies))
+                own.append(f"(l.area_id is not null and {requested_sql('l.area_id', len(params))})")
+            if access.organization_id is not None:
+                params.append(access.organization_id)
+                own.append(f"au.primary_org_id = ${len(params)}")
+            if not own:
+                return []
+            conditions.append(f"({' or '.join(own)})")
+    elif agencies is not None:
         if not agencies:
             return []
         params.append(agencies)
@@ -98,11 +121,13 @@ async def list_audit_logs(
     where_sql = f"where {' and '.join(conditions)}" if conditions else ""
     rows = await db.fetch(
         f"select {_COLS} from public.audit_logs l "
-        f"left join public.areas a on a.id = l.area_id {where_sql} "
+        "left join public.areas a on a.id = l.area_id "
+        "left join public.users au on au.id = l.actor_user_id "
+        f"left join public.organizations ao on ao.id = au.primary_org_id {where_sql} "
         f"order by l.created_at desc limit ${limit_pos} offset ${offset_pos}",
         *params,
     )
-    redact = user.role != "admin"
+    redact = not (access is not None and access.can(ALL_RECORDS))
     return [
         AuditLogResponse.model_validate(_row_to_dict(r, redact_device=redact)) for r in rows
     ]

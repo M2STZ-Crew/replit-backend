@@ -23,6 +23,7 @@ from app.api.routes import (
     map_layers,
     map_layers_admin,
     notifications,
+    org_accounts,
     organizations,
     password_reset,
     post_incident_reports,
@@ -50,6 +51,7 @@ api_router.include_router(ai.summaries_router)
 api_router.include_router(equipment.router)
 api_router.include_router(affiliates.router)
 api_router.include_router(organizations.router)
+api_router.include_router(org_accounts.router)
 api_router.include_router(team.router)
 api_router.include_router(map_layers.router)
 api_router.include_router(map_layers_admin.router)

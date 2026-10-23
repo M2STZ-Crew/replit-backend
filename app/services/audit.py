@@ -20,6 +20,7 @@ from fastapi import Request, Response
 from app.core.logging import get_logger
 from app.db.session import database
 from app.schemas.auth import AuthenticatedUser
+from app.services.access import acting_agency
 
 log = get_logger(__name__)
 
@@ -134,7 +135,7 @@ async def record_audit(
         """,
         user.id,
         user.role,
-        user.agency_type,
+        acting_agency(user),
         action,
         entity_type,
         entity_id,

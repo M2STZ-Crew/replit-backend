@@ -1,17 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { api } from '../api/client.js';
 import { useConsole } from '../components/ConsoleShell.jsx';
-import { EmptyState, Icon, PageHeader, StatePanel, StatusChip } from '../components/ui/index.js';
+import AlarmEscalationDialog from '../components/requests/AlarmEscalationDialog.jsx';
+import {
+  ConfirmDialog, EmptyState, Icon, PageHeader, StatePanel, StatusChip,
+} from '../components/ui/index.js';
 import { useLiveFeed } from '../live/LiveFeed.jsx';
+import { PERM, actsOn, can } from '../lib/access.js';
 import { ago, alarmLabel, statusOf } from '../lib/status.js';
 
-/* Requests (REPLIT (MAIN) 10 · A40 873:5264, A41 873:5578, A46 874:6933).
+/* Requests (REPLIT (MAIN) 10 · A40 873:5264, A41 873:5578, A45 874:6513,
+ * A46 874:6933, A46b 874:7126).
  *
  * The server carries one kind of request today: an alarm escalation, raised
  * on scene by a Fire Volunteer or BFP Coordinator or a Fire Volunteer
- * responder, and decided by a BFP Coordinator on the mobile app. An Admin
- * can read every one (GET /alarm-requests) but neither raises nor decides
- * them, so this destination is the inbox and its history, read only.
+ * responder — or, here, by a Fire Volunteer organisation's Admin (A45) — and
+ * decided by BFP: a BFP Coordinator on the mobile app, or the BFP Admin here
+ * (A46, A46b; PRD v14 §3.4). Every other Admin follows them, read only.
  *
  * The design's water, backup and equipment requests between Admins (A43,
  * A44), the Sent folder (A42) and Admin replies wait on server support; see
@@ -41,7 +47,11 @@ function received(iso) {
 }
 
 export default function Requests({ readRequests, onOpenIncident }) {
-  const { org } = useConsole();
+  const { org, console: access } = useConsole();
+  const decides = can(access, PERM.DECIDE_ALARM);
+  const asks = can(access, PERM.REQUEST_ALARM);
+  const [asking, setAsking] = useState(false);
+  const [notice, setNotice] = useState(null);
   // The live feed names each request's Area status; without it (an isolated
   // preview) the rows simply leave the status out.
   const incidents = useLiveFeed()?.incidents ?? [];
@@ -75,6 +85,17 @@ export default function Requests({ readRequests, onOpenIncident }) {
 
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
   const areaById = useMemo(() => new Map(incidents.map((i) => [i.id, i])), [incidents]);
+  // Where a Fire Volunteer Admin may ask for a higher alarm: live Areas
+  // routed to it that someone has acknowledged.
+  const askable = useMemo(
+    () => incidents.filter((i) => ['verified', 'en_route', 'arrived'].includes(i.status) && actsOn(access, i)),
+    [incidents, access],
+  );
+  useEffect(() => {
+    if (!notice) return undefined;
+    const t = setTimeout(() => setNotice(null), 6000);
+    return () => clearTimeout(t);
+  }, [notice]);
 
   const pending = rows.filter((r) => r.status === 'pending');
   const shown = useMemo(() => {
@@ -88,12 +109,23 @@ export default function Requests({ readRequests, onOpenIncident }) {
   const selected = rows.find((r) => r.id === selectedId) ?? null;
   if (selected) {
     return (
-      <RequestDetail
-        request={selected}
-        area={areaById.get(selected.area_id) ?? null}
-        onBack={() => setSelectedId(null)}
-        onOpenIncident={onOpenIncident}
-      />
+      <>
+        <RequestDetail
+          request={selected}
+          area={areaById.get(selected.area_id) ?? null}
+          decides={decides}
+          orgName={org?.name ?? 'BFP'}
+          onBack={() => setSelectedId(null)}
+          onOpenIncident={onOpenIncident}
+          onDecided={(message) => { setNotice(message); refresh(); }}
+        />
+        {notice && (
+          <div className="ad-toast" role="status">
+            <span aria-hidden="true">✓</span>
+            {notice}
+          </div>
+        )}
+      </>
     );
   }
 
@@ -102,12 +134,49 @@ export default function Requests({ readRequests, onOpenIncident }) {
       <PageHeader
         eyebrow={org?.name ?? 'Requests'}
         title="Requests"
-        description="Alarm escalations raised on scene. A BFP Coordinator sets the alarm level on the mobile app; you follow each request and its answer here."
+        description={decides
+          ? 'Alarm escalations from the organisations on scene. You set the alarm level or decline.'
+          : asks
+            ? 'Alarm escalations raised on scene, and BFP\u2019s answers. Ask BFP to raise the alarm on an Area routed to you.'
+            : 'Alarm escalations raised on scene. BFP sets the alarm level; you follow each request and its answer here.'}
         actions={(
-          <button type="button" className="ad-button ad-button--secondary" onClick={refresh} disabled={phase === 'loading'}>
-            Refresh
-          </button>
+          <>
+            <button type="button" className="ad-button ad-button--secondary" onClick={refresh} disabled={phase === 'loading'}>
+              Refresh
+            </button>
+            {asks && (
+              <button
+                type="button"
+                className="ad-button ad-button--primary"
+                onClick={() => setAsking(true)}
+                disabled={askable.length === 0}
+                title={askable.length === 0 ? 'No acknowledged Area is routed to you right now' : undefined}
+              >
+                New request
+              </button>
+            )}
+          </>
         )}
+      />
+
+      {notice && (
+        <div className="ad-toast" role="status">
+          <span aria-hidden="true">✓</span>
+          {notice}
+        </div>
+      )}
+
+      <AlarmEscalationDialog
+        open={asking}
+        areas={askable}
+        bfpName="BFP"
+        onClose={() => setAsking(false)}
+        onSend={async ({ areaId, level, justification }) => {
+          await api.alarmRequestCreate({ areaId, level, justification });
+          setAsking(false);
+          setNotice(`Asked BFP for ${alarmLabel(level)} on ${areaById.get(areaId)?.designation ?? 'the Area'}`);
+          refresh();
+        }}
       />
 
       <div className="ad-toolbar">
@@ -200,10 +269,13 @@ export default function Requests({ readRequests, onOpenIncident }) {
   );
 }
 
-/* One request (A41, A46): what was asked, by whom, and what happened to it.
- * The reply card says who decides instead of offering buttons an Admin's
- * account would be refused. */
-function RequestDetail({ request: r, area, onBack, onOpenIncident }) {
+/* One request (A41, A46, A46b): what was asked, by whom, and what happened
+ * to it. The BFP Admin answers it here: set the level (confirmed first —
+ * every organisation sees it at once) or decline. Everyone else is told who
+ * decides instead of being offered buttons their account would be refused. */
+function RequestDetail({ request: r, area, decides, orgName, onBack, onOpenIncident, onDecided }) {
+  const [confirm, setConfirm] = useState(null);
+  const [note, setNote] = useState('');
   const level = alarmLabel(r.requested_alarm_level);
   const facts = [
     ['Area', `${areaOf(r)}${area ? ` · ${statusOf(area.status).label}` : ''}`],
@@ -257,8 +329,25 @@ function RequestDetail({ request: r, area, onBack, onOpenIncident }) {
         </section>
 
         <section className="ad-panel ad-decision" aria-labelledby="ad-reply-title">
-          <h2 className="ad-decision-title" id="ad-reply-title">Answer</h2>
-          {r.status === 'pending' ? (
+          <h2 className="ad-decision-title" id="ad-reply-title">{decides && r.status === 'pending' ? 'Your reply' : 'Answer'}</h2>
+          {r.status === 'pending' && decides ? (
+            <div className="ad-reply-actions">
+              <button type="button" className="ad-button ad-button--primary ad-button--run" onClick={() => { setNote(''); setConfirm('set'); }}>
+                Set {level}
+              </button>
+              <div className="ad-reply-row">
+                <button type="button" className="ad-button ad-button--secondary" onClick={() => { setNote(''); setConfirm('decline'); }}>
+                  Decline
+                </button>
+              </div>
+              <div className="ad-alert ad-alert--info">
+                <span className="ad-alert-mark" aria-hidden="true">i</span>
+                <p className="ad-alert-body">
+                  Only {orgName} sets the alarm level. Setting it updates {areaOf(r)} for every organisation.
+                </p>
+              </div>
+            </div>
+          ) : r.status === 'pending' ? (
             <div className="ad-alert ad-alert--info">
               <Icon name="visibility" />
               <div className="ad-alert-text">
@@ -286,6 +375,39 @@ function RequestDetail({ request: r, area, onBack, onOpenIncident }) {
           )}
         </section>
       </div>
+
+      <ConfirmDialog
+        open={confirm === 'set'}
+        eyebrow={`${areaOf(r)} · requested by ${askedBy(r)}`}
+        title={`Set ${areaOf(r)} to ${level}?`}
+        description="Every organisation sees the new level at once."
+        confirmLabel={`Set ${level}`}
+        onClose={() => setConfirm(null)}
+        onConfirm={async () => {
+          await api.alarmRequestExecute(r.id, null);
+          setConfirm(null);
+          onDecided?.(`${areaOf(r)} is now at ${level}`);
+        }}
+      />
+      <ConfirmDialog
+        open={confirm === 'decline'}
+        eyebrow={`${areaOf(r)} · requested by ${askedBy(r)}`}
+        title={`Decline ${level} for ${areaOf(r)}?`}
+        description="The alarm level stays as it is. Say why, so the organisation on scene knows."
+        confirmLabel="Decline"
+        destructive
+        onClose={() => setConfirm(null)}
+        onConfirm={async () => {
+          await api.alarmRequestReject(r.id, note.trim() || null);
+          setConfirm(null);
+          onDecided?.(`Declined ${level} for ${areaOf(r)}`);
+        }}
+      >
+        <label className="ad-field">
+          <span className="ad-field-label">Reason (optional)</span>
+          <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} />
+        </label>
+      </ConfirmDialog>
     </div>
   );
 }

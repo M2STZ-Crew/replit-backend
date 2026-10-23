@@ -213,13 +213,17 @@ export function stopCues() {
 /// most once and within the user's settings. Muting a category mutes only its
 /// stream — the badge and the card still announce the incident. Resolves to
 /// how long the batch lasts, in seconds (0 when nothing could sound).
-export async function announce(incidents) {
+///
+/// `only` limits the categories that may sound: an organisation's Admin hears
+/// its own agency's (lib/access.js soundCategories), an Admin that acts on
+/// every incident hears them all.
+export async function announce(incidents, only = CATEGORIES) {
   const s = settings;
   if (!s.enabled) return 0;
   const wanted = [];
   for (const inc of incidents) {
     for (const c of categoriesOf(inc)) {
-      if (!wanted.includes(c) && !s.muted[c] && s.volume[c] > 0) wanted.push(c);
+      if (only.includes(c) && !wanted.includes(c) && !s.muted[c] && s.volume[c] > 0) wanted.push(c);
     }
   }
   if (wanted.length === 0) return 0;

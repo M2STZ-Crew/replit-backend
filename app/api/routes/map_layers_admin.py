@@ -1,8 +1,11 @@
 """Map-layer write endpoints (Phase 12, Section 7 #22-#26) — admin create/update/delete.
 
 Direct edits to the GIS layers are admin-only; non-admin sub-admins use the
-map_layer_update_requests workflow (Part 6). The hydrant ground-truth override and
-BFP CSV import live in their own module (Part 5). Polygon geometry is accepted as a
+map_layer_update_requests workflow (Part 6). Adding and changing layers is the
+system Admin's; every organisation's Admin may delete a water resource
+(hydrant, body of water, cistern — pass 6 A00 "view · delete", A34). The
+hydrant ground-truth override and BFP CSV import live in their own module
+(Part 5). Polygon geometry is accepted as a
 GeoJSON geometry and stored as geography.
 """
 
@@ -13,7 +16,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Response, status
 
-from app.api.deps import AdminUser, DatabaseDep
+from app.api.deps import DatabaseDep, MapManager, WaterDeleter
 from app.core.exceptions import BadRequestError, NotFoundError
 from app.core.logging import get_logger
 from app.db.session import Database
@@ -123,7 +126,7 @@ async def _delete_layer(db: Database, table: str, layer_id: UUID, not_found_msg:
     summary="Create a hydrant (admin)",
 )
 async def create_hydrant(
-    payload: HydrantCreate, admin: AdminUser, db: DatabaseDep
+    payload: HydrantCreate, admin: MapManager, db: DatabaseDep
 ) -> HydrantResponse:
     """Create a hydrant record (admin)."""
     row = await db.fetchrow(
@@ -150,7 +153,7 @@ async def create_hydrant(
     "/hydrants/{layer_id}", response_model=HydrantResponse, summary="Update a hydrant (admin)"
 )
 async def update_hydrant(
-    layer_id: UUID, payload: HydrantUpdate, admin: AdminUser, db: DatabaseDep
+    layer_id: UUID, payload: HydrantUpdate, admin: MapManager, db: DatabaseDep
 ) -> HydrantResponse:
     """Patch a hydrant's base fields (admin)."""
     updated = await _apply_update(
@@ -171,7 +174,7 @@ async def update_hydrant(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a hydrant (admin)",
 )
-async def delete_hydrant(layer_id: UUID, admin: AdminUser, db: DatabaseDep) -> Response:
+async def delete_hydrant(layer_id: UUID, admin: WaterDeleter, db: DatabaseDep) -> Response:
     """Delete a hydrant (admin)."""
     await _delete_layer(db, "hydrants", layer_id, "Hydrant not found.")
     log.info("hydrant_deleted", layer_id=str(layer_id), by=str(admin.id))
@@ -188,7 +191,7 @@ async def delete_hydrant(layer_id: UUID, admin: AdminUser, db: DatabaseDep) -> R
     summary="Create an evacuation site (admin)",
 )
 async def create_evacuation_site(
-    payload: EvacuationSiteCreate, admin: AdminUser, db: DatabaseDep
+    payload: EvacuationSiteCreate, admin: MapManager, db: DatabaseDep
 ) -> EvacuationSiteResponse:
     """Create an evacuation site (admin)."""
     row = await db.fetchrow(
@@ -218,7 +221,7 @@ async def create_evacuation_site(
     summary="Update an evacuation site (admin)",
 )
 async def update_evacuation_site(
-    layer_id: UUID, payload: EvacuationSiteUpdate, admin: AdminUser, db: DatabaseDep
+    layer_id: UUID, payload: EvacuationSiteUpdate, admin: MapManager, db: DatabaseDep
 ) -> EvacuationSiteResponse:
     """Patch an evacuation site (admin)."""
     updated = await _apply_update(
@@ -239,7 +242,7 @@ async def update_evacuation_site(
     summary="Delete an evacuation site (admin)",
 )
 async def delete_evacuation_site(
-    layer_id: UUID, admin: AdminUser, db: DatabaseDep
+    layer_id: UUID, admin: MapManager, db: DatabaseDep
 ) -> Response:
     """Delete an evacuation site (admin)."""
     await _delete_layer(db, "evacuation_sites", layer_id, "Evacuation site not found.")
@@ -257,7 +260,7 @@ async def delete_evacuation_site(
     summary="Create a risk zone (admin)",
 )
 async def create_risk_zone(
-    payload: RiskZoneCreate, admin: AdminUser, db: DatabaseDep
+    payload: RiskZoneCreate, admin: MapManager, db: DatabaseDep
 ) -> RiskZoneResponse:
     """Create a risk zone; optional GeoJSON polygon boundary (admin)."""
     row = await db.fetchrow(
@@ -287,7 +290,7 @@ async def create_risk_zone(
     summary="Update a risk zone (admin)",
 )
 async def update_risk_zone(
-    layer_id: UUID, payload: RiskZoneUpdate, admin: AdminUser, db: DatabaseDep
+    layer_id: UUID, payload: RiskZoneUpdate, admin: MapManager, db: DatabaseDep
 ) -> RiskZoneResponse:
     """Patch a risk zone (admin)."""
     updated = await _apply_update(
@@ -308,7 +311,7 @@ async def update_risk_zone(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a risk zone (admin)",
 )
-async def delete_risk_zone(layer_id: UUID, admin: AdminUser, db: DatabaseDep) -> Response:
+async def delete_risk_zone(layer_id: UUID, admin: MapManager, db: DatabaseDep) -> Response:
     """Delete a risk zone (admin)."""
     await _delete_layer(db, "risk_zones", layer_id, "Risk zone not found.")
     log.info("risk_zone_deleted", layer_id=str(layer_id), by=str(admin.id))
@@ -325,7 +328,7 @@ async def delete_risk_zone(layer_id: UUID, admin: AdminUser, db: DatabaseDep) ->
     summary="Create a body of water (admin)",
 )
 async def create_body_of_water(
-    payload: BodyOfWaterCreate, admin: AdminUser, db: DatabaseDep
+    payload: BodyOfWaterCreate, admin: MapManager, db: DatabaseDep
 ) -> BodyOfWaterResponse:
     """Create a body of water; optional GeoJSON polygon (admin)."""
     row = await db.fetchrow(
@@ -354,7 +357,7 @@ async def create_body_of_water(
     summary="Update a body of water (admin)",
 )
 async def update_body_of_water(
-    layer_id: UUID, payload: BodyOfWaterUpdate, admin: AdminUser, db: DatabaseDep
+    layer_id: UUID, payload: BodyOfWaterUpdate, admin: MapManager, db: DatabaseDep
 ) -> BodyOfWaterResponse:
     """Patch a body of water (admin)."""
     updated = await _apply_update(
@@ -375,7 +378,7 @@ async def update_body_of_water(
     summary="Delete a body of water (admin)",
 )
 async def delete_body_of_water(
-    layer_id: UUID, admin: AdminUser, db: DatabaseDep
+    layer_id: UUID, admin: WaterDeleter, db: DatabaseDep
 ) -> Response:
     """Delete a body of water (admin)."""
     await _delete_layer(db, "bodies_of_water", layer_id, "Body of water not found.")
@@ -393,7 +396,7 @@ async def delete_body_of_water(
     summary="Create an underground cistern (admin)",
 )
 async def create_cistern(
-    payload: CisternCreate, admin: AdminUser, db: DatabaseDep
+    payload: CisternCreate, admin: MapManager, db: DatabaseDep
 ) -> CisternResponse:
     """Create an underground cistern (admin)."""
     row = await db.fetchrow(
@@ -425,7 +428,7 @@ async def create_cistern(
     summary="Update an underground cistern (admin)",
 )
 async def update_cistern(
-    layer_id: UUID, payload: CisternUpdate, admin: AdminUser, db: DatabaseDep
+    layer_id: UUID, payload: CisternUpdate, admin: MapManager, db: DatabaseDep
 ) -> CisternResponse:
     """Patch an underground cistern (admin)."""
     updated = await _apply_update(
@@ -446,7 +449,7 @@ async def update_cistern(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete an underground cistern (admin)",
 )
-async def delete_cistern(layer_id: UUID, admin: AdminUser, db: DatabaseDep) -> Response:
+async def delete_cistern(layer_id: UUID, admin: WaterDeleter, db: DatabaseDep) -> Response:
     """Delete an underground cistern (admin)."""
     await _delete_layer(db, "underground_cisterns", layer_id, "Underground cistern not found.")
     log.info("cistern_deleted", layer_id=str(layer_id), by=str(admin.id))

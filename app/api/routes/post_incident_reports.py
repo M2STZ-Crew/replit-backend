@@ -39,6 +39,7 @@ from app.schemas.post_incident_report import (
     PostIncidentReportCreate,
     PostIncidentReportResponse,
 )
+from app.services.access import ALL_RECORDS, admin_access
 from app.services.ai_summary import summarize_in_background
 from app.services.audit import record_audit
 from app.services.incident import (
@@ -49,6 +50,7 @@ from app.services.incident import (
     assert_transition,
     responded_params,
     responded_sql,
+    took_part_sql,
     visible_agencies,
     visible_area_sql,
 )
@@ -379,7 +381,8 @@ async def list_post_incident_reports(
     offset: int = Query(default=0, ge=0),
 ) -> list[PostIncidentReportResponse]:
     """Filed reports, newest first: those of incidents the caller responded to
-    (a captain: their team did) and their agency can see. Admin: all."""
+    (a captain: their team did) and their agency can see. An organisation's
+    Admin: incidents its organisation took part in. The system Admin: all."""
     agencies = visible_agencies(user)
     if agencies is not None and not agencies:
         return []
@@ -388,10 +391,16 @@ async def list_post_incident_reports(
     if agencies is not None:
         params.append(agencies)
         conditions.append(visible_area_sql(len(params)))
-    if user.role != "admin":
+    access = admin_access(user)
+    if access is None:
         start = len(params) + 1
         params.extend(responded_params(user))
         conditions.append(responded_sql("p.area_id", start, start + 1, start + 2))
+    elif not access.can(ALL_RECORDS):
+        if access.organization_id is None:
+            return []
+        params.append(access.organization_id)
+        conditions.append(took_part_sql("p.area_id", len(params)))
     if area_id is not None:
         params.append(area_id)
         conditions.append(f"p.area_id = ${len(params)}")

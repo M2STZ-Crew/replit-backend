@@ -3,6 +3,8 @@ import {
 } from 'react';
 
 import { api } from '../api/client.js';
+import { useAuth } from '../auth.jsx';
+import { actsOn, consoleOf, soundCategories } from '../lib/access.js';
 import {
   CATCH_UP_MS,
   isAcknowledged,
@@ -23,6 +25,10 @@ import { announce, stopCues } from '../sound/cues.js';
 ///
 /// "New since you last looked" is per surface: each screen records when it was
 /// last viewed, in localStorage so it survives a reload.
+///
+/// An organisation's Admin is alarmed only by incidents routed to it — that
+/// asked for its agency — and hears its own agency's sound (PRD v14 §4.13.1;
+/// A00: every Admin sees every incident, acts where it was asked).
 
 const POLL_MS = 12_000;
 const SEEN_KEY = 'replit.seen.v1';
@@ -41,6 +47,10 @@ function readSeen() {
 }
 
 export function LiveFeedProvider({ children }) {
+  const { user } = useAuth() ?? {};
+  const access = useMemo(() => consoleOf(user), [user]);
+  const accessRef = useRef(access);
+  accessRef.current = access;
   const [incidents, setIncidents] = useState([]);
   const [stats, setStats] = useState(null);
   const [loaded, setLoaded] = useState(false);
@@ -61,14 +71,15 @@ export function LiveFeedProvider({ children }) {
     ]);
     if (list) {
       let ring;
+      const ours = (inc) => actsOn(accessRef.current, inc);
       if (known.current) {
         const fresh = list.filter((inc) => !known.current.has(inc.id));
-        ring = fresh.filter((inc) => !isAcknowledged(inc.id));
+        ring = fresh.filter((inc) => !isAcknowledged(inc.id) && ours(inc));
         notifyDesktop(ring);
       } else {
         known.current = new Set();
         const now = Date.now();
-        ring = list.filter((inc) => !isAcknowledged(inc.id)
+        ring = list.filter((inc) => !isAcknowledged(inc.id) && ours(inc)
           && now - new Date(inc.reported_at).getTime() < CATCH_UP_MS);
       }
       list.forEach((inc) => known.current.add(inc.id));
@@ -136,7 +147,7 @@ export function LiveFeedProvider({ children }) {
     let timer = null;
     let desktopAt = Date.now();
     const ring = async () => {
-      const seconds = await announce(ringing.current);
+      const seconds = await announce(ringing.current, soundCategories(accessRef.current));
       if (!alive) return;
       if (Date.now() - desktopAt >= DESKTOP_AGAIN_MS) {
         notifyDesktop(ringing.current, { again: true });

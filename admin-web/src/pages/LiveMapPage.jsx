@@ -10,7 +10,9 @@ import LifecycleChip from '../components/incidents/LifecycleChip.jsx';
 import { MARKER_KINDS, markerIcon } from '../components/map/markers.js';
 import Place from '../components/Place.jsx';
 import Icon from '../components/ui/Icon.jsx';
+import { useConsole } from '../components/ConsoleShell.jsx';
 import { useLiveFeed } from '../live/LiveFeed.jsx';
+import { PERM, can } from '../lib/access.js';
 import { AGENCY_LABEL, statusOf } from '../lib/status.js';
 import { TILE_MAX_ZOOM, TILE_URL } from '../map/tiles.js';
 import MapManagement from './MapManagement.jsx';
@@ -24,7 +26,8 @@ import MapManagement from './MapManagement.jsx';
  * the units are not drawn until it can scope them (PRD v13 §4.14).
  *
  * "Manage map layers" opens the console's existing editor for shelters and
- * risk zones; adding and changing water sources stays out (A35 is blocked
+ * risk zones, for the Admin the server lets change map layers (the system
+ * Admin); adding and changing water sources stays out (A35 is blocked
  * pending a product decision). */
 
 const PASAY = [14.5378, 121.0014];
@@ -77,6 +80,8 @@ function Selected({ inc, onClose, onOpen }) {
 
 export default function LiveMapPage({ onOpenIncident }) {
   const { incidents } = useLiveFeed();
+  const { console: access } = useConsole();
+  const managesMap = can(access, PERM.MANAGE_MAP);
   const [managing, setManaging] = useState(false);
   const [on, setOn] = useState(() => new Set(LAYERS.map((l) => l.key)));
   const [legend, setLegend] = useState(true);
@@ -98,7 +103,7 @@ export default function LiveMapPage({ onOpenIncident }) {
 
   const selected = useMemo(() => incidents.find((i) => i.id === selectedId) ?? null, [incidents, selectedId]);
 
-  if (managing) {
+  if (managing && managesMap) {
     return (
       <div className="ad-map-manage">
         <button type="button" className="ad-button ad-button--secondary ad-button--compact ad-map-back" onClick={() => setManaging(false)}>
@@ -182,15 +187,17 @@ export default function LiveMapPage({ onOpenIncident }) {
         >
           <Icon name="map" />
         </button>
-        <button
-          type="button"
-          className="ad-map-tool"
-          onClick={() => setManaging(true)}
-          aria-label="Manage map layers"
-          title="Manage map layers"
-        >
-          <Icon name="settings" />
-        </button>
+        {managesMap && (
+          <button
+            type="button"
+            className="ad-map-tool"
+            onClick={() => setManaging(true)}
+            aria-label="Manage map layers"
+            title="Manage map layers"
+          >
+            <Icon name="settings" />
+          </button>
+        )}
       </div>
 
       {legend && (

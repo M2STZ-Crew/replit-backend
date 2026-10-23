@@ -16,6 +16,7 @@ from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
 from app.core.logging import get_logger
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.equipment import EquipmentCreate, EquipmentResponse, EquipmentUpdate
+from app.services.access import ALL_ORGANIZATIONS, admin_access
 
 log = get_logger(__name__)
 
@@ -28,16 +29,20 @@ _COLS = (
 
 
 def _can_manage_org(user: AuthenticatedUser, org_id: UUID) -> bool:
-    """Admin manages any org; a sub-admin manages only their own organization."""
-    if user.role == "admin":
-        return True
+    """The system Admin manages any org; an organisation's Admin or a sub-admin
+    manages only their own organization."""
+    access = admin_access(user)
+    if access is not None:
+        return access.is_system or access.organization_id == org_id
     return user.role == "sub_admin" and user.primary_org_id == org_id
 
 
 def _can_view_org(user: AuthenticatedUser, org_id: UUID) -> bool:
-    """Admin views any org; sub-admin/response_team view only their own organization."""
-    if user.role == "admin":
-        return True
+    """The system Admin and the central hub view any org; everyone else on staff
+    views only their own organization."""
+    access = admin_access(user)
+    if access is not None:
+        return access.can(ALL_ORGANIZATIONS) or access.organization_id == org_id
     return user.role in ("sub_admin", "response_team") and user.primary_org_id == org_id
 
 
@@ -47,7 +52,8 @@ async def list_equipment(
     db: DatabaseDep,
     organization_id: Annotated[UUID | None, Query()] = None,
 ) -> list[EquipmentResponse]:
-    """List equipment for an organization (defaults to the caller's; admin sees all)."""
+    """List equipment for an organization (defaults to the caller's; the system
+    Admin and the central hub see all)."""
     if organization_id is not None:
         if not _can_view_org(user, organization_id):
             raise ForbiddenError("You may only view your own organization's equipment.")
@@ -55,7 +61,7 @@ async def list_equipment(
             f"select {_COLS} from public.equipment where organization_id = $1 order by name",
             organization_id,
         )
-    elif user.role == "admin":
+    elif (access := admin_access(user)) is not None and access.can(ALL_ORGANIZATIONS):
         rows = await db.fetch(
             f"select {_COLS} from public.equipment order by organization_id, name"
         )

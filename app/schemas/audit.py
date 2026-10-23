@@ -16,6 +16,10 @@ class AuditLogResponse(BaseModel):
     actor_user_id: UUID | None = None
     actor_role: str | None = None
     actor_agency: str | None = None
+    # The staff member who acted, by name (citizens' names are not shown), and
+    # the organisation they belong to.
+    actor_name: str | None = None
+    actor_organization: str | None = None
     action: str
     entity_type: str | None = None
     entity_id: UUID | None = None

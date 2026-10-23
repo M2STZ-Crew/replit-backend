@@ -1,10 +1,12 @@
-import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 
+import { useAuth } from '../auth.jsx';
 import AlarmBanner from '../components/AlarmBanner.jsx';
 import ConsoleShell from '../components/ConsoleShell.jsx';
-import { NAV, SETTINGS } from '../components/shell/nav.js';
+import { destinationKeys } from '../components/shell/nav.js';
 import { StatePanel } from '../components/ui/index.js';
 import * as records from '../integrations/records.js';
+import { consoleOf } from '../lib/access.js';
 import { LiveFeedProvider } from '../live/LiveFeed.jsx';
 import { OPEN_INCIDENT_EVENT } from '../sound/alarm.js';
 import SituationBoard from './SituationBoard.jsx';
@@ -38,13 +40,13 @@ const IdReview = lazy(PAGES.idreview);
 const Affiliates = lazy(PAGES.affiliates);
 const Settings = lazy(PAGES.settings);
 
-const KEYS = new Set([...NAV.map((item) => item.key), SETTINGS.key]);
-
 /* The open destination lives in the address (#/incidents), so a reload stays
- * where the operator was instead of going back to the Dashboard. */
-function destinationFromHash() {
+ * where the operator was instead of going back to the Dashboard. A
+ * destination this Admin's organisation does not have (#/affiliates for a
+ * police Admin) opens the Dashboard instead. */
+function destinationFromHash(keys) {
   const key = window.location.hash.replace(/^#\/?/, '');
-  return KEYS.has(key) ? key : 'dashboard';
+  return keys.has(key) ? key : 'dashboard';
 }
 
 export default function Dashboard() {
@@ -55,12 +57,18 @@ export default function Dashboard() {
   );
 }
 
-function Destination({ active, focusId, go }) {
+function Destination({ active, focusId, focusTab, go }) {
   switch (active) {
     case 'dashboard':
       return <SituationBoard onNavigate={go} />;
     case 'incidents':
-      return <IncidentDesk key={focusId ?? 'desk'} focusId={focusId} />;
+      return (
+        <IncidentDesk
+          key={`${focusId ?? 'desk'}:${focusTab ?? ''}`}
+          focusId={focusId}
+          initialTab={focusTab}
+        />
+      );
     case 'map':
       return <LiveMapPage onOpenIncident={(incidentId) => go('incidents', { incidentId })} />;
     case 'requests':
@@ -92,19 +100,25 @@ function Destination({ active, focusId, go }) {
 }
 
 function Console() {
-  const [active, setActive] = useState(destinationFromHash);
+  const { user } = useAuth();
+  const keys = useMemo(() => destinationKeys(consoleOf(user)), [user]);
+  const [active, setActive] = useState(() => destinationFromHash(keys));
   // The incident a dashboard card was clicked for, so the Incidents screen
-  // opens on it directly (no separate list drill-down step).
+  // opens on it directly (no separate list drill-down step); or the list a
+  // dashboard queue was clicked for ("Routed to you").
   const [focusId, setFocusId] = useState(null);
+  const [focusTab, setFocusTab] = useState(null);
 
-  const go = useCallback((key, opts = {}) => {
+  const go = useCallback((wanted, opts = {}) => {
+    const key = keys.has(wanted) ? wanted : 'dashboard';
     setActive(key);
     setFocusId(opts.incidentId ?? null);
+    setFocusTab(opts.tab ?? null);
     const hash = key === 'dashboard' ? '' : `#/${key}`;
     if (window.location.hash !== hash) {
       window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${hash}`);
     }
-  }, []);
+  }, [keys]);
 
   // A desktop alert was clicked: bring its incident up. Opening it there
   // acknowledges the alarm, as any open of an incident does.
@@ -117,12 +131,13 @@ function Console() {
   // An address typed or edited by hand (#/water) opens that page.
   useEffect(() => {
     const follow = () => {
-      setActive(destinationFromHash());
+      setActive(destinationFromHash(keys));
       setFocusId(null);
+      setFocusTab(null);
     };
     window.addEventListener('hashchange', follow);
     return () => window.removeEventListener('hashchange', follow);
-  }, []);
+  }, [keys]);
 
   // The other pages, fetched once the browser is idle after the first screen.
   useEffect(() => {
@@ -145,7 +160,7 @@ function Console() {
       <div className={`db-scroll ad-scroll${flush ? ' db-scroll-flush' : ''}`}>
         {!flush && <AlarmBanner onOpen={(incidentId) => go('incidents', { incidentId })} />}
         <Suspense fallback={<StatePanel kind="loading" title="Opening…" busy />}>
-          <Destination active={active} focusId={focusId} go={go} />
+          <Destination active={active} focusId={focusId} focusTab={focusTab} go={go} />
         </Suspense>
       </div>
     </ConsoleShell>

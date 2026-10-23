@@ -16,6 +16,7 @@ import '../src/styles/pass6-auth.css';
 import '../src/styles/pass6-existing.css';
 import '../src/styles/pass6-incidents.css';
 import '../src/styles/pass6-map.css';
+import '../src/styles/pass6-access.css';
 
 /* DEVELOPMENT PREVIEW ONLY — the UI READY components (features the server
  * does not support yet) and the empty and failed states of the integrated
