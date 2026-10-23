@@ -128,6 +128,9 @@ export const api = {
   },
   incident: (id) => request(`/incidents/${id}`),
   incidentDispatches: (id) => request(`/incidents/${id}/dispatches`),
+  // The latest fix of each responder on it: an organisation's Admin gets its
+  // own people's only (the live map's units, A30).
+  responderLocations: (id) => request(`/incidents/${id}/responders/locations`),
 
   // Verification workflow (Section 2.5, stage 3). incidentReports returns the
   // member reports with the reporter's name and a signed photo URL — the
@@ -201,6 +204,11 @@ export const api = {
     request(`/alarm-requests/${id}/execute`, { method: 'POST', body: { notes: notes || null } }),
   alarmRequestReject: (id, notes) =>
     request(`/alarm-requests/${id}/reject`, { method: 'POST', body: { notes: notes || null } }),
+  // Whoever asked, an Admin of their organisation or the system Admin takes a
+  // request back: cancels one still waiting, or deletes one BFP did not approve.
+  alarmRequestCancel: (id, notes) =>
+    request(`/alarm-requests/${id}/cancel`, { method: 'POST', body: { notes: notes || null } }),
+  alarmRequestDelete: (id) => request(`/alarm-requests/${id}`, { method: 'DELETE' }),
 
   // An Admin's Coordinator accounts (A48, A49): created for its own
   // organisation and emailed a link to set their password; turned off and on.

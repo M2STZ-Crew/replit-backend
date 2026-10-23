@@ -120,8 +120,36 @@ if (import.meta.env.DEV) {
       { id: id(210), name: 'Example Creek', water_type: 'Creek', latitude: 14.535, longitude: 121.006, is_accessible: true, created_at: at(9000), updated_at: at(2000) },
     ],
     cisterns: [],
+    // Fictional risk zones, each with the circle its Admin set.
+    riskZones: [
+      { id: id(220), barangay: 'Example 76', name: 'Example market row', risk_level: 'high', description: null, centroid_lat: 14.5352, centroid_lng: 121.0031, radius_m: 180, area_geojson: null, created_at: at(9000), updated_at: at(900) },
+      { id: id(221), barangay: 'Example 75', name: null, risk_level: 'medium', description: null, centroid_lat: 14.5402, centroid_lng: 121.0058, radius_m: 120, area_geojson: null, created_at: at(9000), updated_at: at(9000) },
+    ],
+    // Fictional units on the way to Example Area 3 (two trucks 50 m apart, so
+    // they share one marker until zoomed in) and one at Example Area 4.1 whose
+    // phone stopped sending five minutes ago (drawn dimmed).
+    dispatches: {
+      [id(102)]: [
+        { id: id(950), area_id: id(102), responder_id: id(70), responder_name: 'Example Driver', organization_id: id(11), dispatch_type: 'self_select', status: 'active', dispatched_at: at(20), vehicle_name: 'Example Engine 1' },
+        { id: id(951), area_id: id(102), responder_id: id(71), responder_name: 'Example Nozzleman', organization_id: id(11), dispatch_type: 'self_select', status: 'active', dispatched_at: at(19), vehicle_name: 'Example Engine 1' },
+        { id: id(952), area_id: id(102), responder_id: id(72), responder_name: 'Example Medic', organization_id: id(11), dispatch_type: 'self_select', status: 'active', dispatched_at: at(18), vehicle_name: 'Example Rescue 2' },
+      ],
+      [id(103)]: [
+        { id: id(953), area_id: id(103), responder_id: id(73), responder_name: 'Example Pump Operator', organization_id: id(13), dispatch_type: 'self_select', status: 'active', dispatched_at: at(40), vehicle_name: 'Example Engine 3' },
+      ],
+    },
+    fixes: {
+      [id(102)]: [
+        { responder_id: id(70), lat: 14.5401, lng: 120.9992, captured_at: at(0.1), created_at: at(0.1) },
+        { responder_id: id(71), lat: 14.54005, lng: 120.99925, captured_at: at(0.3), created_at: at(0.3) },
+        { responder_id: id(72), lat: 14.5405, lng: 120.9995, captured_at: at(0.2), created_at: at(0.2) },
+      ],
+      [id(103)]: [
+        { responder_id: id(73), lat: 14.5439, lng: 120.9966, captured_at: at(5), created_at: at(5) },
+      ],
+    },
     alarmRequests: [
-      { id: id(300), area_id: id(102), area_designation: 'Example Area 3', requested_by: id(2), requested_by_name: 'Example Captain', requested_alarm_level: 'second_alarm', justification: 'Fictional example: fire spreading to the next roof.', status: 'pending', created_at: at(20), updated_at: at(20) },
+      { id: id(300), area_id: id(102), area_designation: 'Example Area 3', requested_by: id(2), requested_by_name: 'Example Captain', requested_by_organization_id: id(11), requested_alarm_level: 'second_alarm', justification: 'Fictional example: fire spreading to the next roof.', status: 'pending', created_at: at(20), updated_at: at(20) },
       { id: id(301), area_id: id(103), area_designation: 'Example Area 4.1', requested_by: id(3), requested_by_name: 'Example Lieutenant', requested_alarm_level: 'first_alarm', justification: null, status: 'approved', reviewed_by: id(4), reviewed_at: at(30), executed_at: at(30), review_notes: null, created_at: at(36), updated_at: at(30) },
       { id: id(302), area_id: id(109), area_designation: 'Example Area 9', requested_by: id(3), requested_by_name: 'Example Lieutenant', requested_alarm_level: 'third_alarm', justification: 'Fictional example: wind picking up.', status: 'rejected', reviewed_by: id(4), reviewed_at: at(1500), review_notes: 'Fictional example: contained at 1st alarm.', created_at: at(1510), updated_at: at(1500) },
     ],
@@ -185,10 +213,32 @@ if (import.meta.env.DEV) {
     if (method === 'DELETE') {
       const match = pathname.match(/^\/map\/([a-z-]+)\/(.+)$/);
       if (match) {
-        const key = { hydrants: 'hydrants', 'bodies-of-water': 'water', 'underground-cisterns': 'cisterns' }[match[1]];
+        const key = { hydrants: 'hydrants', 'bodies-of-water': 'water', 'underground-cisterns': 'cisterns', 'risk-zones': 'riskZones' }[match[1]];
         if (key) fixtures[key] = fixtures[key].filter((r) => r.id !== match[2]);
       }
+      const request = pathname.match(/^\/alarm-requests\/([^/]+)$/);
+      if (request) fixtures.alarmRequests = fixtures.alarmRequests.filter((r) => r.id !== request[1]);
       return new Response(null, { status: 204 });
+    }
+    // Simulated in this page only: a risk zone added or changed.
+    if (method === 'POST' && pathname === '/map/risk-zones') {
+      const row = { id: id(230 + fixtures.riskZones.length), ...JSON.parse(init.body || '{}'), created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      fixtures.riskZones = [...fixtures.riskZones, row];
+      return json(row, 201);
+    }
+    const zone = method === 'PATCH' && pathname.match(/^\/map\/risk-zones\/([^/]+)$/);
+    if (zone) {
+      fixtures.riskZones = fixtures.riskZones.map((r) => (r.id === zone[1] ? { ...r, ...JSON.parse(init.body || '{}'), updated_at: new Date().toISOString() } : r));
+      return json(fixtures.riskZones.find((r) => r.id === zone[1]));
+    }
+    // Simulated in this page only: a request taken back by whoever asked.
+    const withdrawn = method === 'POST' && pathname.match(/^\/alarm-requests\/([^/]+)\/cancel$/);
+    if (withdrawn) {
+      const now = new Date().toISOString();
+      fixtures.alarmRequests = fixtures.alarmRequests.map((r) => (r.id === withdrawn[1]
+        ? { ...r, status: 'cancelled', reviewed_by: fixtures.me.id, reviewed_at: now, review_notes: JSON.parse(init.body || '{}').notes ?? null }
+        : r));
+      return json(fixtures.alarmRequests.find((r) => r.id === withdrawn[1]));
     }
     // Simulated in this page only: an overlap decision.
     const decide = method === 'POST' && pathname.match(/^\/areas\/overlaps\/([^/]+)\/(merge|keep-separate)$/);
@@ -277,6 +327,17 @@ if (import.meta.env.DEV) {
     if (pathname === '/map/hydrants') return json(fixtures.hydrants);
     if (pathname === '/map/bodies-of-water') return json(fixtures.water);
     if (pathname === '/map/underground-cisterns') return json(fixtures.cisterns);
+    if (pathname === '/map/risk-zones') return json(fixtures.riskZones);
+    const dispatched = pathname.match(/^\/incidents\/([^/]+)\/dispatches$/);
+    if (dispatched) return json(fixtures.dispatches[dispatched[1]] ?? []);
+    const located = pathname.match(/^\/incidents\/([^/]+)\/responders\/locations$/);
+    if (located) {
+      // As the server does: an organisation's Admin gets its own people's fixes only.
+      const ours = fixtures.me.console?.organization?.id;
+      const area = located[1];
+      const mine = (fixtures.dispatches[area] ?? []).filter((d) => !ours || d.organization_id === ours).map((d) => d.responder_id);
+      return json((fixtures.fixes[area] ?? []).filter((f) => mine.includes(f.responder_id)));
+    }
     if (pathname === '/alarm-requests') {
       const status = searchParams.get('status');
       return json(status ? fixtures.alarmRequests.filter((r) => r.status === status) : fixtures.alarmRequests);

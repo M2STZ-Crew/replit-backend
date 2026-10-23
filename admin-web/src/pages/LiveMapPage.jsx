@@ -1,29 +1,37 @@
 import 'leaflet/dist/leaflet.css';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Circle, MapContainer, Marker, TileLayer, Tooltip, ZoomControl } from 'react-leaflet';
+import {
+  Circle, MapContainer, Marker, Tooltip, ZoomControl, useMap, useMapEvents,
+} from 'react-leaflet';
 
 import { api } from '../api/client.js';
 import { CLUSTER_RADIUS_M } from '../components/incidents/AreaMap.jsx';
 import { agenciesOf, confidenceOf } from '../components/incidents/IncidentTable.jsx';
 import LifecycleChip from '../components/incidents/LifecycleChip.jsx';
-import { MARKER_KINDS, markerIcon } from '../components/map/markers.js';
+import {
+  MARKER_KINDS, RISK_CIRCLE_STYLE, markerIcon, riskRadius, unitIcon,
+} from '../components/map/markers.js';
 import Place from '../components/Place.jsx';
 import Icon from '../components/ui/Icon.jsx';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import { useLiveFeed } from '../live/LiveFeed.jsx';
+import { useLiveUnits } from '../live/useLiveUnits.js';
 import { PERM, can } from '../lib/access.js';
 import { AGENCY_LABEL, statusOf } from '../lib/status.js';
-import { TILE_MAX_ZOOM, TILE_URL } from '../map/tiles.js';
+import BaseTiles from '../map/BaseTiles.jsx';
+import { groupOnScreen } from '../map/unitGroups.js';
 import MapManagement from './MapManagement.jsx';
 
 /* Live map (REPLIT (MAIN) 10 · A30 869:3563, A31 869:3858; PRD v13 §4.4):
  * every active Area on the shared map with the water sources, shelters and
  * risk zones; select an Area to see it beside the map and open it.
  *
- * The design adds this organisation's own units. The server reports every
- * unit's position to every Admin today, not only its own organisation's, so
- * the units are not drawn until it can scope them (PRD v13 §4.14).
+ * The units on their way to a fire, or at it: an organisation's Admin sees
+ * its own (the server sends nothing else — "Other organisations' vehicles are
+ * never shown"), the system Admin everyone's. Trucks that would overlap on
+ * screen share one marker with their count, and split as the map zooms in,
+ * as on the mobile app (src/live/useLiveUnits.js, src/map/unitGroups.js).
  *
  * "Manage map layers" opens the console's existing editor for shelters and
  * risk zones, for the Admin the server lets change map layers (the system
@@ -47,6 +55,51 @@ const SOURCES = [
   { key: 'shelter', path: 'evacuation-sites', layer: 'shelters', lat: 'latitude', lng: 'longitude', name: (r) => r.name || 'Evacuation site' },
   { key: 'risk', path: 'risk-zones', layer: 'risk', lat: 'centroid_lat', lng: 'centroid_lng', name: (r) => r.name || r.barangay || 'Risk zone' },
 ];
+
+const AGO = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+
+function seen(iso) {
+  const s = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return 'just now';
+  return AGO.format(-Math.round(s / 60), 'minute');
+}
+
+/* The units on the map, merged where they would overlap at this zoom. */
+function UnitsLayer({ units, onSelect }) {
+  const map = useMap();
+  const [, setView] = useState(0);
+  useMapEvents({ zoomend: () => setView((v) => v + 1), moveend: () => setView((v) => v + 1) });
+  const groups = groupOnScreen(units.map((u) => map.latLngToLayerPoint([u.lat, u.lng])));
+  return groups.map((g) => {
+    const members = g.map((i) => units[i]);
+    const lat = members.reduce((s, u) => s + u.lat, 0) / members.length;
+    const lng = members.reduce((s, u) => s + u.lng, 0) / members.length;
+    const stale = members.every((u) => u.stale);
+    const names = members.map((u) => u.label);
+    const title = members.length === 1
+      ? `${names[0]}, to ${members[0].designation}`
+      : `${members.length} units: ${names.join(', ')}`;
+    return (
+      <Marker
+        key={members.map((u) => u.key).join('|')}
+        position={[lat, lng]}
+        icon={unitIcon(members.length, stale)}
+        title={title}
+        zIndexOffset={500}
+        eventHandlers={{ click: () => onSelect(members[0].incidentId) }}
+      >
+        <Tooltip direction="top" offset={[0, -18]}>
+          {members.map((u) => (
+            <span className="ad-unit-tip" key={u.key}>
+              <strong>{u.label}</strong>
+              {` · ${u.designation} · ${u.stale ? `last seen ${seen(u.at)}` : 'live'}`}
+            </span>
+          ))}
+        </Tooltip>
+      </Marker>
+    );
+  });
+}
 
 function Selected({ inc, onClose, onOpen }) {
   const first = (inc.accepted_agencies ?? []).map((a) => AGENCY_LABEL[a] ?? a);
@@ -102,6 +155,7 @@ export default function LiveMapPage({ onOpenIncident }) {
   }, [managing]);
 
   const selected = useMemo(() => incidents.find((i) => i.id === selectedId) ?? null, [incidents, selectedId]);
+  const units = useLiveUnits(incidents);
 
   if (managing && managesMap) {
     return (
@@ -129,15 +183,27 @@ export default function LiveMapPage({ onOpenIncident }) {
         attributionControl={false}
         style={{ height: '100%', width: '100%' }}
       >
-        <TileLayer url={TILE_URL} maxZoom={TILE_MAX_ZOOM} />
+        <BaseTiles />
         <ZoomControl position="bottomright" />
         {SOURCES.filter((s) => on.has(s.layer)).flatMap((s) => (points[s.key] ?? [])
           .filter((r) => r[s.lat] != null && r[s.lng] != null)
-          .map((r) => (
+          .flatMap((r) => [
+            // A risk zone is its icon inside the circle the Admin set.
+            s.key === 'risk' && (
+              <Circle
+                key={`zone-${r.id}`}
+                center={[r[s.lat], r[s.lng]]}
+                radius={riskRadius(r)}
+                pathOptions={RISK_CIRCLE_STYLE}
+                interactive={false}
+              />
+            ),
             <Marker key={`${s.key}-${r.id}`} position={[r[s.lat], r[s.lng]]} icon={markerIcon(s.key)}>
-              <Tooltip direction="top" offset={[0, -18]}>{`${MARKER_KINDS[s.key].label} · ${s.name(r)}`}</Tooltip>
-            </Marker>
-          )))}
+              <Tooltip direction="top" offset={[0, -18]}>
+                {`${MARKER_KINDS[s.key].label} · ${s.name(r)}${s.key === 'risk' ? ` · ${Math.round(riskRadius(r))} m` : ''}`}
+              </Tooltip>
+            </Marker>,
+          ].filter(Boolean)))}
         {on.has('incidents') && incidents
           .filter((i) => i.centroid_lat != null && i.centroid_lng != null)
           .flatMap((i) => [
@@ -156,6 +222,7 @@ export default function LiveMapPage({ onOpenIncident }) {
               title={`${i.designation}, ${statusOf(i.status).label}`}
             />,
           ])}
+        <UnitsLayer units={units} onSelect={setSelectedId} />
       </MapContainer>
 
       <div className="ad-map-chips" role="group" aria-label="Map layers">
@@ -204,15 +271,18 @@ export default function LiveMapPage({ onOpenIncident }) {
         <section className="ad-map-legend" aria-label="Legend">
           <p className="ad-eyebrow ad-eyebrow--quiet">Legend</p>
           <ul>
-            {['incident', 'hydrant', 'water', 'cistern', 'shelter', 'risk'].map((k) => (
+            {['incident', 'unit', 'hydrant', 'water', 'cistern', 'shelter', 'risk'].map((k) => (
               <li key={k}>
                 <span className={`ad-legend-mark ad-marker-disc--${MARKER_KINDS[k].tone}`} aria-hidden="true">
                   <img src={`/icons/map/${k}.svg`} alt="" width="12" height="12" />
                 </span>
-                {MARKER_KINDS[k].label}
+                {k === 'unit' && access?.variant === 'system' ? 'Responding unit' : MARKER_KINDS[k].label}
               </li>
             ))}
           </ul>
+          {access?.variant !== 'system' && (
+            <p className="ad-map-legend-note">Other organisations’ vehicles are never shown.</p>
+          )}
         </section>
       )}
 

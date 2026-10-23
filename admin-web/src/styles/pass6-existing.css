@@ -144,3 +144,9 @@
 .ad-alarms-hints p { margin: 0; color: var(--label); font-size: 12px; line-height: 16px; }
 @media (max-width: 1023px) { .ad-alarm { flex-wrap: wrap; } .ad-alarm-text { flex-basis: calc(100% - 56px); } }
 .ad-board-section > .ad-incident-cards { padding: 0 24px 24px; }
+
+/* Risk zone radius (24 Oct 2026): a slider for the usual sizes and the exact
+ * number in metres, side by side. */
+.mm-radius { display: flex; align-items: center; gap: 12px; }
+.mm-radius-slider { flex: 1; min-width: 0; accent-color: #e5675f; height: 44px; }
+.mm-radius-number { width: 96px; flex: none; }

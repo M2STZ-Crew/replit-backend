@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { api } from '../api/client.js';
+import { useAuth } from '../auth.jsx';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import AlarmEscalationDialog from '../components/requests/AlarmEscalationDialog.jsx';
 import {
   ConfirmDialog, EmptyState, Icon, PageHeader, StatePanel, StatusChip,
 } from '../components/ui/index.js';
 import { useLiveFeed } from '../live/LiveFeed.jsx';
-import { PERM, actsOn, can } from '../lib/access.js';
+import { PERM, actsOn, can, mayWithdraw } from '../lib/access.js';
 import { ago, alarmLabel, statusOf } from '../lib/status.js';
 
 /* Requests (REPLIT (MAIN) 10 · A40 873:5264, A41 873:5578, A45 874:6513,
@@ -19,6 +20,11 @@ import { ago, alarmLabel, statusOf } from '../lib/status.js';
  * decided by BFP: a BFP Coordinator on the mobile app, or the BFP Admin here
  * (A46, A46b; PRD v14 §3.4). Every other Admin follows them, read only.
  *
+ * Whoever asked, an Admin of their organisation or the system Admin can take
+ * a request back: cancel one still waiting (it moves to History as
+ * Cancelled), or delete one BFP did not approve. An approved request stays,
+ * as the record of why the alarm level changed.
+ *
  * The design's water, backup and equipment requests between Admins (A43,
  * A44), the Sent folder (A42) and Admin replies wait on server support; see
  * docs/FRONTEND_INTEGRATION_HANDOFF.md. The host supplies
@@ -28,6 +34,7 @@ const REQUEST_STATUS = {
   pending: { label: 'Pending', tone: 'warn' },
   approved: { label: 'Approved', tone: 'ok' },
   rejected: { label: 'Rejected', tone: 'neutral' },
+  cancelled: { label: 'Cancelled', tone: 'neutral' },
 };
 
 const CLOCK = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' });
@@ -48,6 +55,7 @@ function received(iso) {
 
 export default function Requests({ readRequests, onOpenIncident }) {
   const { org, console: access } = useConsole();
+  const me = useAuth()?.user ?? null;
   const decides = can(access, PERM.DECIDE_ALARM);
   const asks = can(access, PERM.REQUEST_ALARM);
   const [asking, setAsking] = useState(false);
@@ -114,10 +122,12 @@ export default function Requests({ readRequests, onOpenIncident }) {
           request={selected}
           area={areaById.get(selected.area_id) ?? null}
           decides={decides}
+          withdraws={mayWithdraw(access, me, selected)}
           orgName={org?.name ?? 'BFP'}
           onBack={() => setSelectedId(null)}
           onOpenIncident={onOpenIncident}
           onDecided={(message) => { setNotice(message); refresh(); }}
+          onDeleted={(message) => { setSelectedId(null); setNotice(message); refresh(); }}
         />
         {notice && (
           <div className="ad-toast" role="status">
@@ -213,7 +223,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
         <EmptyState icon="requests" title={tab === 'inbox' ? 'Nothing waiting' : 'No answered requests yet'}>
           {tab === 'inbox'
             ? 'An alarm escalation appears here when someone on scene asks BFP to raise the alarm.'
-            : 'Requests move here once BFP approves or rejects them.'}
+            : 'Requests move here once BFP approves or rejects them, or they are cancelled.'}
         </EmptyState>
       ) : (
         <>
@@ -273,7 +283,9 @@ export default function Requests({ readRequests, onOpenIncident }) {
  * to it. The BFP Admin answers it here: set the level (confirmed first —
  * every organisation sees it at once) or decline. Everyone else is told who
  * decides instead of being offered buttons their account would be refused. */
-function RequestDetail({ request: r, area, decides, orgName, onBack, onOpenIncident, onDecided }) {
+function RequestDetail({
+  request: r, area, decides, withdraws, orgName, onBack, onOpenIncident, onDecided, onDeleted,
+}) {
   const [confirm, setConfirm] = useState(null);
   const [note, setNote] = useState('');
   const level = alarmLabel(r.requested_alarm_level);
@@ -288,7 +300,11 @@ function RequestDetail({ request: r, area, decides, orgName, onBack, onOpenIncid
     { at: r.created_at, title: `${level} requested`, sub: askedBy(r), tone: 'accent' },
     r.reviewed_at && {
       at: r.reviewed_at,
-      title: r.status === 'approved' ? 'Approved by BFP' : r.status === 'rejected' ? 'Rejected by BFP' : 'Reviewed by BFP',
+      title: r.status === 'approved'
+        ? 'Approved by BFP'
+        : r.status === 'rejected'
+          ? 'Rejected by BFP'
+          : r.status === 'cancelled' ? 'Cancelled before BFP answered' : 'Reviewed by BFP',
       sub: r.review_notes || null,
       tone: r.status === 'approved' ? 'ok' : 'quiet',
     },
@@ -352,7 +368,17 @@ function RequestDetail({ request: r, area, decides, orgName, onBack, onOpenIncid
               <Icon name="visibility" />
               <div className="ad-alert-text">
                 <p className="ad-alert-title">Waiting on BFP</p>
-                <p className="ad-alert-body">Only a BFP Coordinator sets the alarm level, from the mobile app. Setting it updates {areaOf(r)} for every organisation.</p>
+                <p className="ad-alert-body">Only BFP sets the alarm level: a BFP Coordinator on the mobile app, or the BFP Admin here. Setting it updates {areaOf(r)} for every organisation.</p>
+              </div>
+            </div>
+          ) : r.status === 'cancelled' ? (
+            <div className="ad-alert">
+              <span className="ad-alert-mark" aria-hidden="true">⦸</span>
+              <div className="ad-alert-text">
+                <p className="ad-alert-title">Cancelled{r.reviewed_at ? ` · ${clock(r.reviewed_at)}` : ''}</p>
+                <p className="ad-alert-body">
+                  {r.review_notes || 'Taken back before BFP answered. The alarm level was not changed.'}
+                </p>
               </div>
             </div>
           ) : (
@@ -366,6 +392,18 @@ function RequestDetail({ request: r, area, decides, orgName, onBack, onOpenIncid
                   {r.review_notes || (r.status === 'approved' ? `${areaOf(r)} is at ${level}.` : 'The alarm level was not changed.')}
                 </p>
               </div>
+            </div>
+          )}
+          {withdraws && r.status !== 'approved' && (
+            <div className="ad-reply-row">
+              {r.status === 'pending' && (
+                <button type="button" className="ad-button ad-button--secondary" onClick={() => { setNote(''); setConfirm('cancel'); }}>
+                  Cancel request
+                </button>
+              )}
+              <button type="button" className="ad-button ad-button--danger" onClick={() => setConfirm('delete')}>
+                Delete request
+              </button>
             </div>
           )}
           {onOpenIncident && area && (
@@ -408,6 +446,40 @@ function RequestDetail({ request: r, area, decides, orgName, onBack, onOpenIncid
           <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} />
         </label>
       </ConfirmDialog>
+      <ConfirmDialog
+        open={confirm === 'cancel'}
+        eyebrow={`${areaOf(r)} · requested by ${askedBy(r)}`}
+        title={`Cancel the request for ${level}?`}
+        description="BFP stops seeing it as waiting. It stays in History as Cancelled."
+        confirmLabel="Cancel request"
+        cancelLabel="Keep it"
+        onClose={() => setConfirm(null)}
+        onConfirm={async () => {
+          await api.alarmRequestCancel(r.id, note.trim() || null);
+          setConfirm(null);
+          onDecided?.(`Cancelled the request for ${level} on ${areaOf(r)}`);
+        }}
+      >
+        <label className="ad-field">
+          <span className="ad-field-label">Reason (optional)</span>
+          <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} />
+        </label>
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={confirm === 'delete'}
+        eyebrow={`${areaOf(r)} · requested by ${askedBy(r)}`}
+        title={`Delete the request for ${level}?`}
+        description="It is removed for every organisation and cannot be brought back."
+        confirmLabel="Delete request"
+        cancelLabel="Keep it"
+        destructive
+        onClose={() => setConfirm(null)}
+        onConfirm={async () => {
+          await api.alarmRequestDelete(r.id);
+          setConfirm(null);
+          onDeleted?.(`Deleted the request for ${level} on ${areaOf(r)}`);
+        }}
+      />
     </div>
   );
 }

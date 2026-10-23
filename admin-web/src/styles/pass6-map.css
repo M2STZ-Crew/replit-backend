@@ -32,6 +32,29 @@
 .ad-marker-disc--shelter { background: #188c43; }
 .ad-marker-disc--risk { background: #b53c37; }
 .ad-marker-disc--unit { background: #626262; }
+/* Units (A30): trucks that would overlap share one marker — a second plate
+ * peeks out behind the first, and the count sits at the top right. */
+.ad-unit .ad-unit-behind { transform: translate(5px, -5px); }
+.ad-unit-count {
+  position: absolute;
+  right: -2px;
+  top: -2px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border: 2px solid #626262;
+  border-radius: 10px;
+  background: #fff;
+  color: #1b1b1b;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+.ad-unit.is-stale { opacity: 0.6; }
+.ad-unit-tip { display: block; }
+.ad-map-legend-note { margin: 10px 0 0; color: var(--text-3); font-size: 12px; max-width: 24ch; }
 
 /* ── Map frame ────────────────────────────────────────────────────────── */
 .ad-map { position: relative; height: 100%; min-height: 0; background: #0b0b0b; }

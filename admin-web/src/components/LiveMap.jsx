@@ -1,8 +1,9 @@
 import 'leaflet/dist/leaflet.css';
-import { CircleMarker, MapContainer, TileLayer, Tooltip } from 'react-leaflet';
+import { CircleMarker, MapContainer, Tooltip } from 'react-leaflet';
 
 import { statusOf } from '../lib/status.js';
-import { TILE_ATTRIBUTION, TILE_MAX_ZOOM, TILE_URL } from '../map/tiles.js';
+import { TILE_ATTRIBUTION } from '../map/tiles.js';
+import BaseTiles from '../map/BaseTiles.jsx';
 
 const PASAY = [14.5378, 121.0014];
 
@@ -42,7 +43,7 @@ export default function LiveMap({ incidents = [], layerPoints = {}, enabled, onS
       zoomControl={false}
       attributionControl={false}
     >
-      <TileLayer url={TILE_URL} maxZoom={TILE_MAX_ZOOM} />
+      <BaseTiles />
 
       {Object.entries(LAYER_COLORS).flatMap(([key, color]) =>
         enabled.has(key)

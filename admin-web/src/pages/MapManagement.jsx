@@ -5,16 +5,19 @@ import {
   Circle,
   CircleMarker,
   MapContainer,
-  TileLayer,
+  Marker,
   Tooltip,
   useMapEvents,
   ZoomControl,
 } from 'react-leaflet';
 
-import { TILE_MAX_ZOOM, TILE_URL } from '../map/tiles.js';
+import BaseTiles from '../map/BaseTiles.jsx';
 
 import { api } from '../api/client.js';
 import { OUTSIDE_PASAY_STYLE } from '../components/LiveMap.jsx';
+import {
+  RISK_CIRCLE_STYLE, RISK_RADIUS_M, RISK_RADIUS_MAX_M, RISK_RADIUS_MIN_M, markerIcon, riskRadius,
+} from '../components/map/markers.js';
 import { statusOf } from '../lib/status.js';
 
 const PASAY = [14.5378, 121.0014];
@@ -66,6 +69,8 @@ const FIELDS = {
     { name: 'risk_level', label: 'Risk level', type: 'select', options: RISK_OPTS, default: 'medium' },
     { name: 'centroid_lat', label: 'Latitude', type: 'coord', coord: 'lat', required: true },
     { name: 'centroid_lng', label: 'Longitude', type: 'coord', coord: 'lng', required: true },
+    // The zone is its icon inside this circle, on every map.
+    { name: 'radius_m', label: 'Radius (metres)', type: 'radius', required: true, default: String(RISK_RADIUS_M) },
     { name: 'description', label: 'Description', type: 'textarea' },
   ],
   evac: [
@@ -142,7 +147,7 @@ function entryText(key, r) {
     case 'risk':
       return {
         title: r.name || `Risk Area · ${r.barangay}`,
-        sub: `${prettify(r.risk_level)} · Brgy. ${r.barangay}`,
+        sub: `${prettify(r.risk_level)} · Brgy. ${r.barangay} · ${Math.round(riskRadius(r))} m`,
       };
     case 'evac': {
       const base =
@@ -176,7 +181,7 @@ function entryText(key, r) {
 
 function coerce(field, raw) {
   if (field.type === 'checkbox') return !!raw;
-  if (field.type === 'number' || field.type === 'coord') {
+  if (field.type === 'number' || field.type === 'coord' || field.type === 'radius') {
     if (raw === '' || raw == null) return null;
     const n = Number(raw);
     return Number.isFinite(n) ? n : null;
@@ -191,7 +196,9 @@ function initValues(layer, rec) {
   for (const f of FIELDS[layer]) {
     if (rec) {
       const v = rec[f.name];
-      vals[f.name] = f.type === 'checkbox' ? !!v : v == null ? '' : String(v);
+      vals[f.name] = f.type === 'checkbox'
+        ? !!v
+        : v == null ? (f.type === 'radius' ? f.default : '') : String(v);
     } else if (f.type === 'checkbox') {
       vals[f.name] = f.default ?? true;
     } else {
@@ -297,6 +304,10 @@ export default function MapManagement({ query = '', onOpenIncident }) {
         flash(`${f.label} is required.`, 'err');
         return;
       }
+      if (f.type === 'radius' && (c < RISK_RADIUS_MIN_M || c > RISK_RADIUS_MAX_M)) {
+        flash(`The radius goes from ${RISK_RADIUS_MIN_M} to ${RISK_RADIUS_MAX_M} metres.`, 'err');
+        return;
+      }
       payload[f.name] = c;
     }
     setSaving(true);
@@ -344,7 +355,14 @@ export default function MapManagement({ query = '', onOpenIncident }) {
     const lat = parseFloat(form.values[latName]);
     const lng = parseFloat(form.values[lngName]);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-    return { lat, lng, color: COLORS[form.layer] };
+    // A risk zone being edited shows the circle it will have.
+    const radius = form.layer === 'risk' ? Number(form.values.radius_m) : NaN;
+    return {
+      lat,
+      lng,
+      color: COLORS[form.layer],
+      radius: Number.isFinite(radius) && radius >= RISK_RADIUS_MIN_M ? radius : null,
+    };
   }, [form]);
 
   return (
@@ -357,7 +375,7 @@ export default function MapManagement({ query = '', onOpenIncident }) {
           zoomControl={false}
           attributionControl={false}
         >
-          <TileLayer url={TILE_URL} maxZoom={TILE_MAX_ZOOM} />
+          <BaseTiles />
           <ZoomControl position="bottomleft" />
           <ClickCapture active={!!form} onPick={handlePick} />
 
@@ -396,15 +414,34 @@ export default function MapManagement({ query = '', onOpenIncident }) {
               if (p.lat == null || p.lng == null) return null;
               const { title, sub } = entryText(l.key, r);
               const color = COLORS[l.key];
-              return [
-                l.key === 'risk' ? (
+              // The zone being edited is drawn by the form preview instead.
+              if (l.key === 'risk' && form?.layer === 'risk' && form.id === r.id) return null;
+              if (l.key === 'risk') {
+                // A risk zone is its icon inside its circle (24 Oct 2026).
+                return [
                   <Circle
                     key={`halo-${r.id}`}
                     center={[p.lat, p.lng]}
-                    radius={150}
-                    pathOptions={{ color, weight: 1, fillColor: color, fillOpacity: 0.12 }}
-                  />
-                ) : null,
+                    radius={riskRadius(r)}
+                    pathOptions={RISK_CIRCLE_STYLE}
+                    // While a marker is being placed, a click inside a zone
+                    // places it rather than opening that zone.
+                    eventHandlers={form ? undefined : { click: () => openEdit('risk', r) }}
+                  />,
+                  <Marker
+                    key={`m-${r.id}`}
+                    position={[p.lat, p.lng]}
+                    icon={markerIcon('risk')}
+                    eventHandlers={{ click: () => openEdit('risk', r) }}
+                  >
+                    <Tooltip direction="top" offset={[0, -18]}>
+                      {title}
+                      {sub ? ` · ${sub}` : ''}
+                    </Tooltip>
+                  </Marker>,
+                ];
+              }
+              return [
                 <CircleMarker
                   key={`m-${r.id}`}
                   center={[p.lat, p.lng]}
@@ -425,6 +462,15 @@ export default function MapManagement({ query = '', onOpenIncident }) {
             }),
           )}
 
+          {/* form preview: the risk zone's circle as it will be saved */}
+          {formPoint?.radius && (
+            <Circle
+              center={[formPoint.lat, formPoint.lng]}
+              radius={formPoint.radius}
+              pathOptions={{ ...RISK_CIRCLE_STYLE, dashArray: '6 4', fillOpacity: 0.18 }}
+              interactive={false}
+            />
+          )}
           {/* form preview marker */}
           {formPoint && (
             <CircleMarker
@@ -609,6 +655,42 @@ export default function MapManagement({ query = '', onOpenIncident }) {
                               </option>
                             ))}
                           </select>
+                        </div>
+                      );
+                    }
+                    if (f.type === 'radius') {
+                      // A slider for the usual sizes and the exact number,
+                      // both in metres; the circle on the map follows either.
+                      const n = Number(val);
+                      const id = `mm-${f.name}`;
+                      return (
+                        <div className="mm-form-row" key={f.name}>
+                          <label className="mm-flabel" htmlFor={id}>
+                            {f.label}
+                            {f.required && <span className="mm-req"> *</span>}
+                          </label>
+                          <div className="mm-radius">
+                            <input
+                              className="mm-radius-slider"
+                              type="range"
+                              min={25}
+                              max={1000}
+                              step={5}
+                              value={Number.isFinite(n) ? Math.min(Math.max(n, 25), 1000) : RISK_RADIUS_M}
+                              onChange={(e) => setVal(e.target.value)}
+                              aria-label={`${f.label}, slider`}
+                            />
+                            <input
+                              id={id}
+                              className="mm-input mm-radius-number"
+                              type="number"
+                              min={RISK_RADIUS_MIN_M}
+                              max={RISK_RADIUS_MAX_M}
+                              step={5}
+                              value={val}
+                              onChange={(e) => setVal(e.target.value)}
+                            />
+                          </div>
                         </div>
                       );
                     }

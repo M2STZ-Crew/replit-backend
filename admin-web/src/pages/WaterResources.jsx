@@ -1,7 +1,7 @@
 import 'leaflet/dist/leaflet.css';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { MapContainer, Marker, TileLayer, ZoomControl } from 'react-leaflet';
+import { MapContainer, Marker, ZoomControl } from 'react-leaflet';
 
 import { api } from '../api/client.js';
 import { markerIcon } from '../components/map/markers.js';
@@ -9,7 +9,7 @@ import Place from '../components/Place.jsx';
 import Icon from '../components/ui/Icon.jsx';
 import { ConfirmDialog, EmptyState, PageHeader, StatePanel, StatusChip } from '../components/ui/index.js';
 import { degrees, knownAddress } from '../lib/place.js';
-import { TILE_MAX_ZOOM, TILE_URL } from '../map/tiles.js';
+import BaseTiles from '../map/BaseTiles.jsx';
 
 /* Water resources (REPLIT (MAIN) 10 · A32 871:4044 list, A33 871:4382 map
  * and detail, A34 delete, A34b deleted; PRD v13 §4.9.6): every hydrant,
@@ -235,7 +235,7 @@ export default function WaterResources() {
             attributionControl={false}
             style={{ height: '100%', width: '100%' }}
           >
-            <TileLayer url={TILE_URL} maxZoom={TILE_MAX_ZOOM} />
+            <BaseTiles />
             <ZoomControl position="bottomright" />
             {rows.filter((r) => r.latitude != null && r.longitude != null).map((r) => (
               <Marker

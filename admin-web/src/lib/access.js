@@ -46,6 +46,21 @@ export function can(access, permission) {
   return Boolean(access?.permissions?.includes(permission));
 }
 
+/// Whether this Admin may cancel or delete an alarm request: it asked, it is
+/// an Admin of the asker's (active) organisation, or it is the system Admin.
+/// The server checks the same (alarm_requests._may_withdraw).
+export function mayWithdraw(access, me, request) {
+  if (!request) return false;
+  if (me?.id && me.id === request.requested_by) return true;
+  if (access?.variant === 'system') return true;
+  const orgId = access?.organization?.id;
+  return Boolean(
+    orgId
+    && (access.permissions?.length ?? 0) > 0
+    && orgId === request.requested_by_organization_id,
+  );
+}
+
 /// Whether an incident was routed to this Admin: it asked for an agency this
 /// organisation answers for (Fire Volunteer and BFP both answer Fire).
 export function actsOn(access, incident) {

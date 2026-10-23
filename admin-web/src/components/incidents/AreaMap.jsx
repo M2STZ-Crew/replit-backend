@@ -1,9 +1,9 @@
 import 'leaflet/dist/leaflet.css';
 
 import L from 'leaflet';
-import { Circle, MapContainer, Marker, TileLayer } from 'react-leaflet';
+import { Circle, MapContainer, Marker } from 'react-leaflet';
 
-import { TILE_MAX_ZOOM, TILE_URL } from '../../map/tiles.js';
+import BaseTiles from '../../map/BaseTiles.jsx';
 
 /* One or more Areas on the map (REPLIT (MAIN) 10 · A23, A27; 04 · Map
  * marker, Area radius): the incident marker — the brand's solid step with a
@@ -49,7 +49,7 @@ export default function AreaMap({ lat, lng, label, areas, height }) {
         scrollWheelZoom={false}
         style={{ height: '100%', width: '100%' }}
       >
-        <TileLayer url={TILE_URL} maxZoom={TILE_MAX_ZOOM} />
+        <BaseTiles />
         {list.map((a, i) => (
           <Circle
             key={`r-${i}`}
