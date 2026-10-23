@@ -1,8 +1,7 @@
 """A coordinator's responder accounts (v1.12.4).
 
-Every sub-admin — a Fire Volunteer or BFP coordinator in the app, a police,
-medical or barangay one in the web Observer Console — makes the Response Team
-accounts of their own agency and team, and looks after them:
+Every sub-admin — any organisation's coordinator, in the app — makes the
+Response Team accounts of their own agency and team, and looks after them:
 
 * **Create.** The address follows the account directory's rule —
   ``jdelacruz.resfir@replit.com``, numbered after the surname when taken

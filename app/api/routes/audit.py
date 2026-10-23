@@ -1,8 +1,7 @@
 """Audit log query endpoint (Phase 14, Section 7 #20).
 
 The system Admin reads the whole record. A sub-admin reads the part of it
-about incidents their agency can see — the Observer Console's History surface
-(v10 Section 2.6.1) is exactly that. An organisation's Admin (PRD v13 §4.6)
+about incidents their agency can see. An organisation's Admin (PRD v13 §4.6)
 reads the entries about incidents routed to its organisation, and every entry
 made by its own people. Everyone but the system Admin has each entry's request
 IP and user agent withheld, since those identify other people's devices rather

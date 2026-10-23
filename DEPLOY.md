@@ -7,7 +7,6 @@ genuinely free tier with no credit card.
 |---|---|---|---|
 | FastAPI backend | **Render** (Docker) | 512 MB, sleeps when idle | $0 |
 | Admin Console (`admin-web`) | **Vercel** or Cloudflare Pages | unlimited static builds | $0 |
-| Observer Console (`observer-web`) | same host, **separate project** | unlimited static builds | $0 |
 | Database + storage | **Supabase** (already there) | 500 MB DB, 1 GB storage | $0 |
 | Mobile app | **APK file** on Drive, or Firebase App Distribution | — | $0 |
 
@@ -95,34 +94,6 @@ on `/login` from returning 404. Vercel works identically and reads the committed
 `https://replit-admin.pages.dev`. Until you do, the browser blocks every API call
 and the dashboard looks broken while the backend looks healthy.
 
-### The Observer Console
-
-The Observer Console (`observer-web`, for Police, Medical and Barangay team
-captains — Master Context v10 §2.6) is a **second, separate project on the same
-host**, never a second branch of the Admin Console. On Vercel:
-
-1. **Add New → Project**, pick `M2STZ-Crew/replit-backend` again.
-2. Set **Root Directory** to `observer-web`. Vercel then reads the committed
-   `observer-web/vercel.json`, which already supplies the build command, the
-   `dist` output directory and the SPA rewrite that stops a refresh on `/login`
-   returning 404. Leave the build settings alone.
-3. Environment variables: `VITE_API_BASE` (the Render URL) and
-   `VITE_MAPBOX_TOKEN`.
-4. Deploy.
-
-Then wire the three cross-links, or pieces break quietly:
-
-- add its URL to `CORS_ORIGINS` on Render, comma-separated after the Admin
-  Console's — until you do, every request from the console is blocked by the
-  browser while the backend itself looks perfectly healthy;
-- set `VITE_OBSERVER_URL` on the Admin Console project to it, so the Admin
-  Console can point an observer who signs in there to the right place;
-- set `OBSERVER_CONSOLE_URL` in the mobile app's `env.json` for the same reason.
-
-Changing an environment variable on Vercel does **not** rebuild by itself — a
-Vite variable is inlined at build time, so redeploy after editing one or the old
-value stays in the bundle.
-
 ### A note on the Mapbox token
 
 `VITE_MAPBOX_TOKEN` is readable inside the deployed JavaScript bundle. That is
@@ -160,8 +131,7 @@ your machine and has to be recreated per laptop from `env.example.json`:
 ```json
 {
   "MAPBOX_TOKEN": "pk....",
-  "REPLIT_API_BASE": "https://<your-service>.onrender.com",
-  "OBSERVER_CONSOLE_URL": "https://<your-observer-console>.vercel.app"
+  "REPLIT_API_BASE": "https://<your-service>.onrender.com"
 }
 ```
 
@@ -253,17 +223,13 @@ anyway, and the sleep behaviour is not acceptable for emergency reporting.
 - [ ] Render service live, `/health/ready` returns `database: ok`
 - [ ] Render is building the **`main`** branch, not `safe-commits`
 - [ ] `PUBLIC_BASE_URL` is the Render URL, not localhost
-- [ ] `CORS_ORIGINS` contains **both** console URLs, comma-separated
+- [ ] `CORS_ORIGINS` contains the Admin Console URL
 - [ ] `FCM_CREDENTIALS_JSON` set, `FCM_CREDENTIALS_FILE` unset
 - [ ] Admin Console loads and an admin login succeeds
-- [ ] Observer Console loads; a `police` / `medical` / `barangay` sub-admin can
-      sign in, and anyone else is turned away
-- [ ] Refreshing either console on `/login` does not 404
-- [ ] `VITE_OBSERVER_URL` set on the Admin Console project
+- [ ] Refreshing the console on `/login` does not 404
 - [ ] Web consoles use a **URL-restricted** Mapbox token; the mobile build uses
       the unrestricted one
-- [ ] Mobile `env.json` has the Render URL in `REPLIT_API_BASE` and the observer
-      URL in `OBSERVER_CONSOLE_URL`
+- [ ] Mobile `env.json` has the Render URL in `REPLIT_API_BASE`
 - [ ] APK built **with `--dart-define-from-file=env.json`**, installed on a real
       phone, and a login against the deployed backend succeeds
 - [ ] Backend woken up a few minutes before the demo

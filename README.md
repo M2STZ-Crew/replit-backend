@@ -78,6 +78,4 @@ app/integrations/   Supabase, Semaphore, Didit, Brevo, FCM, DeepSeek clients
 app/realtime/       WebSocket manager + event broadcasting
 supabase/migrations 21 SQL migrations — the authoritative schema
 admin-web/          Admin Console (React 18 + Vite) — Admin only, deployed separately
-observer-web/       Observer Console (React 18 + Vite) — Police, Medical and Barangay
-                    team captains, deployed separately (see observer-web/README.md)
 ```

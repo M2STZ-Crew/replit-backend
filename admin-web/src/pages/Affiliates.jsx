@@ -184,10 +184,7 @@ function Network({ orgs, onOpen }) {
                 </th>
                 <td>{agencyLabel(o.agency_type)}</td>
                 <td>
-                  <span title={auth.key === 'observer'
-                    ? 'Sees incidents that requested this agency; cannot acknowledge or dispatch.'
-                    : 'Acknowledges and dispatches on incidents.'}
-                  >
+                  <span title={auth.note ?? undefined}>
                     {auth.label}
                   </span>
                 </td>

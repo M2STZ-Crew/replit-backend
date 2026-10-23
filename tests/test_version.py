@@ -49,7 +49,6 @@ def test_every_surface_declares_the_same_version() -> None:
         "pyproject.toml": _pyproject_version(),
         "app/core/config.py": _settings_default(),
         "admin-web/package.json": _package_version("admin-web"),
-        "observer-web/package.json": _package_version("observer-web"),
     }
     assert len(set(declared.values())) == 1, f"versions disagree: {declared}"
 

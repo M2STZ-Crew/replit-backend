@@ -8,30 +8,19 @@ export const AuthContext = createContext(null);
 
 /// Roles admitted to this console.
 ///
-/// Master Context v10 (Sections 2.6 and 3.1) gives each surface one audience:
-/// the Admin Console is Admin's; coordinators (Fire Volunteer and BFP team
-/// captains) run the response from the mobile app, where verification now
-/// happens; observers (Police, Medical, Barangay) have the Observer Console.
+/// Each surface has one audience (PRD v14 §4.6.1): the Admin Console is the
+/// Admins'; every organisation's Coordinators and Responders work from the
+/// mobile app. There is no Observer Console any more.
 const CONSOLE_ROLES = ['admin'];
 
 export function isConsoleRole(role) {
   return CONSOLE_ROLES.includes(role);
 }
 
-/// Where the Observer Console lives, for the message shown to an observer who
-/// signs in here. Set VITE_OBSERVER_URL in admin-web/.env once it is deployed.
-const OBSERVER_URL = import.meta.env.VITE_OBSERVER_URL || 'http://localhost:5174';
-
 /// Why someone was turned away, in terms of where they should go instead.
 function refusalFor(me) {
-  if (me?.role === 'sub_admin' && OBSERVER_AGENCIES.includes(me?.agency_type)) {
-    return (
-      `${agencyLabel(me.agency_type)} team captains use the Observer Console at ` +
-      `${OBSERVER_URL}.`
-    );
-  }
   if (me?.role === 'sub_admin') {
-    return 'Fire Volunteer and BFP team captains coordinate from the RepLiT mobile app.';
+    return 'Coordinators work from the RepLiT mobile app. This console is for Admins.';
   }
   return 'This console is for Admins. Response Teams and residents use the mobile app.';
 }
@@ -40,11 +29,11 @@ function refusalFor(me) {
 /// app/services/incident.py — keep the two in step.
 const COORDINATING_AGENCIES = ['fire_volunteer', 'bfp'];
 
-/// Police, medical and barangay take part for situational awareness only
-/// (Section 2.6.1). Their team captains work from the Observer Console, where
-/// the one action they have is Accept. Mirrors OBSERVER_AGENCIES in
-/// app/services/incident.py and observer-web/src/auth.jsx.
-const OBSERVER_AGENCIES = ['police', 'medical', 'barangay'];
+/// Police, medical and barangay organisations acknowledge the incidents that
+/// asked for them and follow them; the server leaves rejecting, going, fire
+/// out and the report to the fire agencies. Mirrors OBSERVER_AGENCIES in
+/// app/services/incident.py (a name the server keeps for now).
+const ACKNOWLEDGING_AGENCIES = ['police', 'medical', 'barangay'];
 
 /// Standing of an agency itself, independent of any one account. The directory
 /// screens list organisations and personnel side by side, and a police station
@@ -52,12 +41,22 @@ const OBSERVER_AGENCIES = ['police', 'medical', 'barangay'];
 /// it carries is spelled out.
 export function agencyAuthority(agency) {
   if (COORDINATING_AGENCIES.includes(agency)) {
-    return { key: 'coordinator', label: 'Coordinator', color: '#FF9066' };
+    return {
+      key: 'responds',
+      label: 'Runs the response',
+      color: '#FF9066',
+      note: 'Acknowledges, goes to the scene, marks fire out and files the report.',
+    };
   }
-  if (OBSERVER_AGENCIES.includes(agency)) {
-    return { key: 'observer', label: 'Observer', color: '#6098D6' };
+  if (ACKNOWLEDGING_AGENCIES.includes(agency)) {
+    return {
+      key: 'acknowledges',
+      label: 'Acknowledges',
+      color: '#6098D6',
+      note: 'Acknowledges the incidents that asked for this agency, and follows them.',
+    };
   }
-  return { key: 'unknown', label: '—', color: '#8a8a8a' };
+  return { key: 'unknown', label: '—', color: '#8a8a8a', note: null };
 }
 
 /// Human label for an agency, used where the console explains someone's standing.
