@@ -114,6 +114,16 @@ function Console() {
     return () => window.removeEventListener(OPEN_INCIDENT_EVENT, open);
   }, [go]);
 
+  // An address typed or edited by hand (#/water) opens that page.
+  useEffect(() => {
+    const follow = () => {
+      setActive(destinationFromHash());
+      setFocusId(null);
+    };
+    window.addEventListener('hashchange', follow);
+    return () => window.removeEventListener('hashchange', follow);
+  }, []);
+
   // The other pages, fetched once the browser is idle after the first screen.
   useEffect(() => {
     const prefetch = () => Object.values(PAGES).forEach((load) => load().catch(() => {}));
