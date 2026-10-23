@@ -1,4 +1,5 @@
 import { AGENCY_LABEL, ago } from '../../lib/status.js';
+import Place from '../Place.jsx';
 import { RAIL_BELOW, useMedia } from '../../lib/useMedia.js';
 import Icon from '../ui/Icon.jsx';
 import LifecycleChip from './LifecycleChip.jsx';
@@ -11,19 +12,14 @@ import LifecycleChip from './LifecycleChip.jsx';
  * The design's "Your org" column (Routed to you / View only) waits on the
  * server routing Areas per Admin organisation; today every Admin may act on
  * every Area, so the column would say the same thing on every row and is not
- * drawn. The address line is the degrees until the server stores
- * resolved_address (PRD v13 §4.10).
+ * drawn. The address line is the street, looked up by the console until
+ * the server stores resolved_address (PRD v13 §4.10), beside the degrees.
  *
  * Below 1280 px, beside the rail, the rows stack as cards (A85). */
 
 const BAND = { high: 'High', medium: 'Medium', low: 'Low' };
 
 const LOADED = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' });
-
-export function degrees(lat, lng) {
-  if (lat == null || lng == null) return 'Location unknown';
-  return `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(4)}° ${lng >= 0 ? 'E' : 'W'}`;
-}
 
 export function agenciesOf(inc) {
   const list = (inc.requested_agencies ?? []).map((a) => AGENCY_LABEL[a] ?? a);
@@ -58,7 +54,7 @@ function IncidentCards({ incidents, isNew, selectedId, onOpen, loading, emptyMes
                   {inc.designation}
                   {unread && <span className="web-sr-only">, new since you last looked</span>}
                 </span>
-                <span className="ad-cell-meta">{degrees(inc.centroid_lat, inc.centroid_lng)} · {agenciesOf(inc)}</span>
+                <span className="ad-cell-meta"><Place lat={inc.centroid_lat} lng={inc.centroid_lng} /> · {agenciesOf(inc)}</span>
               </span>
             </div>
             <dl className="ad-incident-card-stats">
@@ -128,7 +124,7 @@ export default function IncidentTable({
                         {inc.designation}
                         {unread && <span className="web-sr-only">, new since you last looked</span>}
                       </span>
-                      <span className="ad-cell-meta">{degrees(inc.centroid_lat, inc.centroid_lng)}</span>
+                      <span className="ad-cell-meta"><Place lat={inc.centroid_lat} lng={inc.centroid_lng} /></span>
                     </span>
                   </span>
                 </th>

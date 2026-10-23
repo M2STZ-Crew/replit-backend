@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client.js';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import { ConfirmDialog, EmptyState, Icon, PageHeader, StatePanel } from '../components/ui/index.js';
+import ZoomablePhoto from '../components/ui/ZoomablePhoto.jsx';
 
 /* ID reviews (REPLIT (MAIN) 10 · A50 875:7972, A51 875:8156; Section 2.1
  * Tier 2, Section 2.6): National ID submissions the automatic check sent to
@@ -138,7 +139,6 @@ export default function IdReview() {
 /* A hidden photo (A51): nothing is fetched or drawn until Show is pressed. */
 function Photo({ label, url }) {
   const [shown, setShown] = useState(false);
-  const [zoom, setZoom] = useState(false);
 
   if (!url) {
     return (
@@ -165,19 +165,11 @@ function Photo({ label, url }) {
     <figure className="ad-idr-photo is-shown">
       {/* Identity documents are small and detailed; a thumbnail is not enough
           to judge one against a selfie. */}
-      <button type="button" className="ad-idr-image-button" onClick={() => setZoom(true)} aria-label={`Enlarge the ${label}`}>
-        <img src={url} alt={label} className="ad-idr-image" />
-      </button>
+      <ZoomablePhoto src={url} alt={label} caption={label} className="ad-idr-image-button" imageClassName="ad-idr-image" />
       <figcaption className="ad-idr-caption">
         {label}
         <button type="button" className="ad-text-button" onClick={() => setShown(false)}>Hide</button>
       </figcaption>
-      {zoom && (
-        <div className="ad-idr-lightbox" role="dialog" aria-label={label} onClick={() => setZoom(false)}>
-          <img src={url} alt={label} />
-          <button type="button" className="ad-button ad-button--secondary" onClick={() => setZoom(false)} autoFocus>Close</button>
-        </div>
-      )}
     </figure>
   );
 }

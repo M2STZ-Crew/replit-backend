@@ -8,6 +8,7 @@ import { CLUSTER_RADIUS_M } from '../components/incidents/AreaMap.jsx';
 import { agenciesOf, confidenceOf } from '../components/incidents/IncidentTable.jsx';
 import LifecycleChip from '../components/incidents/LifecycleChip.jsx';
 import { MARKER_KINDS, markerIcon } from '../components/map/markers.js';
+import Place from '../components/Place.jsx';
 import Icon from '../components/ui/Icon.jsx';
 import { useLiveFeed } from '../live/LiveFeed.jsx';
 import { AGENCY_LABEL, statusOf } from '../lib/status.js';
@@ -47,6 +48,7 @@ const SOURCES = [
 function Selected({ inc, onClose, onOpen }) {
   const first = (inc.accepted_agencies ?? []).map((a) => AGENCY_LABEL[a] ?? a);
   const facts = [
+    ['Location', <Place lat={inc.centroid_lat} lng={inc.centroid_lng} stacked />],
     ['Acknowledged', inc.verified_at ? `${first.join(' · ') || 'Yes'} · ${CLOCK.format(new Date(inc.verified_at))}` : 'Not yet'],
     ['Requested', agenciesOf(inc)],
     ['Reports', `${inc.report_count} · ${confidenceOf(inc)}`],

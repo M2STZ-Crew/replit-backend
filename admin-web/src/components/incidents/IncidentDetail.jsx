@@ -1,7 +1,9 @@
 import { AGENCY_LABEL, OFF_FEED, alarmLabel, statusOf } from '../../lib/status.js';
+import Place from '../Place.jsx';
 import { ConfirmDialog } from '../ui/index.js';
+import ZoomablePhoto from '../ui/ZoomablePhoto.jsx';
 import AreaMap from './AreaMap.jsx';
-import { agenciesOf, confidenceOf, degrees } from './IncidentTable.jsx';
+import { agenciesOf, confidenceOf } from './IncidentTable.jsx';
 import LifecycleChip from './LifecycleChip.jsx';
 import LifecycleProgress from './LifecycleProgress.jsx';
 
@@ -9,8 +11,9 @@ import LifecycleProgress from './LifecycleProgress.jsx';
  * 867:2662, A26 868:2888): the map and its progress with the facts, beside
  * the decision this organisation can take and the timeline.
  *
- * What is drawn is what the server returns. Left out until it serves them:
- * the resolved street address (the degrees stand in), the fire type, the
+ * What is drawn is what the server returns, with the street looked up by
+ * the console beside the degrees (components/Place.jsx) until the server
+ * stores it. Left out until it serves them: the fire type, the
  * safety roll call and help alerts (A26), and "Send a request for this
  * Area" (Admin-to-Admin requests). */
 
@@ -26,7 +29,7 @@ const clockS = (iso) => (iso ? CLOCK_S.format(new Date(iso)) : '—');
 function timelineOf(d, evidence) {
   const items = [];
   const push = (at, title, sub, tone) => at && items.push({ at, title, sub, tone });
-  push(d.reported_at, `${d.designation} created`, `First report, ${degrees(d.centroid_lat, d.centroid_lng)}`, 'live');
+  push(d.reported_at, `${d.designation} created`, <>First report, <Place lat={d.centroid_lat} lng={d.centroid_lng} /></>, 'live');
   const later = (evidence ?? []).slice(1);
   if (later.length) {
     const last = later.reduce((a, r) => (new Date(r.created_at) > new Date(a.created_at) ? r : a), later[0]);
@@ -165,7 +168,7 @@ export default function IncidentDetail({
     ['Confidence', `${confidenceOf(d)} (${d.report_count} report${d.report_count === 1 ? '' : 's'})`],
     ...(d.alarm_level ? [['Alarm level', `${alarmLabel(d.alarm_level)}${d.alarm_level_set_at ? ' · set by BFP' : ''}`]] : []),
     ...(onScene ? [['Units', active.length ? active.map((x) => x.vehicle_name || x.responder_name).join(' · ') : 'None assigned']] : []),
-    ['Location', degrees(d.centroid_lat, d.centroid_lng)],
+    ['Location', <Place lat={d.centroid_lat} lng={d.centroid_lng} stacked />],
     ['First report', `${clock(d.reported_at)}${firstReport ? ` · ${firstReport.user_verified_percent ?? 0}% verified reporter` : ''}`],
     ['Organisations involved', involved(d)],
   ];
@@ -252,7 +255,14 @@ export default function IncidentDetail({
             {evidence.map((r) => (
               <li key={r.id} className="ad-evidence-item">
                 {r.photo_url
-                  ? <img className="ad-evidence-photo" src={r.photo_url} alt={`Scene reported by ${r.reporter_name || 'a resident'}`} />
+                  ? (
+                    <ZoomablePhoto
+                      src={r.photo_url}
+                      alt={`the scene reported by ${r.reporter_name || 'a resident'}`}
+                      caption={`${r.reporter_name || 'A resident'} · ${clock(r.created_at)} · ${d.designation}`}
+                      imageClassName="ad-evidence-photo"
+                    />
+                  )
                   : <span className="ad-evidence-photo is-missing">No photo</span>}
                 <span className="ad-cell-text">
                   <span className="ad-cell-title">{r.reporter_name || 'Unnamed reporter'}</span>
@@ -261,6 +271,7 @@ export default function IncidentDetail({
                     {r.gps_discrepancy_flag ? ' · photo GPS disagrees with the phone' : ''}
                     {!r.has_exif ? ' · no photo GPS' : ''}
                   </span>
+                  <span className="ad-cell-meta"><Place lat={r.device_lat} lng={r.device_lng} /></span>
                   {r.notes && <span className="ad-evidence-note">“{r.notes}”</span>}
                 </span>
               </li>

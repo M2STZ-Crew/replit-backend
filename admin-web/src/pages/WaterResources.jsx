@@ -5,8 +5,10 @@ import { MapContainer, Marker, TileLayer, ZoomControl } from 'react-leaflet';
 
 import { api } from '../api/client.js';
 import { markerIcon } from '../components/map/markers.js';
+import Place from '../components/Place.jsx';
 import Icon from '../components/ui/Icon.jsx';
 import { ConfirmDialog, EmptyState, PageHeader, StatePanel, StatusChip } from '../components/ui/index.js';
+import { degrees, knownAddress } from '../lib/place.js';
 import { TILE_MAX_ZOOM, TILE_URL } from '../map/tiles.js';
 
 /* Water resources (REPLIT (MAIN) 10 · A32 871:4044 list, A33 871:4382 map
@@ -48,12 +50,11 @@ function nameOf(row) {
   return label ? `${label} · ${singular}` : singular;
 }
 
-function degrees(lat, lng) {
-  if (lat == null || lng == null) return '';
-  return `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(4)}° ${lng >= 0 ? 'E' : 'W'}`;
-}
-
-const placeOf = (row) => row.address || degrees(row.latitude, row.longitude);
+// For search: the record's own address, else the street looked up for it
+// (once known), else the degrees.
+const placeOf = (row) => row.address
+  || knownAddress(row.latitude, row.longitude)
+  || degrees(row.latitude, row.longitude);
 
 const WHEN = new Intl.DateTimeFormat('en-PH', {
   timeZone: 'Asia/Manila', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
@@ -81,7 +82,7 @@ function Detail({ row, onClose, onDelete, floating = false }) {
   const facts = [
     ['Status', <StatusChip key="s" label={status.label} tone={status.tone} />],
     [checked.title, checked.at ?? '—'],
-    ['Location', placeOf(row)],
+    ['Location', <Place lat={row.latitude} lng={row.longitude} address={row.address} stacked />],
   ];
   if (row.kind === 'hydrant') {
     facts.push(['BFP status', STATUS[row.bfp_status]?.label ?? '—']);
@@ -278,7 +279,7 @@ export default function WaterResources() {
                             </span>
                             <span className="ad-cell-text">
                               <span className="ad-cell-title">{nameOf(r)}</span>
-                              <span className="ad-cell-meta">{placeOf(r)}</span>
+                              <span className="ad-cell-meta"><Place lat={r.latitude} lng={r.longitude} address={r.address} /></span>
                             </span>
                           </span>
                         </th>

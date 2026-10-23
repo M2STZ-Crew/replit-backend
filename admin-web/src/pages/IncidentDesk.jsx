@@ -3,11 +3,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client.js';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import IncidentDetail from '../components/incidents/IncidentDetail.jsx';
-import IncidentTable, { degrees } from '../components/incidents/IncidentTable.jsx';
+import IncidentTable from '../components/incidents/IncidentTable.jsx';
 import OverlapReview from '../components/incidents/OverlapReview.jsx';
 import Icon from '../components/ui/Icon.jsx';
 import { EmptyState, PageHeader, StatePanel } from '../components/ui/index.js';
 import { useLiveFeed, useSurfaceVisit } from '../live/LiveFeed.jsx';
+import { degrees, knownAddress } from '../lib/place.js';
 import { AGENCY_LABEL } from '../lib/status.js';
 
 /* Incidents (REPLIT (MAIN) 10 · A22 865:2061, A23–A28, A80–A82, A84).
@@ -120,7 +121,7 @@ export default function IncidentDesk({ focusId = null }) {
       if (tab === 'active' && status !== 'all' && status !== 'post_incident_report' && inc.status !== status) return false;
       if (agency !== 'any' && !(inc.requested_agencies ?? []).includes(agency)) return false;
       if (band !== 'any' && inc.confidence_band !== band) return false;
-      if (term && !`${inc.designation} ${degrees(inc.centroid_lat, inc.centroid_lng)}`.toLowerCase().includes(term)) return false;
+      if (term && !`${inc.designation} ${knownAddress(inc.centroid_lat, inc.centroid_lng) ?? ''} ${degrees(inc.centroid_lat, inc.centroid_lng)}`.toLowerCase().includes(term)) return false;
       return true;
     });
   }, [source, tab, status, agency, band, query]);

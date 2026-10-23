@@ -191,6 +191,15 @@ if (import.meta.env.DEV) {
       return json(status ? fixtures.alarmRequests.filter((r) => r.status === status) : fixtures.alarmRequests);
     }
     if (pathname === '/admin/verifications/pending') return json(fixtures.verifications);
+    const areaEvidence = pathname.match(/^\/incidents\/([^/]+)\/reports$/);
+    if (areaEvidence) {
+      const area = fixtures.incidents.find((i) => i.id === areaEvidence[1]);
+      if (!area) return json([]);
+      return json([
+        { id: id(900), reporter_id: id(61), reporter_name: 'Example Resident', photo_url: placeholder('Example scene photo'), device_lat: area.centroid_lat + 0.0002, device_lng: area.centroid_lng - 0.0001, has_exif: true, gps_discrepancy_flag: false, user_verified_percent: 60, selected_agencies: area.requested_agencies, notes: 'Fictional example: smoke from a second floor.', created_at: area.reported_at },
+        { id: id(901), reporter_id: id(62), reporter_name: 'Sample Neighbour', photo_url: null, device_lat: area.centroid_lat - 0.0001, device_lng: area.centroid_lng + 0.0002, has_exif: false, gps_discrepancy_flag: false, user_verified_percent: 10, selected_agencies: area.requested_agencies, notes: null, created_at: area.updated_at },
+      ]);
+    }
     if (pathname === '/post-incident-reports') {
       const offset = Number(searchParams.get('offset') || 0);
       const limit = Number(searchParams.get('limit') || 50);

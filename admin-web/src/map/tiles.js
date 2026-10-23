@@ -23,6 +23,9 @@ const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
 export const hasMapboxToken = TOKEN.startsWith('pk.');
 
+/// The same public token, for the street-address lookups (lib/place.js).
+export const mapboxToken = hasMapboxToken ? TOKEN : '';
+
 /// `dark-v11` is Mapbox's dark style, which is what the design draws its maps
 /// on. Raster rather than vector: the console already renders with Leaflet, and
 /// swapping to Mapbox GL JS would mean a second map engine in the bundle for a
