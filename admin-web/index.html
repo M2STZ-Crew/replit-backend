@@ -5,15 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RepLiT Admin</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Inter is served from this site (public/fonts, SIL OFL), so the first
+         paint waits on no other host. The Latin face is preloaded: it is on
+         every screen. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="/fonts/inter-v20-latin-wght.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
+    <script>
+      // The stored ground before the first paint (src/theme.js applies the
+      // same choice again once the app loads).
+      try {
+        var theme = localStorage.getItem('replit.theme') === 'light' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      } catch (e) {}
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- What shows while the app's script loads: the same screen the app
+         shows while it checks the session (StartupLoading). React replaces it
+         when it renders, so the page paints before any script runs. -->
+    <div id="root">
+      <main class="ad-startup" aria-busy="true">
+        <img class="ad-startup-mark" src="/icons/auth-mark.svg" alt="" width="44" height="62" />
+        <p class="ad-startup-title" role="status">Opening the Admin console…</p>
+      </main>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
