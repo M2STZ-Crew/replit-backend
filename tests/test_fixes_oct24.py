@@ -3,9 +3,8 @@
 What these pin:
 - a fire alerts only the neighbours whose last known location is within
   150 m of it (PRD v13/v14 §4.2), not the 300 m the server used before;
-- an alarm request BFP has not answered can be cancelled, and any it did not
-  approve deleted, by whoever asked, an Admin of their organisation or the
-  system Admin — nobody else; an approved one stays as the record;
+- who may take back an alarm request (the routes themselves are pinned in
+  tests/test_alarm_escalation.py);
 - a risk zone carries the circle the Admin sets, 150 m until then.
 
 Routes are called directly against small in-memory fakes.
@@ -16,16 +15,12 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID, uuid4
 
-import asyncpg
 import pytest
 from pydantic import ValidationError
 
 from app.api.routes import alarm_requests, map_layers_admin
-from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
-from app.schemas.alarm import AlarmReviewRequest
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.map_layer import RiskZoneCreate, RiskZoneResponse, RiskZoneUpdate
-from app.services.audit import match_audit_rule
 from app.workers import neighborhood
 
 FIRE_ORG = uuid4()
@@ -88,46 +83,6 @@ def _system_admin() -> AuthenticatedUser:
     return AuthenticatedUser(id=uuid4(), role="admin", full_name="System Administrator")
 
 
-class _RequestDb:
-    """One alarm request, asked by ``asker`` of ``asker_org``."""
-
-    def __init__(
-        self, asker: UUID, asker_org: UUID | None, status: str = "pending", *,
-        enum_ready: bool = True,
-    ) -> None:
-        self.row: dict[str, Any] | None = {
-            "status": status, "requested_by": asker, "requester_org": asker_org,
-        }
-        self.enum_ready = enum_ready
-        self.writes: list[str] = []
-
-    async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
-        if query.lstrip().startswith("select"):
-            return self.row
-        self.writes.append(query)
-        if not self.enum_ready:
-            raise asyncpg.InvalidTextRepresentationError(
-                'invalid input value for enum request_status: "cancelled"'
-            )
-        if self.row is None or self.row["status"] != "pending":
-            return None
-        self.row["status"] = "cancelled"
-        return {
-            "id": args[0], "area_id": uuid4(), "requested_by": self.row["requested_by"],
-            "requested_alarm_level": "second_alarm", "justification": None,
-            "status": "cancelled", "reviewed_by": args[1], "reviewed_at": None,
-            "review_notes": args[2], "executed_at": None,
-            "created_at": "2026-10-18T09:00:00Z", "updated_at": "2026-10-24T09:00:00Z",
-        }
-
-    async def fetchval(self, query: str, *args: Any) -> Any:
-        self.writes.append(query)
-        if self.row is None or self.row["status"] == "approved":
-            return None
-        self.row = None
-        return args[0]
-
-
 def test_who_may_withdraw_a_request() -> None:
     asker = _coordinator()
     may = alarm_requests._may_withdraw
@@ -139,80 +94,6 @@ def test_who_may_withdraw_a_request() -> None:
     assert not may(_coordinator(), asker.id, FIRE_ORG), "another Coordinator"
     assert not may(_org_admin(), asker.id, None), "an asker with no organisation"
 
-
-async def test_a_pending_request_is_cancelled() -> None:
-    asker = _coordinator()
-    db = _RequestDb(asker.id, FIRE_ORG)
-    got = await alarm_requests.cancel_alarm_request(
-        uuid4(), AlarmReviewRequest(notes="Fire is under control"), asker, db  # type: ignore[arg-type]
-    )
-    assert got.status == "cancelled"
-    assert got.reviewed_by == asker.id
-    assert "status = 'pending'" in db.writes[0], "never over an answer"
-
-
-async def test_an_answered_request_cannot_be_cancelled() -> None:
-    asker = _coordinator()
-    with pytest.raises(ConflictError):
-        await alarm_requests.cancel_alarm_request(
-            uuid4(), AlarmReviewRequest(), asker, _RequestDb(asker.id, FIRE_ORG, "rejected")  # type: ignore[arg-type]
-        )
-
-
-async def test_someone_else_cannot_cancel_or_delete() -> None:
-    db = _RequestDb(uuid4(), FIRE_ORG)
-    with pytest.raises(ForbiddenError):
-        await alarm_requests.cancel_alarm_request(
-            uuid4(), AlarmReviewRequest(), _org_admin(OTHER_ORG), db  # type: ignore[arg-type]
-        )
-    with pytest.raises(ForbiddenError):
-        await alarm_requests.delete_alarm_request(uuid4(), _org_admin(OTHER_ORG), db)  # type: ignore[arg-type]
-    assert db.writes == []
-
-
-async def test_cancel_before_the_migration_says_to_delete_instead() -> None:
-    asker = _coordinator()
-    with pytest.raises(ConflictError) as exc:
-        await alarm_requests.cancel_alarm_request(
-            uuid4(), AlarmReviewRequest(), asker,
-            _RequestDb(asker.id, FIRE_ORG, enum_ready=False),  # type: ignore[arg-type]
-        )
-    assert "Delete the request" in exc.value.message
-
-
-@pytest.mark.parametrize("status", ["pending", "rejected", "cancelled"])
-async def test_a_request_bfp_did_not_approve_can_be_deleted(status: str) -> None:
-    asker = _coordinator()
-    db = _RequestDb(asker.id, FIRE_ORG, status)
-    resp = await alarm_requests.delete_alarm_request(uuid4(), _org_admin(), db)  # type: ignore[arg-type]
-    assert resp.status_code == 204
-    assert db.row is None
-    assert "status <> 'approved'" in db.writes[0], "never an approval, even in a race"
-
-
-async def test_an_approved_request_stays() -> None:
-    asker = _coordinator()
-    db = _RequestDb(asker.id, FIRE_ORG, "approved")
-    with pytest.raises(ConflictError):
-        await alarm_requests.delete_alarm_request(uuid4(), _system_admin(), db)  # type: ignore[arg-type]
-    assert db.row is not None and db.writes == []
-
-
-async def test_a_missing_request_is_not_found() -> None:
-    db = _RequestDb(uuid4(), FIRE_ORG)
-    db.row = None
-    with pytest.raises(NotFoundError):
-        await alarm_requests.delete_alarm_request(uuid4(), _system_admin(), db)  # type: ignore[arg-type]
-
-
-def test_cancel_and_delete_are_audited() -> None:
-    rid = uuid4()
-    assert match_audit_rule("POST", f"/alarm-requests/{rid}/cancel") == (
-        "alarm.cancel", "alarm_request", rid, False,
-    )
-    assert match_audit_rule("DELETE", f"/alarm-requests/{rid}") == (
-        "alarm.delete", "alarm_request", rid, False,
-    )
 
 
 # --------------------------------------------------------------------------- #

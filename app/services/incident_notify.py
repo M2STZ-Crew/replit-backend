@@ -23,6 +23,7 @@ from uuid import UUID
 from app.core.logging import get_logger
 from app.db.session import Database
 from app.integrations.fcm import PushService, SoundCategory, sound_for_agency
+from app.schemas.alarm import AlarmRequestResponse, alarm_label
 from app.services.incident import COORDINATING_AGENCIES, OBSERVER_AGENCIES
 from app.services.notification_inbox import record_inbox
 from app.services.verifier import fetch_verifier
@@ -365,12 +366,29 @@ async def notify_route_recipients(
     return len(captain_ids)
 
 
+def _area_called(designation: str | None, fallback: str) -> str:
+    """"Area 1.2" for a designation (older rows already carry the word), else
+    [fallback]."""
+    text = (designation or "").strip()
+    if not text:
+        return fallback
+    return text if text.lower().startswith("area") else f"Area {text}"
+
+
 async def notify_bfp_alarm_request(
-    db: Database, area_id: UUID, requested_by: UUID, requested_alarm_level: str
+    db: Database,
+    area_id: UUID,
+    requested_by: UUID,
+    requested_alarm_level: str,
+    *,
+    request_id: UUID | None = None,
+    organization: str | None = None,
 ) -> int:
     """Inbox + push the BFP sub-admins when an alarm escalation is requested.
 
-    Best-effort. Returns the number of BFP sub-admins notified.
+    Best-effort. Returns the number of BFP sub-admins notified. The push names
+    the request, so a tap opens it; its tag is the Area's, so a newer request
+    for the same Area replaces the older one in the shade rather than stacking.
     """
     designation = await db.fetchval(
         "select designation from public.areas where id = $1", area_id
@@ -378,20 +396,26 @@ async def notify_bfp_alarm_request(
     requester = await db.fetchval(
         "select full_name from public.users where id = $1", requested_by
     )
-    level_label = requested_alarm_level.replace("_", " ").title()
+    level_label = alarm_label(requested_alarm_level)
+    # A BFP Coordinator who asked is not alerted by their own request.
     bfp_rows = await db.fetch(
-        "select id from public.users where role = 'sub_admin' and agency_type = 'bfp'"
+        "select id from public.users "
+        "where role = 'sub_admin' and agency_type = 'bfp' and id <> $1",
+        requested_by,
     )
     bfp_ids = [r["id"] for r in bfp_rows]
     if not bfp_ids:
         return 0
 
     title = "Alarm escalation requested"
-    body = (
-        f"{requester or 'A responder'} requested {level_label} for "
-        f"{designation or 'an incident'}."
-    )
-    await record_inbox(db, bfp_ids, "alarm_request", title, body, {"area_id": str(area_id)})
+    who = requester or "A responder"
+    if organization:
+        who = f"{who} ({organization})"
+    body = f"{who} asked for {level_label} on {_area_called(designation, 'an incident')}."
+    data = {"type": "alarm_request", "area_id": str(area_id)}
+    if request_id is not None:
+        data["request_id"] = str(request_id)
+    await record_inbox(db, bfp_ids, "alarm_request", title, body, dict(data))
 
     token_rows = await db.fetch(
         "select fcm_token from public.device_tokens "
@@ -405,7 +429,7 @@ async def notify_bfp_alarm_request(
             tokens=tokens,
             title=title,
             body=body,
-            data={"type": "alarm_request", "area_id": str(area_id)},
+            data=data,
             # A fire getting bigger: the alarm, like a new one.
             sound="fire",
             tag=f"alarm-{area_id}",
@@ -418,3 +442,58 @@ async def notify_bfp_alarm_request(
             )
     log.info("bfp_alarm_request_notified", area_id=str(area_id), bfp=len(bfp_ids))
     return len(bfp_ids)
+
+
+async def notify_alarm_request_answered(db: Database, request: AlarmRequestResponse) -> int:
+    """Tell whoever asked for the alarm what BFP decided (inbox + push).
+
+    The phone's own tone, not the alarm: it is an answer, not a new fire. The
+    push names the Area, so a tap opens its LIVE screen, and its tag is the
+    request's, so a repeat never stacks. Best-effort; returns the devices sent to.
+    """
+    if request.status not in ("approved", "rejected"):
+        return 0
+    area = _area_called(request.area_designation, "The incident")
+    level = alarm_label(request.requested_alarm_level)
+    if request.status == "approved":
+        title = "BFP raised the alarm"
+        body = f"{area} is now at {level}, as you asked."
+    else:
+        title = "BFP declined your alarm request"
+        body = f"{area} stays as it is."
+        if request.review_notes:
+            body = f"{body} {request.review_notes}"
+    data = {
+        "type": "alarm_request_answered",
+        "area_id": str(request.area_id),
+        "request_id": str(request.id),
+        "status": request.status,
+    }
+    await record_inbox(db, [request.requested_by], "alarm_request_answered", title, body, data)
+    token_rows = await db.fetch(
+        "select fcm_token from public.device_tokens where user_id = $1 and is_active",
+        request.requested_by,
+    )
+    tokens = [t["fcm_token"] for t in token_rows]
+    if not tokens:
+        return 0
+    result = await PushService().send_to_tokens(
+        tokens=tokens,
+        title=title,
+        body=body,
+        data=data,
+        tag=f"alarm-answer-{request.id}",
+    )
+    if result.invalid_tokens:
+        await db.execute(
+            "update public.device_tokens set is_active = false "
+            "where fcm_token = any($1::text[])",
+            result.invalid_tokens,
+        )
+    log.info(
+        "alarm_request_answer_notified",
+        request_id=str(request.id),
+        status=request.status,
+        devices=len(tokens),
+    )
+    return len(tokens)

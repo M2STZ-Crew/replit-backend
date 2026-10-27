@@ -87,12 +87,14 @@ def _facts(*, report: bool = True) -> dict[str, Any]:
 def test_match_audit_rule() -> None:
     """Curated paths map to actions/entities; others return None."""
     request_id = uuid4()
-    matched = match_audit_rule("POST", f"/alarm-requests/{request_id}/execute")
+    matched = match_audit_rule("POST", f"/admin/verifications/{request_id}/approve")
     assert matched is not None
     action, entity_type, entity_id, is_area = matched
-    assert action == "alarm.execute"
-    assert entity_type == "alarm_request"
+    assert action == "kyc.approve"
+    assert entity_type == "user_verification"
     assert entity_id == request_id
+    # Alarm requests write their own rows now (tests/test_alarm_escalation.py).
+    assert match_audit_rule("POST", f"/alarm-requests/{request_id}/execute") is None
     assert is_area is False
 
     user_create = match_audit_rule("POST", "/admin/users")

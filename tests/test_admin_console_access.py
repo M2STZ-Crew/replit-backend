@@ -370,7 +370,17 @@ def test_fire_volunteers_ask_and_bfp_decides() -> None:
 
 async def test_the_bfp_admin_is_told_plainly_before_the_migration() -> None:
     class _Db:
+        @asynccontextmanager
+        async def acquire(self) -> AsyncIterator[_Db]:
+            yield self
+
+        @asynccontextmanager
+        async def transaction(self) -> AsyncIterator[None]:
+            yield
+
         async def fetchrow(self, query: str, *args: Any) -> dict[str, Any]:
+            if "from public.areas" in query:
+                return {"status": "en_route", "alarm_level": None, "designation": "1.2"}
             return {"area_id": AREA, "lvl": "second_alarm", "status": "pending"}
 
         async def execute(self, query: str, *args: Any) -> str:
@@ -378,7 +388,7 @@ async def test_the_bfp_admin_is_told_plainly_before_the_migration() -> None:
 
     with pytest.raises(ForbiddenError) as exc:
         await alarm_requests.execute_alarm_request(
-            uuid4(), AlarmReviewRequest(), _admin("bfp", name="BFP Pasay"), _Db()  # type: ignore[arg-type]
+            uuid4(), AlarmReviewRequest(), None, _admin("bfp", name="BFP Pasay"), _Db()  # type: ignore[arg-type]
         )
     assert "BFP Coordinator can set it" in exc.value.message
 

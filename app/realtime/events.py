@@ -55,6 +55,27 @@ async def broadcast_incident_event(detail: IncidentDetail, event_type: str) -> N
         await manager.broadcast(f"agency:{agency}", feed)
 
 
+async def broadcast_alarm_request(detail: dict[str, Any], event: str) -> None:
+    """An alarm escalation request was asked, answered or taken back.
+
+    To BFP's feed, so every open BFP queue (and the coordinator app's Queue)
+    updates without a refresh, and to the incident's channel, so the asker's
+    LIVE screen shows the answer. ``event`` is requested, approved, rejected,
+    cancelled or deleted; ``request`` is the request as the API returns it.
+    """
+    message = {
+        "type": "alarm_request",
+        "event": event,
+        "request_id": detail.get("id"),
+        "incident_id": detail.get("area_id"),
+        "status": detail.get("status"),
+        "request": detail,
+    }
+    await manager.broadcast("agency:bfp", message)
+    if detail.get("area_id"):
+        await manager.broadcast(f"incident:{detail['area_id']}", message)
+
+
 async def broadcast_responder_location(
     incident_id: UUID, responder_id: UUID, location: dict[str, Any]
 ) -> None:
