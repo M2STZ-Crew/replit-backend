@@ -706,6 +706,15 @@ async def test_the_queue_reads_waiting_first_and_a_bounded_history() -> None:
     assert db.args == ("pending", area, 200)
 
 
+async def test_my_requests_can_be_one_areas() -> None:
+    db = _ListDb()
+    me, area = _fv_coordinator(), uuid4()
+    await ar.my_alarm_requests(me, db, area)  # type: ignore[arg-type]
+    assert "a.requested_by = $1 and ($2::uuid is null or a.area_id = $2)" in db.query
+    assert "order by a.created_at desc" in db.query
+    assert db.args == (me.id, area)
+
+
 def test_an_unknown_status_is_refused_not_a_server_error() -> None:
     db = _ListDb()
     app.dependency_overrides[get_current_user] = _bfp_coordinator
