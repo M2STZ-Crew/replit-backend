@@ -40,7 +40,17 @@ _fcm_app: firebase_admin.App | None = None
 
 FcmState = Literal["unconfigured", "failed", "ready"]
 
-SoundCategory = Literal["fire", "police", "medical", "barangay", "citizen"]
+SoundCategory = Literal[
+    "fire",
+    "police",
+    "medical",
+    "barangay",
+    "citizen",
+    "verified",
+    "on_route",
+    "on_scene",
+    "fire_out",
+]
 
 # The channels the app creates (android/app/src/main/kotlin/.../MainActivity.kt)
 # and the recording each plays (res/raw/sound_<category>.mp3). Android picks
@@ -53,7 +63,13 @@ SOUND_CHANNELS: dict[SoundCategory, str] = {
     "medical": "alert_medical",
     "barangay": "alert_barangay",
     "citizen": "citizen_updates",
+    "verified": "citizen_verified_v1",
+    "on_route": "citizen_on_route_v1",
+    "on_scene": "citizen_on_scene_v1",
+    "fire_out": "citizen_fire_out_v1",
 }
+
+
 UPDATES_CHANNEL = "updates"
 SILENT_CHANNEL = "silent_ping"
 
@@ -231,7 +247,7 @@ def android_config(
         channel, file, phone_tone, urgent = SILENT_CHANNEL, None, False, True
     elif sound is not None:
         channel, file, phone_tone = SOUND_CHANNELS[sound], f"sound_{sound}", False
-        urgent = sound != "citizen"
+        urgent = sound in {"fire", "police", "medical", "barangay"}
     else:
         channel, file, phone_tone, urgent = UPDATES_CHANNEL, None, True, False
     return messaging.AndroidConfig(

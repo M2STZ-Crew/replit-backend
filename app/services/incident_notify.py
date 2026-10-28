@@ -159,6 +159,14 @@ _REPORTER_MESSAGES: dict[str, tuple[str, str]] = {
     ),
 }
 
+# Keep existing lifecycle triggers; only select a distinct sound for each event.
+_REPORTER_SOUNDS: dict[str, SoundCategory] = {
+    "incident_verified": "verified",
+    "incident_en_route": "on_route",
+    "incident_arrived": "on_scene",
+    "incident_resolved": "fire_out",
+}
+
 
 async def notify_incident_reporters(db: Database, area_id: UUID, event_type: str) -> int:
     """Push a lifecycle update to the citizens who reported ``area_id``.
@@ -219,7 +227,7 @@ async def notify_incident_reporters(db: Database, area_id: UUID, event_type: str
         title=title,
         body=body,
         data={"type": "incident_update", "area_id": str(area_id), "event": event_type},
-        sound="citizen",
+        sound=_REPORTER_SOUNDS.get(event_type, "citizen"),
         # One per incident in the shade: the latest news replaces the last.
         tag=f"report-{area_id}",
     )
