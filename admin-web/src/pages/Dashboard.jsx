@@ -171,7 +171,7 @@ function Console() {
       {/* The ringing Areas sit at the top of the page (A21); over the
           full-bleed map they sit above it instead. */}
       {flush && <AlarmBanner onOpen={(incidentId) => go('incidents', { incidentId })} />}
-      <div className={`db-scroll ad-scroll${flush ? ' db-scroll-flush' : ''}`}>
+      <div className={`db-scroll rpl-scroll${flush ? ' db-scroll-flush' : ''}`}>
         {!flush && <AlarmBanner onOpen={(incidentId) => go('incidents', { incidentId })} />}
         <Suspense fallback={<StatePanel kind="loading" title="Opening…" busy />}>
           <Destination active={active} focusId={focusId} focusTab={focusTab} go={go} />

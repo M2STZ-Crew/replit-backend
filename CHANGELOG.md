@@ -6,6 +6,38 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.17 — 31 October 2026 — The console survives an adblocker
+
+Admin console only, and only a rename; the version moves with it. Mobile stays
+v1.12.20. No migration.
+
+### Changes
+
+**Found**
+- **An adblocker blanked the console.** Filter lists hide elements by class name on
+  every site, and the console named its classes `ad-`, for Admin. 15 of those names
+  were on EasyList, among them `.ad-main` and `.ad-sidebar`. With both hidden only
+  the dark page background was left, with the app still running underneath and
+  nothing logged. `.ad-sidebar` alone left the sidebar missing.
+
+**Added or changed**
+- **The prefix is `rpl-`**: 337 class names, ids and the one CSS variable, 1,532 uses
+  in 47 files. Nothing else changed. A test fails if an `ad-` name comes back.
+
+### Verified
+
+- Undoing the rename on all 47 files gives back the previous commit exactly, and the
+  built CSS and HTML match it too.
+- Every generic hiding rule from EasyList, Fanboy, AdGuard and uBlock Origin (40,504)
+  ran as a selector on the live DOM of 13 console pages: no hits. The old names gave
+  8 on the Dashboard alone. Sign-in and Register: no hits from 14,126.
+- None of about 559,000 network rules from six lists matches the console's 85 built
+  files or its 49 API paths.
+- Backend: pytest, ruff; mypy reports only the existing `ai_summary.py:74`.
+- Not run with a real adblocker extension: the rules were applied by hand.
+
+---
+
 ## v1.12.16 — 31 October 2026 — Map editing, where it can be found
 
 Backend and Admin console. Mobile stays v1.12.20. No migration.

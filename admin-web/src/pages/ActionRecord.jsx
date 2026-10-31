@@ -106,33 +106,33 @@ export default function ActionRecord() {
   }, [rows, query, area, category]);
 
   return (
-    <div className="ad-page">
+    <div className="rpl-page">
       <PageHeader
         eyebrow={org?.name ?? 'Records'}
         title="Audit log"
         description="Append-only. Each entry keeps the actor’s role and agency as they were at the time."
         actions={(
-          <button type="button" className="ad-button ad-button--secondary" onClick={load} disabled={phase === 'loading'}>
+          <button type="button" className="rpl-button rpl-button--secondary" onClick={load} disabled={phase === 'loading'}>
             Refresh
           </button>
         )}
       />
 
-      <div className="ad-filters">
-        <label className="ad-search">
+      <div className="rpl-filters">
+        <label className="rpl-search">
           <Icon name="search" />
           <span className="web-sr-only">Search the audit log</span>
           <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search actions, areas, agencies" />
         </label>
-        <label className="ad-select">
-          <span className="ad-select-label">Area</span>
+        <label className="rpl-select">
+          <span className="rpl-select-label">Area</span>
           <select value={area} onChange={(e) => setArea(e.target.value)}>
             <option value="all">All areas</option>
             {areas.map((a) => <option key={a} value={a}>{a}</option>)}
           </select>
         </label>
-        <label className="ad-select">
-          <span className="ad-select-label">Action</span>
+        <label className="rpl-select">
+          <span className="rpl-select-label">Action</span>
           <select value={category} onChange={(e) => setCategory(e.target.value)}>
             <option value="all">All actions</option>
             {categories.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -151,7 +151,7 @@ export default function ActionRecord() {
       ) : (
         <>
           <div className="web-table-wrap">
-            <table className="web-table ad-audit">
+            <table className="web-table rpl-audit">
               <caption className="web-sr-only">Audit log, newest first</caption>
               <thead>
                 <tr>
@@ -165,25 +165,25 @@ export default function ActionRecord() {
               <tbody>
                 {shown.map((r) => (
                   <tr key={r.id} className="web-table-row">
-                    <td className="ad-cell-strong ad-audit-time">
+                    <td className="rpl-cell-strong rpl-audit-time">
                       <time dateTime={r.created_at}>{timeOf(r.created_at)}</time>
                     </td>
                     <td>
-                      <span className="ad-cell-text">
-                        <span className="ad-cell-title">{r.actor_role ? (ROLE[r.actor_role] ?? r.actor_role) : 'System'}</span>
-                        <span className="ad-cell-meta">{r.actor_agency ? agencyLabel(r.actor_agency) : r.actor_user_id ? `Account ${shortId(r.actor_user_id)}` : 'Automatic'}</span>
+                      <span className="rpl-cell-text">
+                        <span className="rpl-cell-title">{r.actor_role ? (ROLE[r.actor_role] ?? r.actor_role) : 'System'}</span>
+                        <span className="rpl-cell-meta">{r.actor_agency ? agencyLabel(r.actor_agency) : r.actor_user_id ? `Account ${shortId(r.actor_user_id)}` : 'Automatic'}</span>
                       </span>
                     </td>
                     <th scope="row">
-                      <span className="ad-cell-text">
-                        <span className="ad-cell-title">{labelOf(r.action)}</span>
-                        <span className="ad-cell-meta">{r.action}</span>
+                      <span className="rpl-cell-text">
+                        <span className="rpl-cell-title">{labelOf(r.action)}</span>
+                        <span className="rpl-cell-meta">{r.action}</span>
                       </span>
                     </th>
-                    <td className="ad-cell-strong">
+                    <td className="rpl-cell-strong">
                       {r.area_designation || (r.entity_type ? `${r.entity_type.replace(/_/g, ' ')} ${shortId(r.entity_id ?? r.area_id)}` : '—')}
                     </td>
-                    <td className="ad-audit-detail">{detailOf(r) ?? '—'}</td>
+                    <td className="rpl-audit-detail">{detailOf(r) ?? '—'}</td>
                   </tr>
                 ))}
                 {shown.length === 0 && (
@@ -192,7 +192,7 @@ export default function ActionRecord() {
               </tbody>
             </table>
           </div>
-          <p className="ad-table-foot">Showing {shown.length} of the latest {rows.length} entries</p>
+          <p className="rpl-table-foot">Showing {shown.length} of the latest {rows.length} entries</p>
         </>
       )}
     </div>

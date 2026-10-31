@@ -76,7 +76,7 @@ export default function NewRequestDialog({ open, kind = 'water', areas = [], org
     }
   }
 
-  const show = (key) => tried && missing[key] && <span className="ad-field-error">{missing[key]}</span>;
+  const show = (key) => tried && missing[key] && <span className="rpl-field-error">{missing[key]}</span>;
 
   return (
     <FormDialog
@@ -91,15 +91,15 @@ export default function NewRequestDialog({ open, kind = 'water', areas = [], org
       submitLabel={copy.submit}
       busyLabel="Sending…"
     >
-      <div className="ad-form-row">
-        <label className="ad-select">
-          <span className="ad-select-label">Area</span>
+      <div className="rpl-form-row">
+        <label className="rpl-select">
+          <span className="rpl-select-label">Area</span>
           <select value={areaId} onChange={(e) => setAreaId(e.target.value)} disabled={busy}>
             {areas.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
           </select>
         </label>
-        <label className="ad-select">
-          <span className="ad-select-label">Send to</span>
+        <label className="rpl-select">
+          <span className="rpl-select-label">Send to</span>
           <select value={to} onChange={(e) => setTo(e.target.value)} disabled={busy}>
             {organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
           </select>
@@ -108,32 +108,32 @@ export default function NewRequestDialog({ open, kind = 'water', areas = [], org
       {show('area')}{show('to')}
 
       {kind === 'water' ? (
-        <label className="ad-field">
-          <span className="ad-field-label">Estimated amount</span>
+        <label className="rpl-field">
+          <span className="rpl-field-label">Estimated amount</span>
           <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 2,000 litres" disabled={busy} aria-invalid={!!(tried && missing.amount)} />
-          {show('amount') || <span className="ad-field-help">Litres or gallons</span>}
+          {show('amount') || <span className="rpl-field-help">Litres or gallons</span>}
         </label>
       ) : (
-        <div className="ad-form-row">
-          <label className="ad-select">
-            <span className="ad-select-label">Need</span>
+        <div className="rpl-form-row">
+          <label className="rpl-select">
+            <span className="rpl-select-label">Need</span>
             <select value={role} onChange={(e) => setRole(e.target.value)} disabled={busy}>
               {roles.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </label>
-          <label className="ad-field">
-            <span className="ad-field-label">How many</span>
+          <label className="rpl-field">
+            <span className="rpl-field-label">How many</span>
             <input type="number" min="1" value={count} onChange={(e) => setCount(e.target.value)} disabled={busy} aria-invalid={!!(tried && missing.count)} />
           </label>
         </div>
       )}
       {kind === 'backup' && (show('role') || show('count'))}
 
-      <fieldset className="ad-choice">
-        <legend className="ad-field-label">Urgency</legend>
-        <div className="ad-choice-options">
+      <fieldset className="rpl-choice">
+        <legend className="rpl-field-label">Urgency</legend>
+        <div className="rpl-choice-options">
           {URGENCY.map((u) => (
-            <label key={u.key} className={`ad-choice-option${urgency === u.key ? ' is-on' : ''}`}>
+            <label key={u.key} className={`rpl-choice-option${urgency === u.key ? ' is-on' : ''}`}>
               <input type="radio" name="urgency" value={u.key} checked={urgency === u.key} onChange={() => setUrgency(u.key)} disabled={busy} />
               {urgency === u.key && <span aria-hidden="true">✓</span>}
               {u.label}

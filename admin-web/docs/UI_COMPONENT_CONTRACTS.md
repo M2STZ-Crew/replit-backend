@@ -2,7 +2,7 @@
 
 The shared components every Admin console page is built from. They carry the
 pass 6 styling (REPLIT (MAIN) 03–04 tokens and components) through `web-*` and
-`ad-*` classes in `src/index.css` and `src/styles/pass6*.css`. They add no API
+`rpl-*` classes in `src/index.css` and `src/styles/pass6*.css`. They add no API
 calls; pages pass data and callbacks in.
 
 Import from `src/components/ui/index.js`. The development fixture at
@@ -141,9 +141,9 @@ Props: `open`, `eyebrow`, `title`, `onClose`, `onSubmit`, `busy`, `error`,
 A native modal form (10 · A43, A49, A65): header with a close button, the
 caller's fields, then a note beside Cancel and submit. Escape and Cancel close
 it unless `busy`. The caller owns field state, validation and the call; a
-caller shows a rejected call by passing `error`. Field markup: `ad-field`,
-`ad-field-label`, `ad-field-help`, `ad-field-error`, `ad-select`,
-`ad-form-row`, `ad-choice`.
+caller shows a rejected call by passing `error`. Field markup: `rpl-field`,
+`rpl-field-label`, `rpl-field-help`, `rpl-field-error`, `rpl-select`,
+`rpl-form-row`, `rpl-choice`.
 
 ## Icon
 

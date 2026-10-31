@@ -11,7 +11,7 @@ export default function ZoomablePhoto({ src, alt, caption = null, className = ''
     <>
       <button
         type="button"
-        className={`ad-photo-button ${className}`.trim()}
+        className={`rpl-photo-button ${className}`.trim()}
         onClick={() => setOpen(true)}
         aria-label={`Open ${alt} to zoom in`}
       >

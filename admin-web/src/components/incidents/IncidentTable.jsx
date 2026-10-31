@@ -36,10 +36,10 @@ function IncidentCards({
   incidents, isNew, selectedId, onOpen, loading, emptyMessage, staleAt, yourOrg,
 }) {
   if (incidents.length === 0) {
-    return <p className="ad-empty-line">{loading ? 'Loading incidents…' : emptyMessage}</p>;
+    return <p className="rpl-empty-line">{loading ? 'Loading incidents…' : emptyMessage}</p>;
   }
   return (
-    <ul className={`ad-incident-cards${staleAt ? ' is-stale' : ''}`} aria-busy={loading || undefined}>
+    <ul className={`rpl-incident-cards${staleAt ? ' is-stale' : ''}`} aria-busy={loading || undefined}>
       {incidents.map((inc) => {
         const unread = isNew(inc);
         const stats = [
@@ -48,27 +48,27 @@ function IncidentCards({
           [staleAt ? 'Last loaded' : 'Updated', staleAt ? LOADED.format(new Date(staleAt)) : ago(inc.updated_at ?? inc.reported_at)],
         ];
         return (
-          <li key={inc.id} className={`ad-incident-card${unread ? ' is-unread' : ''}${inc.id === selectedId ? ' is-selected' : ''}`}>
-            <span className="ad-incident-card-chips">
+          <li key={inc.id} className={`rpl-incident-card${unread ? ' is-unread' : ''}${inc.id === selectedId ? ' is-selected' : ''}`}>
+            <span className="rpl-incident-card-chips">
               <LifecycleChip status={inc.status} />
               {yourOrg && <StatusChip {...yourOrg(inc)} />}
             </span>
-            <div className="ad-cell-resource">
-              <span className="ad-plate ad-plate--fire" aria-hidden="true"><Icon name="flame" /></span>
-              <span className="ad-cell-text">
-                <span className="ad-cell-title">
+            <div className="rpl-cell-resource">
+              <span className="rpl-plate rpl-plate--fire" aria-hidden="true"><Icon name="flame" /></span>
+              <span className="rpl-cell-text">
+                <span className="rpl-cell-title">
                   {inc.designation}
                   {unread && <span className="web-sr-only">, new since you last looked</span>}
                 </span>
-                <span className="ad-cell-meta"><Place lat={inc.centroid_lat} lng={inc.centroid_lng} /> · {agenciesOf(inc)}</span>
+                <span className="rpl-cell-meta"><Place lat={inc.centroid_lat} lng={inc.centroid_lng} /> · {agenciesOf(inc)}</span>
               </span>
             </div>
-            <dl className="ad-incident-card-stats">
+            <dl className="rpl-incident-card-stats">
               {stats.map(([t, v]) => (
                 <div key={t}><dt>{t}</dt><dd>{v}</dd></div>
               ))}
             </dl>
-            <button type="button" className="ad-button ad-button--secondary" onClick={() => onOpen(inc)}>
+            <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onOpen(inc)}>
               Open incident<span className="web-sr-only"> {inc.designation}</span>
             </button>
           </li>
@@ -104,7 +104,7 @@ export default function IncidentTable({
 
   return (
     <div className={`web-table-wrap${staleAt ? ' is-stale' : ''}`}>
-      <table className="web-table ad-incidents" aria-busy={loading || undefined}>
+      <table className="web-table rpl-incidents" aria-busy={loading || undefined}>
         <thead>
           <tr>
             <th scope="col">Area</th>
@@ -127,22 +127,22 @@ export default function IncidentTable({
                 className={`web-table-row${selected ? ' is-selected' : ''}${unread ? ' is-unread' : ''}`}
               >
                 <th scope="row">
-                  <span className="ad-cell-area">
-                    <span className={`ad-unread-dot${unread ? ' is-on' : ''}`} aria-hidden="true" />
-                    <span className="ad-cell-text">
-                      <span className="ad-cell-title">
+                  <span className="rpl-cell-area">
+                    <span className={`rpl-unread-dot${unread ? ' is-on' : ''}`} aria-hidden="true" />
+                    <span className="rpl-cell-text">
+                      <span className="rpl-cell-title">
                         {inc.designation}
                         {unread && <span className="web-sr-only">, new since you last looked</span>}
                       </span>
-                      <span className="ad-cell-meta"><Place lat={inc.centroid_lat} lng={inc.centroid_lng} /></span>
+                      <span className="rpl-cell-meta"><Place lat={inc.centroid_lat} lng={inc.centroid_lng} /></span>
                     </span>
                   </span>
                 </th>
                 <td><LifecycleChip status={inc.status} /></td>
                 <td>{agenciesOf(inc)}</td>
                 <td>{confidenceOf(inc)}</td>
-                <td className="ad-cell-strong">{inc.report_count}</td>
-                <td className="ad-cell-quiet">
+                <td className="rpl-cell-strong">{inc.report_count}</td>
+                <td className="rpl-cell-quiet">
                   {staleAt ? `Last loaded ${LOADED.format(new Date(staleAt))}` : ago(inc.updated_at ?? inc.reported_at)}
                 </td>
                 {yourOrg && <td><StatusChip {...yourOrg(inc)} /></td>}

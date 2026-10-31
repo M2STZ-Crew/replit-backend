@@ -69,29 +69,29 @@ export default function CreateCoordinatorDialog({ open, organization, organizati
       busyLabel="Creating…"
     >
       {picking && (
-        <label className="ad-field">
-          <span className="ad-field-label">Organization</span>
+        <label className="rpl-field">
+          <span className="rpl-field-label">Organization</span>
           <select value={organizationId} onChange={(e) => setOrganizationId(e.target.value)} aria-invalid={!!orgError} disabled={busy}>
             <option value="">Choose…</option>
             {organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
           </select>
-          {orgError && <span className="ad-field-error">{orgError}</span>}
+          {orgError && <span className="rpl-field-error">{orgError}</span>}
         </label>
       )}
-      <label className="ad-field">
-        <span className="ad-field-label">Full name</span>
+      <label className="rpl-field">
+        <span className="rpl-field-label">Full name</span>
         <input value={fullName} onChange={(e) => setFullName(e.target.value)} aria-invalid={!!nameError} disabled={busy} autoComplete="name" />
-        {nameError && <span className="ad-field-error">{nameError}</span>}
+        {nameError && <span className="rpl-field-error">{nameError}</span>}
       </label>
-      <label className="ad-field">
-        <span className="ad-field-label">Email</span>
+      <label className="rpl-field">
+        <span className="rpl-field-label">Email</span>
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={!!emailError} disabled={busy} autoComplete="email" />
         {emailError
-          ? <span className="ad-field-error">{emailError}</span>
-          : <span className="ad-field-help">They sign in to the mobile app with this.</span>}
+          ? <span className="rpl-field-error">{emailError}</span>
+          : <span className="rpl-field-help">They sign in to the mobile app with this.</span>}
       </label>
-      <label className="ad-field">
-        <span className="ad-field-label">Title (optional)</span>
+      <label className="rpl-field">
+        <span className="rpl-field-label">Title (optional)</span>
         <input value={title} onChange={(e) => setTitle(e.target.value)} disabled={busy} placeholder="e.g. Lieutenant" maxLength={80} />
       </label>
     </FormDialog>

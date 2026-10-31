@@ -18,7 +18,7 @@ const AGENCY_PLATE = {
 function CountBadge({ count, label }) {
   if (!count) return null;
   return (
-    <span className="ad-count" aria-label={label}>
+    <span className="rpl-count" aria-label={label}>
       {count > 99 ? '99+' : count}
     </span>
   );
@@ -29,12 +29,12 @@ function SidebarItem({ item, active, count, countLabel, onClick }) {
   return (
     <button
       type="button"
-      className={`ad-nav-item${on ? ' is-active' : ''}`}
+      className={`rpl-nav-item${on ? ' is-active' : ''}`}
       onClick={onClick}
       aria-current={on ? 'page' : undefined}
     >
       <Icon name={item.icon} />
-      <span className="ad-nav-label">{item.label}</span>
+      <span className="rpl-nav-label">{item.label}</span>
       <CountBadge count={count} label={countLabel} />
     </button>
   );
@@ -45,28 +45,28 @@ function RailItem({ item, active, count, countLabel, onClick }) {
   return (
     <button
       type="button"
-      className={`ad-rail-item${on ? ' is-active' : ''}`}
+      className={`rpl-rail-item${on ? ' is-active' : ''}`}
       onClick={onClick}
       aria-current={on ? 'page' : undefined}
       aria-label={count ? `${item.label}, ${countLabel}` : item.label}
       title={item.label}
     >
       <Icon name={item.icon} size={24} />
-      {count > 0 && <span className="ad-count ad-rail-count" aria-hidden="true">{count > 99 ? '99+' : count}</span>}
+      {count > 0 && <span className="rpl-count rpl-rail-count" aria-hidden="true">{count > 99 ? '99+' : count}</span>}
     </button>
   );
 }
 
 function Brand({ rail }) {
   return (
-    <div className="ad-brand">
-      <span className="ad-brand-icon" aria-hidden="true">
+    <div className="rpl-brand">
+      <span className="rpl-brand-icon" aria-hidden="true">
         <img src="/icons/mark.svg" alt="" width="13" height="18" />
       </span>
       {!rail && (
-        <span className="ad-brand-words">
-          <span className="ad-brand-name">REPLIT</span>
-          <span className="ad-brand-sub">Admin console</span>
+        <span className="rpl-brand-words">
+          <span className="rpl-brand-name">REPLIT</span>
+          <span className="rpl-brand-sub">Admin console</span>
         </span>
       )}
     </div>
@@ -76,24 +76,24 @@ function Brand({ rail }) {
 function Organization({ org, rail }) {
   const plate = AGENCY_PLATE[org.agency] ?? { icon: 'organization', tone: 'neutral' };
   const tile = (
-    <span className={`ad-plate ad-plate--${plate.tone}`} aria-hidden="true">
+    <span className={`rpl-plate rpl-plate--${plate.tone}`} aria-hidden="true">
       <Icon name={plate.icon} size={16} />
     </span>
   );
   if (rail) {
     return (
-      <div className="ad-org is-rail" title={`${org.name} · ${org.role}`}>
+      <div className="rpl-org is-rail" title={`${org.name} · ${org.role}`}>
         {tile}
         <span className="web-sr-only">{`${org.name}, ${org.role}`}</span>
       </div>
     );
   }
   return (
-    <div className="ad-org">
+    <div className="rpl-org">
       {tile}
-      <span className="ad-org-text">
-        <span className="ad-org-name">{org.name}</span>
-        <span className="ad-org-role">{org.role}</span>
+      <span className="rpl-org-text">
+        <span className="rpl-org-name">{org.name}</span>
+        <span className="rpl-org-role">{org.role}</span>
       </span>
     </div>
   );
@@ -106,18 +106,18 @@ export default function Sidebar({
 }) {
   const Item = rail ? RailItem : SidebarItem;
   return (
-    <aside className={`ad-sidebar${rail ? ' is-rail' : ''}`} aria-label="Console">
+    <aside className={`rpl-sidebar${rail ? ' is-rail' : ''}`} aria-label="Console">
       <Brand rail={rail} />
       <Organization org={org} rail={rail} />
 
-      <nav className="ad-nav" aria-label="Destinations">
+      <nav className="rpl-nav" aria-label="Destinations">
         {GROUPS.map((group) => {
           const groupItems = items.filter((item) => item.group === group);
           if (groupItems.length === 0) return null;
           return (
-            <div className="ad-nav-group" key={group} role="group" aria-label={group}>
-              {!rail && <span className="ad-nav-group-label" aria-hidden="true">{group}</span>}
-              {rail && <span className="ad-rail-rule" aria-hidden="true" />}
+            <div className="rpl-nav-group" key={group} role="group" aria-label={group}>
+              {!rail && <span className="rpl-nav-group-label" aria-hidden="true">{group}</span>}
+              {rail && <span className="rpl-rail-rule" aria-hidden="true" />}
               {groupItems.map((item) => {
                 const { count, label } = counts(item);
                 return (
@@ -136,7 +136,7 @@ export default function Sidebar({
         })}
       </nav>
 
-      <span className="ad-spacer" />
+      <span className="rpl-spacer" />
 
       <Item
         item={SETTINGS}
@@ -145,17 +145,17 @@ export default function Sidebar({
         onClick={() => onNavigate(SETTINGS.key)}
       />
 
-      <div className={`ad-user${rail ? ' is-rail' : ''}`}>
-        <span className="ad-avatar" aria-hidden="true">{user.initials}</span>
+      <div className={`rpl-user${rail ? ' is-rail' : ''}`}>
+        <span className="rpl-avatar" aria-hidden="true">{user.initials}</span>
         {!rail && (
-          <span className="ad-user-text">
-            <span className="ad-user-name">{user.name}</span>
-            <span className="ad-user-email">{user.email}</span>
+          <span className="rpl-user-text">
+            <span className="rpl-user-name">{user.name}</span>
+            <span className="rpl-user-email">{user.email}</span>
           </span>
         )}
         <button
           type="button"
-          className="ad-icon-button"
+          className="rpl-icon-button"
           onClick={onSignOut}
           aria-label="Sign out"
           title="Sign out"

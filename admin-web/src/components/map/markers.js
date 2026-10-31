@@ -30,14 +30,14 @@ export function unitIcon(count = 1, stale = false) {
   const size = 48;
   const many = count > 1;
   const icon = L.divIcon({
-    className: `ad-marker ad-unit${stale ? ' is-stale' : ''}`,
+    className: `rpl-marker rpl-unit${stale ? ' is-stale' : ''}`,
     html:
-      (many ? '<span class="ad-marker-backing ad-unit-behind"></span>' : '')
-      + (many ? '<span class="ad-marker-disc ad-marker-disc--unit ad-unit-behind"></span>' : '')
-      + '<span class="ad-marker-backing"></span>'
-      + '<span class="ad-marker-disc ad-marker-disc--unit">'
+      (many ? '<span class="rpl-marker-backing rpl-unit-behind"></span>' : '')
+      + (many ? '<span class="rpl-marker-disc rpl-marker-disc--unit rpl-unit-behind"></span>' : '')
+      + '<span class="rpl-marker-backing"></span>'
+      + '<span class="rpl-marker-disc rpl-marker-disc--unit">'
       + '<img src="/icons/map/unit.svg" alt="" width="20" height="20"></span>'
-      + (many ? `<span class="ad-unit-count">${groupCount(count)}</span>` : ''),
+      + (many ? `<span class="rpl-unit-count">${groupCount(count)}</span>` : ''),
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   });
@@ -67,10 +67,10 @@ export function markerIcon(kind, selected = false) {
   const { tone } = KINDS[kind] ?? KINDS.incident;
   const size = 48;
   const icon = L.divIcon({
-    className: 'ad-marker',
+    className: 'rpl-marker',
     html:
-      `<span class="ad-marker-backing${selected ? ' is-selected' : ''}"></span>` +
-      `<span class="ad-marker-disc ad-marker-disc--${tone}${selected ? ' is-selected' : ''}">` +
+      `<span class="rpl-marker-backing${selected ? ' is-selected' : ''}"></span>` +
+      `<span class="rpl-marker-disc rpl-marker-disc--${tone}${selected ? ' is-selected' : ''}">` +
       `<img src="/icons/map/${kind}.svg" alt="" width="${selected ? 24 : 20}" height="${selected ? 24 : 20}"></span>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],

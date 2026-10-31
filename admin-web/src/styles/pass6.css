@@ -1,19 +1,22 @@
 /* Pass 6 — the Admin web shell and its shared pieces (REPLIT (MAIN) 04 ·
  * Desktop · Admin web; 10 · Admin Web Experience). Every colour, radius and
- * size here is a token from index.css or a measurement from the design. */
+ * size here is a token from index.css or a measurement from the design.
+ *
+ * The prefix is rpl-. It was ad-, for Admin, and adblockers hide .ad-main,
+ * .ad-sidebar and the like on every site, which left the console a blank page. */
 
 /* ── Icon ─────────────────────────────────────────────────────────────── */
-.ad-icon {
+.rpl-icon {
   display: inline-block;
   flex: none;
   background-color: currentColor;
-  -webkit-mask: var(--ad-icon) center / contain no-repeat;
-  mask: var(--ad-icon) center / contain no-repeat;
+  -webkit-mask: var(--rpl-icon) center / contain no-repeat;
+  mask: var(--rpl-icon) center / contain no-repeat;
 }
 
 /* ── Focus: 2 px coral, outside the control ───────────────────────────── */
-.ad-shell :focus-visible,
-.ad-sheet :focus-visible {
+.rpl-shell :focus-visible,
+.rpl-sheet :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
@@ -24,7 +27,7 @@
    document scrollable; a reload then restored that scroll and slid the
    console up out of view — the sidebar's top gone, or nothing but the
    dark ground. Fixed, the shell is also the containing block that clips it. */
-.ad-shell {
+.rpl-shell {
   position: fixed;
   inset: 0;
   display: flex;
@@ -32,14 +35,14 @@
   background: var(--bg);
   color: var(--text);
 }
-.ad-main {
+.rpl-main {
   flex: 1;
   min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
 }
-.ad-content {
+.rpl-content {
   flex: 1;
   min-height: 0;
   display: flex;
@@ -49,7 +52,7 @@
 }
 
 /* ── Sidebar ──────────────────────────────────────────────────────────── */
-.ad-sidebar {
+.rpl-sidebar {
   width: 248px;
   flex: none;
   display: flex;
@@ -62,7 +65,7 @@
   background: var(--surface-1);
   border-right: 1px solid var(--line);
 }
-.ad-sidebar.is-rail {
+.rpl-sidebar.is-rail {
   width: 72px;
   padding: 16px 8px;
   align-items: center;
@@ -70,19 +73,19 @@
   overflow-x: hidden;
   scrollbar-width: none;
 }
-.ad-sidebar.is-rail::-webkit-scrollbar { display: none; }
+.rpl-sidebar.is-rail::-webkit-scrollbar { display: none; }
 /* The rail carries the destinations only (10 · A85); the top bar names the
    organisation. */
-.ad-sidebar.is-rail .ad-org { display: none; }
+.rpl-sidebar.is-rail .rpl-org { display: none; }
 
-.ad-brand {
+.rpl-brand {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 0 8px;
 }
-.ad-sidebar.is-rail .ad-brand { padding: 0; }
-.ad-brand-icon {
+.rpl-sidebar.is-rail .rpl-brand { padding: 0; }
+.rpl-brand-icon {
   width: 32px;
   height: 32px;
   flex: none;
@@ -91,8 +94,8 @@
   background: var(--bg);
   border-radius: 7px;
 }
-.ad-brand-words { display: flex; flex-direction: column; }
-.ad-brand-name {
+.rpl-brand-words { display: flex; flex-direction: column; }
+.rpl-brand-name {
   font-size: 17px;
   font-weight: 900;
   line-height: 20px;
@@ -100,13 +103,13 @@
   text-transform: uppercase;
   color: var(--text);
 }
-.ad-brand-sub {
+.rpl-brand-sub {
   font-size: 12px;
   line-height: 16px;
   color: var(--label);
 }
 
-.ad-org {
+.rpl-org {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -115,18 +118,18 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
 }
-.ad-org.is-rail { padding: 6px; }
-.ad-org-text { display: flex; flex-direction: column; min-width: 0; }
-.ad-org-name {
+.rpl-org.is-rail { padding: 6px; }
+.rpl-org-text { display: flex; flex-direction: column; min-width: 0; }
+.rpl-org-name {
   font-size: 13px;
   font-weight: 800;
   line-height: 16px;
   letter-spacing: -0.2px;
   color: var(--text);
 }
-.ad-org-role { font-size: 12px; line-height: 16px; color: var(--label); }
+.rpl-org-role { font-size: 12px; line-height: 16px; color: var(--label); }
 
-.ad-plate {
+.rpl-plate {
   width: 32px;
   height: 32px;
   flex: none;
@@ -136,15 +139,15 @@
   color: #fff;
   background: var(--surface-3);
 }
-.ad-plate--fire { background: var(--plate-fire); }
-.ad-plate--police { background: var(--plate-police); }
-.ad-plate--medical { background: var(--plate-medical); }
-.ad-plate--barangay { background: var(--plate-barangay); }
+.rpl-plate--fire { background: var(--plate-fire); }
+.rpl-plate--police { background: var(--plate-police); }
+.rpl-plate--medical { background: var(--plate-medical); }
+.rpl-plate--barangay { background: var(--plate-barangay); }
 
-.ad-nav { display: flex; flex-direction: column; gap: 12px; width: 100%; }
-.ad-nav-group { display: flex; flex-direction: column; }
-.ad-sidebar.is-rail .ad-nav-group { align-items: center; gap: 4px; }
-.ad-nav-group-label {
+.rpl-nav { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+.rpl-nav-group { display: flex; flex-direction: column; }
+.rpl-sidebar.is-rail .rpl-nav-group { align-items: center; gap: 4px; }
+.rpl-nav-group-label {
   padding: 0 12px 4px;
   font-size: 10px;
   font-weight: 700;
@@ -153,15 +156,15 @@
   text-transform: uppercase;
   color: var(--muted);
 }
-.ad-rail-rule {
+.rpl-rail-rule {
   width: 24px;
   height: 1px;
   margin: 4px 0;
   background: var(--line);
 }
-.ad-nav-group:first-child .ad-rail-rule { display: none; }
+.rpl-nav-group:first-child .rpl-rail-rule { display: none; }
 
-.ad-nav-item {
+.rpl-nav-item {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -180,19 +183,19 @@
   text-align: left;
   cursor: pointer;
 }
-.ad-nav-item .ad-icon { color: var(--text-2); }
-.ad-nav-item:hover { background: var(--hover); }
-.ad-nav-item.is-active {
+.rpl-nav-item .rpl-icon { color: var(--text-2); }
+.rpl-nav-item:hover { background: var(--hover); }
+.rpl-nav-item.is-active {
   background: var(--accent-soft);
   border-color: var(--accent-line);
   color: var(--text);
   font-weight: 800;
   letter-spacing: -0.2px;
 }
-.ad-nav-item.is-active .ad-icon { color: var(--text); }
-.ad-nav-label { flex: 1; min-width: 0; }
+.rpl-nav-item.is-active .rpl-icon { color: var(--text); }
+.rpl-nav-label { flex: 1; min-width: 0; }
 
-.ad-rail-item {
+.rpl-rail-item {
   position: relative;
   width: 56px;
   height: 48px;
@@ -205,15 +208,15 @@
   color: var(--text-2);
   cursor: pointer;
 }
-.ad-rail-item:hover { background: var(--hover); }
-.ad-rail-item.is-active {
+.rpl-rail-item:hover { background: var(--hover); }
+.rpl-rail-item.is-active {
   background: var(--accent-soft);
   border-color: var(--accent-line);
   color: var(--text);
 }
-.ad-rail-count { position: absolute; left: 34px; top: 4px; }
+.rpl-rail-count { position: absolute; left: 34px; top: 4px; }
 
-.ad-count {
+.rpl-count {
   min-width: 20px;
   height: 20px;
   padding: 0 6px;
@@ -230,9 +233,9 @@
   font-variant-numeric: tabular-nums;
 }
 
-.ad-spacer { flex: 1; min-height: 8px; }
+.rpl-spacer { flex: 1; min-height: 8px; }
 
-.ad-user {
+.rpl-user {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -240,8 +243,8 @@
   padding: 12px 8px 0;
   border-top: 1px solid var(--line);
 }
-.ad-user.is-rail { flex-direction: column; padding: 12px 0 0; }
-.ad-avatar {
+.rpl-user.is-rail { flex-direction: column; padding: 12px 0 0; }
+.rpl-avatar {
   width: 32px;
   height: 32px;
   flex: none;
@@ -254,17 +257,17 @@
   font-weight: 700;
   letter-spacing: 0.2px;
 }
-.ad-user-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.ad-user-name,
-.ad-user-email {
+.rpl-user-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rpl-user-name,
+.rpl-user-email {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ad-user-name { font-size: 13px; font-weight: 800; line-height: 16px; letter-spacing: -0.2px; }
-.ad-user-email { font-size: 12px; line-height: 16px; color: var(--label); }
+.rpl-user-name { font-size: 13px; font-weight: 800; line-height: 16px; letter-spacing: -0.2px; }
+.rpl-user-email { font-size: 12px; line-height: 16px; color: var(--label); }
 
-.ad-icon-button {
+.rpl-icon-button {
   width: 44px;
   height: 44px;
   flex: none;
@@ -276,10 +279,10 @@
   color: var(--text);
   cursor: pointer;
 }
-.ad-icon-button:hover { background: var(--hover); }
+.rpl-icon-button:hover { background: var(--hover); }
 
 /* ── Top bar ──────────────────────────────────────────────────────────── */
-.ad-topbar {
+.rpl-topbar {
   height: 64px;
   flex: none;
   display: flex;
@@ -289,7 +292,7 @@
   background: var(--bg);
   border-bottom: 1px solid var(--line);
 }
-.ad-topbar-context {
+.rpl-topbar-context {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -301,21 +304,21 @@
   font-size: 12px;
   line-height: 16px;
 }
-.ad-topbar-org {
+.rpl-topbar-org {
   font-size: 13px;
   font-weight: 800;
   letter-spacing: -0.2px;
   color: var(--text);
 }
-.ad-topbar-sep { color: var(--muted); }
-.ad-topbar-scope {
+.rpl-topbar-sep { color: var(--muted); }
+.rpl-topbar-scope {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--label);
 }
 
-.ad-pill {
+.rpl-pill {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -334,16 +337,16 @@
   white-space: nowrap;
   cursor: pointer;
 }
-.ad-pill .ad-icon { color: var(--text); }
-.ad-pill:hover { background: var(--hover); }
+.rpl-pill .rpl-icon { color: var(--text); }
+.rpl-pill:hover { background: var(--hover); }
 /* A 44 px target round a 32 px pill. */
-.ad-pill::after {
+.rpl-pill::after {
   content: '';
   position: absolute;
   inset: -6px -2px;
 }
 
-.ad-availability {
+.rpl-availability {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -358,21 +361,21 @@
   letter-spacing: 0.2px;
   white-space: nowrap;
 }
-.ad-availability-dot {
+.rpl-availability-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--ok);
 }
-.ad-availability.is-afk { border-color: var(--warn); background: var(--warn-tint); }
-.ad-availability.is-afk .ad-availability-dot { background: var(--warn); }
+.rpl-availability.is-afk { border-color: var(--warn); background: var(--warn-tint); }
+.rpl-availability.is-afk .rpl-availability-dot { background: var(--warn); }
 
 @media (max-width: 1279px) {
-  .ad-topbar { padding: 0 24px; }
+  .rpl-topbar { padding: 0 24px; }
 }
 
 /* ── Phone layout (not in the design; kept so a phone still works) ────── */
-.ad-bar {
+.rpl-bar {
   position: fixed;
   left: 0;
   right: 0;
@@ -383,7 +386,7 @@
   background: var(--bg);
   border-top: 1px solid var(--line);
 }
-.ad-bar-item {
+.rpl-bar-item {
   position: relative;
   flex: 1;
   display: flex;
@@ -399,22 +402,22 @@
   font-weight: 700;
   cursor: pointer;
 }
-.ad-bar-item.is-active {
+.rpl-bar-item.is-active {
   color: var(--text);
   background: var(--accent-soft);
   box-shadow: inset 0 2px 0 var(--accent-line);
 }
-.ad-bar-item .ad-count { position: absolute; top: 6px; left: calc(50% + 6px); }
+.rpl-bar-item .rpl-count { position: absolute; top: 6px; left: calc(50% + 6px); }
 
 @media (max-width: 899px) {
-  .ad-content { padding-bottom: 64px; }
-  .ad-topbar { padding: 0 16px; }
-  .ad-topbar-scope, .ad-topbar-sep { display: none; }
+  .rpl-content { padding-bottom: 64px; }
+  .rpl-topbar { padding: 0 16px; }
+  .rpl-topbar-scope, .rpl-topbar-sep { display: none; }
 }
 
-.ad-sheet-layer { position: fixed; inset: 0; z-index: 40; }
-.ad-scrim { position: absolute; inset: 0; background: var(--scrim); }
-.ad-sheet {
+.rpl-sheet-layer { position: fixed; inset: 0; z-index: 40; }
+.rpl-scrim { position: absolute; inset: 0; background: var(--scrim); }
+.rpl-sheet {
   position: absolute;
   left: 0;
   right: 0;
@@ -429,18 +432,18 @@
   border-top: 1px solid var(--line);
   border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
 }
-.ad-sheet-grip {
+.rpl-sheet-grip {
   width: 80px;
   height: 4px;
   margin: 0 auto 8px;
   border-radius: 2px;
   background: var(--line-3);
 }
-.ad-sheet-head { display: flex; align-items: center; justify-content: space-between; }
-.ad-sheet-title { margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.6px; }
+.rpl-sheet-head { display: flex; align-items: center; justify-content: space-between; }
+.rpl-sheet-title { margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.6px; }
 
 /* ── Opening the console (StartupScreen) ──────────────────────────────── */
-.ad-startup {
+.rpl-startup {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -452,7 +455,7 @@
   color: var(--text);
   text-align: center;
 }
-.ad-startup-mark { width: 44px; height: 62px; margin-bottom: 8px; }
-.ad-startup-title { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
-.ad-startup-body { margin: 0; max-width: 46ch; color: var(--text-2); font-size: 14px; line-height: 20px; }
-.ad-startup-actions { display: flex; gap: 8px; margin-top: 8px; }
+.rpl-startup-mark { width: 44px; height: 62px; margin-bottom: 8px; }
+.rpl-startup-title { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
+.rpl-startup-body { margin: 0; max-width: 46ch; color: var(--text-2); font-size: 14px; line-height: 20px; }
+.rpl-startup-actions { display: flex; gap: 8px; margin-top: 8px; }

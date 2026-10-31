@@ -18,8 +18,8 @@ export const CLUSTER_RADIUS_M = 300;
 function markerIcon(small) {
   const size = small ? 36 : 44;
   return L.divIcon({
-    className: 'ad-area-marker',
-    html: `<span class="ad-area-marker-plate${small ? ' is-small' : ''}"><img src="/icons/flame.svg" alt="" width="${small ? 16 : 20}" height="${small ? 16 : 20}"></span>`,
+    className: 'rpl-area-marker',
+    html: `<span class="rpl-area-marker-plate${small ? ' is-small' : ''}"><img src="/icons/flame.svg" alt="" width="${small ? 16 : 20}" height="${small ? 16 : 20}"></span>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   });
@@ -28,7 +28,7 @@ function markerIcon(small) {
 export default function AreaMap({ lat, lng, label, areas, height }) {
   const list = (areas ?? [{ lat, lng, label }]).filter((a) => a.lat != null && a.lng != null);
   if (list.length === 0) {
-    return <div className="ad-area-map is-empty">No location recorded for this Area.</div>;
+    return <div className="rpl-area-map is-empty">No location recorded for this Area.</div>;
   }
   const centre = [
     list.reduce((s, a) => s + a.lat, 0) / list.length,
@@ -36,7 +36,7 @@ export default function AreaMap({ lat, lng, label, areas, height }) {
   ];
   return (
     <div
-      className="ad-area-map"
+      className="rpl-area-map"
       style={height ? { height } : undefined}
       role="img"
       aria-label={`Map of ${list.map((a) => a.label).join(' and ')}`}

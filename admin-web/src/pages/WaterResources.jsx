@@ -97,25 +97,25 @@ function Detail({ row, onClose, onDelete, floating = false }) {
   if (row.description) facts.push(['Description', row.description]);
 
   return (
-    <aside className={floating ? 'ad-map-panel ad-water-panel' : 'ad-detail'} aria-labelledby="ad-water-detail-title">
-      <div className="ad-detail-head">
+    <aside className={floating ? 'rpl-map-panel rpl-water-panel' : 'rpl-detail'} aria-labelledby="rpl-water-detail-title">
+      <div className="rpl-detail-head">
         <div>
-          <p className="ad-eyebrow">{kindOf(row.kind).singular}{row.code ? ` · ${row.code}` : ''}</p>
-          <h2 className="ad-detail-title" id="ad-water-detail-title">{row.name || row.address || nameOf(row)}</h2>
+          <p className="rpl-eyebrow">{kindOf(row.kind).singular}{row.code ? ` · ${row.code}` : ''}</p>
+          <h2 className="rpl-detail-title" id="rpl-water-detail-title">{row.name || row.address || nameOf(row)}</h2>
         </div>
-        <button type="button" className="ad-icon-button" onClick={onClose} aria-label="Close details">
+        <button type="button" className="rpl-icon-button" onClick={onClose} aria-label="Close details">
           <span aria-hidden="true">✕</span>
         </button>
       </div>
-      <dl className="ad-facts">
+      <dl className="rpl-facts">
         {facts.map(([term, value]) => (
-          <div className="ad-fact" key={term}>
+          <div className="rpl-fact" key={term}>
             <dt>{term}</dt>
             <dd>{value}</dd>
           </div>
         ))}
       </dl>
-      <button type="button" className="ad-button ad-button--danger" onClick={onDelete}>
+      <button type="button" className="rpl-button rpl-button--danger" onClick={onDelete}>
         Delete resource
       </button>
     </aside>
@@ -177,14 +177,14 @@ export default function WaterResources({ onManage }) {
   }, [deleting]);
 
   const filters = (
-    <div className="ad-filters">
-      <label className="ad-search">
+    <div className="rpl-filters">
+      <label className="rpl-search">
         <Icon name="search" />
         <span className="web-sr-only">Search water resources</span>
         <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search codes, names and streets" />
       </label>
-      <label className="ad-select">
-        <span className="ad-select-label">Type</span>
+      <label className="rpl-select">
+        <span className="rpl-select-label">Type</span>
         <select value={type} onChange={(e) => setType(e.target.value)}>
           <option value="all">All types</option>
           {KINDS.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
@@ -194,30 +194,30 @@ export default function WaterResources({ onManage }) {
   );
 
   return (
-    <div className={`ad-page${view === 'map' ? ' ad-page--map' : ''}`}>
+    <div className={`rpl-page${view === 'map' ? ' rpl-page--map' : ''}`}>
       <PageHeader
         eyebrow="Shared across every organization"
         title="Water resources"
         description={`Every hydrant, body of water and underground cistern on the shared map. Any Admin may delete one; every deletion is recorded.${managesMap ? '' : ' Fire Volunteer, BFP and Barangay 76 Admins add and change them.'}`}
         actions={managesMap && (
-          <button type="button" className="ad-button ad-button--primary" onClick={onManage}>
+          <button type="button" className="rpl-button rpl-button--primary" onClick={onManage}>
             Add or change resources
           </button>
         )}
       />
 
       {notice && (
-        <div className="ad-toast" role="status"><span aria-hidden="true">✓</span>{notice}</div>
+        <div className="rpl-toast" role="status"><span aria-hidden="true">✓</span>{notice}</div>
       )}
 
-      <div className="ad-tabs ad-tabs--page" role="tablist" aria-label="View">
+      <div className="rpl-tabs rpl-tabs--page" role="tablist" aria-label="View">
         {[{ key: 'list', label: 'List' }, { key: 'map', label: 'Map' }].map((t) => (
           <button
             key={t.key}
             type="button"
             role="tab"
             aria-selected={view === t.key}
-            className={`ad-tab${view === t.key ? ' is-active' : ''}`}
+            className={`rpl-tab${view === t.key ? ' is-active' : ''}`}
             onClick={() => setView(t.key)}
           >
             {t.label}
@@ -236,7 +236,7 @@ export default function WaterResources({ onManage }) {
           Fire Volunteer Coordinators add hydrants, bodies of water and cisterns from the mobile app.
         </EmptyState>
       ) : view === 'map' ? (
-        <div className="ad-water-map">
+        <div className="rpl-water-map">
           <MapContainer
             center={[14.5378, 121.0014]}
             zoom={15}
@@ -261,8 +261,8 @@ export default function WaterResources({ onManage }) {
           )}
         </div>
       ) : (
-        <div className={`ad-split${selected ? ' has-detail' : ''}`}>
-          <div className="ad-stack">
+        <div className={`rpl-split${selected ? ' has-detail' : ''}`}>
+          <div className="rpl-stack">
             <div className="web-table-wrap">
               <table className="web-table">
                 <caption className="web-sr-only">Water resources</caption>
@@ -282,27 +282,27 @@ export default function WaterResources({ onManage }) {
                     return (
                       <tr key={key} className={`web-table-row${key === selectedId ? ' is-selected' : ''}`}>
                         <th scope="row">
-                          <span className="ad-cell-resource">
-                            <span className="ad-plate ad-plate--water" aria-hidden="true">
+                          <span className="rpl-cell-resource">
+                            <span className="rpl-plate rpl-plate--water" aria-hidden="true">
                               <img src={`/icons/map/${r.kind}.svg`} alt="" width="16" height="16" />
                             </span>
-                            <span className="ad-cell-text">
-                              <span className="ad-cell-title">{nameOf(r)}</span>
-                              <span className="ad-cell-meta"><Place lat={r.latitude} lng={r.longitude} address={r.address} /></span>
+                            <span className="rpl-cell-text">
+                              <span className="rpl-cell-title">{nameOf(r)}</span>
+                              <span className="rpl-cell-meta"><Place lat={r.latitude} lng={r.longitude} address={r.address} /></span>
                             </span>
                           </span>
                         </th>
                         <td><StatusChip label={s.label} tone={s.tone} /></td>
                         <td>
-                          <span className="ad-cell-text">
-                            <span className="ad-cell-value">{c.title}</span>
-                            <span className="ad-cell-meta">{c.at ?? '—'}</span>
+                          <span className="rpl-cell-text">
+                            <span className="rpl-cell-value">{c.title}</span>
+                            <span className="rpl-cell-meta">{c.at ?? '—'}</span>
                           </span>
                         </td>
                         <td className="web-table-action-cell">
                           <button
                             type="button"
-                            className="ad-icon-button"
+                            className="rpl-icon-button"
                             onClick={() => setSelectedId(key)}
                             aria-label={`Details and actions for ${nameOf(r)}`}
                             aria-current={key === selectedId ? 'true' : undefined}
@@ -319,17 +319,17 @@ export default function WaterResources({ onManage }) {
                 </tbody>
               </table>
             </div>
-            <div className="ad-pager">
-              <span className="ad-pager-range">
+            <div className="rpl-pager">
+              <span className="rpl-pager-range">
                 {rows.length === 0 ? 'Showing 0 of 0' : `Showing ${page * PAGE + 1}–${Math.min(rows.length, page * PAGE + PAGE)} of ${rows.length}`}
               </span>
               {pages > 1 && (
-                <nav className="ad-pager-pages" aria-label="Pages">
-                  <button type="button" className="ad-page-button" onClick={() => setPage((p) => p - 1)} disabled={page === 0} aria-label="Previous page">‹</button>
+                <nav className="rpl-pager-pages" aria-label="Pages">
+                  <button type="button" className="rpl-page-button" onClick={() => setPage((p) => p - 1)} disabled={page === 0} aria-label="Previous page">‹</button>
                   {Array.from({ length: pages }, (_, i) => (
-                    <button key={i} type="button" className={`ad-page-button${i === page ? ' is-current' : ''}`} onClick={() => setPage(i)} aria-current={i === page ? 'page' : undefined}>{i + 1}</button>
+                    <button key={i} type="button" className={`rpl-page-button${i === page ? ' is-current' : ''}`} onClick={() => setPage(i)} aria-current={i === page ? 'page' : undefined}>{i + 1}</button>
                   ))}
-                  <button type="button" className="ad-page-button" onClick={() => setPage((p) => p + 1)} disabled={page >= pages - 1} aria-label="Next page">›</button>
+                  <button type="button" className="rpl-page-button" onClick={() => setPage((p) => p + 1)} disabled={page >= pages - 1} aria-label="Next page">›</button>
                 </nav>
               )}
             </div>

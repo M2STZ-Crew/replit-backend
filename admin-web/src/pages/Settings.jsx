@@ -28,7 +28,7 @@ import { applyTheme, storedTheme } from '../theme.js';
 
 function Switch({ checked, onChange, label, disabled = false }) {
   return (
-    <label className={`ad-switch${disabled ? ' is-disabled' : ''}`}>
+    <label className={`rpl-switch${disabled ? ' is-disabled' : ''}`}>
       <input
         type="checkbox"
         role="switch"
@@ -36,7 +36,7 @@ function Switch({ checked, onChange, label, disabled = false }) {
         disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
       />
-      <span className="ad-switch-track" aria-hidden="true" />
+      <span className="rpl-switch-track" aria-hidden="true" />
       <span className="web-sr-only">{label}</span>
     </label>
   );
@@ -44,12 +44,12 @@ function Switch({ checked, onChange, label, disabled = false }) {
 
 function Row({ title, detail, children, dim = false }) {
   return (
-    <div className={`ad-setting${dim ? ' is-dim' : ''}`}>
-      <div className="ad-setting-text">
-        <span className="ad-setting-title">{title}</span>
-        {detail && <span className="ad-setting-detail">{detail}</span>}
+    <div className={`rpl-setting${dim ? ' is-dim' : ''}`}>
+      <div className="rpl-setting-text">
+        <span className="rpl-setting-title">{title}</span>
+        {detail && <span className="rpl-setting-detail">{detail}</span>}
       </div>
-      <div className="ad-setting-control">{children}</div>
+      <div className="rpl-setting-control">{children}</div>
     </div>
   );
 }
@@ -59,8 +59,8 @@ function Row({ title, detail, children, dim = false }) {
  * wanted value and must resolve once the server has recorded it. */
 export function AvailabilityPanel({ afk, since, busy = false, error = null, onChange }) {
   return (
-    <section className="ad-panel" aria-labelledby="ad-availability-title">
-      <h2 className="ad-panel-title" id="ad-availability-title">Availability</h2>
+    <section className="rpl-panel" aria-labelledby="rpl-availability-title">
+      <h2 className="rpl-panel-title" id="rpl-availability-title">Availability</h2>
       <Row
         title={afk ? `Away from the console${since ? ` since ${since}` : ''}` : 'At the console'}
         detail="Other Admins see your organization greyed out with an AFK chip. Incidents still move: any Coordinator of yours can acknowledge."
@@ -72,7 +72,7 @@ export function AvailabilityPanel({ afk, since, busy = false, error = null, onCh
           label="Away from the console"
         />
       </Row>
-      {error && <p className="ad-inline-error" role="alert">{error}</p>}
+      {error && <p className="rpl-inline-error" role="alert">{error}</p>}
     </section>
   );
 }
@@ -85,18 +85,18 @@ export default function Settings() {
   const update = (patch) => setSoundSettings({ ...sound, ...patch });
 
   return (
-    <div className="ad-page ad-page--narrow">
+    <div className="rpl-page rpl-page--narrow">
       <PageHeader
         eyebrow={org?.name ?? 'Console'}
         title="Settings"
         description="For this Admin console only. Sounds and alerts are kept in this browser."
       />
-      <section className="ad-panel" aria-labelledby="ad-sounds-title">
-        <div className="ad-panel-head">
-          <h2 className="ad-panel-title" id="ad-sounds-title">Notification sounds</h2>
+      <section className="rpl-panel" aria-labelledby="rpl-sounds-title">
+        <div className="rpl-panel-head">
+          <h2 className="rpl-panel-title" id="rpl-sounds-title">Notification sounds</h2>
           <Switch checked={sound.enabled} onChange={(enabled) => update({ enabled })} label="All sounds" />
         </div>
-        <p className="ad-panel-note">
+        <p className="rpl-panel-note">
           A sound per incident category, so you can tell them apart without looking. A new
           incident rings until you open it.
         </p>
@@ -112,7 +112,7 @@ export default function Settings() {
             >
               <button
                 type="button"
-                className="ad-button ad-button--secondary ad-button--compact"
+                className="rpl-button rpl-button--secondary rpl-button--compact"
                 onClick={() => update({ muted: { ...sound.muted, [c]: !muted } })}
                 disabled={off}
                 aria-pressed={muted}
@@ -120,7 +120,7 @@ export default function Settings() {
                 {muted ? 'Muted' : 'Mute'}
               </button>
               <input
-                className="ad-range"
+                className="rpl-range"
                 type="range"
                 min="0"
                 max="1"
@@ -131,12 +131,12 @@ export default function Settings() {
                 aria-label={`${CATEGORY_LABEL[c]} volume`}
                 aria-valuetext={`${Math.round(sound.volume[c] * 100)}%`}
               />
-              <span className="ad-range-value" aria-hidden="true">
+              <span className="rpl-range-value" aria-hidden="true">
                 {Math.round(sound.volume[c] * 100)}%
               </span>
               <button
                 type="button"
-                className="ad-button ad-button--secondary ad-button--compact"
+                className="rpl-button rpl-button--secondary rpl-button--compact"
                 onClick={() => previewCue(c)}
                 disabled={off || muted || sound.volume[c] === 0}
               >
@@ -148,8 +148,8 @@ export default function Settings() {
         })}
       </section>
 
-      <section className="ad-panel" aria-labelledby="ad-repeat-title">
-        <h2 className="ad-panel-title" id="ad-repeat-title">Alerts</h2>
+      <section className="rpl-panel" aria-labelledby="rpl-repeat-title">
+        <h2 className="rpl-panel-title" id="rpl-repeat-title">Alerts</h2>
         <Row title="Desktop alerts" detail="When this tab is behind another window.">
           {alarm.permission === 'granted' ? (
             <Switch
@@ -160,21 +160,21 @@ export default function Settings() {
           ) : alarm.permission === 'default' ? (
             <button
               type="button"
-              className="ad-button ad-button--secondary ad-button--compact"
+              className="rpl-button rpl-button--secondary rpl-button--compact"
               onClick={askDesktopPermission}
             >
               Allow
             </button>
           ) : (
-            <span className="ad-setting-detail">
+            <span className="rpl-setting-detail">
               {alarm.permission === 'denied' ? 'Blocked in browser settings' : 'Not available here'}
             </span>
           )}
         </Row>
       </section>
 
-      <section className="ad-panel" aria-labelledby="ad-ground-title">
-        <h2 className="ad-panel-title" id="ad-ground-title">Appearance</h2>
+      <section className="rpl-panel" aria-labelledby="rpl-ground-title">
+        <h2 className="rpl-panel-title" id="rpl-ground-title">Appearance</h2>
         <Row title="Light ground" detail="The console is designed on the dark ground.">
           <Switch
             checked={theme === 'light'}

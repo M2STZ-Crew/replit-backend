@@ -9,8 +9,8 @@
 export default function Icon({ name, size = 20, label, className = '' }) {
   return (
     <span
-      className={`ad-icon${className ? ` ${className}` : ''}`}
-      style={{ '--ad-icon': `url(/icons/${name}.svg)`, width: size, height: size }}
+      className={`rpl-icon${className ? ` ${className}` : ''}`}
+      style={{ '--rpl-icon': `url(/icons/${name}.svg)`, width: size, height: size }}
       role={label ? 'img' : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : 'true'}

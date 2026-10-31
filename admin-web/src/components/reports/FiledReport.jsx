@@ -15,9 +15,9 @@ const ROLE = { admin: 'Admin', sub_admin: 'Coordinator', response_team: 'Respond
 
 function Facts({ rows }) {
   return (
-    <dl className="ad-facts ad-facts--wide">
+    <dl className="rpl-facts rpl-facts--wide">
       {rows.map(([t, v]) => (
-        <div className="ad-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
+        <div className="rpl-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
       ))}
     </dl>
   );
@@ -42,20 +42,20 @@ export default function FiledReport({ report: r }) {
   const narrative = r.false_alarm ? (r.false_alarm_note || r.notes) : r.notes;
 
   return (
-    <div className="ad-stack">
-      <div className="ad-report-grid">
-        <section className="ad-panel" aria-labelledby={`ad-scene-${r.id}`}>
-          <h3 className="ad-decision-title" id={`ad-scene-${r.id}`}>Scene</h3>
+    <div className="rpl-stack">
+      <div className="rpl-report-grid">
+        <section className="rpl-panel" aria-labelledby={`rpl-scene-${r.id}`}>
+          <h3 className="rpl-decision-title" id={`rpl-scene-${r.id}`}>Scene</h3>
           <Facts rows={scene} />
         </section>
-        <section className="ad-panel" aria-labelledby={`ad-crew-${r.id}`}>
-          <h3 className="ad-decision-title" id={`ad-crew-${r.id}`}>Unit and crew</h3>
+        <section className="rpl-panel" aria-labelledby={`rpl-crew-${r.id}`}>
+          <h3 className="rpl-decision-title" id={`rpl-crew-${r.id}`}>Unit and crew</h3>
           <Facts rows={team} />
         </section>
       </div>
-      <section className="ad-panel" aria-labelledby={`ad-narrative-${r.id}`}>
-        <h3 className="ad-decision-title" id={`ad-narrative-${r.id}`}>{r.false_alarm ? 'What the team found' : 'Narrative'}</h3>
-        <p className="ad-decision-body ad-report-narrative">{narrative || 'The team wrote no narrative.'}</p>
+      <section className="rpl-panel" aria-labelledby={`rpl-narrative-${r.id}`}>
+        <h3 className="rpl-decision-title" id={`rpl-narrative-${r.id}`}>{r.false_alarm ? 'What the team found' : 'Narrative'}</h3>
+        <p className="rpl-decision-body rpl-report-narrative">{narrative || 'The team wrote no narrative.'}</p>
       </section>
     </div>
   );

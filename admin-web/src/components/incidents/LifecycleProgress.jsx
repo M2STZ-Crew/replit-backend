@@ -22,25 +22,25 @@ export default function LifecycleProgress({ status }) {
   const at = stepOf(status);
   const label = statusOf(status).label;
   return (
-    <div className="ad-progress">
-      <div className="ad-progress-head">
-        <span className="ad-eyebrow ad-eyebrow--quiet">Progress</span>
-        <span className="ad-progress-now">{label}</span>
+    <div className="rpl-progress">
+      <div className="rpl-progress-head">
+        <span className="rpl-eyebrow rpl-eyebrow--quiet">Progress</span>
+        <span className="rpl-progress-now">{label}</span>
       </div>
       {at < 0 ? (
-        <p className="ad-progress-off">
+        <p className="rpl-progress-off">
           This Area left the response as {label.toLowerCase()}; it has no further steps.
         </p>
       ) : (
-        <ol className="ad-progress-steps" aria-label={`Progress: ${label}, step ${at + 1} of ${STEPS.length}`}>
+        <ol className="rpl-progress-steps" aria-label={`Progress: ${label}, step ${at + 1} of ${STEPS.length}`}>
           {STEPS.map((s, i) => (
             <li
               key={s.key}
               className={`${i <= at ? 'is-reached' : ''}${i === at ? ' is-current' : ''}`}
               aria-current={i === at ? 'step' : undefined}
             >
-              <span className="ad-progress-bar" aria-hidden="true" />
-              <span className="ad-progress-label">{s.label}</span>
+              <span className="rpl-progress-bar" aria-hidden="true" />
+              <span className="rpl-progress-label">{s.label}</span>
             </li>
           ))}
         </ol>

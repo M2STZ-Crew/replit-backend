@@ -7,8 +7,8 @@ import Icon from '../ui/Icon.jsx';
 
 export function AvailabilityChip({ afk, since }) {
   return (
-    <span className={`ad-availability${afk ? ' is-afk' : ''}`}>
-      <span className="ad-availability-dot" aria-hidden="true" />
+    <span className={`rpl-availability${afk ? ' is-afk' : ''}`}>
+      <span className="rpl-availability-dot" aria-hidden="true" />
       {afk ? (since ? `AFK since ${since}` : 'AFK') : 'Available'}
     </span>
   );
@@ -21,20 +21,20 @@ export default function TopBar({
   organization, scope, soundOn, onSound, availability = null, unread = 0, onUnread,
 }) {
   return (
-    <header className="ad-topbar">
-      <p className="ad-topbar-context">
-        <span className="ad-topbar-org">{organization}</span>
+    <header className="rpl-topbar">
+      <p className="rpl-topbar-context">
+        <span className="rpl-topbar-org">{organization}</span>
         {scope && (
           <>
-            <span className="ad-topbar-sep" aria-hidden="true">·</span>
-            <span className="ad-topbar-scope">{scope}</span>
+            <span className="rpl-topbar-sep" aria-hidden="true">·</span>
+            <span className="rpl-topbar-scope">{scope}</span>
           </>
         )}
       </p>
 
       <button
         type="button"
-        className="ad-pill"
+        className="rpl-pill"
         onClick={onSound}
         aria-label={`${soundOn ? 'Sound on' : 'Sound off'}. Open sound settings`}
       >
@@ -46,7 +46,7 @@ export default function TopBar({
 
       <button
         type="button"
-        className="ad-pill"
+        className="rpl-pill"
         onClick={onUnread}
         aria-label={
           unread > 0
@@ -55,7 +55,7 @@ export default function TopBar({
         }
       >
         <Icon name="notifications" size={16} />
-        {unread > 0 && <span className="ad-count" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}
+        {unread > 0 && <span className="rpl-count" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}
       </button>
     </header>
   );

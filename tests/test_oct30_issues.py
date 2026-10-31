@@ -8,6 +8,7 @@ What these pin:
   their own tap; it stands once given.
 - Issue 01: the Admin console's own words say "organization".
 - Issue 02: the neighbourhood alert is 150 m, and clustering is deliberately not.
+- No name in the Admin console is one an adblocker hides.
 
 Issue 11 is in tests/test_alarm_escalation.py, Issue 07 in tests/test_push_status.py.
 What these fakes cannot run (the database trigger, the upsert) was exercised on a
@@ -358,6 +359,25 @@ def test_the_admin_console_says_organization() -> None:
         if path.suffix in (".js", ".jsx")
         for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
         if "organisation" in line.lower() and not comment.match(line)
+    ]
+    assert found == []
+
+
+# --------------------------------------------------------------------------- #
+# Adblockers
+# --------------------------------------------------------------------------- #
+def test_no_console_name_is_one_an_adblocker_hides() -> None:
+    """Filter lists hide .ad-main, .ad-sidebar and the like on every site, so a
+    console drawn from ad- names is a blank page behind a blocker."""
+    comment = re.compile(r"^\s*(//|/\*|\*|\{/\*)")
+    name = re.compile(r"(?<![\w-])(--)?ad-[a-z]")
+    web = _ROOT / "admin-web"
+    found = [
+        f"{path.relative_to(_ROOT)}:{n}"
+        for path in (web / "index.html", *(web / "src").rglob("*"))
+        if path.suffix in (".html", ".js", ".jsx", ".css")
+        for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
+        if name.search(line) and not comment.match(line)
     ]
     assert found == []
 

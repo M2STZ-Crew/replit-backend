@@ -29,9 +29,9 @@ function words(s) {
 
 function Facts({ rows }) {
   return (
-    <dl className="ad-facts ad-facts--wide">
+    <dl className="rpl-facts rpl-facts--wide">
       {rows.map(([t, v]) => (
-        <div className="ad-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
+        <div className="rpl-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
       ))}
     </dl>
   );
@@ -64,7 +64,7 @@ export default function Organization({ onNavigate }) {
 
   if (!profile) {
     return (
-      <div className="ad-page">
+      <div className="rpl-page">
         <PageHeader eyebrow="Organization" title="Organization" />
         <EmptyState icon="organization" title="No organization on this account">
           Your Admin account isn’t attached to an accredited organization, so there is no profile to show. The organizations on the network are under Affiliates.
@@ -85,7 +85,7 @@ export default function Organization({ onNavigate }) {
   ];
 
   return (
-    <div className="ad-page">
+    <div className="rpl-page">
       <PageHeader
         eyebrow={`Organization · ${agencyLabel(profile.agency_type)}`}
         title={profile.name}
@@ -96,40 +96,40 @@ export default function Organization({ onNavigate }) {
         <StatePanel kind="error" title="The organization couldn’t load" description={error} onRetry={load} />
       ) : (
         <>
-          <div className="ad-incident-grid">
-            <section className="ad-panel" aria-labelledby="ad-org-profile">
-              <h2 className="ad-decision-title" id="ad-org-profile">Profile</h2>
+          <div className="rpl-incident-grid">
+            <section className="rpl-panel" aria-labelledby="rpl-org-profile">
+              <h2 className="rpl-decision-title" id="rpl-org-profile">Profile</h2>
               <Facts rows={profileRows} />
-              {profile.description && <p className="ad-decision-body ad-org-about">{profile.description}</p>}
+              {profile.description && <p className="rpl-decision-body rpl-org-about">{profile.description}</p>}
             </section>
 
-            <section className="ad-panel ad-decision" aria-labelledby="ad-org-people" aria-busy={phase === 'loading' || undefined}>
-              <h2 className="ad-decision-title" id="ad-org-people">People</h2>
+            <section className="rpl-panel rpl-decision" aria-labelledby="rpl-org-people" aria-busy={phase === 'loading' || undefined}>
+              <h2 className="rpl-decision-title" id="rpl-org-people">People</h2>
               <Facts rows={[
                 ['Coordinators', phase === 'loading' ? '…' : String(coordinators)],
                 ['Responders', phase === 'loading' ? '…' : `${responders} · created by your Coordinators`],
               ]} />
-              <div className="ad-alert ad-alert--info">
-                <span className="ad-alert-mark" aria-hidden="true">i</span>
-                <p className="ad-alert-body">Coordinators create Responder accounts for their team on the mobile app.</p>
+              <div className="rpl-alert rpl-alert--info">
+                <span className="rpl-alert-mark" aria-hidden="true">i</span>
+                <p className="rpl-alert-body">Coordinators create Responder accounts for their team on the mobile app.</p>
               </div>
               {onNavigate && (
-                <button type="button" className="ad-button ad-button--secondary" onClick={() => onNavigate('accounts')}>
+                <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onNavigate('accounts')}>
                   View accounts
                 </button>
               )}
             </section>
           </div>
 
-          <section className="ad-board-section" aria-labelledby="ad-org-equipment">
-            <div className="ad-section-head">
-              <h2 className="ad-section-title" id="ad-org-equipment">Equipment</h2>
-              <span className="ad-section-meta">{phase === 'ready' ? equipment.length : '…'}</span>
+          <section className="rpl-board-section" aria-labelledby="rpl-org-equipment">
+            <div className="rpl-section-head">
+              <h2 className="rpl-section-title" id="rpl-org-equipment">Equipment</h2>
+              <span className="rpl-section-meta">{phase === 'ready' ? equipment.length : '…'}</span>
             </div>
             {phase === 'loading' ? (
               <StatePanel kind="loading" title="Loading equipment…" busy />
             ) : equipment.length === 0 ? (
-              <p className="ad-empty-line">No equipment on record.</p>
+              <p className="rpl-empty-line">No equipment on record.</p>
             ) : (
               <div className="web-table-wrap">
                 <table className="web-table">
@@ -144,7 +144,7 @@ export default function Organization({ onNavigate }) {
                   <tbody>
                     {equipment.map((e) => (
                       <tr key={e.id} className="web-table-row">
-                        <th scope="row"><span className="ad-cell-title">{e.name}</span></th>
+                        <th scope="row"><span className="rpl-cell-title">{e.name}</span></th>
                         <td>
                           {words(e.category)}
                           {e.capacity_liters ? ` · ${Number(e.capacity_liters).toLocaleString()} L` : ''}

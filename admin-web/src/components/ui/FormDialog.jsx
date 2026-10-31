@@ -30,7 +30,7 @@ export default function FormDialog({
   return (
     <dialog
       ref={dialog}
-      className="web-dialog ad-form-dialog"
+      className="web-dialog rpl-form-dialog"
       aria-labelledby={titleId}
       onCancel={(e) => { e.preventDefault(); if (!busy) onClose(); }}
     >
@@ -39,12 +39,12 @@ export default function FormDialog({
         noValidate
         onSubmit={(e) => { e.preventDefault(); if (!busy) onSubmit(); }}
       >
-        <header className="ad-form-dialog-head">
+        <header className="rpl-form-dialog-head">
           <div>
             {eyebrow && <p className="web-dialog-eyebrow">{eyebrow}</p>}
             <h2 className="web-dialog-title" id={titleId}>{title}</h2>
           </div>
-          <button type="button" className="ad-icon-button" onClick={onClose} aria-label="Close" disabled={busy}>
+          <button type="button" className="rpl-icon-button" onClick={onClose} aria-label="Close" disabled={busy}>
             <span aria-hidden="true">✕</span>
           </button>
         </header>
@@ -53,8 +53,8 @@ export default function FormDialog({
 
         {error && <p className="web-dialog-error" role="alert">{error}</p>}
 
-        <footer className="ad-form-dialog-foot">
-          {note && <p className="ad-field-help">{note}</p>}
+        <footer className="rpl-form-dialog-foot">
+          {note && <p className="rpl-field-help">{note}</p>}
           <button type="button" className="web-button web-button--secondary" onClick={onClose} disabled={busy}>Cancel</button>
           <button type="submit" className="web-button web-button--primary" disabled={busy}>
             {busy ? busyLabel : submitLabel}

@@ -58,23 +58,23 @@ export default function CorrectionDialog({ open, target, fields = [], onSubmit, 
       submitLabel="Add correction"
       busyLabel="Adding…"
     >
-      <label className="ad-select">
-        <span className="ad-select-label">Field</span>
+      <label className="rpl-select">
+        <span className="rpl-select-label">Field</span>
         <select value={field} onChange={(e) => setField(e.target.value)} disabled={busy}>
           {fields.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
         </select>
       </label>
-      <label className="ad-field">
-        <span className="ad-field-label">Correct value</span>
+      <label className="rpl-field">
+        <span className="rpl-field-label">Correct value</span>
         <input value={now} onChange={(e) => setNow(e.target.value)} disabled={busy} aria-invalid={!!(nowError || sameError)} />
         {nowError || sameError
-          ? <span className="ad-field-error">{nowError || sameError}</span>
-          : chosen && <span className="ad-field-help">Was: {chosen.current ?? 'not recorded'}</span>}
+          ? <span className="rpl-field-error">{nowError || sameError}</span>
+          : chosen && <span className="rpl-field-help">Was: {chosen.current ?? 'not recorded'}</span>}
       </label>
-      <label className="ad-field">
-        <span className="ad-field-label">Why</span>
+      <label className="rpl-field">
+        <span className="rpl-field-label">Why</span>
         <textarea rows={4} value={reason} onChange={(e) => setReason(e.target.value)} disabled={busy} aria-invalid={!!reasonError} maxLength={1000} />
-        {reasonError && <span className="ad-field-error">{reasonError}</span>}
+        {reasonError && <span className="rpl-field-error">{reasonError}</span>}
       </label>
     </FormDialog>
   );

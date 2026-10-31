@@ -68,9 +68,9 @@ function timelineOf(d, evidence) {
 
 function Facts({ rows }) {
   return (
-    <dl className="ad-facts ad-facts--wide">
+    <dl className="rpl-facts rpl-facts--wide">
       {rows.map(([term, value]) => (
-        <div className="ad-fact" key={term}>
+        <div className="rpl-fact" key={term}>
           <dt>{term}</dt>
           <dd>{value}</dd>
         </div>
@@ -101,16 +101,16 @@ function ourAcknowledgement(d, access) {
 /* A25: an Area routed to other organisations. */
 function ViewOnly({ d, access, orgName }) {
   return (
-    <section className="ad-panel ad-decision" aria-labelledby="ad-decision-title">
-      <div className="ad-decision-head">
-        <h2 className="ad-decision-title" id="ad-decision-title">{orgName}</h2>
+    <section className="rpl-panel rpl-decision" aria-labelledby="rpl-decision-title">
+      <div className="rpl-decision-head">
+        <h2 className="rpl-decision-title" id="rpl-decision-title">{orgName}</h2>
         <LifecycleChip status={d.status} />
       </div>
-      <div className="ad-alert ad-alert--info">
-        <span className="ad-alert-mark" aria-hidden="true">i</span>
-        <div className="ad-alert-text">
-          <p className="ad-alert-title">View only</p>
-          <p className="ad-alert-body">
+      <div className="rpl-alert rpl-alert--info">
+        <span className="rpl-alert-mark" aria-hidden="true">i</span>
+        <div className="rpl-alert-text">
+          <p className="rpl-alert-title">View only</p>
+          <p className="rpl-alert-body">
             {d.designation} asked for {agenciesOf(d)}, not {routedWord(access)}. You can follow it
             here but can’t act on it or see who reported it.
           </p>
@@ -126,19 +126,19 @@ function Decision({ d, access, orgName, onAcknowledge, busy, acknowledgedNow }) 
   const ours = acknowledgedByUs(access, d);
   if (!ours && status === 'reported') {
     return (
-      <section className="ad-panel ad-decision" aria-labelledby="ad-decision-title">
-        <div className="ad-decision-head">
-          <h2 className="ad-decision-title" id="ad-decision-title">Acknowledge this Area</h2>
+      <section className="rpl-panel rpl-decision" aria-labelledby="rpl-decision-title">
+        <div className="rpl-decision-head">
+          <h2 className="rpl-decision-title" id="rpl-decision-title">Acknowledge this Area</h2>
           <LifecycleChip status={status} />
         </div>
-        <p className="ad-decision-body">
+        <p className="rpl-decision-body">
           {d.designation} asked for {agenciesOf(d)}. Acknowledging says {orgName} has seen it
           and will check. It sends nobody: Coordinators decide who goes.
         </p>
-        <button type="button" className="ad-button ad-button--primary ad-button--run" onClick={onAcknowledge} disabled={busy}>
+        <button type="button" className="rpl-button rpl-button--primary rpl-button--run" onClick={onAcknowledge} disabled={busy}>
           {busy ? 'Acknowledging…' : 'Acknowledge'}
         </button>
-        <p className="ad-decision-note">
+        <p className="rpl-decision-note">
           Opening this page stopped the sound. It didn’t acknowledge the incident.
         </p>
       </section>
@@ -146,16 +146,16 @@ function Decision({ d, access, orgName, onAcknowledge, busy, acknowledgedNow }) 
   }
   if (!ours) {
     return (
-      <section className="ad-panel ad-decision" aria-labelledby="ad-decision-title">
-        <div className="ad-decision-head">
-          <h2 className="ad-decision-title" id="ad-decision-title">Acknowledge for {orgName}</h2>
+      <section className="rpl-panel rpl-decision" aria-labelledby="rpl-decision-title">
+        <div className="rpl-decision-head">
+          <h2 className="rpl-decision-title" id="rpl-decision-title">Acknowledge for {orgName}</h2>
           <LifecycleChip status={status} />
         </div>
-        <p className="ad-decision-body">
+        <p className="rpl-decision-body">
           {firstAcknowledger(d)} acknowledged it first{d.verified_at ? ` at ${clock(d.verified_at)}` : ''}.
           {' '}It asked for {agenciesOf(d)} too: acknowledge so everyone sees {orgName} is on it. It sends nobody.
         </p>
-        <button type="button" className="ad-button ad-button--primary" onClick={onAcknowledge} disabled={busy}>
+        <button type="button" className="rpl-button rpl-button--primary" onClick={onAcknowledge} disabled={busy}>
           {busy ? 'Acknowledging…' : `Acknowledge for ${orgName}`}
         </button>
       </section>
@@ -166,18 +166,18 @@ function Decision({ d, access, orgName, onAcknowledge, busy, acknowledgedNow }) 
     const who = mine?.user_name ?? d.verified_by_name;
     const at = mine?.accepted_at ?? d.verified_at;
     return (
-      <section className="ad-panel ad-decision" aria-labelledby="ad-decision-title">
-        <div className="ad-decision-head">
-          <h2 className="ad-decision-title" id="ad-decision-title">Acknowledged</h2>
+      <section className="rpl-panel rpl-decision" aria-labelledby="rpl-decision-title">
+        <div className="rpl-decision-head">
+          <h2 className="rpl-decision-title" id="rpl-decision-title">Acknowledged</h2>
           <LifecycleChip status={status} />
         </div>
-        <div className="ad-success" role={acknowledgedNow ? 'status' : undefined}>
-          <span className="ad-success-check" aria-hidden="true">✓</span>
+        <div className="rpl-success" role={acknowledgedNow ? 'status' : undefined}>
+          <span className="rpl-success-check" aria-hidden="true">✓</span>
           <div>
-            <p className="ad-success-title">
+            <p className="rpl-success-title">
               Acknowledged{mine ? ` for ${orgName}` : ''}{who ? ` by ${who}` : ''} · {clock(at)}
             </p>
-            <p className="ad-success-body">
+            <p className="rpl-success-body">
               Coordinators and Responders can see it. It moves to En route when a unit sets off.
             </p>
           </div>
@@ -194,19 +194,19 @@ function OnScene({ d, dispatches, requests, onAskAlarm }) {
   const active = (dispatches ?? []).filter((x) => x.status === 'active');
   const pending = requests.some((r) => r.status === 'pending');
   return (
-    <section className="ad-panel ad-decision" aria-labelledby="ad-onscene-title">
-      <div className="ad-decision-head">
-        <h2 className="ad-decision-title" id="ad-onscene-title">On scene</h2>
+    <section className="rpl-panel rpl-decision" aria-labelledby="rpl-onscene-title">
+      <div className="rpl-decision-head">
+        <h2 className="rpl-decision-title" id="rpl-onscene-title">On scene</h2>
         <LifecycleChip status={d.status} />
       </div>
       {active.length === 0 ? (
-        <p className="ad-decision-body">No unit is assigned to this Area right now.</p>
+        <p className="rpl-decision-body">No unit is assigned to this Area right now.</p>
       ) : (
-        <ul className="ad-units">
+        <ul className="rpl-units">
           {active.map((x) => (
             <li key={x.id}>
-              <span className="ad-cell-title">{x.vehicle_name || x.responder_name || 'A responder'}</span>
-              <span className="ad-cell-meta">
+              <span className="rpl-cell-title">{x.vehicle_name || x.responder_name || 'A responder'}</span>
+              <span className="rpl-cell-meta">
                 {[x.responder_name && x.vehicle_name ? x.responder_name : null, x.crew_role, `since ${clock(x.dispatched_at)}`].filter(Boolean).join(' · ')}
               </span>
             </li>
@@ -214,17 +214,17 @@ function OnScene({ d, dispatches, requests, onAskAlarm }) {
         </ul>
       )}
       {requests.map((r) => (
-        <div className="ad-request-line" key={r.id}>
-          <span className="ad-cell-title">
+        <div className="rpl-request-line" key={r.id}>
+          <span className="rpl-cell-title">
             Alarm escalation · {alarmLabel(r.requested_alarm_level)}
           </span>
-          <span className="ad-cell-meta">
+          <span className="rpl-cell-meta">
             {r.requested_by_name ? `From ${r.requested_by_name} · ` : ''}{clock(r.created_at)} · {r.status === 'pending' ? 'waiting for BFP' : r.status}
           </span>
         </div>
       ))}
       {onAskAlarm && (
-        <button type="button" className="ad-button ad-button--secondary" onClick={onAskAlarm} disabled={pending}>
+        <button type="button" className="rpl-button rpl-button--secondary" onClick={onAskAlarm} disabled={pending}>
           {pending ? 'Waiting for BFP to answer' : 'Ask BFP to raise the alarm'}
         </button>
       )}
@@ -265,8 +265,8 @@ export default function IncidentDetail({
     : `${d.designation} · ${statusOf(d.status).label} · not routed to ${orgName}`;
 
   return (
-    <div className="ad-page ad-incident">
-      <button type="button" className="ad-text-button ad-back" onClick={onBack}>
+    <div className="rpl-page rpl-incident">
+      <button type="button" className="rpl-text-button rpl-back" onClick={onBack}>
         ← All incidents
       </button>
       <header className="web-page-header">
@@ -277,18 +277,18 @@ export default function IncidentDetail({
         </div>
       </header>
 
-      {error && <p className="ad-inline-error" role="alert">{error}</p>}
+      {error && <p className="rpl-inline-error" role="alert">{error}</p>}
 
-      <div className="ad-incident-grid">
-        <div className="ad-incident-main">
+      <div className="rpl-incident-grid">
+        <div className="rpl-incident-main">
           <AreaMap lat={d.centroid_lat} lng={d.centroid_lng} label={d.designation} />
-          <section className="ad-panel">
+          <section className="rpl-panel">
             <LifecycleProgress status={d.status} />
             <Facts rows={facts} />
           </section>
         </div>
 
-        <div className="ad-incident-side">
+        <div className="rpl-incident-side">
           {!canAct ? (
             live && <ViewOnly d={d} access={access} orgName={orgName} />
           ) : (
@@ -315,32 +315,32 @@ export default function IncidentDetail({
           )}
 
           {(d.status === 'post_incident_report' || reports.length > 0) && (
-            <section className="ad-panel ad-decision" aria-labelledby="ad-pir-title">
-              <div className="ad-decision-head">
-                <h2 className="ad-decision-title" id="ad-pir-title">Post-incident report</h2>
+            <section className="rpl-panel rpl-decision" aria-labelledby="rpl-pir-title">
+              <div className="rpl-decision-head">
+                <h2 className="rpl-decision-title" id="rpl-pir-title">Post-incident report</h2>
                 <LifecycleChip status={d.status} />
               </div>
-              <p className="ad-decision-body">
+              <p className="rpl-decision-body">
                 {reports.length === 0
                   ? 'Fire out. Waiting on the responding team captain’s report; the Area closes when it is filed.'
                   : `${reports.length} team${reports.length === 1 ? '' : 's'} filed. Read them in Reports & CIAR, or download the record.`}
               </p>
               {reports.length > 0 && (
-                <button type="button" className="ad-button ad-button--secondary" onClick={onPdf} disabled={busy}>
+                <button type="button" className="rpl-button rpl-button--secondary" onClick={onPdf} disabled={busy}>
                   Download report (PDF)
                 </button>
               )}
             </section>
           )}
 
-          <section className="ad-panel ad-timeline-card" aria-labelledby="ad-timeline-title">
-            <h2 className="ad-decision-title" id="ad-timeline-title">{live ? 'Timeline' : 'What happened'}</h2>
-            <ol className="ad-timeline">
+          <section className="rpl-panel rpl-timeline-card" aria-labelledby="rpl-timeline-title">
+            <h2 className="rpl-decision-title" id="rpl-timeline-title">{live ? 'Timeline' : 'What happened'}</h2>
+            <ol className="rpl-timeline">
               {timeline.map((t) => (
-                <li key={`${t.title}-${t.at}`} className={`ad-timeline-item is-${t.tone}`}>
-                  <span className="ad-timeline-time">{clockS(t.at)}</span>
-                  <span className="ad-timeline-title">{t.title}</span>
-                  {t.sub && <span className="ad-timeline-sub">{t.sub}</span>}
+                <li key={`${t.title}-${t.at}`} className={`rpl-timeline-item is-${t.tone}`}>
+                  <span className="rpl-timeline-time">{clockS(t.at)}</span>
+                  <span className="rpl-timeline-title">{t.title}</span>
+                  {t.sub && <span className="rpl-timeline-sub">{t.sub}</span>}
                 </li>
               ))}
             </ol>
@@ -351,36 +351,36 @@ export default function IncidentDetail({
       {/* Who reported, their photos and where they stood are for the
           organizations the Area asked for (A25). */}
       {routed && (
-        <section className="ad-board-section" aria-labelledby="ad-evidence-title">
-          <div className="ad-section-head">
-            <h2 className="ad-section-title" id="ad-evidence-title">Reports in this Area</h2>
-            <span className="ad-section-meta">{evidence.length}</span>
+        <section className="rpl-board-section" aria-labelledby="rpl-evidence-title">
+          <div className="rpl-section-head">
+            <h2 className="rpl-section-title" id="rpl-evidence-title">Reports in this Area</h2>
+            <span className="rpl-section-meta">{evidence.length}</span>
           </div>
           {evidence.length === 0 ? (
-            <p className="ad-empty-line">No member reports.</p>
+            <p className="rpl-empty-line">No member reports.</p>
           ) : (
-            <ul className="ad-evidence">
+            <ul className="rpl-evidence">
               {evidence.map((r) => (
-                <li key={r.id} className="ad-evidence-item">
+                <li key={r.id} className="rpl-evidence-item">
                   {r.photo_url
                     ? (
                       <ZoomablePhoto
                         src={r.photo_url}
                         alt={`the scene reported by ${r.reporter_name || 'a resident'}`}
                         caption={`${r.reporter_name || 'A resident'} · ${clock(r.created_at)} · ${d.designation}`}
-                        imageClassName="ad-evidence-photo"
+                        imageClassName="rpl-evidence-photo"
                       />
                     )
-                    : <span className="ad-evidence-photo is-missing">No photo</span>}
-                  <span className="ad-cell-text">
-                    <span className="ad-cell-title">{r.reporter_name || 'Unnamed reporter'}</span>
-                    <span className="ad-cell-meta">
+                    : <span className="rpl-evidence-photo is-missing">No photo</span>}
+                  <span className="rpl-cell-text">
+                    <span className="rpl-cell-title">{r.reporter_name || 'Unnamed reporter'}</span>
+                    <span className="rpl-cell-meta">
                       {clock(r.created_at)} · {r.user_verified_percent ?? 0}% verified
                       {r.gps_discrepancy_flag ? ' · photo GPS disagrees with the phone' : ''}
                       {!r.has_exif ? ' · no photo GPS' : ''}
                     </span>
-                    <span className="ad-cell-meta"><Place lat={r.device_lat} lng={r.device_lng} /></span>
-                    {r.notes && <span className="ad-evidence-note">“{r.notes}”</span>}
+                    <span className="rpl-cell-meta"><Place lat={r.device_lat} lng={r.device_lng} /></span>
+                    {r.notes && <span className="rpl-evidence-note">“{r.notes}”</span>}
                   </span>
                 </li>
               ))}

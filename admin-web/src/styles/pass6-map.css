@@ -3,8 +3,8 @@
  * that carry body text use Glass strong (03 · pass 6 materials). */
 
 /* ── Markers ──────────────────────────────────────────────────────────── */
-.ad-marker { background: none; border: 0; }
-.ad-marker-backing {
+.rpl-marker { background: none; border: 0; }
+.rpl-marker-backing {
   position: absolute;
   left: 5px;
   top: 5px;
@@ -13,8 +13,8 @@
   border-radius: 11px;
   background: #131313;
 }
-.ad-marker-backing.is-selected { left: 0; top: 0; width: 48px; height: 48px; border-radius: 14px; }
-.ad-marker-disc {
+.rpl-marker-backing.is-selected { left: 0; top: 0; width: 48px; height: 48px; border-radius: 14px; }
+.rpl-marker-disc {
   position: absolute;
   left: 8px;
   top: 8px;
@@ -26,16 +26,16 @@
   border-radius: 8px;
   box-sizing: border-box;
 }
-.ad-marker-disc.is-selected { left: 4px; top: 4px; width: 40px; height: 40px; border-width: 2px; border-radius: 10px; }
-.ad-marker-disc--incident { background: #b56648; }
-.ad-marker-disc--water { background: #4168ae; }
-.ad-marker-disc--shelter { background: #188c43; }
-.ad-marker-disc--risk { background: #b53c37; }
-.ad-marker-disc--unit { background: #626262; }
+.rpl-marker-disc.is-selected { left: 4px; top: 4px; width: 40px; height: 40px; border-width: 2px; border-radius: 10px; }
+.rpl-marker-disc--incident { background: #b56648; }
+.rpl-marker-disc--water { background: #4168ae; }
+.rpl-marker-disc--shelter { background: #188c43; }
+.rpl-marker-disc--risk { background: #b53c37; }
+.rpl-marker-disc--unit { background: #626262; }
 /* Units (A30): trucks that would overlap share one marker — a second plate
  * peeks out behind the first, and the count sits at the top right. */
-.ad-unit .ad-unit-behind { transform: translate(5px, -5px); }
-.ad-unit-count {
+.rpl-unit .rpl-unit-behind { transform: translate(5px, -5px); }
+.rpl-unit-count {
   position: absolute;
   right: -2px;
   top: -2px;
@@ -52,14 +52,14 @@
   line-height: 16px;
   text-align: center;
 }
-.ad-unit.is-stale { opacity: 0.6; }
-.ad-unit-tip { display: block; }
-.ad-map-legend-note { margin: 10px 0 0; color: var(--text-3); font-size: 12px; max-width: 24ch; }
+.rpl-unit.is-stale { opacity: 0.6; }
+.rpl-unit-tip { display: block; }
+.rpl-map-legend-note { margin: 10px 0 0; color: var(--text-3); font-size: 12px; max-width: 24ch; }
 
 /* ── Map frame ────────────────────────────────────────────────────────── */
-.ad-map { position: relative; height: 100%; min-height: 0; background: #0b0b0b; }
-.ad-map .leaflet-container { background: #0b0b0b; }
-.ad-map-chips {
+.rpl-map { position: relative; height: 100%; min-height: 0; background: #0b0b0b; }
+.rpl-map .leaflet-container { background: #0b0b0b; }
+.rpl-map-chips {
   position: absolute;
   top: 16px;
   left: 16px;
@@ -70,7 +70,7 @@
   overflow-x: auto;
   scrollbar-width: none;
 }
-.ad-map-chip {
+.rpl-map-chip {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -89,18 +89,18 @@
   text-transform: uppercase;
   cursor: pointer;
 }
-.ad-map-chip.is-on { border-width: 1.5px; }
-.ad-map-chip--accent.is-on { border-color: var(--accent); background: rgba(107, 60, 43, 0.6); }
-.ad-map-chip--info.is-on { border-color: var(--info); background: rgba(31, 52, 92, 0.6); }
-.ad-map-chip--ok.is-on { border-color: var(--ok); background: rgba(12, 60, 31, 0.6); }
-.ad-map-chip--danger.is-on { border-color: var(--danger); background: rgba(92, 28, 26, 0.6); }
-.ad-map-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.ad-map-chip--danger .ad-map-chip-dot { background: var(--danger); }
-.ad-map-chip--info .ad-map-chip-dot { background: var(--info); }
-.ad-map-chip--ok .ad-map-chip-dot { background: var(--ok); }
-.ad-map-chip--accent .ad-map-chip-dot { background: var(--accent); }
+.rpl-map-chip.is-on { border-width: 1.5px; }
+.rpl-map-chip--accent.is-on { border-color: var(--accent); background: rgba(107, 60, 43, 0.6); }
+.rpl-map-chip--info.is-on { border-color: var(--info); background: rgba(31, 52, 92, 0.6); }
+.rpl-map-chip--ok.is-on { border-color: var(--ok); background: rgba(12, 60, 31, 0.6); }
+.rpl-map-chip--danger.is-on { border-color: var(--danger); background: rgba(92, 28, 26, 0.6); }
+.rpl-map-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.rpl-map-chip--danger .rpl-map-chip-dot { background: var(--danger); }
+.rpl-map-chip--info .rpl-map-chip-dot { background: var(--info); }
+.rpl-map-chip--ok .rpl-map-chip-dot { background: var(--ok); }
+.rpl-map-chip--accent .rpl-map-chip-dot { background: var(--accent); }
 
-.ad-map-tools {
+.rpl-map-tools {
   position: absolute;
   top: 16px;
   right: 16px;
@@ -109,7 +109,7 @@
   flex-direction: column;
   gap: 8px;
 }
-.ad-map-tool {
+.rpl-map-tool {
   width: 48px;
   height: 48px;
   display: grid;
@@ -121,9 +121,9 @@
   color: var(--text);
   cursor: pointer;
 }
-.ad-map-tool[aria-pressed="true"] { border-color: var(--accent-line); }
+.rpl-map-tool[aria-pressed="true"] { border-color: var(--accent-line); }
 
-.ad-map-legend {
+.rpl-map-legend {
   position: absolute;
   left: 16px;
   bottom: 16px;
@@ -135,9 +135,9 @@
   background: var(--glass-strong);
   backdrop-filter: blur(12px);
 }
-.ad-map-legend ul { display: flex; flex-direction: column; gap: 10px; margin: 10px 0 0; padding: 0; list-style: none; }
-.ad-map-legend li { display: flex; align-items: center; gap: 10px; color: var(--text-2); font-size: 13px; }
-.ad-legend-mark {
+.rpl-map-legend ul { display: flex; flex-direction: column; gap: 10px; margin: 10px 0 0; padding: 0; list-style: none; }
+.rpl-map-legend li { display: flex; align-items: center; gap: 10px; color: var(--text-2); font-size: 13px; }
+.rpl-legend-mark {
   width: 20px;
   height: 20px;
   flex: none;
@@ -147,7 +147,7 @@
   border-radius: 5px;
 }
 
-.ad-map-panel {
+.rpl-map-panel {
   position: absolute;
   top: 16px;
   right: 80px;
@@ -162,9 +162,9 @@
   background: var(--glass-strong);
   backdrop-filter: blur(16px);
 }
-.ad-map-panel .web-chip { align-self: flex-start; }
+.rpl-map-panel .web-chip { align-self: flex-start; }
 
-.ad-map .leaflet-control-zoom a {
+.rpl-map .leaflet-control-zoom a {
   background: var(--glass-strong);
   color: var(--text);
   border-color: var(--line);
@@ -172,12 +172,12 @@
 
 
 @media (max-width: 1023px) {
-  .ad-map-panel { right: 16px; left: 16px; top: auto; bottom: 16px; width: auto; }
-  .ad-map-legend { display: none; }
+  .rpl-map-panel { right: 16px; left: 16px; top: auto; bottom: 16px; width: auto; }
+  .rpl-map-legend { display: none; }
 }
 
 /* ── Water resources map (A33) ────────────────────────────────────────── */
-.ad-water-map {
+.rpl-water-map {
   position: relative;
   height: max(520px, calc(100vh - 360px));
   overflow: hidden;
@@ -185,5 +185,5 @@
   border-radius: var(--radius-panel);
   background: #0b0b0b;
 }
-.ad-water-panel { right: 16px; }
-.ad-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.rpl-water-panel { right: 16px; }
+.rpl-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }

@@ -69,35 +69,35 @@ export default function AlarmEscalationDialog({ open, areas, bfpName = 'BFP', on
       busyLabel="Sending…"
     >
       {(areas ?? []).length > 1 ? (
-        <label className="ad-field">
-          <span className="ad-field-label">Area</span>
+        <label className="rpl-field">
+          <span className="rpl-field-label">Area</span>
           <select value={areaId} onChange={(e) => { setAreaId(e.target.value); setLevel(''); }} disabled={busy}>
             {areas.map((a) => <option key={a.id} value={a.id}>{a.designation}</option>)}
           </select>
         </label>
       ) : (
-        <p className="ad-field-static">
-          <span className="ad-field-label">Area</span>
+        <p className="rpl-field-static">
+          <span className="rpl-field-label">Area</span>
           <span>{area?.designation ?? '—'}</span>
         </p>
       )}
-      <p className="ad-field-static">
-        <span className="ad-field-label">Send to</span>
+      <p className="rpl-field-static">
+        <span className="rpl-field-label">Send to</span>
         <span>{bfpName}</span>
       </p>
-      <fieldset className="ad-field" aria-invalid={!!levelError}>
-        <legend className="ad-field-label">
+      <fieldset className="rpl-field" aria-invalid={!!levelError}>
+        <legend className="rpl-field-label">
           Proposed level{area?.alarm_level ? ` · now ${alarmLabel(area.alarm_level)}` : ''}
         </legend>
         {choices.length === 0 ? (
-          <p className="ad-field-help">This Area is already at the highest level.</p>
+          <p className="rpl-field-help">This Area is already at the highest level.</p>
         ) : (
-          <div className="ad-segment">
+          <div className="rpl-segment">
             {choices.map((key) => (
               <button
                 key={key}
                 type="button"
-                className={`ad-chip${level === key ? ' is-selected' : ''}`}
+                className={`rpl-chip${level === key ? ' is-selected' : ''}`}
                 aria-pressed={level === key}
                 onClick={() => setLevel(key)}
                 disabled={busy}
@@ -108,10 +108,10 @@ export default function AlarmEscalationDialog({ open, areas, bfpName = 'BFP', on
             ))}
           </div>
         )}
-        {levelError && <span className="ad-field-error">{levelError}</span>}
+        {levelError && <span className="rpl-field-error">{levelError}</span>}
       </fieldset>
-      <label className="ad-field">
-        <span className="ad-field-label">Why (optional)</span>
+      <label className="rpl-field">
+        <span className="rpl-field-label">Why (optional)</span>
         <textarea
           rows={3}
           value={justification}

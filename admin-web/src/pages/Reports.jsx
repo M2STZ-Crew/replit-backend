@@ -61,29 +61,29 @@ function ReportView({ report, readIncidentReports, readSummary, downloadIncident
   ].filter(Boolean).join(' · ');
 
   return (
-    <div className="ad-page">
-      <button type="button" className="ad-text-button ad-back" onClick={onBack}>← All reports</button>
+    <div className="rpl-page">
+      <button type="button" className="rpl-text-button rpl-back" onClick={onBack}>← All reports</button>
       <PageHeader
         eyebrow={`${report.area_designation}${report.organization_name ? ` · ${report.organization_name}` : ''}`}
         title={report.area_designation}
         description={sub}
         actions={(
-          <button type="button" className="ad-button ad-button--secondary" onClick={download} disabled={pdf.busy}>
+          <button type="button" className="rpl-button rpl-button--secondary" onClick={download} disabled={pdf.busy}>
             {pdf.busy ? 'Preparing PDF…' : 'Download PDF'}
           </button>
         )}
       />
-      {pdf.error && <p className="ad-inline-error" role="alert">{pdf.error}</p>}
+      {pdf.error && <p className="rpl-inline-error" role="alert">{pdf.error}</p>}
 
-      <div className="ad-toolbar">
-        <div className="ad-tabs" role="tablist" aria-label="Report">
+      <div className="rpl-toolbar">
+        <div className="rpl-tabs" role="tablist" aria-label="Report">
           {[{ key: 'report', label: 'Post-incident report' }, { key: 'summary', label: 'AI summary' }].map((t) => (
             <button
               key={t.key}
               type="button"
               role="tab"
               aria-selected={view === t.key}
-              className={`ad-tab${view === t.key ? ' is-active' : ''}`}
+              className={`rpl-tab${view === t.key ? ' is-active' : ''}`}
               onClick={() => setView(t.key)}
             >
               {t.label}
@@ -91,20 +91,20 @@ function ReportView({ report, readIncidentReports, readSummary, downloadIncident
           ))}
         </div>
         {team.phase === 'ready' && team.count > 1 && (
-          <p className="ad-table-foot">{team.count} teams filed for {report.area_designation}; the PDF has every one.</p>
+          <p className="rpl-table-foot">{team.count} teams filed for {report.area_designation}; the PDF has every one.</p>
         )}
       </div>
 
       {view === 'report' ? (
         <>
           <FiledReport report={report} />
-          <div className="ad-alert ad-alert--info">
-            <span className="ad-alert-mark" aria-hidden="true">i</span>
-            <p className="ad-alert-body">Reports can’t be edited after they’re sent.</p>
+          <div className="rpl-alert rpl-alert--info">
+            <span className="rpl-alert-mark" aria-hidden="true">i</span>
+            <p className="rpl-alert-body">Reports can’t be edited after they’re sent.</p>
           </div>
         </>
       ) : (
-        <section className="ad-panel">
+        <section className="rpl-panel">
           <IncidentSummary areaId={report.area_id} readSummary={readSummary} />
         </section>
       )}
@@ -154,20 +154,20 @@ export default function Reports({ readReports, readIncidentReports, readSummary,
   }
 
   return (
-    <div className="ad-page">
+    <div className="rpl-page">
       <PageHeader
         eyebrow={org?.name ?? 'Records'}
         title="Reports & CIAR"
         description="Post-incident reports filed by the teams that responded, and each incident’s AI summary."
         actions={(
-          <button type="button" className="ad-button ad-button--secondary" onClick={() => setAttempt((a) => a + 1)} disabled={state.phase === 'loading'}>
+          <button type="button" className="rpl-button rpl-button--secondary" onClick={() => setAttempt((a) => a + 1)} disabled={state.phase === 'loading'}>
             Refresh
           </button>
         )}
       />
 
-      <div className="ad-toolbar ad-toolbar--plain">
-        <label className="ad-search">
+      <div className="rpl-toolbar rpl-toolbar--plain">
+        <label className="rpl-search">
           <Icon name="search" />
           <span className="web-sr-only">Search reports on this page</span>
           <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search areas, organizations, names" />
@@ -200,13 +200,13 @@ export default function Reports({ readReports, readIncidentReports, readSummary,
                 {shown.map((r) => (
                   <tr key={r.id} className="web-table-row">
                     <th scope="row">
-                      <span className="ad-cell-text">
-                        <span className="ad-cell-title">{r.area_designation}</span>
-                        <span className="ad-cell-meta">By {r.filed_by_name || 'the team captain'}{r.driver_name ? ` · driver ${r.driver_name}` : ''}</span>
+                      <span className="rpl-cell-text">
+                        <span className="rpl-cell-title">{r.area_designation}</span>
+                        <span className="rpl-cell-meta">By {r.filed_by_name || 'the team captain'}{r.driver_name ? ` · driver ${r.driver_name}` : ''}</span>
                       </span>
                     </th>
-                    <td className="ad-cell-quiet">{time(r.submitted_at)}</td>
-                    <td className="ad-cell-strong">{r.organization_name || 'Not recorded'}</td>
+                    <td className="rpl-cell-quiet">{time(r.submitted_at)}</td>
+                    <td className="rpl-cell-strong">{r.organization_name || 'Not recorded'}</td>
                     <td><StatusChip {...outcome(r)} /></td>
                     <td className="web-table-action-cell">
                       <button type="button" className="web-table-row-action" onClick={() => setSelected(r)}>
@@ -221,13 +221,13 @@ export default function Reports({ readReports, readIncidentReports, readSummary,
               </tbody>
             </table>
           </div>
-          <nav className="ad-pager" aria-label="Report pages">
-            <p className="ad-table-foot">Showing {offset + 1}–{offset + state.rows.length}</p>
-            <div className="ad-pager-buttons">
-              <button type="button" className="ad-button ad-button--secondary ad-button--compact" disabled={offset === 0} onClick={() => { setOffset(Math.max(0, offset - PAGE_SIZE)); setQuery(''); }}>
+          <nav className="rpl-pager" aria-label="Report pages">
+            <p className="rpl-table-foot">Showing {offset + 1}–{offset + state.rows.length}</p>
+            <div className="rpl-pager-buttons">
+              <button type="button" className="rpl-button rpl-button--secondary rpl-button--compact" disabled={offset === 0} onClick={() => { setOffset(Math.max(0, offset - PAGE_SIZE)); setQuery(''); }}>
                 Previous
               </button>
-              <button type="button" className="ad-button ad-button--secondary ad-button--compact" disabled={!state.hasMore} onClick={() => { setOffset(offset + PAGE_SIZE); setQuery(''); }}>
+              <button type="button" className="rpl-button rpl-button--secondary rpl-button--compact" disabled={!state.hasMore} onClick={() => { setOffset(offset + PAGE_SIZE); setQuery(''); }}>
                 Next
               </button>
             </div>

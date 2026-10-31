@@ -34,16 +34,16 @@ function QueueCount({ icon, count, label, onOpen, loading, urgent = false }) {
   return (
     <button
       type="button"
-      className={`ad-queue${attention ? ' is-attention' : ''}`}
+      className={`rpl-queue${attention ? ' is-attention' : ''}`}
       onClick={onOpen}
       aria-label={loading ? `${label}, loading` : `${count} ${label}`}
     >
-      <span className={`ad-queue-plate${attention ? ' is-attention' : ''}`} aria-hidden="true">
+      <span className={`rpl-queue-plate${attention ? ' is-attention' : ''}`} aria-hidden="true">
         <Icon name={icon} />
       </span>
-      <span className="ad-queue-text" aria-hidden="true">
-        <span className="ad-queue-count">{loading ? '·' : count}</span>
-        <span className="ad-queue-label">{label}</span>
+      <span className="rpl-queue-text" aria-hidden="true">
+        <span className="rpl-queue-count">{loading ? '·' : count}</span>
+        <span className="rpl-queue-label">{label}</span>
       </span>
       <Icon name="chevron-right" size={18} />
     </button>
@@ -123,7 +123,7 @@ export default function SituationBoard({ onNavigate }) {
   const eyebrow = org?.name ? `${org.name} · ${variantLabel(access)}` : 'Operations';
 
   return (
-    <div className="ad-page ad-board">
+    <div className="rpl-page rpl-board">
       <PageHeader
         eyebrow={eyebrow}
         title="Dashboard"
@@ -132,7 +132,7 @@ export default function SituationBoard({ onNavigate }) {
           : 'Your work first, then every active Area across Pasay City.'}
       />
 
-      <section aria-label="Your queues" className="ad-queues">
+      <section aria-label="Your queues" className="rpl-queues">
         {queueList.map((q) => (
           <QueueCount
             key={q.id ?? q.key}
@@ -146,15 +146,15 @@ export default function SituationBoard({ onNavigate }) {
         ))}
       </section>
 
-      <section className="ad-board-section" aria-labelledby="ad-board-incidents-title">
-        <div className="ad-section-head">
-          <h2 className="ad-section-title" id="ad-board-incidents-title">
+      <section className="rpl-board-section" aria-labelledby="rpl-board-incidents-title">
+        <div className="rpl-section-head">
+          <h2 className="rpl-section-title" id="rpl-board-incidents-title">
             {split ? `Routed to ${org?.name ?? 'your organization'}` : 'Active incidents'}
           </h2>
-          <span className="ad-section-meta">
+          <span className="rpl-section-meta">
             {loaded ? `${routed.length} active` : ''}
           </span>
-          <button type="button" className="ad-text-button" onClick={() => onNavigate('incidents')}>
+          <button type="button" className="rpl-text-button" onClick={() => onNavigate('incidents')}>
             All incidents
           </button>
         </div>
@@ -171,10 +171,10 @@ export default function SituationBoard({ onNavigate }) {
       </section>
 
       {split && (
-        <section className="ad-board-section" aria-labelledby="ad-board-others-title">
-          <div className="ad-section-head">
-            <h2 className="ad-section-title" id="ad-board-others-title">Other organizations’ incidents</h2>
-            <span className="ad-section-meta">View only</span>
+        <section className="rpl-board-section" aria-labelledby="rpl-board-others-title">
+          <div className="rpl-section-head">
+            <h2 className="rpl-section-title" id="rpl-board-others-title">Other organizations’ incidents</h2>
+            <span className="rpl-section-meta">View only</span>
           </div>
           <IncidentTable
             incidents={others}
@@ -187,16 +187,16 @@ export default function SituationBoard({ onNavigate }) {
         </section>
       )}
 
-      <section className="ad-panel" aria-labelledby="ad-board-metrics-title">
-        <h2 className="ad-panel-title" id="ad-board-metrics-title">Response measures · last {METRICS_DAYS} days</h2>
-        <p className="ad-panel-note">
+      <section className="rpl-panel" aria-labelledby="rpl-board-metrics-title">
+        <h2 className="rpl-panel-title" id="rpl-board-metrics-title">Response measures · last {METRICS_DAYS} days</h2>
+        <p className="rpl-panel-note">
           {historyLoaded
             ? `${metrics.count} incident${metrics.count === 1 ? '' : 's'}` +
               `${metricsTruncated ? ` (the latest ${HISTORY_LIMIT})` : ''}` +
               ' · medians over incidents that reached both steps'
             : 'Loading…'}
         </p>
-        <div className="ad-measures">
+        <div className="rpl-measures">
           {[
             { label: 'Report to acknowledged', m: metrics.reportToVerify, fmt: 'time' },
             { label: 'Acknowledged to on scene', m: metrics.verifyToScene, fmt: 'time' },
@@ -204,12 +204,12 @@ export default function SituationBoard({ onNavigate }) {
             { label: 'Reached high confidence', m: metrics.highConfidence, fmt: 'share' },
             { label: 'False alarms', m: metrics.falseAlarm, fmt: 'share' },
           ].map(({ label, m, fmt }) => (
-            <div className="ad-measure" key={label}>
-              <span className="ad-measure-label">{label}</span>
-              <span className="ad-measure-value">
+            <div className="rpl-measure" key={label}>
+              <span className="rpl-measure-label">{label}</span>
+              <span className="rpl-measure-value">
                 {historyLoaded ? (fmt === 'time' ? formatMinutes(m.median) : formatShare(m.share)) : '·'}
               </span>
-              <span className="ad-measure-foot">
+              <span className="rpl-measure-foot">
                 {m.n === 0 ? 'None yet' : `over ${m.n} incident${m.n === 1 ? '' : 's'}`}
               </span>
             </div>

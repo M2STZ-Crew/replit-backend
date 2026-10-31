@@ -32,16 +32,16 @@ function Side({ title, area }) {
     ['Confidence', confidenceOf(area)],
   ] : [];
   return (
-    <section className="ad-panel">
-      <h2 className="ad-decision-title">{title}</h2>
+    <section className="rpl-panel">
+      <h2 className="rpl-decision-title">{title}</h2>
       {area ? (
-        <dl className="ad-facts ad-facts--wide">
+        <dl className="rpl-facts rpl-facts--wide">
           {rows.map(([t, v]) => (
-            <div className="ad-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
+            <div className="rpl-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
           ))}
         </dl>
       ) : (
-        <p className="ad-decision-body">Loading…</p>
+        <p className="rpl-decision-body">Loading…</p>
       )}
     </section>
   );
@@ -87,15 +87,15 @@ export default function OverlapReview({ overlap, onDone, onBack }) {
   const expired = left === 0;
 
   return (
-    <div className="ad-page">
-      <button type="button" className="ad-text-button ad-back" onClick={onBack}>← All incidents</button>
+    <div className="rpl-page">
+      <button type="button" className="rpl-text-button rpl-back" onClick={onBack}>← All incidents</button>
       <PageHeader
         eyebrow="Overlap"
         title="Are these the same fire?"
         description={`${nameA} and ${nameB} are ${Math.round(overlap.distance_m)} m apart. Merge them if they are one fire, or keep them separate.`}
       />
 
-      {error && <p className="ad-inline-error" role="alert">{error}</p>}
+      {error && <p className="rpl-inline-error" role="alert">{error}</p>}
       {!a && !b && !error && <StatePanel kind="loading" title="Loading both Areas…" />}
 
       <AreaMap
@@ -106,25 +106,25 @@ export default function OverlapReview({ overlap, onDone, onBack }) {
         ]}
       />
 
-      <div className="ad-overlap-sides">
+      <div className="rpl-overlap-sides">
         <Side title={`${nameA} · keeps its number`} area={a} />
         <Side title={`${nameB} · would close as merged`} area={b} />
       </div>
 
-      <div className="ad-overlap-foot">
-        <p className="ad-decision-body">
+      <div className="rpl-overlap-foot">
+        <p className="rpl-decision-body">
           Merging moves {nameB}’s reports into {nameA} and can’t be undone. Keeping them separate
           leaves both Areas as they are.{' '}
-          <strong className={expired ? 'ad-expired' : undefined}>
+          <strong className={expired ? 'rpl-expired' : undefined}>
             {expired
               ? 'The time to decide has passed; they stay separate.'
               : `Decide within ${minutes > 0 ? `${minutes} min ` : ''}${seconds} s, or they stay separate.`}
           </strong>
         </p>
-        <button type="button" className="ad-button ad-button--secondary" onClick={keepSeparate} disabled={busy || expired}>
+        <button type="button" className="rpl-button rpl-button--secondary" onClick={keepSeparate} disabled={busy || expired}>
           Keep separate
         </button>
-        <button type="button" className="ad-button ad-button--primary" onClick={() => setConfirming(true)} disabled={busy || expired || !b}>
+        <button type="button" className="rpl-button rpl-button--primary" onClick={() => setConfirming(true)} disabled={busy || expired || !b}>
           Merge into {nameA}
         </button>
       </div>

@@ -63,23 +63,23 @@ function AcceptOutcome({ result, request }) {
   const email = result.account_email || request.contact_email;
   if (result.invite_email_sent) {
     return (
-      <div className="ad-alert ad-alert--ok" role="status">
-        <span className="ad-alert-mark" aria-hidden="true">✓</span>
-        <div className="ad-alert-text">
-          <p className="ad-alert-title">Accepted — password link sent</p>
-          <p className="ad-alert-body">Sent to {email} at {CLOCK.format(new Date(request.reviewed_at ?? Date.now()))}. They sign in as the organization’s Coordinator.</p>
+      <div className="rpl-alert rpl-alert--ok" role="status">
+        <span className="rpl-alert-mark" aria-hidden="true">✓</span>
+        <div className="rpl-alert-text">
+          <p className="rpl-alert-title">Accepted — password link sent</p>
+          <p className="rpl-alert-body">Sent to {email} at {CLOCK.format(new Date(request.reviewed_at ?? Date.now()))}. They sign in as the organization’s Coordinator.</p>
         </div>
       </div>
     );
   }
   return (
-    <div className="ad-alert ad-alert--warn" role="status">
-      <span className="ad-alert-mark" aria-hidden="true">!</span>
-      <div className="ad-alert-text">
-        <p className="ad-alert-title">
+    <div className="rpl-alert rpl-alert--warn" role="status">
+      <span className="rpl-alert-mark" aria-hidden="true">!</span>
+      <div className="rpl-alert-text">
+        <p className="rpl-alert-title">
           {result.account_provisioned ? 'Accepted — the email didn’t send' : 'Accepted — no Coordinator account yet'}
         </p>
-        <p className="ad-alert-body">
+        <p className="rpl-alert-body">
           {result.detail || (result.account_provisioned
             ? `The account for ${email} is ready, but the password email failed. They can use “Forgot password” on the app.`
             : 'The organization was created without a Coordinator account.')}
@@ -111,14 +111,14 @@ function RequestDetail({ request: r, result, orgs, onAccept, onDecline, onOpenOr
   const org = r.organization_id ? orgs.find((o) => o.id === r.organization_id) : null;
 
   return (
-    <section className="ad-panel ad-aff-detail" aria-labelledby="ad-aff-title">
-      <header className="ad-aff-detail-head">
+    <section className="rpl-panel rpl-aff-detail" aria-labelledby="rpl-aff-title">
+      <header className="rpl-aff-detail-head">
         <p className="web-eyebrow">{eyebrow}</p>
-        <h2 className="ad-decision-title ad-aff-title" id="ad-aff-title">{r.organization_name}</h2>
+        <h2 className="rpl-decision-title rpl-aff-title" id="rpl-aff-title">{r.organization_name}</h2>
       </header>
-      <dl className="ad-facts ad-facts--wide">
+      <dl className="rpl-facts rpl-facts--wide">
         {facts.map(([t, v]) => (
-          <div className="ad-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
+          <div className="rpl-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
         ))}
       </dl>
 
@@ -126,23 +126,23 @@ function RequestDetail({ request: r, result, orgs, onAccept, onDecline, onOpenOr
 
       {r.status === 'pending' && !result && (
         <>
-          <div className="ad-alert ad-alert--info">
-            <span className="ad-alert-mark" aria-hidden="true">i</span>
-            <p className="ad-alert-body">
+          <div className="rpl-alert rpl-alert--info">
+            <span className="rpl-alert-mark" aria-hidden="true">i</span>
+            <p className="rpl-alert-body">
               {r.contact_email
                 ? `Accepting creates the organization and a Coordinator account for ${r.contact_email}, and emails them a link to set their password.`
                 : 'No email was given, so accepting creates the organization without a Coordinator account.'}
             </p>
           </div>
-          <div className="ad-aff-actions">
-            <button type="button" className="ad-button ad-button--secondary" onClick={onDecline}>Decline</button>
-            <button type="button" className="ad-button ad-button--primary" onClick={onAccept}>Accept</button>
+          <div className="rpl-aff-actions">
+            <button type="button" className="rpl-button rpl-button--secondary" onClick={onDecline}>Decline</button>
+            <button type="button" className="rpl-button rpl-button--primary" onClick={onAccept}>Accept</button>
           </div>
         </>
       )}
 
       {org && (
-        <button type="button" className="ad-button ad-button--secondary" onClick={() => onOpenOrg(org.id)}>
+        <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onOpenOrg(org.id)}>
           Open {org.name}
         </button>
       )}
@@ -175,10 +175,10 @@ function Network({ orgs, onOpen }) {
             return (
               <tr key={o.id} className="web-table-row">
                 <th scope="row">
-                  <span className="ad-cell-text">
-                    <span className="ad-cell-title">{o.name}</span>
+                  <span className="rpl-cell-text">
+                    <span className="rpl-cell-title">{o.name}</span>
                     {(o.address || o.created_at) && (
-                      <span className="ad-cell-meta">{o.address || `On the network since ${day(o.created_at)}`}</span>
+                      <span className="rpl-cell-meta">{o.address || `On the network since ${day(o.created_at)}`}</span>
                     )}
                   </span>
                 </th>
@@ -188,8 +188,8 @@ function Network({ orgs, onOpen }) {
                     {auth.label}
                   </span>
                 </td>
-                <td className="ad-cell-strong">{o.personnel_count ?? 0}</td>
-                <td className="ad-cell-strong">{o.equipment_count ?? 0}</td>
+                <td className="rpl-cell-strong">{o.personnel_count ?? 0}</td>
+                <td className="rpl-cell-strong">{o.equipment_count ?? 0}</td>
                 <td><StatusChip label={o.is_active ? 'Active' : 'Inactive'} tone={o.is_active ? 'ok' : 'neutral'} /></td>
                 <td className="web-table-action-cell">
                   <button type="button" className="web-table-row-action" onClick={() => onOpen(o.id)} aria-haspopup="dialog">
@@ -281,15 +281,15 @@ export default function Affiliates() {
   }
 
   return (
-    <div className="ad-page">
+    <div className="rpl-page">
       <PageHeader
         eyebrow={`${org?.name ?? 'Central hub'} · Central hub`}
         title="Affiliate requests"
         description="Organizations asking to join. Accepting creates the organization and its Coordinator account, and emails the contact a link to set their password."
       />
 
-      <div className="ad-toolbar">
-        <div className="ad-tabs" role="tablist" aria-label="Affiliate requests">
+      <div className="rpl-toolbar">
+        <div className="rpl-tabs" role="tablist" aria-label="Affiliate requests">
           {TABS.map((t) => {
             const count = t.key === 'network' ? orgs.length : lists[t.key]?.length ?? 0;
             return (
@@ -298,12 +298,12 @@ export default function Affiliates() {
                 type="button"
                 role="tab"
                 aria-selected={tab === t.key}
-                className={`ad-tab${tab === t.key ? ' is-active' : ''}`}
+                className={`rpl-tab${tab === t.key ? ' is-active' : ''}`}
                 onClick={() => { setTab(t.key); setSelectedId(null); }}
               >
                 {t.label}
                 {phase === 'ready' && t.key === 'pending' && count > 0 && <span className="web-count-badge">{count}</span>}
-                {phase === 'ready' && t.key === 'network' && <span className="ad-tab-count">{count}</span>}
+                {phase === 'ready' && t.key === 'network' && <span className="rpl-tab-count">{count}</span>}
               </button>
             );
           })}
@@ -323,20 +323,20 @@ export default function Affiliates() {
             : 'Decided requests stay here for reference.'}
         </EmptyState>
       ) : (
-        <div className="ad-aff-grid">
-          <ul className="ad-panel ad-aff-list" aria-label={TABS.find((t) => t.key === tab).label}>
+        <div className="rpl-aff-grid">
+          <ul className="rpl-panel rpl-aff-list" aria-label={TABS.find((t) => t.key === tab).label}>
             {list.map((r) => (
               <li key={r.id}>
                 <button
                   type="button"
-                  className={`ad-idr-row${selected?.id === r.id ? ' is-selected' : ''}`}
+                  className={`rpl-idr-row${selected?.id === r.id ? ' is-selected' : ''}`}
                   onClick={() => setSelectedId(r.id)}
                   aria-current={selected?.id === r.id ? 'true' : undefined}
                 >
-                  <span className="ad-idr-plate" aria-hidden="true"><Icon name="organization" /></span>
-                  <span className="ad-cell-text">
-                    <span className="ad-cell-title">{r.organization_name}</span>
-                    <span className="ad-cell-meta">{subline(r, results[r.id])}</span>
+                  <span className="rpl-idr-plate" aria-hidden="true"><Icon name="organization" /></span>
+                  <span className="rpl-cell-text">
+                    <span className="rpl-cell-title">{r.organization_name}</span>
+                    <span className="rpl-cell-meta">{subline(r, results[r.id])}</span>
                   </span>
                   <Icon name="chevron-right" />
                 </button>
@@ -377,10 +377,10 @@ export default function Affiliates() {
         onClose={() => setConfirm(null)}
         onConfirm={decline}
       >
-        <label className="ad-field">
-          <span className="ad-field-label">Reason</span>
+        <label className="rpl-field">
+          <span className="rpl-field-label">Reason</span>
           <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={1000} placeholder="e.g. Not registered with the SEC" />
-          <span className="ad-field-help">Recorded with the request.</span>
+          <span className="rpl-field-help">Recorded with the request.</span>
         </label>
       </ConfirmDialog>
 
@@ -394,7 +394,7 @@ export default function Affiliates() {
         />
       )}
 
-      {notice && <div className="ad-toast" role="status"><span aria-hidden="true">✓</span>{notice}</div>}
+      {notice && <div className="rpl-toast" role="status"><span aria-hidden="true">✓</span>{notice}</div>}
     </div>
   );
 }

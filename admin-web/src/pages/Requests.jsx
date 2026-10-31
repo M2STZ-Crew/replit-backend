@@ -130,7 +130,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
           onDeleted={(message) => { setSelectedId(null); setNotice(message); refresh(); }}
         />
         {notice && (
-          <div className="ad-toast" role="status">
+          <div className="rpl-toast" role="status">
             <span aria-hidden="true">✓</span>
             {notice}
           </div>
@@ -140,7 +140,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
   }
 
   return (
-    <div className="ad-page">
+    <div className="rpl-page">
       <PageHeader
         eyebrow={org?.name ?? 'Requests'}
         title="Requests"
@@ -151,13 +151,13 @@ export default function Requests({ readRequests, onOpenIncident }) {
             : 'Alarm escalations raised on scene. BFP sets the alarm level; you follow each request and its answer here.'}
         actions={(
           <>
-            <button type="button" className="ad-button ad-button--secondary" onClick={refresh} disabled={phase === 'loading'}>
+            <button type="button" className="rpl-button rpl-button--secondary" onClick={refresh} disabled={phase === 'loading'}>
               Refresh
             </button>
             {asks && (
               <button
                 type="button"
-                className="ad-button ad-button--primary"
+                className="rpl-button rpl-button--primary"
                 onClick={() => setAsking(true)}
                 disabled={askable.length === 0}
                 title={askable.length === 0 ? 'No acknowledged Area is routed to you right now' : undefined}
@@ -170,7 +170,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
       />
 
       {notice && (
-        <div className="ad-toast" role="status">
+        <div className="rpl-toast" role="status">
           <span aria-hidden="true">✓</span>
           {notice}
         </div>
@@ -189,8 +189,8 @@ export default function Requests({ readRequests, onOpenIncident }) {
         }}
       />
 
-      <div className="ad-toolbar">
-        <div className="ad-tabs" role="tablist" aria-label="Requests">
+      <div className="rpl-toolbar">
+        <div className="rpl-tabs" role="tablist" aria-label="Requests">
           {[
             { key: 'inbox', label: 'Inbox', count: pending.length },
             { key: 'history', label: 'History' },
@@ -200,7 +200,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
               type="button"
               role="tab"
               aria-selected={tab === t.key}
-              className={`ad-tab${tab === t.key ? ' is-active' : ''}`}
+              className={`rpl-tab${tab === t.key ? ' is-active' : ''}`}
               onClick={() => setTab(t.key)}
             >
               {t.label}
@@ -208,7 +208,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
             </button>
           ))}
         </div>
-        <label className="ad-search">
+        <label className="rpl-search">
           <Icon name="search" />
           <span className="web-sr-only">Search requests</span>
           <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search areas and names" />
@@ -228,7 +228,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
       ) : (
         <>
           <div className="web-table-wrap">
-            <table className="web-table ad-requests">
+            <table className="web-table rpl-requests">
               <caption className="web-sr-only">{tab === 'inbox' ? 'Pending requests' : 'Answered requests'}</caption>
               <thead>
                 <tr>
@@ -245,19 +245,19 @@ export default function Requests({ readRequests, onOpenIncident }) {
                   return (
                     <tr key={r.id} className={`web-table-row${r.status === 'pending' ? ' is-unread' : ''}`}>
                       <th scope="row">
-                        <span className="ad-cell-resource">
-                          <span className="ad-plate ad-plate--request" aria-hidden="true"><Icon name="escalate" /></span>
-                          <span className="ad-cell-text">
-                            <span className="ad-cell-title">Alarm escalation · {alarmLabel(r.requested_alarm_level)}</span>
-                            <span className="ad-cell-meta">
+                        <span className="rpl-cell-resource">
+                          <span className="rpl-plate rpl-plate--request" aria-hidden="true"><Icon name="escalate" /></span>
+                          <span className="rpl-cell-text">
+                            <span className="rpl-cell-title">Alarm escalation · {alarmLabel(r.requested_alarm_level)}</span>
+                            <span className="rpl-cell-meta">
                               {areaOf(r)}{area ? ` · ${statusOf(area.status).label}` : ''}
                             </span>
                           </span>
                         </span>
                       </th>
-                      <td className="ad-cell-strong">{askedBy(r)} → BFP</td>
+                      <td className="rpl-cell-strong">{askedBy(r)} → BFP</td>
                       <td><StatusChip {...requestStatus(r.status)} /></td>
-                      <td className="ad-cell-quiet">{received(r.created_at)}</td>
+                      <td className="rpl-cell-quiet">{received(r.created_at)}</td>
                       <td className="web-table-action-cell">
                         <button type="button" className="web-table-row-action" onClick={() => setSelectedId(r.id)}>
                           Open<span className="web-sr-only"> the request for {areaOf(r)}</span>
@@ -272,7 +272,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
               </tbody>
             </table>
           </div>
-          <p className="ad-table-foot">Showing {shown.length} of {tab === 'inbox' ? pending.length : rows.length - pending.length}</p>
+          <p className="rpl-table-foot">Showing {shown.length} of {tab === 'inbox' ? pending.length : rows.length - pending.length}</p>
         </>
       )}
     </div>
@@ -313,101 +313,101 @@ function RequestDetail({
   const status = requestStatus(r.status);
 
   return (
-    <div className="ad-page ad-incident">
-      <button type="button" className="ad-text-button ad-back" onClick={onBack}>← All requests</button>
+    <div className="rpl-page rpl-incident">
+      <button type="button" className="rpl-text-button rpl-back" onClick={onBack}>← All requests</button>
       <PageHeader
         eyebrow={`From ${askedBy(r)} · ${clock(r.created_at)}`}
         title={`Alarm escalation · ${level}`}
         description={`For ${areaOf(r)}${area?.alarm_level ? ` · now ${alarmLabel(area.alarm_level)}` : ''}`}
       />
 
-      <div className="ad-incident-grid">
-        <section className="ad-panel ad-request-card" aria-labelledby="ad-request-title">
-          <div className="ad-decision-head">
-            <h2 className="ad-decision-title" id="ad-request-title">Request</h2>
+      <div className="rpl-incident-grid">
+        <section className="rpl-panel rpl-request-card" aria-labelledby="rpl-request-title">
+          <div className="rpl-decision-head">
+            <h2 className="rpl-decision-title" id="rpl-request-title">Request</h2>
             <StatusChip {...status} />
           </div>
-          <dl className="ad-facts ad-facts--wide">
+          <dl className="rpl-facts rpl-facts--wide">
             {facts.map(([t, v]) => (
-              <div className="ad-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
+              <div className="rpl-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
             ))}
           </dl>
-          <h3 className="ad-decision-title ad-request-history">History</h3>
-          <ol className="ad-timeline">
+          <h3 className="rpl-decision-title rpl-request-history">History</h3>
+          <ol className="rpl-timeline">
             {history.map((h) => (
-              <li key={`${h.title}-${h.at}`} className={`ad-timeline-item is-${h.tone}`}>
-                <span className="ad-timeline-time">{CLOCK_S.format(new Date(h.at))}</span>
-                <span className="ad-timeline-title">{h.title}</span>
-                {h.sub && <span className="ad-timeline-sub">{h.sub}</span>}
+              <li key={`${h.title}-${h.at}`} className={`rpl-timeline-item is-${h.tone}`}>
+                <span className="rpl-timeline-time">{CLOCK_S.format(new Date(h.at))}</span>
+                <span className="rpl-timeline-title">{h.title}</span>
+                {h.sub && <span className="rpl-timeline-sub">{h.sub}</span>}
               </li>
             ))}
           </ol>
         </section>
 
-        <section className="ad-panel ad-decision" aria-labelledby="ad-reply-title">
-          <h2 className="ad-decision-title" id="ad-reply-title">{decides && r.status === 'pending' ? 'Your reply' : 'Answer'}</h2>
+        <section className="rpl-panel rpl-decision" aria-labelledby="rpl-reply-title">
+          <h2 className="rpl-decision-title" id="rpl-reply-title">{decides && r.status === 'pending' ? 'Your reply' : 'Answer'}</h2>
           {r.status === 'pending' && decides ? (
-            <div className="ad-reply-actions">
-              <button type="button" className="ad-button ad-button--primary ad-button--run" onClick={() => { setNote(''); setConfirm('set'); }}>
+            <div className="rpl-reply-actions">
+              <button type="button" className="rpl-button rpl-button--primary rpl-button--run" onClick={() => { setNote(''); setConfirm('set'); }}>
                 Set {level}
               </button>
-              <div className="ad-reply-row">
-                <button type="button" className="ad-button ad-button--secondary" onClick={() => { setNote(''); setConfirm('decline'); }}>
+              <div className="rpl-reply-row">
+                <button type="button" className="rpl-button rpl-button--secondary" onClick={() => { setNote(''); setConfirm('decline'); }}>
                   Decline
                 </button>
               </div>
-              <div className="ad-alert ad-alert--info">
-                <span className="ad-alert-mark" aria-hidden="true">i</span>
-                <p className="ad-alert-body">
+              <div className="rpl-alert rpl-alert--info">
+                <span className="rpl-alert-mark" aria-hidden="true">i</span>
+                <p className="rpl-alert-body">
                   Only {orgName} sets the alarm level. Setting it updates {areaOf(r)} for every organization.
                 </p>
               </div>
             </div>
           ) : r.status === 'pending' ? (
-            <div className="ad-alert ad-alert--info">
+            <div className="rpl-alert rpl-alert--info">
               <Icon name="visibility" />
-              <div className="ad-alert-text">
-                <p className="ad-alert-title">Waiting on BFP</p>
-                <p className="ad-alert-body">Only BFP sets the alarm level: a BFP Coordinator on the mobile app, or the BFP Admin here. Setting it updates {areaOf(r)} for every organization.</p>
+              <div className="rpl-alert-text">
+                <p className="rpl-alert-title">Waiting on BFP</p>
+                <p className="rpl-alert-body">Only BFP sets the alarm level: a BFP Coordinator on the mobile app, or the BFP Admin here. Setting it updates {areaOf(r)} for every organization.</p>
               </div>
             </div>
           ) : r.status === 'cancelled' ? (
-            <div className="ad-alert">
-              <span className="ad-alert-mark" aria-hidden="true">⦸</span>
-              <div className="ad-alert-text">
-                <p className="ad-alert-title">Cancelled{r.reviewed_at ? ` · ${clock(r.reviewed_at)}` : ''}</p>
-                <p className="ad-alert-body">
+            <div className="rpl-alert">
+              <span className="rpl-alert-mark" aria-hidden="true">⦸</span>
+              <div className="rpl-alert-text">
+                <p className="rpl-alert-title">Cancelled{r.reviewed_at ? ` · ${clock(r.reviewed_at)}` : ''}</p>
+                <p className="rpl-alert-body">
                   {r.review_notes || 'Taken back before BFP answered. The alarm level was not changed.'}
                 </p>
               </div>
             </div>
           ) : (
-            <div className={`ad-alert ${r.status === 'approved' ? 'ad-alert--ok' : ''}`}>
-              <span className="ad-alert-mark" aria-hidden="true">{r.status === 'approved' ? '✓' : '⦸'}</span>
-              <div className="ad-alert-text">
-                <p className="ad-alert-title">
+            <div className={`rpl-alert ${r.status === 'approved' ? 'rpl-alert--ok' : ''}`}>
+              <span className="rpl-alert-mark" aria-hidden="true">{r.status === 'approved' ? '✓' : '⦸'}</span>
+              <div className="rpl-alert-text">
+                <p className="rpl-alert-title">
                   {status.label} by BFP{r.reviewed_at ? ` · ${clock(r.reviewed_at)}` : ''}
                 </p>
-                <p className="ad-alert-body">
+                <p className="rpl-alert-body">
                   {r.review_notes || (r.status === 'approved' ? `${areaOf(r)} is at ${level}.` : 'The alarm level was not changed.')}
                 </p>
               </div>
             </div>
           )}
           {withdraws && r.status !== 'approved' && (
-            <div className="ad-reply-row">
+            <div className="rpl-reply-row">
               {r.status === 'pending' && (
-                <button type="button" className="ad-button ad-button--secondary" onClick={() => { setNote(''); setConfirm('cancel'); }}>
+                <button type="button" className="rpl-button rpl-button--secondary" onClick={() => { setNote(''); setConfirm('cancel'); }}>
                   Cancel request
                 </button>
               )}
-              <button type="button" className="ad-button ad-button--danger" onClick={() => setConfirm('delete')}>
+              <button type="button" className="rpl-button rpl-button--danger" onClick={() => setConfirm('delete')}>
                 Delete request
               </button>
             </div>
           )}
           {onOpenIncident && area && (
-            <button type="button" className="ad-button ad-button--secondary" onClick={() => onOpenIncident(r.area_id)}>
+            <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onOpenIncident(r.area_id)}>
               Open {areaOf(r)}
             </button>
           )}
@@ -441,8 +441,8 @@ function RequestDetail({
           onDecided?.(`Declined ${level} for ${areaOf(r)}`);
         }}
       >
-        <label className="ad-field">
-          <span className="ad-field-label">Reason (optional)</span>
+        <label className="rpl-field">
+          <span className="rpl-field-label">Reason (optional)</span>
           <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} />
         </label>
       </ConfirmDialog>
@@ -460,8 +460,8 @@ function RequestDetail({
           onDecided?.(`Cancelled the request for ${level} on ${areaOf(r)}`);
         }}
       >
-        <label className="ad-field">
-          <span className="ad-field-label">Reason (optional)</span>
+        <label className="rpl-field">
+          <span className="rpl-field-label">Reason (optional)</span>
           <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} />
         </label>
       </ConfirmDialog>

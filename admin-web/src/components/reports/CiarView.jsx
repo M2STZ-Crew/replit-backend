@@ -31,15 +31,15 @@ export default function CiarView({ state, ciar, onRetry }) {
   }
 
   return (
-    <div className="ad-ciar">
-      <nav className="ad-panel ad-ciar-index" aria-label="CIAR parts">
-        <h3 className="ad-decision-title">{parts.length === 6 ? 'Six parts' : 'Parts'}</h3>
+    <div className="rpl-ciar">
+      <nav className="rpl-panel rpl-ciar-index" aria-label="CIAR parts">
+        <h3 className="rpl-decision-title">{parts.length === 6 ? 'Six parts' : 'Parts'}</h3>
         <ul>
           {parts.map((p, i) => (
             <li key={p.key}>
               <a
-                href={`#ad-ciar-${p.key}`}
-                className={`ad-ciar-link${active === p.key ? ' is-active' : ''}`}
+                href={`#rpl-ciar-${p.key}`}
+                className={`rpl-ciar-link${active === p.key ? ' is-active' : ''}`}
                 onClick={() => setActive(p.key)}
                 aria-current={active === p.key ? 'true' : undefined}
               >
@@ -49,20 +49,20 @@ export default function CiarView({ state, ciar, onRetry }) {
           ))}
         </ul>
       </nav>
-      <article className="ad-panel ad-ciar-body">
+      <article className="rpl-panel rpl-ciar-body">
         {ciar.lockedAt && (
-          <p className="ad-ciar-lock"><span aria-hidden="true">🔒</span> Locked {ciar.lockedAt} · read only{ciar.source ? ` · ${ciar.source}` : ''}</p>
+          <p className="rpl-ciar-lock"><span aria-hidden="true">🔒</span> Locked {ciar.lockedAt} · read only{ciar.source ? ` · ${ciar.source}` : ''}</p>
         )}
         {parts.map((p, i) => (
-          <section key={p.key} id={`ad-ciar-${p.key}`} className="ad-ciar-part">
+          <section key={p.key} id={`rpl-ciar-${p.key}`} className="rpl-ciar-part">
             <p className="web-eyebrow">Part {['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'][i] ?? i + 1}</p>
-            <h4 className="ad-decision-title">{p.title}</h4>
+            <h4 className="rpl-decision-title">{p.title}</h4>
             {p.rows && (
-              <dl className="ad-facts ad-facts--wide">
-                {p.rows.map(([t, v]) => <div className="ad-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>)}
+              <dl className="rpl-facts rpl-facts--wide">
+                {p.rows.map(([t, v]) => <div className="rpl-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>)}
               </dl>
             )}
-            {p.text && <p className="ad-decision-body ad-report-narrative">{p.text}</p>}
+            {p.text && <p className="rpl-decision-body rpl-report-narrative">{p.text}</p>}
           </section>
         ))}
       </article>

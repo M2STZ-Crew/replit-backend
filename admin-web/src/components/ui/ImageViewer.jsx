@@ -113,25 +113,25 @@ export default function ImageViewer({ src, alt, caption = null, onClose }) {
   return (
     <dialog
       ref={dialog}
-      className="ad-viewer"
+      className="rpl-viewer"
       aria-labelledby={titleId}
       onCancel={(e) => { e.preventDefault(); onClose(); }}
       onKeyDown={onKeyDown}
     >
-      <header className="ad-viewer-bar">
-        <p className="ad-viewer-title" id={titleId}>{caption || alt}</p>
-        <div className="ad-viewer-tools" role="group" aria-label="Zoom">
-          <button type="button" className="ad-viewer-button" onClick={() => zoomTo((s) => s / STEP)} disabled={view.scale <= MIN} aria-label="Zoom out">−</button>
-          <button type="button" className="ad-viewer-level" onClick={reset} aria-label={`Zoom ${Math.round(view.scale * 100)} percent. Reset to fit`}>
+      <header className="rpl-viewer-bar">
+        <p className="rpl-viewer-title" id={titleId}>{caption || alt}</p>
+        <div className="rpl-viewer-tools" role="group" aria-label="Zoom">
+          <button type="button" className="rpl-viewer-button" onClick={() => zoomTo((s) => s / STEP)} disabled={view.scale <= MIN} aria-label="Zoom out">−</button>
+          <button type="button" className="rpl-viewer-level" onClick={reset} aria-label={`Zoom ${Math.round(view.scale * 100)} percent. Reset to fit`}>
             {Math.round(view.scale * 100)}%
           </button>
-          <button type="button" className="ad-viewer-button" onClick={() => zoomTo((s) => s * STEP)} disabled={view.scale >= MAX} aria-label="Zoom in">+</button>
+          <button type="button" className="rpl-viewer-button" onClick={() => zoomTo((s) => s * STEP)} disabled={view.scale >= MAX} aria-label="Zoom in">+</button>
         </div>
-        <button type="button" className="ad-button ad-button--secondary ad-button--compact" onClick={onClose} autoFocus>Close</button>
+        <button type="button" className="rpl-button rpl-button--secondary rpl-button--compact" onClick={onClose} autoFocus>Close</button>
       </header>
       <div
         ref={stage}
-        className={`ad-viewer-stage${view.scale > 1 ? ' is-zoomed' : ''}`}
+        className={`rpl-viewer-stage${view.scale > 1 ? ' is-zoomed' : ''}`}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -139,14 +139,14 @@ export default function ImageViewer({ src, alt, caption = null, onClose }) {
         onDoubleClick={(e) => (view.scale > 1 ? reset() : zoomTo(() => 2.5, { x: e.clientX, y: e.clientY }))}
       >
         <img
-          className="ad-viewer-image"
+          className="rpl-viewer-image"
           src={src}
           alt={alt}
           draggable={false}
           style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}
         />
       </div>
-      <p className="ad-viewer-hint">Scroll, pinch or use + and − to zoom. Drag to move around. Double-click to zoom in, or back out.</p>
+      <p className="rpl-viewer-hint">Scroll, pinch or use + and − to zoom. Drag to move around. Double-click to zoom in, or back out.</p>
     </dialog>
   );
 }

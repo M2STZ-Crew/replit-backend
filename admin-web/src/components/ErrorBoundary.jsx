@@ -22,19 +22,19 @@ export default class ErrorBoundary extends Component {
     const { error } = this.state;
     if (!error) return this.props.children;
     return (
-      <main className="ad-crash" role="alert">
+      <main className="rpl-crash" role="alert">
         <p className="web-eyebrow">Admin console</p>
         <h1 className="web-page-title">This screen stopped working</h1>
         <p className="web-page-description">
           Reload to try again. If it happens again, send the message below to the team.
         </p>
-        <pre className="ad-crash-message">{String(error?.message || error)}</pre>
-        <div className="ad-crash-actions">
-          <button type="button" className="ad-button ad-button--primary" onClick={() => window.location.reload()}>
+        <pre className="rpl-crash-message">{String(error?.message || error)}</pre>
+        <div className="rpl-crash-actions">
+          <button type="button" className="rpl-button rpl-button--primary" onClick={() => window.location.reload()}>
             Reload
           </button>
           {this.props.onSignOut && (
-            <button type="button" className="ad-button ad-button--secondary" onClick={this.props.onSignOut}>
+            <button type="button" className="rpl-button rpl-button--secondary" onClick={this.props.onSignOut}>
               Sign out
             </button>
           )}

@@ -44,8 +44,8 @@ const AGENCIES = ['any', 'fire_volunteer', 'bfp', 'police', 'medical', 'barangay
 
 function Select({ label, value, onChange, options }) {
   return (
-    <label className="ad-select">
-      <span className="ad-select-label">{label}</span>
+    <label className="rpl-select">
+      <span className="rpl-select-label">{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)}>
         {options.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
       </select>
@@ -238,14 +238,14 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
   if (selectedId) {
     if (detailState === 'error' && !detail) {
       return (
-        <div className="ad-page">
-          <button type="button" className="ad-text-button ad-back" onClick={() => setSelectedId(null)}>← All incidents</button>
+        <div className="rpl-page">
+          <button type="button" className="rpl-text-button rpl-back" onClick={() => setSelectedId(null)}>← All incidents</button>
           <StatePanel kind="error" title="This incident couldn’t load" description={error} onRetry={() => loadDetail(selectedId)} />
         </div>
       );
     }
     if (!detail || detail.id !== selectedId) {
-      return <div className="ad-page"><StatePanel kind="loading" title="Loading the incident…" /></div>;
+      return <div className="rpl-page"><StatePanel kind="loading" title="Loading the incident…" /></div>;
     }
     return (
       <>
@@ -281,7 +281,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
           }}
         />
         {notice && (
-          <div className="ad-toast" role="status">
+          <div className="rpl-toast" role="status">
             <span aria-hidden="true">✓</span>
             {notice}
           </div>
@@ -300,7 +300,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
         : 'No active incidents. A new Area appears here the moment its first report is clustered.';
 
   return (
-    <div className="ad-page">
+    <div className="rpl-page">
       <PageHeader
         eyebrow={org?.name ?? 'Operations'}
         title="Incidents"
@@ -310,26 +310,26 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
       />
 
       {overlaps.map((o) => (
-        <div className="ad-overlap-alert" key={o.id} role="status">
-          <span className="ad-overlap-alert-mark" aria-hidden="true">!</span>
-          <span className="ad-overlap-alert-text">
-            <span className="ad-cell-title">{o.area_a_designation} and {o.area_b_designation} may be the same fire</span>
-            <span className="ad-cell-meta">{Math.round(o.distance_m)} m apart · decide in the next two minutes, or they stay separate</span>
+        <div className="rpl-overlap-alert" key={o.id} role="status">
+          <span className="rpl-overlap-alert-mark" aria-hidden="true">!</span>
+          <span className="rpl-overlap-alert-text">
+            <span className="rpl-cell-title">{o.area_a_designation} and {o.area_b_designation} may be the same fire</span>
+            <span className="rpl-cell-meta">{Math.round(o.distance_m)} m apart · decide in the next two minutes, or they stay separate</span>
           </span>
-          <button type="button" className="ad-button ad-button--secondary ad-button--compact" onClick={() => setReviewing(o)}>
+          <button type="button" className="rpl-button rpl-button--secondary rpl-button--compact" onClick={() => setReviewing(o)}>
             Review
           </button>
         </div>
       ))}
 
       {notice && (
-        <div className="ad-toast" role="status">
+        <div className="rpl-toast" role="status">
           <span aria-hidden="true">✓</span>
           {notice}
         </div>
       )}
 
-      <div className="ad-tabs ad-tabs--page" role="tablist" aria-label="Incident lists">
+      <div className="rpl-tabs rpl-tabs--page" role="tablist" aria-label="Incident lists">
         {[
           { key: 'active', label: 'All active' },
           ...(split ? [{ key: 'routed', label: 'Routed to you', count: routedCount }] : []),
@@ -340,7 +340,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
             type="button"
             role="tab"
             aria-selected={tab === t.key}
-            className={`ad-tab${tab === t.key ? ' is-active' : ''}`}
+            className={`rpl-tab${tab === t.key ? ' is-active' : ''}`}
             onClick={() => setTab(t.key)}
           >
             {t.label}
@@ -349,8 +349,8 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
         ))}
       </div>
 
-      <div className="ad-filters">
-        <label className="ad-search">
+      <div className="rpl-filters">
+        <label className="rpl-search">
           <Icon name="search" />
           <span className="web-sr-only">Search incidents</span>
           <input
@@ -373,18 +373,18 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
       </div>
 
       {(fetchError || (!needs && failed)) && (
-        <div className="ad-alert ad-alert--danger" role="alert">
-          <span className="ad-alert-mark" aria-hidden="true">!</span>
-          <div className="ad-alert-text">
-            <p className="ad-alert-title">Couldn’t load incidents</p>
-            <p className="ad-alert-body">
+        <div className="rpl-alert rpl-alert--danger" role="alert">
+          <span className="rpl-alert-mark" aria-hidden="true">!</span>
+          <div className="rpl-alert-text">
+            <p className="rpl-alert-title">Couldn’t load incidents</p>
+            <p className="rpl-alert-body">
               {fetchError
                 ? `${fetchError} Check your connection, then try again.`
                 : 'Check your connection. Alerts with sound start again when the console reconnects.'}
             </p>
             <button
               type="button"
-              className="ad-text-button"
+              className="rpl-text-button"
               onClick={() => (fetchError ? loadList(needs) : refreshFeed())}
             >
               Try again
@@ -416,25 +416,25 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
             staleAt={!needs && failed ? loadedAt : null}
             yourOrg={orgStatus}
           />
-          <div className="ad-pager">
-            <span className="ad-pager-range">
+          <div className="rpl-pager">
+            <span className="rpl-pager-range">
               {rows.length === 0 ? 'Showing 0 of 0' : `Showing ${page * PAGE + 1}–${Math.min(rows.length, page * PAGE + PAGE)} of ${rows.length}`}
             </span>
             {pages > 1 && (
-              <nav className="ad-pager-pages" aria-label="Pages">
-                <button type="button" className="ad-page-button" onClick={() => setPage((p) => p - 1)} disabled={page === 0} aria-label="Previous page">‹</button>
+              <nav className="rpl-pager-pages" aria-label="Pages">
+                <button type="button" className="rpl-page-button" onClick={() => setPage((p) => p - 1)} disabled={page === 0} aria-label="Previous page">‹</button>
                 {Array.from({ length: pages }, (_, i) => (
                   <button
                     key={i}
                     type="button"
-                    className={`ad-page-button${i === page ? ' is-current' : ''}`}
+                    className={`rpl-page-button${i === page ? ' is-current' : ''}`}
                     onClick={() => setPage(i)}
                     aria-current={i === page ? 'page' : undefined}
                   >
                     {i + 1}
                   </button>
                 ))}
-                <button type="button" className="ad-page-button" onClick={() => setPage((p) => p + 1)} disabled={page >= pages - 1} aria-label="Next page">›</button>
+                <button type="button" className="rpl-page-button" onClick={() => setPage((p) => p + 1)} disabled={page >= pages - 1} aria-label="Next page">›</button>
               </nav>
             )}
           </div>

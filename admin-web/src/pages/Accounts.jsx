@@ -129,7 +129,7 @@ export default function Accounts() {
 
   if (!everyOrg && !org?.id) {
     return (
-      <div className="ad-page">
+      <div className="rpl-page">
         <PageHeader eyebrow="Organization" title="Accounts" />
         <EmptyState icon="accounts" title="No organization on this account">
           Your Admin account isn’t attached to an organization, so there are no accounts to manage here.
@@ -139,7 +139,7 @@ export default function Accounts() {
   }
 
   return (
-    <div className="ad-page">
+    <div className="rpl-page">
       <PageHeader
         eyebrow={org?.name ?? 'Organization'}
         title="Accounts"
@@ -147,25 +147,25 @@ export default function Accounts() {
           ? 'Coordinators of every accredited organization. Responder accounts are created by Coordinators.'
           : 'You create and turn off Coordinator accounts. Responder accounts are created by Coordinators.'}
         actions={manages && (
-          <button type="button" className="ad-button ad-button--primary" onClick={() => setCreating(true)}>
+          <button type="button" className="rpl-button rpl-button--primary" onClick={() => setCreating(true)}>
             Create Coordinator
           </button>
         )}
       />
 
       {warning && (
-        <div className="ad-alert ad-alert--warn" role="status">
-          <span className="ad-alert-mark" aria-hidden="true">!</span>
-          <div className="ad-alert-text">
-            <p className="ad-alert-title">The account is ready, but its email didn’t go out</p>
-            <p className="ad-alert-body">{warning}</p>
-            <button type="button" className="ad-text-button" onClick={() => setWarning(null)}>Dismiss</button>
+        <div className="rpl-alert rpl-alert--warn" role="status">
+          <span className="rpl-alert-mark" aria-hidden="true">!</span>
+          <div className="rpl-alert-text">
+            <p className="rpl-alert-title">The account is ready, but its email didn’t go out</p>
+            <p className="rpl-alert-body">{warning}</p>
+            <button type="button" className="rpl-text-button" onClick={() => setWarning(null)}>Dismiss</button>
           </div>
         </div>
       )}
 
-      <div className="ad-toolbar">
-        <div className="ad-tabs" role="tablist" aria-label="Accounts">
+      <div className="rpl-toolbar">
+        <div className="rpl-tabs" role="tablist" aria-label="Accounts">
           {[
             { key: 'sub_admin', label: 'Coordinators' },
             { key: 'response_team', label: 'Responders · view only' },
@@ -175,15 +175,15 @@ export default function Accounts() {
               type="button"
               role="tab"
               aria-selected={tab === t.key}
-              className={`ad-tab${tab === t.key ? ' is-active' : ''}`}
+              className={`rpl-tab${tab === t.key ? ' is-active' : ''}`}
               onClick={() => setTab(t.key)}
             >
               {t.label}
-              {!loading && <span className="ad-tab-count">{counts[t.key]}</span>}
+              {!loading && <span className="rpl-tab-count">{counts[t.key]}</span>}
             </button>
           ))}
         </div>
-        <label className="ad-search">
+        <label className="rpl-search">
           <Icon name="search" />
           <span className="web-sr-only">Search accounts</span>
           <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search names, emails and titles" />
@@ -218,11 +218,11 @@ export default function Accounts() {
               {rows.map((p) => (
                 <tr key={p.id} className={`web-table-row${p.is_active === false ? ' is-disabled' : ''}`}>
                   <th scope="row">
-                    <span className="ad-cell-resource">
-                      <span className="ad-avatar" aria-hidden="true">{initials(p.full_name)}</span>
-                      <span className="ad-cell-text">
-                        <span className="ad-cell-title">{p.full_name || 'Unnamed account'}</span>
-                        <span className="ad-cell-meta">{p.email || (p.agency_type ? agencyLabel(p.agency_type) : '—')}</span>
+                    <span className="rpl-cell-resource">
+                      <span className="rpl-avatar" aria-hidden="true">{initials(p.full_name)}</span>
+                      <span className="rpl-cell-text">
+                        <span className="rpl-cell-title">{p.full_name || 'Unnamed account'}</span>
+                        <span className="rpl-cell-meta">{p.email || (p.agency_type ? agencyLabel(p.agency_type) : '—')}</span>
                       </span>
                     </span>
                   </th>
@@ -234,10 +234,10 @@ export default function Accounts() {
                       tone={p.is_active === false ? 'neutral' : 'ok'}
                     />
                   </td>
-                  <td className="ad-cell-quiet">{created(p, myName)}</td>
+                  <td className="rpl-cell-quiet">{created(p, myName)}</td>
                   {coordinators && manages && (
                     <td className="web-table-action-cell">
-                      <span className="ad-account-actions">
+                      <span className="rpl-account-actions">
                         {p.is_active === false ? (
                           <button type="button" className="web-table-row-action" onClick={() => turnOn(p)}>
                             Turn on<span className="web-sr-only"> {p.full_name}’s account</span>
@@ -261,7 +261,7 @@ export default function Accounts() {
       )}
 
       {notice && (
-        <div className="ad-toast" role="status">
+        <div className="rpl-toast" role="status">
           <span aria-hidden="true">✓</span>
           {notice}
         </div>

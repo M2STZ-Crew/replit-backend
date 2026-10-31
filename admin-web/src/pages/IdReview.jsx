@@ -76,19 +76,19 @@ export default function IdReview() {
     return (
       <>
         <Review item={open} onBack={() => setOpenId(null)} onDecided={decided} />
-        {notice && <div className="ad-toast" role="status"><span aria-hidden="true">✓</span>{notice}</div>}
+        {notice && <div className="rpl-toast" role="status"><span aria-hidden="true">✓</span>{notice}</div>}
       </>
     );
   }
 
   return (
-    <div className="ad-page">
+    <div className="rpl-page">
       <PageHeader
         eyebrow={`${org?.name ?? 'Central hub'} · Manual National ID review`}
         title="ID reviews"
         description="Shown when the automatic ID check can’t decide. Approving adds 50% to a resident’s verification. Verification never blocks a report."
         actions={(
-          <button type="button" className="ad-button ad-button--secondary" onClick={load} disabled={phase === 'loading'}>
+          <button type="button" className="rpl-button rpl-button--secondary" onClick={load} disabled={phase === 'loading'}>
             Refresh
           </button>
         )}
@@ -103,16 +103,16 @@ export default function IdReview() {
           A submission appears here when the automatic check can’t decide on someone’s National ID.
         </EmptyState>
       ) : (
-        <section className="ad-panel" aria-labelledby="ad-idr-waiting">
-          <h2 className="ad-decision-title" id="ad-idr-waiting">Waiting · {items.length}</h2>
-          <ul className="ad-idr-list">
+        <section className="rpl-panel" aria-labelledby="rpl-idr-waiting">
+          <h2 className="rpl-decision-title" id="rpl-idr-waiting">Waiting · {items.length}</h2>
+          <ul className="rpl-idr-list">
             {items.map((item) => (
               <li key={item.id}>
-                <button type="button" className="ad-idr-row" onClick={() => setOpenId(item.id)}>
-                  <span className="ad-idr-plate" aria-hidden="true"><Icon name="verification" /></span>
-                  <span className="ad-cell-text">
-                    <span className="ad-cell-title">{nameOf(item)}</span>
-                    <span className="ad-cell-meta">
+                <button type="button" className="rpl-idr-row" onClick={() => setOpenId(item.id)}>
+                  <span className="rpl-idr-plate" aria-hidden="true"><Icon name="verification" /></span>
+                  <span className="rpl-cell-text">
+                    <span className="rpl-cell-title">{nameOf(item)}</span>
+                    <span className="rpl-cell-meta">
                       {TYPE[item.type] ?? item.type} · {waiting(item.submitted_at)}
                     </span>
                   </span>
@@ -125,13 +125,13 @@ export default function IdReview() {
       )}
 
       {phase === 'ready' && items.length > 0 && (
-        <div className="ad-alert ad-alert--info">
-          <span className="ad-alert-mark" aria-hidden="true">i</span>
-          <p className="ad-alert-body">ID photos and selfies stay hidden until you open a review.</p>
+        <div className="rpl-alert rpl-alert--info">
+          <span className="rpl-alert-mark" aria-hidden="true">i</span>
+          <p className="rpl-alert-body">ID photos and selfies stay hidden until you open a review.</p>
         </div>
       )}
 
-      {notice && <div className="ad-toast" role="status"><span aria-hidden="true">✓</span>{notice}</div>}
+      {notice && <div className="rpl-toast" role="status"><span aria-hidden="true">✓</span>{notice}</div>}
     </div>
   );
 }
@@ -142,33 +142,33 @@ function Photo({ label, url }) {
 
   if (!url) {
     return (
-      <div className="ad-idr-photo">
+      <div className="rpl-idr-photo">
         <Icon name="visibility-off" />
-        <p className="ad-cell-title">{label}</p>
-        <p className="ad-cell-meta">Not provided</p>
+        <p className="rpl-cell-title">{label}</p>
+        <p className="rpl-cell-meta">Not provided</p>
       </div>
     );
   }
   if (!shown) {
     return (
-      <div className="ad-idr-photo">
+      <div className="rpl-idr-photo">
         <Icon name="visibility-off" />
-        <p className="ad-cell-title">{label}</p>
-        <p className="ad-cell-meta">Hidden until you open it</p>
-        <button type="button" className="ad-button ad-button--secondary ad-button--compact" onClick={() => setShown(true)}>
+        <p className="rpl-cell-title">{label}</p>
+        <p className="rpl-cell-meta">Hidden until you open it</p>
+        <button type="button" className="rpl-button rpl-button--secondary rpl-button--compact" onClick={() => setShown(true)}>
           Show<span className="web-sr-only"> {label}</span>
         </button>
       </div>
     );
   }
   return (
-    <figure className="ad-idr-photo is-shown">
+    <figure className="rpl-idr-photo is-shown">
       {/* Identity documents are small and detailed; a thumbnail is not enough
           to judge one against a selfie. */}
-      <ZoomablePhoto src={url} alt={label} caption={label} className="ad-idr-image-button" imageClassName="ad-idr-image" />
-      <figcaption className="ad-idr-caption">
+      <ZoomablePhoto src={url} alt={label} caption={label} className="rpl-idr-image-button" imageClassName="rpl-idr-image" />
+      <figcaption className="rpl-idr-caption">
         {label}
-        <button type="button" className="ad-text-button" onClick={() => setShown(false)}>Hide</button>
+        <button type="button" className="rpl-text-button" onClick={() => setShown(false)}>Hide</button>
       </figcaption>
     </figure>
   );
@@ -209,31 +209,31 @@ function Review({ item, onBack, onDecided }) {
   ];
 
   return (
-    <div className="ad-page ad-incident">
-      <button type="button" className="ad-text-button ad-back" onClick={onBack}>← All ID reviews</button>
+    <div className="rpl-page rpl-incident">
+      <button type="button" className="rpl-text-button rpl-back" onClick={onBack}>← All ID reviews</button>
       <PageHeader
         eyebrow="ID review · Resident account"
         title={name}
         description={`Sent for a manual review at ${item.submitted_at ? CLOCK.format(new Date(item.submitted_at)) : '—'} · ${waiting(item.submitted_at)}.`}
       />
 
-      <div className="ad-idr-grid">
+      <div className="rpl-idr-grid">
         <Photo label="National ID photo" url={item.id_image_url} />
         <Photo label="Selfie" url={item.selfie_image_url} />
-        <section className="ad-panel ad-decision" aria-labelledby="ad-idr-details">
-          <h2 className="ad-decision-title" id="ad-idr-details">Details</h2>
-          <dl className="ad-facts ad-facts--wide">
+        <section className="rpl-panel rpl-decision" aria-labelledby="rpl-idr-details">
+          <h2 className="rpl-decision-title" id="rpl-idr-details">Details</h2>
+          <dl className="rpl-facts rpl-facts--wide">
             {details.map(([t, v]) => (
-              <div className="ad-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
+              <div className="rpl-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
             ))}
           </dl>
-          <p className="ad-decision-body">Check the selfie is the same person as the ID photo, and that the name on the ID matches the account.</p>
-          {error && <p className="ad-inline-error" role="alert">{error}</p>}
-          <div className="ad-idr-actions">
-            <button type="button" className="ad-button ad-button--secondary" onClick={() => { setReason(''); setAsking(true); }} disabled={busy}>
+          <p className="rpl-decision-body">Check the selfie is the same person as the ID photo, and that the name on the ID matches the account.</p>
+          {error && <p className="rpl-inline-error" role="alert">{error}</p>}
+          <div className="rpl-idr-actions">
+            <button type="button" className="rpl-button rpl-button--secondary" onClick={() => { setReason(''); setAsking(true); }} disabled={busy}>
               Ask to try again
             </button>
-            <button type="button" className="ad-button ad-button--primary" onClick={approve} disabled={busy}>
+            <button type="button" className="rpl-button rpl-button--primary" onClick={approve} disabled={busy}>
               {busy ? 'Approving…' : 'Approve ID'}
             </button>
           </div>
@@ -249,10 +249,10 @@ function Review({ item, onBack, onDecided }) {
         onClose={() => setAsking(false)}
         onConfirm={askAgain}
       >
-        <label className="ad-field">
-          <span className="ad-field-label">What should they fix?</span>
+        <label className="rpl-field">
+          <span className="rpl-field-label">What should they fix?</span>
           <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. The ID photo is too blurry to read" maxLength={1000} />
-          <span className="ad-field-help">Recorded with the review.</span>
+          <span className="rpl-field-help">Recorded with the review.</span>
         </label>
       </ConfirmDialog>
     </div>

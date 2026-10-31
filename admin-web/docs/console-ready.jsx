@@ -54,8 +54,8 @@ function Section({ id, frames, title, note, children }) {
     <section className="ready-section" aria-labelledby={id}>
       <header className="ready-head">
         <p className="web-eyebrow">{frames}</p>
-        <h2 className="ad-decision-title" id={id}>{title}</h2>
-        {note && <p className="ad-decision-body">{note}</p>}
+        <h2 className="rpl-decision-title" id={id}>{title}</h2>
+        {note && <p className="rpl-decision-body">{note}</p>}
       </header>
       {children}
     </section>
@@ -64,9 +64,9 @@ function Section({ id, frames, title, note, children }) {
 
 function Choice({ value, options, onChange, label }) {
   return (
-    <div className="ad-choice-options" role="group" aria-label={label}>
+    <div className="rpl-choice-options" role="group" aria-label={label}>
       {options.map(([k, text]) => (
-        <button key={k} type="button" className={`ad-choice-option${value === k ? ' is-on' : ''}`} onClick={() => onChange(k)} aria-pressed={value === k}>
+        <button key={k} type="button" className={`rpl-choice-option${value === k ? ' is-on' : ''}`} onClick={() => onChange(k)} aria-pressed={value === k}>
           {text}
         </button>
       ))}
@@ -107,15 +107,15 @@ function Coordinator() {
     <Section id="ready-coordinator" frames="10 · A49, A49b" title="Create a Coordinator account"
              note="Waits on a server contract without an Admin-chosen password, with a title, and with an organisation for the Admin.">
       <div className="ready-actions">
-        <button type="button" className="ad-button ad-button--primary" onClick={() => { setCreated(null); setOpen(true); }}>Create Coordinator</button>
+        <button type="button" className="rpl-button rpl-button--primary" onClick={() => { setCreated(null); setOpen(true); }}>Create Coordinator</button>
         <label className="ready-toggle"><input type="checkbox" checked={fail} onChange={(e) => setFail(e.target.checked)} /> Simulate a failure</label>
       </div>
       {created && (
-        <div className="ad-alert ad-alert--ok" role="status">
-          <span className="ad-alert-mark" aria-hidden="true">✓</span>
-          <div className="ad-alert-text">
-            <p className="ad-alert-title">Coordinator account created</p>
-            <p className="ad-alert-body">{created.fullName} · {created.email}{created.title ? ` · ${created.title}` : ''}. Preview only — nothing was sent.</p>
+        <div className="rpl-alert rpl-alert--ok" role="status">
+          <span className="rpl-alert-mark" aria-hidden="true">✓</span>
+          <div className="rpl-alert-text">
+            <p className="rpl-alert-title">Coordinator account created</p>
+            <p className="rpl-alert-body">{created.fullName} · {created.email}{created.title ? ` · ${created.title}` : ''}. Preview only — nothing was sent.</p>
           </div>
         </div>
       )}
@@ -141,8 +141,8 @@ function NewRequest() {
     <Section id="ready-requests" frames="10 · A43, A44" title="Requests between Admins"
              note="Waits on server support for water and backup requests from one organisation to another.">
       <div className="ready-actions">
-        <button type="button" className="ad-button ad-button--primary" onClick={() => setKind('water')}>Need water</button>
-        <button type="button" className="ad-button ad-button--secondary" onClick={() => setKind('backup')}>Need backup</button>
+        <button type="button" className="rpl-button rpl-button--primary" onClick={() => setKind('water')}>Need water</button>
+        <button type="button" className="rpl-button rpl-button--secondary" onClick={() => setKind('backup')}>Need backup</button>
       </div>
       {sent && <pre className="ready-out">{JSON.stringify(sent, null, 2)}</pre>}
       <NewRequestDialog
@@ -194,7 +194,7 @@ function Correction() {
     <Section id="ready-correction" frames="10 · A65, A66" title="Add a correction"
              note="Waits on the audit log accepting correction entries.">
       <div className="ready-actions">
-        <button type="button" className="ad-button ad-button--secondary" onClick={() => setOpen(true)}>Add correction</button>
+        <button type="button" className="rpl-button rpl-button--secondary" onClick={() => setOpen(true)}>Add correction</button>
       </div>
       {added && <pre className="ready-out">{JSON.stringify(added, null, 2)}</pre>}
       <CorrectionDialog
@@ -218,7 +218,7 @@ function Registration() {
     <Section id="ready-registration" frames="10 · A07–A11" title="Admin registration link"
              note="Waits on the server issuing one-time Admin registration links. Try “taken” or “admin” as the prefix.">
       <Choice label="Link state" value={state} onChange={(s) => { setDone(null); setState(s); }} options={[['valid', 'Valid'], ['expired', 'Expired'], ['used', 'Already used']]} />
-      {done && <p className="ad-alert-body">Preview only: would create {done.email}.</p>}
+      {done && <p className="rpl-alert-body">Preview only: would create {done.email}.</p>}
       <div className="ready-frame ready-frame--auth">
         <AdminRegistration
           key={state}

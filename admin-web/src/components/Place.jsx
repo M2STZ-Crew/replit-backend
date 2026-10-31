@@ -11,16 +11,16 @@ export default function Place({ lat, lng, address = null, stacked = false }) {
   const coords = degrees(lat, lng);
   if (stacked) {
     return (
-      <span className="ad-place is-stacked">
-        {street && <span className="ad-place-street">{street}</span>}
-        <span className="ad-place-coords">{coords}</span>
+      <span className="rpl-place is-stacked">
+        {street && <span className="rpl-place-street">{street}</span>}
+        <span className="rpl-place-coords">{coords}</span>
       </span>
     );
   }
   return (
-    <span className="ad-place" title={street ? `${street} · ${coords}` : coords}>
-      {street && <span className="ad-place-street">{street} · </span>}
-      <span className="ad-place-coords">{coords}</span>
+    <span className="rpl-place" title={street ? `${street} · ${coords}` : coords}>
+      {street && <span className="rpl-place-street">{street} · </span>}
+      <span className="rpl-place-coords">{coords}</span>
     </span>
   );
 }

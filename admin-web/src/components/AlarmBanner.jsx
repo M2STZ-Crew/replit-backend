@@ -91,13 +91,13 @@ export default function AlarmBanner({ onOpen }) {
   // (that is a separate act in the incident). "Stop the sound" silences it
   // without leaving the page.
   return (
-    <section className="ad-alarms" role="alert" aria-live="assertive">
+    <section className="rpl-alarms" role="alert" aria-live="assertive">
       {many && (
-        <div className="ad-alarms-head">
+        <div className="rpl-alarms-head">
           <span>{alarms.length} new incidents are ringing</span>
           <button
             type="button"
-            className="ad-text-button"
+            className="rpl-text-button"
             onClick={() => acknowledge(alarms.map((inc) => inc.id))}
           >
             Stop every sound
@@ -109,16 +109,16 @@ export default function AlarmBanner({ onOpen }) {
         // The sound this Admin hears for it: its own agency's (lib/access.js).
         const heard = categoriesOf(inc).filter((c) => sounding.includes(c)).map((c) => CATEGORY_LABEL[c]).join(' · ') || kind;
         return (
-          <div className="ad-alarm" key={inc.id}>
-            <span className="ad-alarm-plate" aria-hidden="true">
+          <div className="rpl-alarm" key={inc.id}>
+            <span className="rpl-alarm-plate" aria-hidden="true">
               <img src="/icons/fire.svg" alt="" width="20" height="20" />
             </span>
-            <div className="ad-alarm-text">
-              <p className="ad-alarm-eyebrow">
+            <div className="rpl-alarm-text">
+              <p className="rpl-alarm-eyebrow">
                 New incident · {heard} sound playing
               </p>
-              <p className="ad-alarm-title">{kind} reported — {inc.designation}</p>
-              <p className="ad-alarm-body">
+              <p className="rpl-alarm-title">{kind} reported — {inc.designation}</p>
+              <p className="rpl-alarm-body">
                 {reportsOf(inc)} · {statusLabel(inc.status)} ·{' '}
                 <span title={new Date(inc.reported_at).toLocaleString()}>
                   {clock(inc.reported_at)}, {ago(inc.reported_at, now)}
@@ -126,14 +126,14 @@ export default function AlarmBanner({ onOpen }) {
                 . Opening the incident stops the sound; it doesn’t acknowledge it.
               </p>
             </div>
-            <span className="ad-alarm-loop">
+            <span className="rpl-alarm-loop">
               <img src="/icons/volume.svg" alt="" width="16" height="16" />
               Looping until answered
             </span>
-            <button type="button" className="ad-text-button" onClick={() => acknowledge(inc.id)}>
+            <button type="button" className="rpl-text-button" onClick={() => acknowledge(inc.id)}>
               Stop the sound
             </button>
-            <button type="button" className="ad-button ad-button--primary" onClick={() => onOpen(inc.id)}>
+            <button type="button" className="rpl-button rpl-button--primary" onClick={() => onOpen(inc.id)}>
               Open incident
             </button>
           </div>
@@ -141,7 +141,7 @@ export default function AlarmBanner({ onOpen }) {
       })}
 
       {(!canSound || alarm.permission === 'default') && (
-        <div className="ad-alarms-hints">
+        <div className="rpl-alarms-hints">
           {!canSound && (
             <p>
               The browser is holding the alarm sound back. Click anywhere on this page to let
@@ -151,7 +151,7 @@ export default function AlarmBanner({ onOpen }) {
           {alarm.permission === 'default' && (
             <p>
               Want an alert when this tab is in the background?{' '}
-              <button type="button" className="ad-text-button" onClick={askDesktopPermission}>
+              <button type="button" className="rpl-text-button" onClick={askDesktopPermission}>
                 Turn on desktop alerts
               </button>
             </p>

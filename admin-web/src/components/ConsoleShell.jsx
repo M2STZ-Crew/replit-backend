@@ -169,7 +169,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
   const moreActive = active === SETTINGS.key || moreItems.some((item) => item.key === active);
 
   return (
-    <div className={`ad-shell${rail ? ' is-rail' : ''}`}>
+    <div className={`rpl-shell${rail ? ' is-rail' : ''}`}>
       {!phone && (
         <Sidebar
           items={items}
@@ -183,7 +183,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
         />
       )}
 
-      <div className="ad-main">
+      <div className="rpl-main">
         <TopBar
           organization={org.name}
           scope={scope}
@@ -192,7 +192,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
           unread={unread}
           onUnread={() => go('incidents')}
         />
-        <main className="ad-content">
+        <main className="rpl-content">
           <ConsoleContext.Provider value={{ org, access, console: consoleInfo, refreshQueues }}>
             {children}
           </ConsoleContext.Provider>
@@ -200,7 +200,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
       </div>
 
       {phone && (
-        <nav className="ad-bar" aria-label="Destinations">
+        <nav className="rpl-bar" aria-label="Destinations">
           {barItems.map((item) => {
             const { count, label } = counts(item);
             const on = active === item.key;
@@ -208,21 +208,21 @@ export default function ConsoleShell({ active, onNavigate, children }) {
               <button
                 key={item.key}
                 type="button"
-                className={`ad-bar-item${on ? ' is-active' : ''}`}
+                className={`rpl-bar-item${on ? ' is-active' : ''}`}
                 onClick={() => go(item.key)}
                 aria-current={on ? 'page' : undefined}
                 aria-label={count ? `${item.label}, ${label}` : item.label}
               >
                 <Icon name={item.icon} />
                 <span>{item.label}</span>
-                {count > 0 && <span className="ad-count" aria-hidden="true">{count}</span>}
+                {count > 0 && <span className="rpl-count" aria-hidden="true">{count}</span>}
               </button>
             );
           })}
           <button
             ref={moreButton}
             type="button"
-            className={`ad-bar-item${moreActive ? ' is-active' : ''}`}
+            className={`rpl-bar-item${moreActive ? ' is-active' : ''}`}
             onClick={() => setMoreOpen(true)}
             aria-haspopup="dialog"
             aria-expanded={moreOpen}
@@ -230,25 +230,25 @@ export default function ConsoleShell({ active, onNavigate, children }) {
           >
             <Icon name="settings" />
             <span>More</span>
-            {moreCount > 0 && <span className="ad-count" aria-hidden="true">{moreCount}</span>}
+            {moreCount > 0 && <span className="rpl-count" aria-hidden="true">{moreCount}</span>}
           </button>
         </nav>
       )}
 
       {phone && moreOpen && (
-        <div className="ad-sheet-layer">
-          <div className="ad-scrim" onClick={() => setMoreOpen(false)} aria-hidden="true" />
+        <div className="rpl-sheet-layer">
+          <div className="rpl-scrim" onClick={() => setMoreOpen(false)} aria-hidden="true" />
           <div
-            className="ad-sheet"
+            className="rpl-sheet"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="ad-sheet-title"
+            aria-labelledby="rpl-sheet-title"
             ref={sheet}
           >
-            <span className="ad-sheet-grip" aria-hidden="true" />
-            <div className="ad-sheet-head">
-              <h2 id="ad-sheet-title" className="ad-sheet-title">More</h2>
-              <button type="button" className="ad-icon-button" onClick={() => setMoreOpen(false)} aria-label="Close">
+            <span className="rpl-sheet-grip" aria-hidden="true" />
+            <div className="rpl-sheet-head">
+              <h2 id="rpl-sheet-title" className="rpl-sheet-title">More</h2>
+              <button type="button" className="rpl-icon-button" onClick={() => setMoreOpen(false)} aria-label="Close">
                 <span aria-hidden="true">✕</span>
               </button>
             </div>
@@ -259,23 +259,23 @@ export default function ConsoleShell({ active, onNavigate, children }) {
                 <button
                   key={item.key}
                   type="button"
-                  className={`ad-nav-item${on ? ' is-active' : ''}`}
+                  className={`rpl-nav-item${on ? ' is-active' : ''}`}
                   onClick={() => go(item.key)}
                   aria-current={on ? 'page' : undefined}
                 >
                   <Icon name={item.icon} />
-                  <span className="ad-nav-label">{item.label}</span>
-                  {count > 0 && <span className="ad-count" aria-label={label}>{count}</span>}
+                  <span className="rpl-nav-label">{item.label}</span>
+                  {count > 0 && <span className="rpl-count" aria-label={label}>{count}</span>}
                 </button>
               );
             })}
-            <div className="ad-user">
-              <span className="ad-avatar" aria-hidden="true">{person.initials}</span>
-              <span className="ad-user-text">
-                <span className="ad-user-name">{person.name}</span>
-                <span className="ad-user-email">{person.email}</span>
+            <div className="rpl-user">
+              <span className="rpl-avatar" aria-hidden="true">{person.initials}</span>
+              <span className="rpl-user-text">
+                <span className="rpl-user-name">{person.name}</span>
+                <span className="rpl-user-email">{person.email}</span>
               </span>
-              <button type="button" className="ad-icon-button" onClick={logout} aria-label="Sign out" title="Sign out">
+              <button type="button" className="rpl-icon-button" onClick={logout} aria-label="Sign out" title="Sign out">
                 <Icon name="logout" />
               </button>
             </div>

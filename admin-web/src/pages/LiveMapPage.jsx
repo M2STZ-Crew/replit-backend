@@ -88,7 +88,7 @@ function UnitsLayer({ units, onSelect }) {
       >
         <Tooltip direction="top" offset={[0, -18]}>
           {members.map((u) => (
-            <span className="ad-unit-tip" key={u.key}>
+            <span className="rpl-unit-tip" key={u.key}>
               <strong>{u.label}</strong>
               {` · ${u.designation} · ${u.stale ? `last seen ${seen(u.at)}` : 'live'}`}
             </span>
@@ -108,23 +108,23 @@ function Selected({ inc, onClose, onOpen }) {
     ['Reports', `${inc.report_count} · ${confidenceOf(inc)}`],
   ];
   return (
-    <aside className="ad-map-panel" aria-labelledby="ad-map-panel-title">
-      <div className="ad-detail-head">
+    <aside className="rpl-map-panel" aria-labelledby="rpl-map-panel-title">
+      <div className="rpl-detail-head">
         <div>
-          <p className="ad-eyebrow">{inc.designation} · {statusOf(inc.status).label}</p>
-          <h2 className="ad-detail-title" id="ad-map-panel-title">{inc.designation}</h2>
+          <p className="rpl-eyebrow">{inc.designation} · {statusOf(inc.status).label}</p>
+          <h2 className="rpl-detail-title" id="rpl-map-panel-title">{inc.designation}</h2>
         </div>
-        <button type="button" className="ad-icon-button" onClick={onClose} aria-label="Close">
+        <button type="button" className="rpl-icon-button" onClick={onClose} aria-label="Close">
           <span aria-hidden="true">✕</span>
         </button>
       </div>
       <LifecycleChip status={inc.status} />
-      <dl className="ad-facts">
+      <dl className="rpl-facts">
         {facts.map(([t, v]) => (
-          <div className="ad-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
+          <div className="rpl-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
         ))}
       </dl>
-      <button type="button" className="ad-button ad-button--primary" onClick={onOpen}>Open incident</button>
+      <button type="button" className="rpl-button rpl-button--primary" onClick={onOpen}>Open incident</button>
     </aside>
   );
 }
@@ -160,7 +160,7 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
   });
 
   return (
-    <div className="ad-map">
+    <div className="rpl-map">
       <MapContainer
         center={PASAY}
         zoom={15}
@@ -210,28 +210,28 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
         <UnitsLayer units={units} onSelect={setSelectedId} />
       </MapContainer>
 
-      <div className="ad-map-chips" role="group" aria-label="Map layers">
+      <div className="rpl-map-chips" role="group" aria-label="Map layers">
         {LAYERS.map((l) => {
           const active = on.has(l.key);
           return (
             <button
               key={l.key}
               type="button"
-              className={`ad-map-chip ad-map-chip--${l.tone}${active ? ' is-on' : ''}`}
+              className={`rpl-map-chip rpl-map-chip--${l.tone}${active ? ' is-on' : ''}`}
               onClick={() => toggle(l.key)}
               aria-pressed={active}
             >
-              {active ? <span aria-hidden="true">✓</span> : <span className="ad-map-chip-dot" aria-hidden="true" />}
+              {active ? <span aria-hidden="true">✓</span> : <span className="rpl-map-chip-dot" aria-hidden="true" />}
               {l.label}
             </button>
           );
         })}
       </div>
 
-      <div className="ad-map-tools">
+      <div className="rpl-map-tools">
         <button
           type="button"
-          className="ad-map-tool"
+          className="rpl-map-tool"
           onClick={() => setLegend((v) => !v)}
           aria-pressed={legend}
           aria-label={legend ? 'Hide the legend' : 'Show the legend'}
@@ -242,7 +242,7 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
         {managesMap && (
           <button
             type="button"
-            className="ad-map-tool"
+            className="rpl-map-tool"
             onClick={onManage}
             aria-label="Map settings"
             title="Map settings"
@@ -253,12 +253,12 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
       </div>
 
       {legend && (
-        <section className="ad-map-legend" aria-label="Legend">
-          <p className="ad-eyebrow ad-eyebrow--quiet">Legend</p>
+        <section className="rpl-map-legend" aria-label="Legend">
+          <p className="rpl-eyebrow rpl-eyebrow--quiet">Legend</p>
           <ul>
             {['incident', 'unit', 'hydrant', 'water', 'cistern', 'shelter', 'risk'].map((k) => (
               <li key={k}>
-                <span className={`ad-legend-mark ad-marker-disc--${MARKER_KINDS[k].tone}`} aria-hidden="true">
+                <span className={`rpl-legend-mark rpl-marker-disc--${MARKER_KINDS[k].tone}`} aria-hidden="true">
                   <img src={`/icons/map/${k}.svg`} alt="" width="12" height="12" />
                 </span>
                 {k === 'unit' && access?.variant === 'system' ? 'Responding unit' : MARKER_KINDS[k].label}
@@ -266,7 +266,7 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
             ))}
           </ul>
           {access?.variant !== 'system' && (
-            <p className="ad-map-legend-note">Other organizations’ vehicles are never shown.</p>
+            <p className="rpl-map-legend-note">Other organizations’ vehicles are never shown.</p>
           )}
         </section>
       )}
