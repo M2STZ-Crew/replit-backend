@@ -119,6 +119,8 @@ async def send_test_push(
         title="RepLiT test",
         body="Push notifications are working.",
         data={"type": "test"},
+        # A second test replaces the first in the shade rather than stacking.
+        tag="test-alert",
     )
     if result.invalid_tokens:
         await db.execute(
@@ -131,6 +133,13 @@ async def send_test_push(
         success=result.success_count,
         failed=result.failure_count,
     )
+    if result.success_count == 0:
+        raise AppError(
+            "The test alert could not reach this phone. Sign out and back in, then "
+            "try again.",
+            status_code=502,
+            error_code="push_undelivered",
+        )
     return MessageResponse(
         message=f"Sent to {result.success_count} device(s); {result.failure_count} failed."
     )

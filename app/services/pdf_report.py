@@ -225,7 +225,7 @@ def _team_report(
     report: dict[str, Any], number: int, st: dict[str, ParagraphStyle]
 ) -> list[Any]:
     """One team's Post-Incident Report: a heading, who filed it, and what they picked."""
-    team = report.get("organization") or "Team with no organisation on record"
+    team = report.get("organization") or "Team with no organization on record"
     agency = _AGENCY.get(str(report.get("filed_by_agency") or ""), "")
     units = ", ".join(
         f"{u['name']} ({u['type']})" if u.get("type") else str(u["name"])
@@ -449,7 +449,7 @@ def build_fire_out_pdf(
                 _esc(
                     f"{len(reports)} responding team{'s' if len(reports) != 1 else ''} filed "
                     "a report, listed in the order they were filed. Each captain picked the "
-                    "units, driver, roster and equipment from their own organisation."
+                    "units, driver, roster and equipment from their own organization."
                 ),
                 st["muted"],
             )

@@ -6,6 +6,97 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.15 — 31 October 2026 — The 30 October issue report
+
+Mobile is v1.12.20. Issues are numbered as in the report.
+
+### Run before or after the deploy: `npx supabase db push`
+
+- `20261031090000_positive_alarm_on_verify.sql`: until it runs, a verified Area
+  gets no level, as before.
+- `20261031090100_neighborhood_safe_answer.sql`: until it runs, "I am safe" fails
+  and the app says the answer was not recorded. Report and Ignore keep working.
+
+Neither depends on the backend, or the backend on it.
+
+### Changes
+
+**Found**
+- **Nobody could reach Map Settings (03).** `map.manage` belonged only to the
+  system Admin, and the 28 October account directory has none: the live database
+  had no Admin holding it.
+- **Sign-in delays are the server waking (06).** Measured against production:
+  the first request after a quiet spell took 32.4 s, the next ones 0.08 s, and a
+  login round trip 0.2 to 0.7 s. `render.yaml` is on the free plan, which sleeps.
+  The app had no timeout and a spinner that never said why.
+- **Fire staff were alerted by the resident's 150 m alert (04 A).** On the two
+  live Areas that never asked for Fire, `incident_new` reached only the agencies
+  asked; Fire coordinators got `fire_alert` because their phones were nearby.
+  **Not changed: it waits on the decision below.**
+- **"I am safe" had a screen and nothing behind it (09).** The card existed for
+  the design only; no endpoint or enum value took the answer.
+- **A test alert was two banners in a queue (07).** The API's toast (4 s) and the
+  push's banner (10 s) ran one after the other, in either order.
+
+**Added or changed**
+- **Positive Fire Alarm is set by the first verify (11).** `enforce_alarm_authority`
+  records it on `reported -> verified`, whoever verified, with the verifier as
+  `alarm_level_set_by`. Unverified reports are never classified. Asking for it is
+  refused in words, so an older app is told why; requests start at 1st Alarm and
+  BFP's approval is unchanged. `alarm_level_set_at` now moves with each level (it
+  kept the first time). Areas verified before this keep their record.
+- **"I am safe" (09).** `POST /notifications/respond` takes `safe`, for a resident
+  the alert reached, while the Area is live: 403 otherwise, 409 once it has ended.
+  It stands once given: a repeat, or a later Report or Ignore, changes nothing.
+  `GET /notifications/respond/{area_id}` says what they answered and whether they
+  may. "I need help" stays out: it promises the responding Captain sees where
+  they are, and nothing delivers that yet.
+- **Map Settings (03).** `map.manage` goes to the central hub. The editor covers all
+  five layers (A35 was blocked pending this decision), with loading, failed-load
+  and validation states and the console's confirmation on delete.
+  `include_inactive` lets only the editor see what it switched off, and map writes
+  are audited (`map_layer.create`, `.update`, `.delete`).
+- **Directions for every coordinator (04 B).** Police, Medical and Barangay
+  coordinators get Route to the fire on an acknowledged Area. It records nothing:
+  responding stays as it was, by the earlier decision that they acknowledge only.
+- **Test alert (07).** A second one replaces the first in the shade, and reaching no
+  phone is a 502 rather than "Sent to 0 device(s)". On the phone the result goes on
+  the row, and the banner lasts 4 s.
+- **Sign-in (06).** The app starts waking the server as the sign-in screen opens,
+  says why after 6 s, and stops at 75 s with words instead of a spinner.
+- **Hotlines (05).** The list was already on the phone; there was no way to it
+  signed out. Emergency hotlines is now on the sign-in screen and on the screen
+  shown when an account will not load, with no tabs leading anywhere else.
+- **Wording.** "Organization" in the console and the server's messages (01),
+  "Center" in the app (08), and 150 m where the app named the neighbourhood alert
+  as 300 m (02). Comments, identifiers and API fields are unchanged.
+- **Location plate (10).** One widget for every role: the app's ink on coral, about
+  6:1. White on coral, which the resident's map drew, is about 2:1.
+
+### Decisions needed
+
+- **Mandatory Fire selection (04 A).** Not implemented. Until then a report that
+  unticks Fire reaches no fire unit by design, and staff near it still get the
+  resident alert. If it is approved, exclude staff from that alert at the same time.
+- **Clustering radius (02).** `_CLUSTER_RADIUS_M` is 300 m, PRD v14 says 100 m, the
+  issue says 150 m. It is drawn and worded as 300 m because that is what it does.
+  Changing it changes which reports merge, so it is left for the team.
+- **Keeping the server awake (06).** The cold start itself remains. A paid plan
+  ends it; a keep-warm ping uses free instance hours shared across the workspace.
+
+### Verified
+
+- Backend: pytest, ruff; mypy reports only the existing `ai_summary.py:74`.
+- The trigger and the safety upsert ran on a real local Postgres against these
+  migration files (22 checks), since the fakes cannot execute them. Not on the
+  live database.
+- Mobile: `flutter analyze`, `flutter test`. Admin: `vite build`, and Map Settings
+  driven in the browser on the console preview.
+- Not tested on a phone: push in the background or locked, offline dialing, and
+  sign-in timing across devices and networks.
+
+---
+
 ## v1.12.6 — 7 October 2026 — Notifications outside the app, a fire alarm, and taps that open
 
 ### Changes

@@ -161,7 +161,7 @@ async def assert_admin_routed(
     if not routed:
         raise ForbiddenError(
             f"This incident didn't ask for {access.routed_word()}, so "
-            f"{access.organization_name or 'your organisation'} can follow it but "
+            f"{access.organization_name or 'your organization'} can follow it but "
             f"not {action}.",
             details={"access": "view_only", "act_agencies": list(access.act_agencies)},
         )
@@ -252,7 +252,7 @@ async def assert_responded(db: Database, incident_id: UUID, user: AuthenticatedU
         )
         if not took_part:
             raise ForbiddenError(
-                "This incident's reports are for the organisations that took part "
+                "This incident's reports are for the organizations that took part "
                 "in it, and yours did not."
             )
         return
@@ -303,7 +303,7 @@ def assert_coordinator(user: AuthenticatedUser, action: str) -> None:
         )
     if user.role == "admin":
         raise ForbiddenError(
-            f"An organisation's Admin acknowledges incidents but does not {action}: "
+            f"An organization's Admin acknowledges incidents but does not {action}: "
             "its Coordinators do, from the mobile app.",
             details={"access": "admin"},
         )

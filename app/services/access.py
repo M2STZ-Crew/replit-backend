@@ -20,8 +20,12 @@ The rules are REPLIT (MAIN) pass 6, A00 "Four permission variants":
 * **BFP Admin** (the singleton) decides those requests and sets the level
   (A46, A46b; §3.4 "only authority allowed to execute alarm escalation").
 * **The central hub** (Barangay 76, ``organizations.is_central_hub``) is a
-  Barangay Admin that also reviews affiliate applications and National IDs.
-  "Nothing here makes the central hub a superuser."
+  Barangay Admin that also reviews affiliate applications and National IDs,
+  and looks after the map layers every organisation shares (Map Settings;
+  Issue 03, 30 Oct 2026): they were the system account's alone, and the
+  directory of 28 Oct 2026 has no system account. "Nothing here makes the
+  central hub a superuser": it acts on Barangay's incidents like any Barangay
+  Admin.
 
 An Admin with no organisation is the **system** account the console had
 before v13 (admin@replit.com): it keeps the full authority it always had, so
@@ -156,7 +160,7 @@ def admin_access(user: AuthenticatedUser) -> AdminAccess | None:
     variant = agency
     if user.org_is_central_hub:
         variant = "central"
-        permissions |= {REVIEW_AFFILIATES, REVIEW_IDS, ALL_ORGANIZATIONS}
+        permissions |= {REVIEW_AFFILIATES, REVIEW_IDS, ALL_ORGANIZATIONS, MANAGE_MAP}
     return AdminAccess(
         variant=variant,
         organization_id=user.primary_org_id,

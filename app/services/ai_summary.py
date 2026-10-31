@@ -104,7 +104,7 @@ class IncidentFacts:
 
 def _report_lines(report: dict[str, Any], index: int, total: int) -> list[str]:
     """One team's Post-Incident Report, as the model reads it."""
-    team = report.get("organization") or "a team with no organisation on record"
+    team = report.get("organization") or "a team with no organization on record"
     agency = _AGENCY_NAME.get(report["filed_by_agency"] or "", "")
     filer = report["filed_by"] or "the team captain"
     lines = [

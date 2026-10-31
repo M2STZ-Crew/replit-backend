@@ -43,9 +43,13 @@ class _Push:
         self.is_available = available
         self.result = result or PushResult()
         self.sent_to: list[str] = []
+        self.tag: str | None = None
 
-    async def send_to_tokens(self, *, tokens: list[str], **_: Any) -> PushResult:
+    async def send_to_tokens(
+        self, *, tokens: list[str], tag: str | None = None, **_: Any
+    ) -> PushResult:
         self.sent_to = tokens
+        self.tag = tag
         return self.result
 
 
@@ -103,6 +107,30 @@ def test_a_working_server_reports_real_counts(client: TestClient) -> None:
     assert resp.status_code == 200
     assert resp.json()["message"] == "Sent to 1 device(s); 0 failed."
     assert push.sent_to == ["tok-1"]
+
+
+def test_a_repeat_test_replaces_the_last_in_the_shade(client: TestClient) -> None:
+    push = _Push(available=True, result=PushResult(success_count=1, failure_count=0))
+    _wire(_Db(tokens=["tok-1"]), push)
+
+    client.post("/devices/test", headers={"Authorization": "Bearer x"})
+
+    assert push.tag == "test-alert"
+
+
+def test_reaching_no_phone_is_not_a_success(client: TestClient) -> None:
+    db = _Db(tokens=["tok-dead"])
+    push = _Push(
+        available=True,
+        result=PushResult(success_count=0, failure_count=1, invalid_tokens=["tok-dead"]),
+    )
+    _wire(db, push)
+
+    resp = client.post("/devices/test", headers={"Authorization": "Bearer x"})
+
+    assert resp.status_code == 502
+    assert "could not reach this phone" in str(resp.json())
+    assert db.deactivated == ["tok-dead"], "the dead token is still retired"
 
 
 def test_dead_tokens_are_retired(client: TestClient) -> None:

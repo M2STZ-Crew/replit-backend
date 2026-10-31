@@ -281,7 +281,7 @@ MapManager = Annotated[
     Depends(
         require_admin_permission(
             console_access.MANAGE_MAP,
-            "Map layers are added and changed by the system administrator.",
+            "Map layers are added and changed by the central hub (Barangay 76).",
         )
     ),
 ]
@@ -290,7 +290,7 @@ WaterDeleter = Annotated[
     Depends(
         require_admin_permission(
             console_access.DELETE_WATER,
-            "Your organisation's Admin account is not active, so it cannot delete "
+            "Your organization's Admin account is not active, so it cannot delete "
             "water resources.",
         )
     ),
@@ -300,7 +300,7 @@ CoordinatorManager = Annotated[
     Depends(
         require_admin_permission(
             console_access.CREATE_COORDINATORS,
-            "Your organisation's Admin account is not active, so it cannot manage "
+            "Your organization's Admin account is not active, so it cannot manage "
             "Coordinator accounts.",
         )
     ),
@@ -311,7 +311,7 @@ AnyAccountAdmin = Annotated[
         require_admin_permission(
             console_access.MANAGE_ANY_ACCOUNT,
             "Only the system administrator creates accounts of any role. An "
-            "organisation's Admin creates its own Coordinators under Accounts.",
+            "organization's Admin creates its own Coordinators under Accounts.",
         )
     ),
 ]

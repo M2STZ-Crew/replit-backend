@@ -25,6 +25,7 @@ import copy
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -38,10 +39,17 @@ from app.api.routes import alarm_requests as ar
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.main import app
 from app.realtime import events
-from app.schemas.alarm import AlarmRequestCreate, AlarmRequestResponse, AlarmReviewRequest
+from app.schemas.alarm import (
+    INITIAL_ALARM_LEVEL,
+    AlarmRequestCreate,
+    AlarmRequestResponse,
+    AlarmReviewRequest,
+)
 from app.schemas.auth import AuthenticatedUser
 from app.services import incident_notify
 from app.services.audit import match_audit_rule
+
+_MIGRATIONS = Path(__file__).resolve().parents[1] / "supabase" / "migrations"
 
 FIRE_ORG = uuid4()
 OTHER_ORG = uuid4()
@@ -372,6 +380,45 @@ async def test_only_those_who_may_ask_can(told: _Told) -> None:
             continue
         with pytest.raises(ForbiddenError):
             await _ask(db, db.add(user), "first_alarm")
+
+
+async def test_positive_fire_alarm_is_not_asked_for(told: _Told) -> None:
+    """It is what a verified fire starts at, so the words reach an older app too."""
+    db = _Db()
+    with pytest.raises(ConflictError) as exc:
+        await _ask(db, db.add(_fv_coordinator()), INITIAL_ALARM_LEVEL)
+    assert "set automatically when a fire is verified" in exc.value.message
+    assert db.requests == {} and db.audit == [] and told.bfp == []
+
+
+async def test_first_alarm_can_be_asked_for_straight_away(told: _Told) -> None:
+    for current in (None, INITIAL_ALARM_LEVEL):
+        db = _Db()
+        db.areas[db.area]["alarm_level"] = current
+        got, code = await _ask(db, db.add(_fv_coordinator()), "first_alarm")
+        assert code == 201 and got.requested_alarm_level == "first_alarm"
+        assert got.status == "pending", "BFP still decides it"
+
+
+async def test_a_waiting_positive_request_can_still_be_answered(told: _Told) -> None:
+    """One asked before this change is not stranded: BFP declines it or sets it."""
+    db = _Db()
+    rid = db.seed(db.add(_fv_coordinator()), INITIAL_ALARM_LEVEL)
+    got = await _execute(db, db.add(_bfp_coordinator()), rid)
+    assert got.status == "approved"
+
+
+def test_the_migration_sets_positive_on_the_first_verify_only() -> None:
+    sql = (_MIGRATIONS / "20261031090000_positive_alarm_on_verify.sql").read_text(
+        encoding="utf-8"
+    )
+    assert "old.status = 'reported' and new.status = 'verified'" in sql
+    assert "new.alarm_level is null" in sql
+    assert "new.alarm_level := 'positive_fire_alarm'" in sql
+    assert "new.alarm_level_set_by := new.verified_by" in sql
+    # Every later change is stamped with its own time.
+    assert "new.alarm_level_set_at := now();" in sql
+    assert "coalesce(new.alarm_level_set_at" not in sql
 
 
 async def test_a_failed_write_tells_nobody(told: _Told, monkeypatch: pytest.MonkeyPatch) -> None:

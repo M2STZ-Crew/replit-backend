@@ -64,10 +64,10 @@ def _target_organization(admin: AuthenticatedUser, requested: UUID | None) -> UU
     assert access is not None  # CoordinatorManager admits Admins only
     if access.is_system:
         if requested is None:
-            raise BadRequestError("Choose the organisation the Coordinator belongs to.")
+            raise BadRequestError("Choose the organization the Coordinator belongs to.")
         return requested
     if requested is not None and requested != access.organization_id:
-        raise ForbiddenError("You create Coordinators for your own organisation only.")
+        raise ForbiddenError("You create Coordinators for your own organization only.")
     assert access.organization_id is not None
     return access.organization_id
 
@@ -87,7 +87,7 @@ async def _own_coordinator(
         or row["role"] != "sub_admin"
         or (not access.is_system and row["primary_org_id"] != access.organization_id)
     ):
-        raise NotFoundError("No Coordinator of your organisation has that id.")
+        raise NotFoundError("No Coordinator of your organization has that id.")
     return await _member(db, user_id)
 
 
@@ -96,7 +96,7 @@ def _invite_html(name: str, org_name: str, link: str) -> str:
     return (
         '<div style="font-family:Inter,Arial,sans-serif;color:#111;max-width:520px">'
         f"<h2 style='margin:0 0 12px'>You're a Coordinator for {org_name}</h2>"
-        f"<p>Hi {name}, your organisation's Admin made you a Coordinator on RepLiT, "
+        f"<p>Hi {name}, your organization's Admin made you a Coordinator on RepLiT, "
         "Pasay City's fire reporting and response network.</p>"
         "<p>Set your password, then sign in to the RepLiT mobile app with this email "
         "address. From there you acknowledge incidents and create your Responders' "
@@ -113,7 +113,7 @@ def _invite_html(name: str, org_name: str, link: str) -> str:
 def _invite_text(name: str, org_name: str, link: str) -> str:
     return (
         f"Hi {name},\n\n"
-        f"Your organisation's Admin made you a Coordinator for {org_name} on RepLiT.\n\n"
+        f"Your organization's Admin made you a Coordinator for {org_name} on RepLiT.\n\n"
         "Set your password, then sign in to the RepLiT mobile app with this email "
         f"address:\n{link}\n"
     )
@@ -123,7 +123,7 @@ def _invite_text(name: str, org_name: str, link: str) -> str:
     "",
     response_model=CoordinatorCreateResult,
     status_code=status.HTTP_201_CREATED,
-    summary="Create a Coordinator account for my organisation (Admin)",
+    summary="Create a Coordinator account for my organization (Admin)",
 )
 async def create_coordinator(
     payload: CoordinatorCreateRequest,
@@ -145,9 +145,9 @@ async def create_coordinator(
         org_id,
     )
     if org is None:
-        raise NotFoundError("Organisation not found.")
+        raise NotFoundError("Organization not found.")
     if not org["is_active"]:
-        raise ConflictError("That organisation is not active on RepLiT.")
+        raise ConflictError("That organization is not active on RepLiT.")
 
     email = str(payload.email).strip().lower()
     full_name = payload.full_name.strip()

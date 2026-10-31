@@ -219,7 +219,7 @@ async def _assert_may_decide_overlap(
     if not allowed:
         raise ForbiddenError(
             "You can merge or keep apart only Areas that were both routed to your "
-            "organisation."
+            "organization."
         )
 
 

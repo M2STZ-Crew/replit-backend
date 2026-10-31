@@ -18,6 +18,11 @@ AlarmLevel = Literal[
     "general_alarm",
 ]
 
+# What a verified fire starts at. It is set by the first verify (the
+# enforce_alarm_authority trigger, migration 20261031090000), so nobody asks
+# for it; requests begin at the level above.
+INITIAL_ALARM_LEVEL = "positive_fire_alarm"
+
 # Where a request stands (the request_status enum).
 RequestStatus = Literal["pending", "approved", "rejected", "cancelled"]
 

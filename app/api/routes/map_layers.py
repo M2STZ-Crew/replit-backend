@@ -4,6 +4,10 @@ Read-only views of the GIS layers (hydrants, evacuation sites, risk zones, bodie
 of water, underground cisterns), available to any authenticated user. Polygon
 geometries are returned as GeoJSON. Writes + the hydrant ground-truth override are
 added in later parts.
+
+Hydrants, evacuation sites and cisterns can be switched off without deleting them.
+Every map reads the active ones; ``include_inactive`` is for the Admin who edits
+the map, who would otherwise lose sight of a row the moment they switched it off.
 """
 
 from __future__ import annotations
@@ -14,6 +18,7 @@ from fastapi import APIRouter
 
 from app.api.deps import CurrentUser, DatabaseDep
 from app.core.exceptions import NotFoundError
+from app.schemas.auth import AuthenticatedUser
 from app.schemas.map_layer import (
     BodyOfWaterResponse,
     CisternResponse,
@@ -21,6 +26,7 @@ from app.schemas.map_layer import (
     HydrantResponse,
     RiskZoneResponse,
 )
+from app.services.access import MANAGE_MAP, admin_access
 
 router = APIRouter(prefix="/map", tags=["map-layers"])
 
@@ -50,15 +56,25 @@ _CISTERN_COLS = (
 )
 
 
+def _active_only(user: AuthenticatedUser, include_inactive: bool) -> str:
+    """The ``where`` for a list: active rows, unless the map's editor asks for all."""
+    access = admin_access(user)
+    if include_inactive and access is not None and access.can(MANAGE_MAP):
+        return ""
+    return "where is_active"
+
+
 # --------------------------------------------------------------------------- #
 # Hydrants
 # --------------------------------------------------------------------------- #
 @router.get("/hydrants", response_model=list[HydrantResponse], summary="List hydrants")
-async def list_hydrants(user: CurrentUser, db: DatabaseDep) -> list[HydrantResponse]:
+async def list_hydrants(
+    user: CurrentUser, db: DatabaseDep, include_inactive: bool = False
+) -> list[HydrantResponse]:
     """List active hydrants with their effective status."""
     rows = await db.fetch(
-        f"select {_HYDRANT_COLS} from public.hydrants where is_active "
-        "order by code nulls last"
+        f"select {_HYDRANT_COLS} from public.hydrants "
+        f"{_active_only(user, include_inactive)} order by code nulls last"
     )
     return [HydrantResponse.model_validate(dict(r)) for r in rows]
 
@@ -87,11 +103,12 @@ async def get_hydrant(
     summary="List evacuation sites",
 )
 async def list_evacuation_sites(
-    user: CurrentUser, db: DatabaseDep
+    user: CurrentUser, db: DatabaseDep, include_inactive: bool = False
 ) -> list[EvacuationSiteResponse]:
     """List active evacuation sites."""
     rows = await db.fetch(
-        f"select {_EVAC_COLS} from public.evacuation_sites where is_active order by name"
+        f"select {_EVAC_COLS} from public.evacuation_sites "
+        f"{_active_only(user, include_inactive)} order by name"
     )
     return [EvacuationSiteResponse.model_validate(dict(r)) for r in rows]
 
@@ -179,11 +196,13 @@ async def get_body_of_water(
     response_model=list[CisternResponse],
     summary="List underground cisterns",
 )
-async def list_cisterns(user: CurrentUser, db: DatabaseDep) -> list[CisternResponse]:
+async def list_cisterns(
+    user: CurrentUser, db: DatabaseDep, include_inactive: bool = False
+) -> list[CisternResponse]:
     """List active underground cisterns."""
     rows = await db.fetch(
-        f"select {_CISTERN_COLS} from public.underground_cisterns where is_active "
-        "order by code nulls last"
+        f"select {_CISTERN_COLS} from public.underground_cisterns "
+        f"{_active_only(user, include_inactive)} order by code nulls last"
     )
     return [CisternResponse.model_validate(dict(r)) for r in rows]
 

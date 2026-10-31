@@ -6,9 +6,9 @@ variants"):
   ones its agency was asked for (Fire Volunteer and BFP for Fire), and records
   the acknowledgement under its organisation's agency and team;
 - it never rejects, marks fire out or dispatches: those stay Coordinators';
-- the central hub (Barangay 76) also reviews affiliates and IDs, and nothing
-  more — it is not a superuser; the Admin with no organisation is the system
-  account and keeps everything it had;
+- the central hub (Barangay 76) also reviews affiliates and IDs and looks after
+  the shared map layers, and nothing more — it is not a superuser; the Admin
+  with no organisation is the system account and keeps everything it had;
 - a Fire Volunteer Admin asks BFP to raise the alarm, the BFP Admin decides;
 - an Admin reads its own organisation's people, its routed incidents' audit
   entries and its own people's, and creates its own Coordinators;
@@ -94,7 +94,8 @@ def _admin(
          {A.DECIDE_ALARM}),
         ("bfp", False, "bfp", A.FIRE_AGENCIES, {A.DECIDE_ALARM}, {A.REQUEST_ALARM}),
         ("barangay", True, "central", ("barangay",),
-         {A.REVIEW_AFFILIATES, A.REVIEW_IDS, A.ALL_ORGANIZATIONS}, {A.DECIDE_ALARM}),
+         {A.REVIEW_AFFILIATES, A.REVIEW_IDS, A.ALL_ORGANIZATIONS, A.MANAGE_MAP},
+         {A.DECIDE_ALARM}),
     ],
 )
 def test_the_four_variants(
@@ -107,9 +108,11 @@ def test_the_four_variants(
     every = {A.ACKNOWLEDGE, A.DECIDE_OVERLAPS, A.DELETE_WATER, A.CREATE_COORDINATORS}
     assert access.permissions == frozenset(every | extra)
     assert not access.permissions & absent
-    # No organisation's Admin coordinates, manages the map, or reads everything.
-    for never in (A.COORDINATE, A.MANAGE_MAP, A.MANAGE_ANY_ACCOUNT, A.ALL_RECORDS):
+    # No organisation's Admin coordinates or reads everything; of them only the
+    # central hub manages the map.
+    for never in (A.COORDINATE, A.MANAGE_ANY_ACCOUNT, A.ALL_RECORDS):
         assert not access.can(never)
+    assert access.can(A.MANAGE_MAP) is hub
 
 
 def test_the_central_hub_is_not_a_superuser() -> None:

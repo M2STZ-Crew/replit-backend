@@ -30,12 +30,28 @@ class UnreadCount(BaseModel):
 class NotificationRespondRequest(BaseModel):
     """Caller's response to a 150 m crowdsourced neighborhood alert.
 
-    ``report`` confirms a fire nearby; ``ignore`` dismisses it. Either value, once
-    recorded, stops further alerts for this (area, user) — the neighborhood worker
-    skips any recipient whose ``response`` is set.
+    ``report`` confirms a fire nearby; ``ignore`` dismisses it; ``safe`` says the
+    caller is safe, which only ever comes from them saying so: being alerted
+    implies nothing. Any of them, once recorded, stops further alerts for this
+    (area, user) — the neighborhood worker skips any recipient whose ``response``
+    is set.
     """
 
     area_id: UUID = Field(description="Area the neighborhood alert referred to.")
-    response: Literal["report", "ignore"] = Field(
-        description="'report' to confirm a fire nearby; 'ignore' to dismiss future alerts.",
+    response: Literal["report", "ignore", "safe"] = Field(
+        description=(
+            "'report' to confirm a fire nearby; 'ignore' to dismiss future alerts; "
+            "'safe' to say you are safe (residents the alert reached, while it is live)."
+        ),
+    )
+
+
+class AlertAnswer(BaseModel):
+    """Where the caller stands with one neighborhood alert, for the alert screen."""
+
+    response: str | None = None
+    responded_at: datetime | None = None
+    can_say_safe: bool = Field(
+        default=False,
+        description="The alert reached them, the Area is live, and they have not said so yet.",
     )

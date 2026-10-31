@@ -31,6 +31,7 @@ class _Executor(Protocol):
     async def execute(self, query: str, *args: Any) -> str: ...
 
 _UUID = r"[0-9a-fA-F-]{36}"
+_MAP_LAYER = r"/map/(?:hydrants|evacuation-sites|risk-zones|bodies-of-water|underground-cisterns)"
 
 
 @dataclass(frozen=True)
@@ -69,6 +70,9 @@ _RULES: list[_Rule] = [
     _rule("POST", rf"^/map-layer-requests/({_UUID})/approve$", 
           "map_layer.request_approve", 
           "map_layer_request"),
+    _rule("POST", rf"^{_MAP_LAYER}$", "map_layer.create", "map_layer"),
+    _rule("PATCH", rf"^{_MAP_LAYER}/({_UUID})$", "map_layer.update", "map_layer"),
+    _rule("DELETE", rf"^{_MAP_LAYER}/({_UUID})$", "map_layer.delete", "map_layer"),
 ]
 
 

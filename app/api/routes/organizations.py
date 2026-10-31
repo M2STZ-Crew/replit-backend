@@ -107,7 +107,7 @@ async def list_org_personnel(
     access = admin_access(admin)
     if access is not None and not access.can(ALL_ORGANIZATIONS):
         if access.organization_id != org_id:
-            raise ForbiddenError("You can see the people of your own organisation only.")
+            raise ForbiddenError("You can see the people of your own organization only.")
     exists = await db.fetchval("select 1 from public.organizations where id = $1", org_id)
     if exists is None:
         raise NotFoundError("Organization not found.")

@@ -220,7 +220,7 @@ def _assert_admin_may_acknowledge(user: AuthenticatedUser) -> None:
     access = admin_access(user)
     if access is not None and not access.can(ACKNOWLEDGE):
         raise ForbiddenError(
-            "Your organisation is not active on RepLiT, so its Admin follows "
+            "Your organization is not active on RepLiT, so its Admin follows "
             "incidents but cannot acknowledge them."
         )
 

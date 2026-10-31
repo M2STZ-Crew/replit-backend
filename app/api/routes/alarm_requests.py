@@ -16,6 +16,9 @@ level changed.
 
 How a request travels (27 Oct 2026):
 
+- **Not asked for: Positive Fire Alarm.** It is the Area's initial
+  classification, set by the first verify (the enforce_alarm_authority trigger).
+  Requests begin at 1st Alarm.
 - **Asked.** One open request per asker and Area: asking again for the same
   level — a second tap, or a retry after a reply was lost — answers with the
   request already waiting (HTTP 200) and sends nothing twice; asking for a
@@ -51,6 +54,7 @@ from app.db.session import Database
 from app.realtime.events import broadcast_alarm_request
 from app.realtime.manager import manager
 from app.schemas.alarm import (
+    INITIAL_ALARM_LEVEL,
     AlarmLevel,
     AlarmRequestCreate,
     AlarmRequestResponse,
@@ -156,7 +160,7 @@ async def _withdrawable(
         raise NotFoundError("Alarm request not found.")
     if not _may_withdraw(user, row["requested_by"], row["requester_org"]):
         raise ForbiddenError(
-            "Only whoever asked, an Admin of their organisation, or the system Admin "
+            "Only whoever asked, an Admin of their organization, or the system Admin "
             "may cancel or delete this request."
         )
     return row
@@ -217,6 +221,12 @@ async def create_alarm_request(
         )
     await assert_admin_routed(db, payload.area_id, user, "ask BFP to raise its alarm")
     level = payload.requested_alarm_level
+    # A refusal in words rather than a 422: an older app still offers this level.
+    if level == INITIAL_ALARM_LEVEL:
+        raise ConflictError(
+            f"{alarm_label(level)} is set automatically when a fire is verified. "
+            "Ask BFP for 1st alarm or higher."
+        )
     replaced: list[UUID] = []
     existing: UUID | None = None
     new_id: UUID | None = None

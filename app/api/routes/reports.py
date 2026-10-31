@@ -217,7 +217,7 @@ async def submit_report(
     assert area is not None
 
     # Keep the reporter locatable for future incidents, then immediately alert
-    # nearby users (300 m) — they don't have to wait for the 60 s worker tick.
+    # nearby users (150 m) — they don't have to wait for the 60 s worker tick.
     await db.execute(
         "update public.users set latitude = $2, longitude = $3, last_active_at = now() "
         "where id = $1",
@@ -225,7 +225,7 @@ async def submit_report(
         device_lat,
         device_lng,
     )
-    # Centre the 300 m query on the area centroid, not this reporter's position
+    # Centre the 150 m query on the area centroid, not this reporter's position
     # (Section 3.5). Clustering has just recomputed the centroid, so for a report
     # joining an existing area the two differ — using the reporter's coordinates
     # would blast a different circle than every subsequent 60 s tick.
