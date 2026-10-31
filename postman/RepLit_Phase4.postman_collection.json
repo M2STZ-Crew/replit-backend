@@ -48,7 +48,9 @@
         "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
         "body": { "mode": "formdata", "formdata": [
           { "key": "id_image", "type": "file", "src": [] },
-          { "key": "selfie_image", "type": "file", "src": [] }
+          { "key": "selfie_image", "type": "file", "src": [] },
+          { "key": "qr_image", "type": "file", "src": [] },
+          { "key": "philsys_consent", "type": "text", "value": "true" }
         ] },
         "url": { "raw": "{{baseUrl}}/verification/national-id/manual", "host": ["{{baseUrl}}"], "path": ["verification","national-id","manual"] }
       },
@@ -80,7 +82,11 @@
       "name": "Admin - Approve (+50%)",
       "request": {
         "method": "POST",
-        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"philsys_result\": \"verified\"\n}" },
         "url": { "raw": "{{baseUrl}}/admin/verifications/{{verificationId}}/approve", "host": ["{{baseUrl}}"], "path": ["admin","verifications","{{verificationId}}","approve"] }
       },
       "response": []
@@ -93,7 +99,7 @@
           { "key": "Content-Type", "value": "application/json" },
           { "key": "Authorization", "value": "Bearer {{accessToken}}" }
         ],
-        "body": { "mode": "raw", "raw": "{\n  \"notes\": \"ID photo is unreadable\"\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"notes\": \"PhilSys Check could not read your QR code.\",\n  \"philsys_result\": \"unreadable\"\n}" },
         "url": { "raw": "{{baseUrl}}/admin/verifications/{{verificationId}}/reject", "host": ["{{baseUrl}}"], "path": ["admin","verifications","{{verificationId}}","reject"] }
       },
       "response": []

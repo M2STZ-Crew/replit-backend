@@ -6,6 +6,59 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.18 — 31 October 2026 — National ID, checked on PSA's PhilSys Check
+
+Backend and Admin console, with mobile v1.12.21. No migration, no new setting.
+Deploy the backend and console before handing out the APK: on the old server the
+new app's QR photo is ignored. An older app is told to update and nothing is kept.
+
+### Changes
+
+**Found**
+- **Nothing tested whether an ID was genuine.** A reviewer compared a photo with a
+  selfie by eye. The Didit route was never connected to the app.
+- **ID photos and selfies stayed in Storage for good.** Approving and rejecting
+  never touched them, and nothing else deleted them.
+- **The reviewer's reason never reached the resident.** `/verification/status`
+  returned it and the app did not read it, so "What should they fix?" went nowhere.
+- **Deleting a missing object counted as a failure.** Storage answers it with HTTP
+  400 and the 404 in the body, not with a 404.
+- **The app's upload skipped the shared client,** so an expired session failed it
+  instead of renewing.
+
+**Added or changed**
+- **A QR photo and the holder's consent are required.** The app takes a third
+  camera photo and a consent line that says what PSA records. The server refuses
+  a submission without them before anything is stored.
+- **PhilSys Check in the console.** Each review shows the QR photo, a download, a
+  link to the site and its steps. The reviewer records what it said, in PSA's words.
+- **Approving needs PhilSys Check's "Verified",** on the server. A failed check
+  fills in the reason, with PSA's advice, and is recorded, as PSA's handbook asks.
+- **Deciding deletes the photos, first.** If they cannot be deleted the decision
+  stops, so a decided review never holds them. Object names lost their extension,
+  so a second submission replaces the first instead of sitting beside it. An
+  upload that fails partway removes what it stored.
+- **The resident is told.** The decision reaches their inbox and phone, tapping it
+  opens Verify your account, and the reason shows on the National ID row.
+
+### Verified
+
+- Backend: pytest, ruff; mypy reports only the existing `ai_summary.py:74`.
+- The upsert, approve and reject SQL ran from the route files on a real Postgres
+  16.2, through submit, reject, resubmit, approve and reject without a result. All
+  11 statements prepare on the live schema, read-only.
+- On real Storage, read-only: `&download=` returns an attachment, and deleting an
+  object that does not exist now passes (it raised before).
+- Console: the fictional preview at 1280, 1000 and 375 px, with no sideways scroll.
+  Approve stays off until "Verified" is chosen, and both requests send the right
+  body. Mobile: `flutter analyze` and `flutter test`.
+- PhilSys Check's steps were followed on the live site as far as Select Image, so
+  the console's wording is what the site shows today.
+- Not run: a real PhilID or ePhilID through PhilSys Check, a submission against
+  the live server, or anything on a phone. A photographed QR code may need retakes.
+
+---
+
 ## v1.12.17 — 31 October 2026 — The console survives an adblocker
 
 Admin console only, and only a rename; the version moves with it. Mobile stays

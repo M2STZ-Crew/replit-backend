@@ -18,6 +18,17 @@ from app.core.logging import get_logger
 log = get_logger(__name__)
 
 
+def _not_found(resp: httpx.Response) -> bool:
+    """Storage answers a missing object with HTTP 400 and the 404 in the body."""
+    if resp.status_code == 404:
+        return True
+    try:
+        body = resp.json()
+    except ValueError:
+        return False
+    return isinstance(body, dict) and str(body.get("statusCode")) == "404"
+
+
 class SupabaseStorageClient:
     """Async client for the Supabase Storage REST API (server-side, service_role)."""
 
@@ -83,5 +94,5 @@ class SupabaseStorageClient:
         except httpx.HTTPError as exc:
             log.error("storage_remove_failed", error=str(exc))
             raise ExternalServiceError("Could not delete object.") from exc
-        if resp.status_code >= 400 and resp.status_code != 404:
+        if resp.status_code >= 400 and not _not_found(resp):
             raise ExternalServiceError("Storage delete error.")

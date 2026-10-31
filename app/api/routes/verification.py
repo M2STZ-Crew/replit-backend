@@ -4,6 +4,8 @@ Phone OTP (+40%) through Semaphore; for a citizen it also gates the app.
 Phase 4: Didit.me National ID KYC (+50%) via a hosted session, with a
 poll/refresh path and an HMAC-verified webhook. Approved => +50%;
 Declined / In Review => routed to the Admin manual-review queue (Section 3.2).
+The app takes the manual route: ID, QR code and selfie photos for an Admin, who
+runs the QR code through PSA's PhilSys Check.
 """
 
 from __future__ import annotations
@@ -14,7 +16,7 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, File, Request, Response, UploadFile
+from fastapi import APIRouter, File, Form, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse
 
 from app.api.deps import (
@@ -40,6 +42,7 @@ from app.schemas.verification import (
     VerificationResultResponse,
     VerificationStatusResponse,
 )
+from app.services.national_id import BUCKET, photo_paths, remove_photos
 from app.services.phone_verification import check_code, request_code
 
 log = get_logger(__name__)
@@ -284,29 +287,28 @@ async def national_id_webhook(
     return Response(status_code=200)
 
 # --------------------------------------------------------------------------- #
-# National ID manual upload (Admin-review fallback — no Didit credits needed)
+# National ID manual upload: the route the app uses (no Didit credits needed)
 # --------------------------------------------------------------------------- #
 _MAX_ID_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
-_ALLOWED_IMAGE_TYPES = {"image/jpeg": ".jpg", "image/png": ".png"}
+_ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png"}
 
 
-async def _read_validated_image(upload: UploadFile) -> tuple[bytes, str]:
-    """Validate an uploaded image (type + size); return (bytes, extension)."""
-    ext = _ALLOWED_IMAGE_TYPES.get(upload.content_type or "")
-    if ext is None:
+async def _read_validated_image(upload: UploadFile) -> bytes:
+    """Validate an uploaded image (type + size); return its bytes."""
+    if upload.content_type not in _ALLOWED_IMAGE_TYPES:
         raise BadRequestError("Only JPEG or PNG images are accepted.")
     content = await upload.read()
     if len(content) == 0:
         raise BadRequestError("Uploaded image is empty.")
     if len(content) > _MAX_ID_IMAGE_BYTES:
         raise BadRequestError("Image exceeds the 10 MB limit.")
-    return content, ext
+    return content
 
 
 @router.post(
     "/national-id/manual",
     response_model=VerificationResultResponse,
-    summary="Submit National ID + selfie for Admin manual review",
+    summary="Submit National ID, its QR code and a selfie for Admin review",
 )
 async def submit_national_id_manual(
     user: CurrentUser,
@@ -314,39 +316,49 @@ async def submit_national_id_manual(
     storage: StorageClientDep,
     id_image: Annotated[UploadFile, File(description="National ID photo (JPEG/PNG, <=10MB)")],
     selfie_image: Annotated[UploadFile, File(description="Matching selfie (JPEG/PNG, <=10MB)")],
+    qr_image: Annotated[
+        UploadFile | None, File(description="The ID's QR code (JPEG/PNG, <=10MB)")
+    ] = None,
+    philsys_consent: Annotated[
+        bool, Form(description="The holder agrees to an Admin running PhilSys Check.")
+    ] = False,
 ) -> VerificationResultResponse:
-    """Store the ID + selfie privately and queue the user for Admin manual review."""
-    id_bytes, id_ext = await _read_validated_image(id_image)
-    selfie_bytes, selfie_ext = await _read_validated_image(selfie_image)
+    """Store the photos privately and queue the user for Admin review.
 
-    id_path = f"{user.id}/national_id{id_ext}"
-    selfie_path = f"{user.id}/selfie{selfie_ext}"
-    await storage.upload(
-        bucket="national-ids",
-        path=id_path,
-        content=id_bytes,
-        content_type=id_image.content_type or "image/jpeg",
-    )
-    await storage.upload(
-        bucket="national-ids",
-        path=selfie_path,
-        content=selfie_bytes,
-        content_type=selfie_image.content_type or "image/jpeg",
-    )
+    PSA's handbook asks for the holder's consent before PhilSys Check. The QR
+    photo is optional only so that an older app is told why, not sent a 422.
+    """
+    if qr_image is None:
+        raise BadRequestError("Update RepLiT to verify your National ID.")
+    if not philsys_consent:
+        raise BadRequestError("Agree to the PhilSys Check to continue.")
+    uploads = (id_image, selfie_image, qr_image)
+    contents = [await _read_validated_image(upload) for upload in uploads]
+
+    paths = photo_paths(user.id)
+    try:
+        for path, upload, content in zip(paths.values(), uploads, contents, strict=True):
+            await storage.upload(
+                bucket=BUCKET,
+                path=path,
+                content=content,
+                content_type=upload.content_type or "image/jpeg",
+            )
+    except ExternalServiceError:
+        await remove_photos(storage, paths.values())
+        raise
     await db.execute(
         """
         insert into public.user_verifications (user_id, type, status, provider, metadata)
-        values ($1, 'national_id', 'manual_review', 'manual',
-                jsonb_build_object('id_path', $2::text, 'selfie_path', $3::text))
+        values ($1, 'national_id', 'manual_review', 'manual', $2::jsonb)
         on conflict (user_id, type) do update
            set status = 'manual_review', provider = 'manual',
-               metadata = public.user_verifications.metadata
-                          || jsonb_build_object('id_path', $2::text, 'selfie_path', $3::text),
+               metadata = (public.user_verifications.metadata - 'philsys_result') || $2::jsonb,
+               review_notes = null,
                submitted_at = now(), verified_at = null
         """,
         user.id,
-        id_path,
-        selfie_path,
+        json.dumps({**paths, "philsys_consent_at": datetime.now(UTC).isoformat()}),
     )
     result = await db.fetchrow(
         "select verified_percent, badge from public.users where id = $1", user.id

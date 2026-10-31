@@ -46,12 +46,31 @@ class PendingVerification(BaseModel):
     submitted_at: datetime
     id_image_url: str | None = None
     selfie_image_url: str | None = None
+    qr_image_url: str | None = None
+    qr_download_url: str | None = Field(
+        default=None, description="The QR photo as a file, to upload to PhilSys Check."
+    )
+
+
+class VerificationApproveRequest(BaseModel):
+    """What the reviewer vouches for by approving a National ID."""
+
+    philsys_result: Literal["verified"] = Field(
+        description="PhilSys Check said 'PhilID/ePhilID has been Verified' for this QR code."
+    )
 
 
 class VerificationReviewRequest(BaseModel):
-    """Optional notes when rejecting a verification."""
+    """Why a verification was rejected. The resident reads the notes in the app."""
 
     notes: str | None = Field(default=None, max_length=1000)
+    philsys_result: Literal["deactivated", "unreadable"] | None = Field(
+        default=None,
+        description=(
+            "What PhilSys Check said, if that is why. PSA asks relying parties to "
+            "record a failed check, in case the resident reports non-acceptance."
+        ),
+    )
 
 
 # v11 removed Admin's manual routing (Section 2.6.2), and RouteTarget /

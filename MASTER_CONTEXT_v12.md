@@ -135,7 +135,7 @@ A user's `verified_percent` is the sum of the channels they have completed:
 | Channel | Award | Mechanism |
 |---|---|---|
 | Mobile number | **+40%** | SMS one-time code |
-| National ID | **+50%** | Photograph of the ID and a matching selfie, reviewed by an Admin |
+| National ID | **+50%** | Photographs of the PhilID or ePhilID, its QR code and a matching selfie. A central hub Admin runs the QR code through PSA's PhilSys Check and compares the result |
 | Email address | **+10%** | Confirmation link |
 
 **Total: 100%.**
@@ -150,9 +150,13 @@ client:
 | `green` | 90–99% |
 | `green_check` | 100% |
 
-National ID capture is camera-only by design. Neither the ID nor the selfie
-may be chosen from the gallery — a live capture forces physical possession of
-the document, and it is what makes the paired selfie mean anything.
+National ID capture is camera-only by design. None of the ID, its QR code or
+the selfie may be chosen from the gallery — a live capture forces physical
+possession of the document, and it is what makes the paired selfie mean anything.
+
+PhilSys Check takes the holder's consent, given in the app and recorded. The
+photos are deleted when the review is decided. The record keeps who decided,
+when, and what PhilSys Check said; the PhilSys Card Number is never stored.
 
 Verification level is **advisory, never gating**. It is shown to whoever is
 reviewing a report. It does not slow an incident down, and no report is
