@@ -33,10 +33,9 @@ import MapManagement from './MapManagement.jsx';
  * screen share one marker with their count, and split as the map zooms in,
  * as on the mobile app (src/live/useLiveUnits.js, src/map/unitGroups.js).
  *
- * "Manage map layers" opens the console's existing editor for shelters and
- * risk zones, for the Admin the server lets change map layers (the system
- * Admin); adding and changing water sources stays out (A35 is blocked
- * pending a product decision). */
+ * "Map settings" opens the editor for every map element, for the Admin the
+ * server lets change map layers (`map.manage`: the central hub, and the system
+ * Admin where one exists). */
 
 const PASAY = [14.5378, 121.0014];
 const CLOCK = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' });
@@ -259,8 +258,8 @@ export default function LiveMapPage({ onOpenIncident }) {
             type="button"
             className="ad-map-tool"
             onClick={() => setManaging(true)}
-            aria-label="Manage map layers"
-            title="Manage map layers"
+            aria-label="Map settings"
+            title="Map settings"
           >
             <Icon name="settings" />
           </button>
@@ -281,7 +280,7 @@ export default function LiveMapPage({ onOpenIncident }) {
             ))}
           </ul>
           {access?.variant !== 'system' && (
-            <p className="ad-map-legend-note">Other organisations’ vehicles are never shown.</p>
+            <p className="ad-map-legend-note">Other organizations’ vehicles are never shown.</p>
           )}
         </section>
       )}

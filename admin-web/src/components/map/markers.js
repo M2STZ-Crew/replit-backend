@@ -15,7 +15,7 @@ const KINDS = {
   cistern: { tone: 'water', label: 'Cistern' },
   shelter: { tone: 'shelter', label: 'Evacuation site' },
   risk: { tone: 'risk', label: 'Risk zone' },
-  unit: { tone: 'unit', label: 'Your organisation’s unit' },
+  unit: { tone: 'unit', label: 'Your organization’s unit' },
 };
 
 export const MARKER_KINDS = KINDS;

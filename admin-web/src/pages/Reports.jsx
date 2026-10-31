@@ -170,7 +170,7 @@ export default function Reports({ readReports, readIncidentReports, readSummary,
         <label className="ad-search">
           <Icon name="search" />
           <span className="web-sr-only">Search reports on this page</span>
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search areas, organisations, names" />
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search areas, organizations, names" />
         </label>
       </div>
 
@@ -191,7 +191,7 @@ export default function Reports({ readReports, readIncidentReports, readSummary,
                 <tr>
                   <th scope="col">Incident</th>
                   <th scope="col">Filed</th>
-                  <th scope="col">Organisation</th>
+                  <th scope="col">Organization</th>
                   <th scope="col">Outcome</th>
                   <th scope="col"><span className="web-sr-only">Open</span></th>
                 </tr>

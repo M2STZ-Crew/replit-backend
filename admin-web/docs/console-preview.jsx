@@ -82,7 +82,7 @@ if (import.meta.env.DEV) {
         ...EVERY,
         ...(signedIn.agency === 'fire_volunteer' ? ['alarm.request'] : []),
         ...(signedIn.agency === 'bfp' ? ['alarm.decide'] : []),
-        ...(signedIn.hub ? ['affiliates.review', 'verifications.review', 'organizations.all'] : []),
+        ...(signedIn.hub ? ['affiliates.review', 'verifications.review', 'organizations.all', 'map.manage'] : []),
       ],
     };
   };
@@ -202,6 +202,16 @@ if (import.meta.env.DEV) {
     headers: { 'Content-Type': 'application/json' },
   });
 
+  // Which fixture each map layer lives in.
+  const MAP_LAYERS = {
+    hydrants: 'hydrants',
+    'bodies-of-water': 'water',
+    'underground-cisterns': 'cisterns',
+    'risk-zones': 'riskZones',
+    'evacuation-sites': 'shelters',
+  };
+  fixtures.shelters ??= [];
+
   const realFetch = window.fetch.bind(window);
   window.fetch = async (input, init = {}) => {
     const url = typeof input === 'string' ? input : input.url;
@@ -213,23 +223,36 @@ if (import.meta.env.DEV) {
     if (method === 'DELETE') {
       const match = pathname.match(/^\/map\/([a-z-]+)\/(.+)$/);
       if (match) {
-        const key = { hydrants: 'hydrants', 'bodies-of-water': 'water', 'underground-cisterns': 'cisterns', 'risk-zones': 'riskZones' }[match[1]];
+        const key = MAP_LAYERS[match[1]];
         if (key) fixtures[key] = fixtures[key].filter((r) => r.id !== match[2]);
       }
       const request = pathname.match(/^\/alarm-requests\/([^/]+)$/);
       if (request) fixtures.alarmRequests = fixtures.alarmRequests.filter((r) => r.id !== request[1]);
       return new Response(null, { status: 204 });
     }
-    // Simulated in this page only: a risk zone added or changed.
-    if (method === 'POST' && pathname === '/map/risk-zones') {
-      const row = { id: id(230 + fixtures.riskZones.length), ...JSON.parse(init.body || '{}'), created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-      fixtures.riskZones = [...fixtures.riskZones, row];
+    // Simulated in this page only: a map element added or changed.
+    const created = method === 'POST' && pathname.match(/^\/map\/([a-z-]+)$/);
+    if (created && MAP_LAYERS[created[1]]) {
+      const key = MAP_LAYERS[created[1]];
+      const body = JSON.parse(init.body || '{}');
+      const row = {
+        id: id(230 + Object.values(MAP_LAYERS).reduce((n, k) => n + fixtures[k].length, 0)),
+        ...body,
+        effective_status: body.bfp_status,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      fixtures[key] = [...fixtures[key], row];
       return json(row, 201);
     }
-    const zone = method === 'PATCH' && pathname.match(/^\/map\/risk-zones\/([^/]+)$/);
-    if (zone) {
-      fixtures.riskZones = fixtures.riskZones.map((r) => (r.id === zone[1] ? { ...r, ...JSON.parse(init.body || '{}'), updated_at: new Date().toISOString() } : r));
-      return json(fixtures.riskZones.find((r) => r.id === zone[1]));
+    const changed = method === 'PATCH' && pathname.match(/^\/map\/([a-z-]+)\/([^/]+)$/);
+    if (changed && MAP_LAYERS[changed[1]]) {
+      const key = MAP_LAYERS[changed[1]];
+      const body = JSON.parse(init.body || '{}');
+      fixtures[key] = fixtures[key].map((r) => (r.id === changed[2]
+        ? { ...r, ...body, effective_status: body.bfp_status ?? r.effective_status, updated_at: new Date().toISOString() }
+        : r));
+      return json(fixtures[key].find((r) => r.id === changed[2]));
     }
     // Simulated in this page only: a request taken back by whoever asked.
     const withdrawn = method === 'POST' && pathname.match(/^\/alarm-requests\/([^/]+)\/cancel$/);
@@ -328,6 +351,7 @@ if (import.meta.env.DEV) {
     if (pathname === '/map/bodies-of-water') return json(fixtures.water);
     if (pathname === '/map/underground-cisterns') return json(fixtures.cisterns);
     if (pathname === '/map/risk-zones') return json(fixtures.riskZones);
+    if (pathname === '/map/evacuation-sites') return json(fixtures.shelters);
     const dispatched = pathname.match(/^\/incidents\/([^/]+)\/dispatches$/);
     if (dispatched) return json(fixtures.dispatches[dispatched[1]] ?? []);
     const located = pathname.match(/^\/incidents\/([^/]+)\/responders\/locations$/);

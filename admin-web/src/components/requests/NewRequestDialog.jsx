@@ -23,8 +23,8 @@ const URGENCY = [
 ];
 
 const COPY = {
-  water: { eyebrow: 'New request · Need water', title: 'Ask another organisation for water', submit: 'Send request' },
-  backup: { eyebrow: 'New request · Need backup', title: 'Ask another organisation for backup', submit: 'Send request' },
+  water: { eyebrow: 'New request · Need water', title: 'Ask another organization for water', submit: 'Send request' },
+  backup: { eyebrow: 'New request · Need backup', title: 'Ask another organization for backup', submit: 'Send request' },
 };
 
 export default function NewRequestDialog({ open, kind = 'water', areas = [], organizations = [], roles = [], onSend, onClose }) {

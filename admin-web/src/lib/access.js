@@ -117,7 +117,7 @@ export function routedWord(access) {
 
 /// The sidebar's line under the organisation's name (A00): "Police · Admin".
 export function roleLine(access) {
-  return `${VARIANT_LABEL[access?.variant] ?? 'Organisation'} · Admin`;
+  return `${VARIANT_LABEL[access?.variant] ?? 'Organization'} · Admin`;
 }
 
 /// The eyebrow's variant word: "Fire Volunteer", "Central hub", …

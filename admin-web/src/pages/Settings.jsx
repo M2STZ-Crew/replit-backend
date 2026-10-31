@@ -63,7 +63,7 @@ export function AvailabilityPanel({ afk, since, busy = false, error = null, onCh
       <h2 className="ad-panel-title" id="ad-availability-title">Availability</h2>
       <Row
         title={afk ? `Away from the console${since ? ` since ${since}` : ''}` : 'At the console'}
-        detail="Other Admins see your organisation greyed out with an AFK chip. Incidents still move: any Coordinator of yours can acknowledge."
+        detail="Other Admins see your organization greyed out with an AFK chip. Incidents still move: any Coordinator of yours can acknowledge."
       >
         <Switch
           checked={afk}

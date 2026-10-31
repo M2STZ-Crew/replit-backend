@@ -133,7 +133,7 @@ export default function OverlapReview({ overlap, onDone, onBack }) {
         open={confirming}
         eyebrow={`Overlap · ${nameA} and ${nameB}`}
         title={`Merge ${nameB} into ${nameA}?`}
-        description={`${nameB}’s ${b?.report_count ?? ''} report${b?.report_count === 1 ? '' : 's'} join ${nameA}. ${nameB} ends as Merged for every organisation. This can’t be undone.`}
+        description={`${nameB}’s ${b?.report_count ?? ''} report${b?.report_count === 1 ? '' : 's'} join ${nameA}. ${nameB} ends as Merged for every organization. This can’t be undone.`}
         confirmLabel="Merge areas"
         destructive
         onClose={() => setConfirming(false)}

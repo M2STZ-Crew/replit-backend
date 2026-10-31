@@ -44,8 +44,8 @@ export const AGENCY_LABEL = {
 /// the reporter's selected_agencies already decides which agencies see an
 /// incident, and each of them now presses its own Accept.
 
-/// public.alarm_level, the BFP alarm ladder. Fire Volunteers can set no more
-/// than positive_fire_alarm; BFP sets any level.
+/// public.alarm_level, the BFP alarm ladder. Positive fire alarm is what a
+/// verified fire starts at, set by the first verify; BFP sets every level above.
 export const ALARM_LEVEL = {
   positive_fire_alarm: 'Positive fire alarm',
   first_alarm: '1st alarm',
@@ -55,6 +55,9 @@ export const ALARM_LEVEL = {
   fifth_alarm: '5th alarm',
   general_alarm: 'General alarm',
 };
+
+/// The levels a request can name: everything above the initial classification.
+export const ASKABLE_ALARM_LEVELS = Object.keys(ALARM_LEVEL).filter((l) => l !== 'positive_fire_alarm');
 
 export function alarmLabel(level) {
   return ALARM_LEVEL[level] ?? (level ? level.replace(/_/g, ' ') : '—');

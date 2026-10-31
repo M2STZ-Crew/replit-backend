@@ -220,7 +220,7 @@ export default function OrgDialog({ org, application, glyph, color, onClose }) {
               {personnel === null ? (
                 <p className="od-empty">Loading…</p>
               ) : personnel.length === 0 ? (
-                <p className="od-empty">No accounts belong to this organisation yet.</p>
+                <p className="od-empty">No accounts belong to this organization yet.</p>
               ) : (
                 <ul className="od-list">
                   {personnel.map((m) => (
@@ -276,7 +276,7 @@ export default function OrgDialog({ org, application, glyph, color, onClose }) {
             <h3 className="od-section-title">Application</h3>
             {!app ? (
               <p className="od-empty">
-                No application on file. This organisation was added directly rather than
+                No application on file. This organization was added directly rather than
                 through the affiliation form.
               </p>
             ) : (

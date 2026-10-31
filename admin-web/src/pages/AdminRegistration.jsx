@@ -34,8 +34,8 @@ function Ended({ link }) {
         <h2 className="lg-title">{used ? 'This link was already used' : 'This link has expired'}</h2>
         <p className="lg-sub">
           {used
-            ? 'The Admin account for this organisation is already set up. Sign in with it, or ask the central hub for a new link.'
-            : 'Registration links work once and for a limited time. Ask the central hub that accepted your organisation for a new one.'}
+            ? 'The Admin account for this organization is already set up. Sign in with it, or ask the central hub for a new link.'
+            : 'Registration links work once and for a limited time. Ask the central hub that accepted your organization for a new one.'}
         </p>
       </div>
       {used && <a className="lg-submit lg-submit--link" href="/login">Go to sign in</a>}

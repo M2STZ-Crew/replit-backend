@@ -67,7 +67,7 @@ function AcceptOutcome({ result, request }) {
         <span className="ad-alert-mark" aria-hidden="true">✓</span>
         <div className="ad-alert-text">
           <p className="ad-alert-title">Accepted — password link sent</p>
-          <p className="ad-alert-body">Sent to {email} at {CLOCK.format(new Date(request.reviewed_at ?? Date.now()))}. They sign in as the organisation’s Coordinator.</p>
+          <p className="ad-alert-body">Sent to {email} at {CLOCK.format(new Date(request.reviewed_at ?? Date.now()))}. They sign in as the organization’s Coordinator.</p>
         </div>
       </div>
     );
@@ -82,7 +82,7 @@ function AcceptOutcome({ result, request }) {
         <p className="ad-alert-body">
           {result.detail || (result.account_provisioned
             ? `The account for ${email} is ready, but the password email failed. They can use “Forgot password” on the app.`
-            : 'The organisation was created without a Coordinator account.')}
+            : 'The organization was created without a Coordinator account.')}
         </p>
       </div>
     </div>
@@ -94,7 +94,7 @@ function RequestDetail({ request: r, result, orgs, onAccept, onDecline, onOpenOr
   const roster = Array.isArray(details.roster) ? details.roster.length : null;
   const equipment = Array.isArray(details.equipment) ? details.equipment.length : null;
   const facts = [
-    ['Organisation type', agencyLabel(r.agency_type)],
+    ['Organization type', agencyLabel(r.agency_type)],
     ['Address', r.address || 'Not given'],
     ...(roster != null ? [['Roster size', `${roster} member${roster === 1 ? '' : 's'}`]] : []),
     ...(equipment != null ? [['Equipment', `${equipment} unit${equipment === 1 ? '' : 's'}`]] : []),
@@ -130,8 +130,8 @@ function RequestDetail({ request: r, result, orgs, onAccept, onDecline, onOpenOr
             <span className="ad-alert-mark" aria-hidden="true">i</span>
             <p className="ad-alert-body">
               {r.contact_email
-                ? `Accepting creates the organisation and a Coordinator account for ${r.contact_email}, and emails them a link to set their password.`
-                : 'No email was given, so accepting creates the organisation without a Coordinator account.'}
+                ? `Accepting creates the organization and a Coordinator account for ${r.contact_email}, and emails them a link to set their password.`
+                : 'No email was given, so accepting creates the organization without a Coordinator account.'}
             </p>
           </div>
           <div className="ad-aff-actions">
@@ -152,15 +152,15 @@ function RequestDetail({ request: r, result, orgs, onAccept, onDecline, onOpenOr
 
 function Network({ orgs, onOpen }) {
   if (orgs.length === 0) {
-    return <EmptyState icon="organization" title="No organisations yet">An organisation joins the network when its affiliate request is accepted.</EmptyState>;
+    return <EmptyState icon="organization" title="No organizations yet">An organization joins the network when its affiliate request is accepted.</EmptyState>;
   }
   return (
     <div className="web-table-wrap">
       <table className="web-table">
-        <caption className="web-sr-only">Accredited organisations</caption>
+        <caption className="web-sr-only">Accredited organizations</caption>
         <thead>
           <tr>
-            <th scope="col">Organisation</th>
+            <th scope="col">Organization</th>
             <th scope="col">Type</th>
             <th scope="col">Authority</th>
             <th scope="col">Personnel</th>
@@ -285,7 +285,7 @@ export default function Affiliates() {
       <PageHeader
         eyebrow={`${org?.name ?? 'Central hub'} · Central hub`}
         title="Affiliate requests"
-        description="Organisations asking to join. Accepting creates the organisation and its Coordinator account, and emails the contact a link to set their password."
+        description="Organizations asking to join. Accepting creates the organization and its Coordinator account, and emails the contact a link to set their password."
       />
 
       <div className="ad-toolbar">
@@ -319,7 +319,7 @@ export default function Affiliates() {
       ) : list.length === 0 ? (
         <EmptyState icon="affiliates" title={{ pending: 'Nothing waiting', approved: 'None accepted yet', rejected: 'None declined' }[tab]}>
           {tab === 'pending'
-            ? 'A request appears here when an organisation sends the public affiliate form.'
+            ? 'A request appears here when an organization sends the public affiliate form.'
             : 'Decided requests stay here for reference.'}
         </EmptyState>
       ) : (
@@ -361,8 +361,8 @@ export default function Affiliates() {
         eyebrow={`Affiliate request · ${confirm ? agencyLabel(confirm.request.agency_type) : ''}`}
         title={`Accept ${confirm?.request.organization_name ?? ''}?`}
         description={confirm?.request.contact_email
-          ? `We create the organisation and a Coordinator account for ${contactOf(confirm.request)}, and email ${confirm.request.contact_email} a link to set their password.`
-          : 'We create the organisation. No email was given, so no Coordinator account is created.'}
+          ? `We create the organization and a Coordinator account for ${contactOf(confirm.request)}, and email ${confirm.request.contact_email} a link to set their password.`
+          : 'We create the organization. No email was given, so no Coordinator account is created.'}
         confirmLabel={confirm?.request.contact_email ? 'Accept and send link' : 'Accept'}
         onClose={() => setConfirm(null)}
         onConfirm={accept}
@@ -372,7 +372,7 @@ export default function Affiliates() {
         destructive
         eyebrow={`Affiliate request · ${confirm ? agencyLabel(confirm.request.agency_type) : ''}`}
         title={`Decline ${confirm?.request.organization_name ?? ''}?`}
-        description={`No organisation or account is created. RepLiT doesn’t email ${contactOf(confirm?.request ?? {})} about it, so let them know yourself.`}
+        description={`No organization or account is created. RepLiT doesn’t email ${contactOf(confirm?.request ?? {})} about it, so let them know yourself.`}
         confirmLabel="Decline request"
         onClose={() => setConfirm(null)}
         onConfirm={decline}

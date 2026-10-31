@@ -145,7 +145,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
         eyebrow={org?.name ?? 'Requests'}
         title="Requests"
         description={decides
-          ? 'Alarm escalations from the organisations on scene. You set the alarm level or decline.'
+          ? 'Alarm escalations from the organizations on scene. You set the alarm level or decline.'
           : asks
             ? 'Alarm escalations raised on scene, and BFP\u2019s answers. Ask BFP to raise the alarm on an Area routed to you.'
             : 'Alarm escalations raised on scene. BFP sets the alarm level; you follow each request and its answer here.'}
@@ -308,7 +308,7 @@ function RequestDetail({
       sub: r.review_notes || null,
       tone: r.status === 'approved' ? 'ok' : 'quiet',
     },
-    r.executed_at && { at: r.executed_at, title: `Alarm set to ${level}`, sub: 'For every organisation on this Area', tone: 'live' },
+    r.executed_at && { at: r.executed_at, title: `Alarm set to ${level}`, sub: 'For every organization on this Area', tone: 'live' },
   ].filter(Boolean);
   const status = requestStatus(r.status);
 
@@ -359,7 +359,7 @@ function RequestDetail({
               <div className="ad-alert ad-alert--info">
                 <span className="ad-alert-mark" aria-hidden="true">i</span>
                 <p className="ad-alert-body">
-                  Only {orgName} sets the alarm level. Setting it updates {areaOf(r)} for every organisation.
+                  Only {orgName} sets the alarm level. Setting it updates {areaOf(r)} for every organization.
                 </p>
               </div>
             </div>
@@ -368,7 +368,7 @@ function RequestDetail({
               <Icon name="visibility" />
               <div className="ad-alert-text">
                 <p className="ad-alert-title">Waiting on BFP</p>
-                <p className="ad-alert-body">Only BFP sets the alarm level: a BFP Coordinator on the mobile app, or the BFP Admin here. Setting it updates {areaOf(r)} for every organisation.</p>
+                <p className="ad-alert-body">Only BFP sets the alarm level: a BFP Coordinator on the mobile app, or the BFP Admin here. Setting it updates {areaOf(r)} for every organization.</p>
               </div>
             </div>
           ) : r.status === 'cancelled' ? (
@@ -418,7 +418,7 @@ function RequestDetail({
         open={confirm === 'set'}
         eyebrow={`${areaOf(r)} · requested by ${askedBy(r)}`}
         title={`Set ${areaOf(r)} to ${level}?`}
-        description="Every organisation sees the new level at once."
+        description="Every organization sees the new level at once."
         confirmLabel={`Set ${level}`}
         onClose={() => setConfirm(null)}
         onConfirm={async () => {
@@ -431,7 +431,7 @@ function RequestDetail({
         open={confirm === 'decline'}
         eyebrow={`${areaOf(r)} · requested by ${askedBy(r)}`}
         title={`Decline ${level} for ${areaOf(r)}?`}
-        description="The alarm level stays as it is. Say why, so the organisation on scene knows."
+        description="The alarm level stays as it is. Say why, so the organization on scene knows."
         confirmLabel="Decline"
         destructive
         onClose={() => setConfirm(null)}
@@ -469,7 +469,7 @@ function RequestDetail({
         open={confirm === 'delete'}
         eyebrow={`${areaOf(r)} · requested by ${askedBy(r)}`}
         title={`Delete the request for ${level}?`}
-        description="It is removed for every organisation and cannot be brought back."
+        description="It is removed for every organization and cannot be brought back."
         confirmLabel="Delete request"
         cancelLabel="Keep it"
         destructive

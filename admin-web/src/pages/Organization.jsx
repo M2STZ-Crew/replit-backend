@@ -56,7 +56,7 @@ export default function Organization({ onNavigate }) {
       setEquipment(Array.isArray(e) ? e : []);
       setPhase('ready');
     } catch (err) {
-      setError(err.message || 'The organisation could not be loaded.');
+      setError(err.message || 'The organization could not be loaded.');
       setPhase('error');
     }
   }, [profile]);
@@ -65,9 +65,9 @@ export default function Organization({ onNavigate }) {
   if (!profile) {
     return (
       <div className="ad-page">
-        <PageHeader eyebrow="Organisation" title="Organisation" />
-        <EmptyState icon="organization" title="No organisation on this account">
-          Your Admin account isn’t attached to an accredited organisation, so there is no profile to show. The organisations on the network are under Affiliates.
+        <PageHeader eyebrow="Organization" title="Organization" />
+        <EmptyState icon="organization" title="No organization on this account">
+          Your Admin account isn’t attached to an accredited organization, so there is no profile to show. The organizations on the network are under Affiliates.
         </EmptyState>
       </div>
     );
@@ -87,13 +87,13 @@ export default function Organization({ onNavigate }) {
   return (
     <div className="ad-page">
       <PageHeader
-        eyebrow={`Organisation · ${agencyLabel(profile.agency_type)}`}
+        eyebrow={`Organization · ${agencyLabel(profile.agency_type)}`}
         title={profile.name}
         description={profile.created_at ? `On the network since ${DAY.format(new Date(profile.created_at))}.` : null}
       />
 
       {phase === 'error' ? (
-        <StatePanel kind="error" title="The organisation couldn’t load" description={error} onRetry={load} />
+        <StatePanel kind="error" title="The organization couldn’t load" description={error} onRetry={load} />
       ) : (
         <>
           <div className="ad-incident-grid">

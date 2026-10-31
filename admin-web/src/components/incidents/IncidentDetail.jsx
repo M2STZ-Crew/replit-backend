@@ -88,7 +88,7 @@ function involved(d) {
 function firstAcknowledger(d) {
   const first = (d.acceptances ?? []).find((a) => a.is_first);
   return first?.organization_name || d.verified_by_organization
-    || (d.verified_by_agency ? AGENCY_LABEL[d.verified_by_agency] : null) || 'Another organisation';
+    || (d.verified_by_agency ? AGENCY_LABEL[d.verified_by_agency] : null) || 'Another organization';
 }
 
 /* Our own acknowledgement, for the Acknowledged card. */
@@ -234,7 +234,7 @@ function OnScene({ d, dispatches, requests, onAskAlarm }) {
 
 export default function IncidentDetail({
   detail: d, evidence, dispatches, requests, reports,
-  access, orgName = 'your organisation',
+  access, orgName = 'your organization',
   busy, error, confirming, acknowledgedNow,
   onAskAcknowledge, onCancelAcknowledge, onConfirmAcknowledge, onBack, onPdf, onAskAlarm,
 }) {
@@ -253,7 +253,7 @@ export default function IncidentDetail({
     ...(onScene && routed ? [['Units', active.length ? active.map((x) => x.vehicle_name || x.responder_name).join(' · ') : 'None assigned']] : []),
     ['Location', <Place lat={d.centroid_lat} lng={d.centroid_lng} stacked />],
     ['First report', `${clock(d.reported_at)}${firstReport ? ` · ${firstReport.user_verified_percent ?? 0}% verified reporter` : ''}`],
-    ['Organisations involved', involved(d)],
+    ['Organizations involved', involved(d)],
   ];
   const timeline = timelineOf(d, evidence);
   const sub = [
@@ -349,7 +349,7 @@ export default function IncidentDetail({
       </div>
 
       {/* Who reported, their photos and where they stood are for the
-          organisations the Area asked for (A25). */}
+          organizations the Area asked for (A25). */}
       {routed && (
         <section className="ad-board-section" aria-labelledby="ad-evidence-title">
           <div className="ad-section-head">

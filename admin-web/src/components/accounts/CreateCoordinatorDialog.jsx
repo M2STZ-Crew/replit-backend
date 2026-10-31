@@ -31,10 +31,10 @@ export default function CreateCoordinatorDialog({ open, organization, organizati
 
   const picking = Array.isArray(organizations);
   const chosen = picking ? organizations.find((o) => o.id === organizationId) : null;
-  const orgName = picking ? (chosen?.name ?? 'the organisation') : organization;
+  const orgName = picking ? (chosen?.name ?? 'the organization') : organization;
   const nameError = tried && !fullName.trim() ? 'Enter the Coordinator’s full name.' : null;
   const emailError = tried && !EMAIL.test(email.trim()) ? 'Enter an email address like name@example.com.' : null;
-  const orgError = tried && picking && !organizationId ? 'Choose their organisation.' : null;
+  const orgError = tried && picking && !organizationId ? 'Choose their organization.' : null;
 
   async function submit() {
     setTried(true);
@@ -58,7 +58,7 @@ export default function CreateCoordinatorDialog({ open, organization, organizati
   return (
     <FormDialog
       open={open}
-      eyebrow={`Organisation · ${orgName}`}
+      eyebrow={`Organization · ${orgName}`}
       title="Create a Coordinator account"
       onClose={onClose}
       onSubmit={submit}
@@ -70,7 +70,7 @@ export default function CreateCoordinatorDialog({ open, organization, organizati
     >
       {picking && (
         <label className="ad-field">
-          <span className="ad-field-label">Organisation</span>
+          <span className="ad-field-label">Organization</span>
           <select value={organizationId} onChange={(e) => setOrganizationId(e.target.value)} aria-invalid={!!orgError} disabled={busy}>
             <option value="">Choose…</option>
             {organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}

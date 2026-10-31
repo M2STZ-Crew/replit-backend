@@ -1,6 +1,6 @@
 import 'leaflet/dist/leaflet.css';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Circle,
   CircleMarker,
@@ -15,6 +15,7 @@ import BaseTiles from '../map/BaseTiles.jsx';
 
 import { api } from '../api/client.js';
 import { OUTSIDE_PASAY_STYLE } from '../components/LiveMap.jsx';
+import { ConfirmDialog } from '../components/ui/index.js';
 import {
   RISK_CIRCLE_STYLE, RISK_RADIUS_M, RISK_RADIUS_MAX_M, RISK_RADIUS_MIN_M, markerIcon, riskRadius,
 } from '../components/map/markers.js';
@@ -114,12 +115,6 @@ const FIELDS = {
   ],
 };
 
-// What this editor may add, change and delete: shelters and risk zones.
-// Water sources are drawn read-only: adding or updating one is blocked in
-// the pass 6 design pending a product decision (REPLIT (MAIN) 10 · A35), and
-// deleting one lives on Water resources (A34).
-const MANAGED = new Set(['risk', 'evac']);
-
 function cfgOf(key) {
   return EDIT_LAYERS.find((l) => l.key === key);
 }
@@ -142,7 +137,17 @@ function pointOf(key, r) {
   return { lat: r.latitude, lng: r.longitude };
 }
 
+// Switched off with Active: off every map, but still here to switch back on.
+function inactive(r) {
+  return r.is_active === false;
+}
+
 function entryText(key, r) {
+  const { title, sub } = baseText(key, r);
+  return { title, sub: inactive(r) ? `Inactive · ${sub}` : sub };
+}
+
+function baseText(key, r) {
   switch (key) {
     case 'risk':
       return {
@@ -225,6 +230,10 @@ export default function MapManagement({ query = '', onOpenIncident }) {
     () => new Set(['incidents', 'risk', 'evac', 'hydrants', 'water', 'cisterns']),
   );
   const [selected, setSelected] = useState('risk');
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState([]); // layer keys that did not load
+  const [attempt, setAttempt] = useState(0);
+  const [deleting, setDeleting] = useState(null); // { layer, rec }
   // Open beside the map on a desktop. Closed on a phone, where the editor is a
   // bottom sheet that would otherwise cover most of the map on arrival.
   const [panelOpen, setPanelOpen] = useState(
@@ -234,35 +243,35 @@ export default function MapManagement({ query = '', onOpenIncident }) {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
 
+  // After a save: on failure the old rows stay, and the toast says so.
   async function loadLayer(key) {
-    const cfg = cfgOf(key);
-    try {
-      const rows = await api.mapLayer(cfg.path);
-      setData((d) => ({ ...d, [key]: Array.isArray(rows) ? rows : [] }));
-    } catch {
-      setData((d) => ({ ...d, [key]: [] }));
-    }
+    const rows = await api.mapLayer(cfgOf(key).path, { includeInactive: true });
+    setData((d) => ({ ...d, [key]: Array.isArray(rows) ? rows : [] }));
   }
 
   useEffect(() => {
     let alive = true;
+    setLoading(true);
     (async () => {
-      const results = await Promise.all(
-        EDIT_LAYERS.map((l) => api.mapLayer(l.path).catch(() => [])),
+      const results = await Promise.allSettled(
+        EDIT_LAYERS.map((l) => api.mapLayer(l.path, { includeInactive: true })),
       );
       const inc = await api.incidents().catch(() => []);
       if (!alive) return;
       const next = {};
       EDIT_LAYERS.forEach((l, i) => {
-        next[l.key] = Array.isArray(results[i]) ? results[i] : [];
+        const { value } = results[i];
+        next[l.key] = Array.isArray(value) ? value : [];
       });
       setData(next);
+      setFailed(EDIT_LAYERS.filter((_, i) => results[i].status === 'rejected').map((l) => l.key));
       setIncidents(Array.isArray(inc) ? inc : []);
+      setLoading(false);
     })();
     return () => {
       alive = false;
     };
-  }, []);
+  }, [attempt]);
 
   function flash(msg, kind = 'ok') {
     setToast({ msg, kind });
@@ -304,6 +313,17 @@ export default function MapManagement({ query = '', onOpenIncident }) {
         flash(`${f.label} is required.`, 'err');
         return;
       }
+      if (f.coord && c != null) {
+        const limit = f.coord === 'lat' ? 90 : 180;
+        if (Math.abs(c) > limit) {
+          flash(`${f.label} goes from -${limit} to ${limit}.`, 'err');
+          return;
+        }
+      }
+      if (f.type === 'number' && c != null && c < 0) {
+        flash(`${f.label} can’t be negative.`, 'err');
+        return;
+      }
       if (f.type === 'radius' && (c < RISK_RADIUS_MIN_M || c > RISK_RADIUS_MAX_M)) {
         flash(`The radius goes from ${RISK_RADIUS_MIN_M} to ${RISK_RADIUS_MAX_M} metres.`, 'err');
         return;
@@ -315,28 +335,31 @@ export default function MapManagement({ query = '', onOpenIncident }) {
       const path = cfgOf(layer).path;
       if (form.mode === 'edit') await api.mapLayerUpdate(path, form.id, payload);
       else await api.mapLayerCreate(path, payload);
-      flash(form.mode === 'edit' ? 'Marker updated.' : 'Marker added.');
       setForm(null);
-      await loadLayer(layer);
+      flash(form.mode === 'edit' ? 'Marker updated.' : 'Marker added.');
     } catch (e) {
       flash(e.message || 'Save failed.', 'err');
+      return;
     } finally {
       setSaving(false);
     }
-  }
-
-  async function removeEntry(layer, rec) {
-    const { title } = entryText(layer, rec);
-    if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
     try {
-      await api.mapLayerDelete(cfgOf(layer).path, rec.id);
-      flash('Marker deleted.');
-      if (form && form.id === rec.id) setForm(null);
       await loadLayer(layer);
-    } catch (e) {
-      flash(e.message || 'Delete failed.', 'err');
+    } catch {
+      flash('Saved, but the list could not be refreshed. Try again.', 'err');
+      setFailed((keys) => [...new Set([...keys, layer])]);
     }
   }
+
+  const confirmDelete = useCallback(async () => {
+    const { layer, rec } = deleting;
+    await api.mapLayerDelete(cfgOf(layer).path, rec.id);
+    // Gone from every map; take it off this one without another read.
+    setData((d) => ({ ...d, [layer]: (d[layer] || []).filter((r) => r.id !== rec.id) }));
+    setForm((f) => (f && f.id === rec.id ? null : f));
+    setDeleting(null);
+    flash('Marker deleted.');
+  }, [deleting]);
 
   const selCfg = cfgOf(selected);
   const selRows = data[selected] || [];
@@ -449,9 +472,9 @@ export default function MapManagement({ query = '', onOpenIncident }) {
                   pathOptions={
                     l.key === 'evac' && r.outside_pasay
                       ? OUTSIDE_PASAY_STYLE
-                      : { color: '#fff', weight: 1, fillColor: color, fillOpacity: 0.95 }
+                      : { color: '#fff', weight: 1, fillColor: color, fillOpacity: inactive(r) ? 0.35 : 0.95 }
                   }
-                  eventHandlers={MANAGED.has(l.key) ? { click: () => openEdit(l.key, r) } : undefined}
+                  eventHandlers={{ click: () => openEdit(l.key, r) }}
                 >
                   <Tooltip>
                     {title}
@@ -525,8 +548,8 @@ export default function MapManagement({ query = '', onOpenIncident }) {
           <aside className="mm-panel">
             <div className="mm-panel-head">
               <div>
-                <div className="mm-panel-eyebrow">Editing layer</div>
-                <div className="mm-panel-title">Map Layers</div>
+                <div className="mm-panel-eyebrow">Shared by every organization</div>
+                <div className="mm-panel-title">Map settings</div>
               </div>
               <button
                 className="mm-collapse"
@@ -540,7 +563,7 @@ export default function MapManagement({ query = '', onOpenIncident }) {
             {!form ? (
               <div className="mm-panel-body">
                 <div className="mm-grid">
-                  {EDIT_LAYERS.filter((l) => MANAGED.has(l.key)).map((l) => (
+                  {EDIT_LAYERS.map((l) => (
                     <button
                       key={l.key}
                       className={`mm-gcard${selected === l.key ? ' active' : ''}`}
@@ -576,8 +599,17 @@ export default function MapManagement({ query = '', onOpenIncident }) {
                   </span>
                 </div>
 
-                <div className="mm-list">
-                  {selRows.length === 0 && (
+                <div className="mm-list" aria-busy={loading}>
+                  {loading && <div className="mm-empty">Loading {selCfg.label.toLowerCase()}…</div>}
+                  {!loading && failed.includes(selected) && (
+                    <div className="mm-empty" role="alert">
+                      {selCfg.label} could not be loaded.{' '}
+                      <button type="button" className="mm-retry" onClick={() => setAttempt((n) => n + 1)}>
+                        Try again
+                      </button>
+                    </div>
+                  )}
+                  {!loading && !failed.includes(selected) && selRows.length === 0 && (
                     <div className="mm-empty">No {selCfg.label.toLowerCase()} yet.</div>
                   )}
                   {selRows.length > 0 && shownRows.length === 0 && (
@@ -601,7 +633,7 @@ export default function MapManagement({ query = '', onOpenIncident }) {
                           </button>
                           <button
                             className="mm-iconbtn del"
-                            onClick={() => removeEntry(selected, r)}
+                            onClick={() => setDeleting({ layer: selected, rec: r })}
                             title="Delete"
                           >
                             🗑
@@ -739,9 +771,20 @@ export default function MapManagement({ query = '', onOpenIncident }) {
         )}
 
         {toast && (
-          <div className={`mm-toast${toast.kind === 'err' ? ' err' : ''}`}>{toast.msg}</div>
+          <div className={`mm-toast${toast.kind === 'err' ? ' err' : ''}`} role="status">{toast.msg}</div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!deleting}
+        eyebrow={deleting ? cfgOf(deleting.layer).singular : undefined}
+        title={deleting ? `Delete ${entryText(deleting.layer, deleting.rec).title}?` : ''}
+        description="It disappears from every Admin’s map and every phone’s map. This can’t be undone."
+        confirmLabel={deleting ? `Delete ${cfgOf(deleting.layer).singular.toLowerCase()}` : 'Delete'}
+        destructive
+        onClose={() => setDeleting(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

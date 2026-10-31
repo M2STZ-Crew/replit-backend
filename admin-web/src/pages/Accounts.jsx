@@ -130,9 +130,9 @@ export default function Accounts() {
   if (!everyOrg && !org?.id) {
     return (
       <div className="ad-page">
-        <PageHeader eyebrow="Organisation" title="Accounts" />
-        <EmptyState icon="accounts" title="No organisation on this account">
-          Your Admin account isn’t attached to an organisation, so there are no accounts to manage here.
+        <PageHeader eyebrow="Organization" title="Accounts" />
+        <EmptyState icon="accounts" title="No organization on this account">
+          Your Admin account isn’t attached to an organization, so there are no accounts to manage here.
         </EmptyState>
       </div>
     );
@@ -144,7 +144,7 @@ export default function Accounts() {
         eyebrow={org?.name ?? 'Organization'}
         title="Accounts"
         description={everyOrg
-          ? 'Coordinators of every accredited organisation. Responder accounts are created by Coordinators.'
+          ? 'Coordinators of every accredited organization. Responder accounts are created by Coordinators.'
           : 'You create and turn off Coordinator accounts. Responder accounts are created by Coordinators.'}
         actions={manages && (
           <button type="button" className="ad-button ad-button--primary" onClick={() => setCreating(true)}>
@@ -207,7 +207,7 @@ export default function Accounts() {
             <thead>
               <tr>
                 <th scope="col">{coordinators ? 'Coordinator' : 'Responder'}</th>
-                {everyOrg && <th scope="col">Organisation</th>}
+                {everyOrg && <th scope="col">Organization</th>}
                 <th scope="col">Title</th>
                 <th scope="col">Status</th>
                 <th scope="col">Created</th>
@@ -269,7 +269,7 @@ export default function Accounts() {
 
       <CreateCoordinatorDialog
         open={creating}
-        organization={org?.name ?? 'your organisation'}
+        organization={org?.name ?? 'your organization'}
         organizations={everyOrg ? orgs.filter((o) => o.is_active) : null}
         onCreate={create}
         onClose={() => setCreating(false)}

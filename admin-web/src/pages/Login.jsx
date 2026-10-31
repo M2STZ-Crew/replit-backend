@@ -61,7 +61,7 @@ export default function Login() {
             <span className="lg-kicker">Admin Console</span>
             <h2 className="lg-title">Sign in</h2>
             <p className="lg-sub">
-              Use your organisation’s Admin email.
+              Use your organization’s Admin email.
             </p>
           </div>
 

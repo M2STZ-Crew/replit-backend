@@ -98,8 +98,8 @@ export default function Register() {
   async function onSubmit(e) {
     e.preventDefault();
     if (busy) return;
-    if (!orgName.trim()) return setError('Enter your organisation’s name.');
-    if (!agencyType) return setError('Choose the type of organisation.');
+    if (!orgName.trim()) return setError('Enter your organization’s name.');
+    if (!agencyType) return setError('Choose the type of organization.');
     if (!email.trim()) return setError('Enter the email we should reply to.');
     if (!secFile) return setError('Attach your SEC certificate.');
     if (!agree) return setError('Agree to the Terms and Agreements to submit.');
@@ -170,7 +170,7 @@ export default function Register() {
         <form className="lg-form rg-form" onSubmit={onSubmit} noValidate>
           <div className="lg-head">
             <span className="lg-kicker">Join RepLiT · Pasay City</span>
-            <h2 className="lg-title">Request to join as an organisation</h2>
+            <h2 className="lg-title">Request to join as an organization</h2>
             <p className="lg-sub">
               Tell us who you are and what you bring to a fire. No account is needed
               to apply; we email you once an admin has decided.
@@ -179,10 +179,10 @@ export default function Register() {
 
           {/* Organisation ------------------------------------------------ */}
           <section className="rg-section">
-            <h3 className="rg-section-title">Organisation</h3>
+            <h3 className="rg-section-title">Organization</h3>
 
             <label className="lg-field">
-              <Label required>Organisation name</Label>
+              <Label required>Organization name</Label>
               <input
                 autoComplete="organization"
                 placeholder="e.g. Barangay 76 Fire Brigade"
@@ -193,7 +193,7 @@ export default function Register() {
 
             <div className="rg-pair">
               <label className="lg-field">
-                <Label required>Type of organisation</Label>
+                <Label required>Type of organization</Label>
                 <select
                   className={agencyType ? '' : 'is-empty'}
                   value={agencyType}
@@ -222,7 +222,7 @@ export default function Register() {
               <input
                 type="email"
                 autoComplete="email"
-                placeholder="name@organisation.ph"
+                placeholder="name@organization.ph"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -278,7 +278,7 @@ export default function Register() {
                 + Add member
               </button>
             </div>
-            <p className="rg-hint">Everyone who would respond under your organisation.</p>
+            <p className="rg-hint">Everyone who would respond under your organization.</p>
             <div className="rg-rows">
               {roster.map((m, i) => (
                 <div className="rg-row" key={i}>

@@ -158,7 +158,8 @@ export const api = {
       `${(designation || 'incident').replace(/[^\w.-]+/g, '-')}-report.pdf`,
     ),
   equipment: () => request('/equipment'),
-  mapLayer: (name) => request(`/map/${name}`),
+  mapLayer: (name, { includeInactive = false } = {}) =>
+    request(`/map/${name}${includeInactive ? '?include_inactive=true' : ''}`),
 
   // Immutable action record (Admin sees all of it).
   auditLogs: (opts = {}) => {

@@ -128,7 +128,7 @@ export default function SituationBoard({ onNavigate }) {
         eyebrow={eyebrow}
         title="Dashboard"
         description={split
-          ? 'Your work first. Other organisations’ incidents are below for awareness.'
+          ? 'Your work first. Other organizations’ incidents are below for awareness.'
           : 'Your work first, then every active Area across Pasay City.'}
       />
 
@@ -149,7 +149,7 @@ export default function SituationBoard({ onNavigate }) {
       <section className="ad-board-section" aria-labelledby="ad-board-incidents-title">
         <div className="ad-section-head">
           <h2 className="ad-section-title" id="ad-board-incidents-title">
-            {split ? `Routed to ${org?.name ?? 'your organisation'}` : 'Active incidents'}
+            {split ? `Routed to ${org?.name ?? 'your organization'}` : 'Active incidents'}
           </h2>
           <span className="ad-section-meta">
             {loaded ? `${routed.length} active` : ''}
@@ -173,7 +173,7 @@ export default function SituationBoard({ onNavigate }) {
       {split && (
         <section className="ad-board-section" aria-labelledby="ad-board-others-title">
           <div className="ad-section-head">
-            <h2 className="ad-section-title" id="ad-board-others-title">Other organisations’ incidents</h2>
+            <h2 className="ad-section-title" id="ad-board-others-title">Other organizations’ incidents</h2>
             <span className="ad-section-meta">View only</span>
           </div>
           <IncidentTable

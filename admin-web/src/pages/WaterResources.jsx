@@ -192,7 +192,7 @@ export default function WaterResources() {
   return (
     <div className={`ad-page${view === 'map' ? ' ad-page--map' : ''}`}>
       <PageHeader
-        eyebrow="Shared across every organisation"
+        eyebrow="Shared across every organization"
         title="Water resources"
         description="Every hydrant, body of water and underground cistern on the shared map. Any Admin may delete one; every deletion is recorded."
       />

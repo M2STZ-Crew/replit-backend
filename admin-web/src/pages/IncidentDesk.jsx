@@ -265,7 +265,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
           onBack={() => { setSelectedId(null); setNotice(null); }}
           onPdf={downloadPdf}
           access={access}
-          orgName={org?.name ?? 'your organisation'}
+          orgName={org?.name ?? 'your organization'}
           onAskAlarm={() => setAskingAlarm(true)}
         />
         <AlarmEscalationDialog

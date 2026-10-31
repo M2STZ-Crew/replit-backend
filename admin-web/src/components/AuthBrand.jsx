@@ -10,7 +10,7 @@ export default function AuthBrand() {
         </div>
       </div>
       <div className="lg-pitch">
-        <h1 className="lg-headline">Every organisation that answers a fire in Pasay, on one map.</h1>
+        <h1 className="lg-headline">Every organization that answers a fire in Pasay, on one map.</h1>
         <p className="lg-lede">Live incident awareness, affiliate governance and a permanent record of every response decision.</p>
       </div>
       <div className="lg-foot">Admin console · web only</div>

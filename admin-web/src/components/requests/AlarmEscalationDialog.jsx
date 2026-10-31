@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { ALARM_LEVEL, alarmLabel } from '../../lib/status.js';
+import { ALARM_LEVEL, ASKABLE_ALARM_LEVELS, alarmLabel } from '../../lib/status.js';
 import FormDialog from '../ui/FormDialog.jsx';
 
 /* Ask BFP to raise the alarm (REPLIT (MAIN) 10 · A45 874:6513; PRD v13 §4.7:
@@ -17,7 +17,7 @@ const LEVELS = Object.keys(ALARM_LEVEL);
 
 function above(current) {
   const at = current ? LEVELS.indexOf(current) : -1;
-  return LEVELS.slice(at + 1);
+  return ASKABLE_ALARM_LEVELS.filter((l) => LEVELS.indexOf(l) > at);
 }
 
 export default function AlarmEscalationDialog({ open, areas, bfpName = 'BFP', onSend, onClose }) {
