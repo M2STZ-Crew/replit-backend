@@ -4,10 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { MapContainer, Marker, ZoomControl } from 'react-leaflet';
 
 import { api } from '../api/client.js';
+import { useConsole } from '../components/ConsoleShell.jsx';
 import { markerIcon } from '../components/map/markers.js';
 import Place from '../components/Place.jsx';
 import Icon from '../components/ui/Icon.jsx';
 import { ConfirmDialog, EmptyState, PageHeader, StatePanel, StatusChip } from '../components/ui/index.js';
+import { PERM, can } from '../lib/access.js';
 import { degrees, knownAddress } from '../lib/place.js';
 import BaseTiles from '../map/BaseTiles.jsx';
 
@@ -19,8 +21,8 @@ import BaseTiles from '../map/BaseTiles.jsx';
  * The server knows each source's status, not a level. The 5 % water level,
  * its history and "last checked by" an organisation arrive with the
  * water_resources table (PRD v13 §6.1, §17.3), so this page shows the status
- * it has and estimates nothing. Adding and updating a source (A35) stays out:
- * the design blocks it pending a product decision (02 · conflict 18, Q10). */
+ * it has and estimates nothing. Adding and updating a source (A35) happen in
+ * Map settings, which this page opens for the Admin who may (`map.manage`). */
 
 const KINDS = [
   { key: 'hydrant', label: 'Hydrants', singular: 'Hydrant', path: 'hydrants' },
@@ -120,7 +122,9 @@ function Detail({ row, onClose, onDelete, floating = false }) {
   );
 }
 
-export default function WaterResources() {
+export default function WaterResources({ onManage }) {
+  const { console: access } = useConsole();
+  const managesMap = can(access, PERM.MANAGE_MAP);
   const [view, setView] = useState('list');
   const [type, setType] = useState('all');
   const [state, setState] = useState({ loading: true, error: null, rows: [] });
@@ -194,7 +198,12 @@ export default function WaterResources() {
       <PageHeader
         eyebrow="Shared across every organization"
         title="Water resources"
-        description="Every hydrant, body of water and underground cistern on the shared map. Any Admin may delete one; every deletion is recorded."
+        description={`Every hydrant, body of water and underground cistern on the shared map. Any Admin may delete one; every deletion is recorded.${managesMap ? '' : ' Fire Volunteer, BFP and Barangay 76 Admins add and change them.'}`}
+        actions={managesMap && (
+          <button type="button" className="ad-button ad-button--primary" onClick={onManage}>
+            Add or change resources
+          </button>
+        )}
       />
 
       {notice && (

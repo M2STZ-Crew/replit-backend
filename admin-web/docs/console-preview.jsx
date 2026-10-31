@@ -82,7 +82,8 @@ if (import.meta.env.DEV) {
         ...EVERY,
         ...(signedIn.agency === 'fire_volunteer' ? ['alarm.request'] : []),
         ...(signedIn.agency === 'bfp' ? ['alarm.decide'] : []),
-        ...(signedIn.hub ? ['affiliates.review', 'verifications.review', 'organizations.all', 'map.manage'] : []),
+        ...(fire || signedIn.hub ? ['map.manage'] : []),
+        ...(signedIn.hub ? ['affiliates.review', 'verifications.review', 'organizations.all'] : []),
       ],
     };
   };

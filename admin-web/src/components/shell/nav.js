@@ -7,13 +7,15 @@ import { PERM, can } from '../../lib/access.js';
  *
  * `requires` names the permission a destination needs (lib/access.js): the
  * Barangay 76 central hub's duties, manual National ID review and affiliate
- * review (PRD v13 §4.1, §4.12; A00 "Four permission variants"). */
+ * review (PRD v13 §4.1, §4.12; A00 "Four permission variants"), and Map
+ * settings, for the Admins who look after the shared map. */
 export const NAV = [
   { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', group: 'Operations', badge: 'new:dashboard' },
   { key: 'incidents', label: 'Incidents', icon: 'incidents', group: 'Operations', badge: 'new:incidents' },
   { key: 'map', label: 'Live map', icon: 'map', group: 'Operations' },
   { key: 'requests', label: 'Requests', icon: 'requests', group: 'Operations', badge: 'requests' },
   { key: 'water', label: 'Water resources', icon: 'water', group: 'Resources' },
+  { key: 'mapsettings', label: 'Map settings', icon: 'settings', group: 'Resources', requires: PERM.MANAGE_MAP },
   { key: 'reports', label: 'Reports & CIAR', icon: 'reports', group: 'Records' },
   { key: 'audit', label: 'Audit log', icon: 'audit', group: 'Records' },
   { key: 'organization', label: 'Organization', icon: 'organization', group: 'Organization' },

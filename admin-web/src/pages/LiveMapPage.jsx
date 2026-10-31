@@ -21,7 +21,6 @@ import { PERM, can } from '../lib/access.js';
 import { AGENCY_LABEL, statusOf } from '../lib/status.js';
 import BaseTiles from '../map/BaseTiles.jsx';
 import { groupOnScreen } from '../map/unitGroups.js';
-import MapManagement from './MapManagement.jsx';
 
 /* Live map (REPLIT (MAIN) 10 · A30 869:3563, A31 869:3858; PRD v13 §4.4):
  * every active Area on the shared map with the water sources, shelters and
@@ -33,9 +32,9 @@ import MapManagement from './MapManagement.jsx';
  * screen share one marker with their count, and split as the map zooms in,
  * as on the mobile app (src/live/useLiveUnits.js, src/map/unitGroups.js).
  *
- * "Map settings" opens the editor for every map element, for the Admin the
- * server lets change map layers (`map.manage`: the central hub, and the system
- * Admin where one exists). */
+ * The gear opens Map settings, the editor for every map element, for the Admin
+ * the server lets change map layers (`map.manage`: Fire Volunteer, BFP and
+ * central hub Admins, and the system Admin where one exists). */
 
 const PASAY = [14.5378, 121.0014];
 const CLOCK = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' });
@@ -130,18 +129,16 @@ function Selected({ inc, onClose, onOpen }) {
   );
 }
 
-export default function LiveMapPage({ onOpenIncident }) {
+export default function LiveMapPage({ onOpenIncident, onManage }) {
   const { incidents } = useLiveFeed();
   const { console: access } = useConsole();
   const managesMap = can(access, PERM.MANAGE_MAP);
-  const [managing, setManaging] = useState(false);
   const [on, setOn] = useState(() => new Set(LAYERS.map((l) => l.key)));
   const [legend, setLegend] = useState(true);
   const [points, setPoints] = useState({});
   const [selectedId, setSelectedId] = useState(null);
 
   useEffect(() => {
-    if (managing) return undefined;
     let alive = true;
     Promise.all(SOURCES.map((s) => api.mapLayer(s.path).catch(() => [])))
       .then((results) => {
@@ -151,21 +148,10 @@ export default function LiveMapPage({ onOpenIncident }) {
         setPoints(next);
       });
     return () => { alive = false; };
-  }, [managing]);
+  }, []);
 
   const selected = useMemo(() => incidents.find((i) => i.id === selectedId) ?? null, [incidents, selectedId]);
   const units = useLiveUnits(incidents);
-
-  if (managing && managesMap) {
-    return (
-      <div className="ad-map-manage">
-        <button type="button" className="ad-button ad-button--secondary ad-button--compact ad-map-back" onClick={() => setManaging(false)}>
-          ← Back to the live map
-        </button>
-        <MapManagement onOpenIncident={onOpenIncident} />
-      </div>
-    );
-  }
 
   const toggle = (key) => setOn((prev) => {
     const next = new Set(prev);
@@ -257,7 +243,7 @@ export default function LiveMapPage({ onOpenIncident }) {
           <button
             type="button"
             className="ad-map-tool"
-            onClick={() => setManaging(true)}
+            onClick={onManage}
             aria-label="Map settings"
             title="Map settings"
           >

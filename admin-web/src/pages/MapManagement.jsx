@@ -223,13 +223,13 @@ function ClickCapture({ active, onPick }) {
   return null;
 }
 
-export default function MapManagement({ query = '', onOpenIncident }) {
+export default function MapManagement({ query = '', initialLayer, onOpenIncident }) {
   const [data, setData] = useState({}); // key → array of rows
   const [incidents, setIncidents] = useState([]);
   const [enabled, setEnabled] = useState(
     () => new Set(['incidents', 'risk', 'evac', 'hydrants', 'water', 'cisterns']),
   );
-  const [selected, setSelected] = useState('risk');
+  const [selected, setSelected] = useState(initialLayer ?? 'risk');
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState([]); // layer keys that did not load
   const [attempt, setAttempt] = useState(0);

@@ -20,6 +20,7 @@ const PAGES = {
   map: () => import('./LiveMapPage.jsx'),
   requests: () => import('./Requests.jsx'),
   water: () => import('./WaterResources.jsx'),
+  mapsettings: () => import('./MapManagement.jsx'),
   reports: () => import('./Reports.jsx'),
   audit: () => import('./ActionRecord.jsx'),
   organization: () => import('./Organization.jsx'),
@@ -32,6 +33,7 @@ const IncidentDesk = lazy(PAGES.incidents);
 const LiveMapPage = lazy(PAGES.map);
 const Requests = lazy(PAGES.requests);
 const WaterResources = lazy(PAGES.water);
+const MapManagement = lazy(PAGES.mapsettings);
 const Reports = lazy(PAGES.reports);
 const ActionRecord = lazy(PAGES.audit);
 const Organization = lazy(PAGES.organization);
@@ -70,11 +72,23 @@ function Destination({ active, focusId, focusTab, go }) {
         />
       );
     case 'map':
-      return <LiveMapPage onOpenIncident={(incidentId) => go('incidents', { incidentId })} />;
+      return (
+        <LiveMapPage
+          onOpenIncident={(incidentId) => go('incidents', { incidentId })}
+          onManage={() => go('mapsettings')}
+        />
+      );
     case 'requests':
       return <Requests readRequests={records.readRequests} onOpenIncident={(incidentId) => go('incidents', { incidentId })} />;
     case 'water':
-      return <WaterResources />;
+      return <WaterResources onManage={() => go('mapsettings', { tab: 'hydrants' })} />;
+    case 'mapsettings':
+      return (
+        <MapManagement
+          initialLayer={focusTab}
+          onOpenIncident={(incidentId) => go('incidents', { incidentId })}
+        />
+      );
     case 'reports':
       return (
         <Reports
@@ -150,7 +164,7 @@ function Console() {
     return () => clearTimeout(t);
   }, []);
 
-  const flush = active === 'map';
+  const flush = active === 'map' || active === 'mapsettings';
 
   return (
     <ConsoleShell active={active} onNavigate={go}>

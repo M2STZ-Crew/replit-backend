@@ -170,8 +170,6 @@
   border-color: var(--line);
 }
 
-.ad-map-manage { position: relative; height: 100%; }
-.ad-map-back { position: absolute; left: 16px; bottom: 72px; z-index: 700; }
 
 @media (max-width: 1023px) {
   .ad-map-panel { right: 16px; left: 16px; top: auto; bottom: 16px; width: auto; }

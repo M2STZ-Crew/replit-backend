@@ -53,7 +53,7 @@ and lets the BFP Admin set the alarm level; the API runs without it.
 | A30, A31 | Live map, selected incident | INTEGRATED | 300 m Area radius (the server's `_CLUSTER_RADIUS_M`, not v13's 100 m). Units not drawn: the server cannot scope them to the Admin's organisation. |
 | A32, A33 | Water resources list and map | INTEGRATED | Hydrants, bodies of water, cisterns. No level percentages (not stored). |
 | A34, A34b | Resource detail, delete | INTEGRATED | Admin `DELETE /map/{type}/{id}`. |
-| A35 | Add or update a resource | INTEGRATED | In Map settings on the Live map, for the central hub (`map.manage`). |
+| A35 | Add or update a resource | INTEGRATED | In Map settings, for Fire Volunteer, BFP and central hub Admins (`map.manage`). |
 | A40, A41 | Requests, request detail | INTEGRATED | Alarm escalations only (`GET /alarm-requests`), read only. Answer card says a BFP Coordinator decides on mobile. |
 | A42 | Sent requests | BLOCKED | An Admin cannot raise a request, so Sent is always empty. |
 | A43, A44 | New water or backup request | UI READY | `components/requests/NewRequestDialog.jsx`. Needs Admin-to-Admin requests. |
