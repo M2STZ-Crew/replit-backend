@@ -9,7 +9,8 @@ variants"):
 - the central hub (Barangay 76) also reviews affiliates and IDs and looks after
   the shared map layers, and nothing more — it is not a superuser; the Admin
   with no organisation is the system account and keeps everything it had;
-- a Fire Volunteer Admin asks BFP to raise the alarm, the BFP Admin decides;
+- a Fire Volunteer Admin asks BFP to raise the alarm, the BFP Admin decides,
+  and both look after the shared map layers too;
 - an Admin reads its own organisation's people, its routed incidents' audit
   entries and its own people's, and creates its own Coordinators;
 - GET /auth/me tells the console all of this, and nothing else leaks.
@@ -90,9 +91,9 @@ def _admin(
         ("police", False, "police", ("police",), set(), {A.REVIEW_AFFILIATES, A.DECIDE_ALARM}),
         ("medical", False, "medical", ("medical",), set(), {A.REQUEST_ALARM, A.REVIEW_IDS}),
         ("barangay", False, "barangay", ("barangay",), set(), {A.REVIEW_AFFILIATES}),
-        ("fire_volunteer", False, "fire_volunteer", A.FIRE_AGENCIES, {A.REQUEST_ALARM},
-         {A.DECIDE_ALARM}),
-        ("bfp", False, "bfp", A.FIRE_AGENCIES, {A.DECIDE_ALARM}, {A.REQUEST_ALARM}),
+        ("fire_volunteer", False, "fire_volunteer", A.FIRE_AGENCIES,
+         {A.REQUEST_ALARM, A.MANAGE_MAP}, {A.DECIDE_ALARM}),
+        ("bfp", False, "bfp", A.FIRE_AGENCIES, {A.DECIDE_ALARM, A.MANAGE_MAP}, {A.REQUEST_ALARM}),
         ("barangay", True, "central", ("barangay",),
          {A.REVIEW_AFFILIATES, A.REVIEW_IDS, A.ALL_ORGANIZATIONS, A.MANAGE_MAP},
          {A.DECIDE_ALARM}),
@@ -108,11 +109,11 @@ def test_the_four_variants(
     every = {A.ACKNOWLEDGE, A.DECIDE_OVERLAPS, A.DELETE_WATER, A.CREATE_COORDINATORS}
     assert access.permissions == frozenset(every | extra)
     assert not access.permissions & absent
-    # No organisation's Admin coordinates or reads everything; of them only the
-    # central hub manages the map.
+    # No organisation's Admin coordinates or reads everything; of them the Fire
+    # agencies and the central hub manage the map.
     for never in (A.COORDINATE, A.MANAGE_ANY_ACCOUNT, A.ALL_RECORDS):
         assert not access.can(never)
-    assert access.can(A.MANAGE_MAP) is hub
+    assert access.can(A.MANAGE_MAP) is (hub or agency in A.FIRE_AGENCIES)
 
 
 def test_the_central_hub_is_not_a_superuser() -> None:

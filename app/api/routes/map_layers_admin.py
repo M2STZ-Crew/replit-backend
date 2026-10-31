@@ -2,9 +2,10 @@
 
 Direct edits to the GIS layers are admin-only; non-admin sub-admins use the
 map_layer_update_requests workflow (Part 6). Adding, changing and deleting
-layers is for the Admin holding ``map.manage`` (the central hub, and the system
-Admin where one exists); every organisation's Admin may delete a water resource
-(hydrant, body of water, cistern — pass 6 A00 "view · delete", A34). The
+layers is for the Admin holding ``map.manage`` (Fire Volunteer, BFP and central
+hub Admins, and the system Admin where one exists); every organisation's Admin
+may delete a water resource (hydrant, body of water, cistern — pass 6 A00
+"view · delete", A34). The
 hydrant ground-truth override and BFP CSV import live in their own module
 (Part 5). Polygon geometry is accepted as a
 GeoJSON geometry and stored as geography.

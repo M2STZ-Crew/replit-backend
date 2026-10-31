@@ -1,9 +1,9 @@
 """The 30 Oct 2026 issue report (hermetic).
 
 What these pin:
-- Issue 03: the central hub manages the shared map, on the server, and nobody
-  else's Admin does; every map write leaves an audit row; the editor can see what
-  it switched off, and only the editor can.
+- Issue 03: the Fire agencies' Admins and the central hub manage the shared map,
+  on the server, and nobody else's Admin does; every map write leaves an audit row;
+  the editor can see what it switched off, and only the editor can.
 - Issue 09: "I am safe" is for a resident the alert reached, on a live Area, from
   their own tap; it stands once given.
 - Issue 01: the Admin console's own words say "organization".
@@ -30,6 +30,7 @@ from pydantic import ValidationError
 from app.api.deps import get_current_user, get_database
 from app.api.routes import map_layers, notifications
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
+from app.db.session import database
 from app.main import app
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.notification import NotificationRespondRequest
@@ -58,14 +59,19 @@ def _citizen() -> AuthenticatedUser:
 class _MapDb:
     def __init__(self) -> None:
         self.queries: list[str] = []
+        self.args: list[tuple[Any, ...]] = []
 
     async def fetchrow(self, query: str, *args: Any) -> dict[str, Any]:
         self.queries.append(" ".join(query.split()))
+        self.args.append(args)
         now = datetime.now(UTC)
         return {
             "id": uuid4(), "name": "Covered court", "latitude": 14.5, "longitude": 121.0,
             "capacity": 40, "address": None, "contact_info": None, "city": "Pasay City",
             "outside_pasay": False, "is_active": True, "created_at": now, "updated_at": now,
+            "code": "H-1", "bfp_status": "unknown", "effective_status": "unknown",
+            "source": "manual", "barangay": "Barangay 76", "risk_level": "high",
+            "centroid_lat": 14.5, "centroid_lng": 121.0, "radius_m": 300.0,
         }
 
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
@@ -90,11 +96,24 @@ def _wire(user: AuthenticatedUser, db: Any) -> None:
 
 
 _SITE = {"name": "Covered court", "latitude": 14.5, "longitude": 121.0}
+_EDITORS = pytest.mark.parametrize(
+    "user",
+    [_admin("fire_volunteer"), _admin("bfp"), _admin(hub=True)],
+    ids=["fire_volunteer", "bfp", "central_hub"],
+)
 
 
-def test_the_central_hub_creates_changes_and_deletes_map_elements(client: TestClient) -> None:
+def test_the_tests_have_no_database_to_write_to(client: TestClient) -> None:
+    """The audit middleware writes through the app's own pool, past every override."""
+    assert not database.is_connected
+
+
+@_EDITORS
+def test_the_fire_agencies_and_the_hub_edit_the_map(
+    client: TestClient, user: AuthenticatedUser
+) -> None:
     db = _MapDb()
-    _wire(_admin(hub=True), db)
+    _wire(user, db)
     site = uuid4()
     assert client.post("/map/evacuation-sites", json=_SITE).status_code == 201
     assert client.patch(f"/map/evacuation-sites/{site}", json={"capacity": 60}).status_code == 200
@@ -102,10 +121,58 @@ def test_the_central_hub_creates_changes_and_deletes_map_elements(client: TestCl
     assert [q.split()[0] for q in db.queries] == ["insert", "update", "delete"]
 
 
+@_EDITORS
+def test_a_risk_zone_and_its_radius_can_be_changed(
+    client: TestClient, user: AuthenticatedUser
+) -> None:
+    db = _MapDb()
+    _wire(user, db)
+    zone = uuid4()
+    body = {"barangay": "Barangay 76", "centroid_lat": 14.5, "centroid_lng": 121.0}
+    assert client.post("/map/risk-zones", json={**body, "radius_m": 200}).status_code == 201
+    assert client.patch(f"/map/risk-zones/{zone}", json={"radius_m": 300}).status_code == 200
+    assert "set radius_m = $2" in db.queries[-1]
+    assert db.args[-1] == (zone, 300)
+    for bad in (5, 6000):
+        assert client.patch(f"/map/risk-zones/{zone}", json={"radius_m": bad}).status_code == 422
+    assert client.delete(f"/map/risk-zones/{zone}").status_code == 204
+
+
+@_EDITORS
+def test_a_hydrant_can_be_added_changed_and_deleted(
+    client: TestClient, user: AuthenticatedUser
+) -> None:
+    db = _MapDb()
+    _wire(user, db)
+    hydrant = uuid4()
+    body = {"code": "H-1", "latitude": 14.5, "longitude": 121.0}
+    assert client.post("/map/hydrants", json=body).status_code == 201
+    changed = client.patch(f"/map/hydrants/{hydrant}", json={"bfp_status": "operational"})
+    assert changed.status_code == 200
+    assert client.delete(f"/map/hydrants/{hydrant}").status_code == 204
+    assert [q.split()[0] for q in db.queries] == ["insert", "update", "delete"]
+
+
+def test_the_editor_sends_its_whole_form(client: TestClient) -> None:
+    """A blank text box arrives as null, and Save sends every field it shows."""
+    db = _MapDb()
+    _wire(_admin("fire_volunteer"), db)
+    zone = {
+        "barangay": "Barangay 76", "name": None, "risk_level": "high", "centroid_lat": 14.5,
+        "centroid_lng": 121.0, "radius_m": 300, "description": None,
+    }
+    assert client.patch(f"/map/risk-zones/{uuid4()}", json=zone).status_code == 200
+    hydrant = {
+        "code": None, "latitude": 14.5, "longitude": 121.0, "address": None,
+        "bfp_status": "unknown", "is_active": True,
+    }
+    assert client.patch(f"/map/hydrants/{uuid4()}", json=hydrant).status_code == 200
+
+
 @pytest.mark.parametrize(
     "user",
-    [_admin("police"), _admin("bfp"), _admin("fire_volunteer"), _admin("barangay"), _citizen()],
-    ids=["police", "bfp", "fire_volunteer", "other_barangay", "citizen"],
+    [_admin("police"), _admin("medical"), _admin("barangay"), _citizen()],
+    ids=["police", "medical", "other_barangay", "citizen"],
 )
 def test_nobody_else_writes_the_shared_map(client: TestClient, user: AuthenticatedUser) -> None:
     db = _MapDb()

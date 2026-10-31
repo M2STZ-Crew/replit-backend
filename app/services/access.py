@@ -19,13 +19,14 @@ The rules are REPLIT (MAIN) pass 6, A00 "Four permission variants":
 * **Fire Volunteer Admin** also asks BFP to raise the alarm (A45).
 * **BFP Admin** (the singleton) decides those requests and sets the level
   (A46, A46b; §3.4 "only authority allowed to execute alarm escalation").
+* **Fire Volunteer and BFP Admins** look after the map layers every
+  organisation shares (Map settings): they are the fire service's working map,
+  and PRD §4.9.6 gives water resources to the Fire Volunteers. The layers were
+  the system account's alone, and the directory of 28 Oct 2026 has none.
 * **The central hub** (Barangay 76, ``organizations.is_central_hub``) is a
   Barangay Admin that also reviews affiliate applications and National IDs,
-  and looks after the map layers every organisation shares (Map Settings;
-  Issue 03, 30 Oct 2026): they were the system account's alone, and the
-  directory of 28 Oct 2026 has no system account. "Nothing here makes the
-  central hub a superuser": it acts on Barangay's incidents like any Barangay
-  Admin.
+  and looks after those map layers too. "Nothing here makes the central hub a
+  superuser": it acts on Barangay's incidents like any Barangay Admin.
 
 An Admin with no organisation is the **system** account the console had
 before v13 (admin@replit.com): it keeps the full authority it always had, so
@@ -153,6 +154,8 @@ def admin_access(user: AuthenticatedUser) -> AdminAccess | None:
             permissions=frozenset(),
         )
     permissions = set(_EVERY_ADMIN)
+    if agency in FIRE_AGENCIES:
+        permissions.add(MANAGE_MAP)
     if agency == "fire_volunteer":
         permissions.add(REQUEST_ALARM)
     if agency == "bfp":

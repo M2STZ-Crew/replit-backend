@@ -6,6 +6,54 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.16 — 31 October 2026 — Map editing, where it can be found
+
+Backend and Admin console. Mobile stays v1.12.20. No migration.
+
+### Changes
+
+**Found**
+- **The editor had left the page it used to be.** Until the pass 6 redesign
+  (23 October) the sidebar's Live map was the editor, for every Admin. Since then
+  Live map only shows the map, and the editor sat behind an unlabelled gear drawn
+  only for `map.manage`, which v1.12.15 gave to the central hub alone. A Fire
+  Volunteer Admin had no way to add, change or delete a risk zone or a hydrant.
+  The server was not the problem: every map write type-checks against the live
+  schema, and CORS allows PATCH and DELETE from the console.
+- **The tests could write to the live database.** `with TestClient(app)` runs the
+  app's startup, which opens the pool from `.env`, and the audit middleware writes
+  through that pool, past every dependency override. A test added in v1.12.15
+  left 8 rows in the live `audit_logs` (`map_layer.*`, user agent `testclient`, no
+  actor). They are still there: the table is append-only.
+
+**Added or changed**
+- **`map.manage` for Fire Volunteer and BFP Admins**, beside the central hub. It
+  covers adding, changing and deleting every map layer, the BFP hydrant import and
+  reviewing map layer requests. Police, Medical and other Barangay Admins keep what
+  they had: they see the map and may delete a water resource.
+- **Map settings in the sidebar**, under Resources, for whoever may use it. It has
+  its own address, so a reload stays there. The gear on the Live map leads to it,
+  and Water resources has Add or change resources, which opens it on the hydrants.
+  Water resources tells everyone else who adds and changes them.
+- **The tests have no database.** `tests/conftest.py` empties `DATABASE_URL` before
+  the app loads, and a test pins it. The suite went from 146 s to 63 s.
+
+### Verified
+
+- Backend: pytest, ruff; mypy reports only the existing `ai_summary.py:74`. The
+  live count of `testclient` audit rows was 8 before the full run and 8 after.
+- Every map write the routes make was prepared against the live schema, which
+  type-checks the SQL and runs nothing. No map data was written.
+- Admin: `vite build`, and on the console preview (fictional data), as a Fire
+  Volunteer Admin: changed a risk zone's radius, had 6000 m refused, added and
+  deleted a risk zone, added, changed and deleted a hydrant, reloaded on the page,
+  and opened it on a phone width. It opens for BFP and the hub. Police gets no
+  page, no gear and no button.
+- Not run through the deployed console: that needs this version on Render and
+  Vercel, and a signed-in Admin.
+
+---
+
 ## v1.12.15 — 31 October 2026 — The 30 October issue report
 
 Mobile is v1.12.20. Issues are numbered as in the report.

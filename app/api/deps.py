@@ -281,7 +281,7 @@ MapManager = Annotated[
     Depends(
         require_admin_permission(
             console_access.MANAGE_MAP,
-            "Map layers are added and changed by the central hub (Barangay 76).",
+            "Map layers are added and changed by Fire Volunteer, BFP and Barangay 76 Admins.",
         )
     ),
 ]
