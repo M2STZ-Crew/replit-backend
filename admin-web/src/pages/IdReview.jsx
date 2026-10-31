@@ -6,20 +6,46 @@ import { ConfirmDialog, EmptyState, Icon, PageHeader, StatePanel } from '../comp
 import ZoomablePhoto from '../components/ui/ZoomablePhoto.jsx';
 
 /* ID reviews (REPLIT (MAIN) 10 · A50 875:7972, A51 875:8156; Section 2.1
- * Tier 2, Section 2.6): National ID submissions the automatic check sent to
- * a person. Approving awards +50%, the largest single step and the only
- * route past a light-green badge to green. Asking them to try again records
- * the reviewer and the reason — refusing someone's government ID needs an
- * audit trail — and they can start a new check from the app.
+ * Tier 2, Section 2.6): National IDs residents sent from the app. The reviewer
+ * runs the QR photo through PSA's PhilSys Check, then compares what it shows
+ * with the ID and the selfie. Approving awards +50%, the largest single step
+ * and the only route past a light-green badge to green. Asking them to try
+ * again records the reviewer and the reason — refusing someone's government ID
+ * needs an audit trail — and they read the reason in the app.
  *
- * The photos stay hidden until the reviewer opens each one. The design's
- * failure reason, ID number and channel breakdown are not returned by the
- * server, so the details list what it does return. */
+ * The photos stay hidden until the reviewer opens each one, and the server
+ * deletes them when the review is decided. The design's failure reason, ID
+ * number and channel breakdown are not returned by the server, so the details
+ * list what it does return. */
 
 const CLOCK = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' });
 const DAY = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 
 const TYPE = { national_id: 'National ID' };
+
+const PHILSYS_CHECK = 'https://verify.philsys.gov.ph/';
+
+/* What PhilSys Check can say, in PSA's own words so they match the screen. A
+ * failed check goes back to the resident with PSA's advice for it. */
+const RESULTS = [
+  { key: 'verified', label: 'PhilID/ePhilID has been Verified' },
+  {
+    key: 'deactivated',
+    label: 'Deactivated Card',
+    reason: 'PhilSys Check says this card is deactivated. Bring your ID to the nearest PhilSys Registration Center or email info@philsys.gov.ph.',
+  },
+  {
+    key: 'unreadable',
+    label: 'QR Code could not be read',
+    reason: 'PhilSys Check could not read your QR code. Take the QR photo again, close up, in good light, with the whole code in frame.',
+  },
+];
+
+const NEXT = {
+  verified: 'Check the name, birth date and card number it shows match the ID photo. An ePhilID also shows a portrait. Then check the selfie is the same person.',
+  deactivated: 'Ask them to try again. The reason below is filled in for you.',
+  unreadable: 'PSA asks for three tries. If it still fails, ask them to try again.',
+};
 
 /* How long a submission has been waiting. A queue that quietly grows is the
  * failure mode here: nobody chases their own verification, they just stay on
@@ -86,7 +112,7 @@ export default function IdReview() {
       <PageHeader
         eyebrow={`${org?.name ?? 'Central hub'} · Manual National ID review`}
         title="ID reviews"
-        description="Shown when the automatic ID check can’t decide. Approving adds 50% to a resident’s verification. Verification never blocks a report."
+        description="National IDs residents sent from the app. Run each QR code through PhilSys Check, then decide. Approving adds 50% to a resident’s verification. Verification never blocks a report."
         actions={(
           <button type="button" className="rpl-button rpl-button--secondary" onClick={load} disabled={phase === 'loading'}>
             Refresh
@@ -100,7 +126,7 @@ export default function IdReview() {
         <StatePanel kind="error" title="The reviews couldn’t load" description={error} onRetry={load} />
       ) : items.length === 0 ? (
         <EmptyState icon="verification" title="Nothing waiting">
-          A submission appears here when the automatic check can’t decide on someone’s National ID.
+          A submission appears here when a resident sends their National ID from the app.
         </EmptyState>
       ) : (
         <section className="rpl-panel" aria-labelledby="rpl-idr-waiting">
@@ -127,7 +153,7 @@ export default function IdReview() {
       {phase === 'ready' && items.length > 0 && (
         <div className="rpl-alert rpl-alert--info">
           <span className="rpl-alert-mark" aria-hidden="true">i</span>
-          <p className="rpl-alert-body">ID photos and selfies stay hidden until you open a review.</p>
+          <p className="rpl-alert-body">Photos stay hidden until you open a review, and they are deleted when you decide.</p>
         </div>
       )}
 
@@ -174,19 +200,49 @@ function Photo({ label, url }) {
   );
 }
 
+/* The check itself happens on PSA's site, so this only gets the reviewer there
+ * with the right file. Camera access is not needed for an image file. */
+function PhilSysSteps({ item }) {
+  return (
+    <section className="rpl-panel rpl-idr-check" aria-labelledby="rpl-idr-check">
+      <h2 className="rpl-decision-title" id="rpl-idr-check">PhilSys Check</h2>
+      <p className="rpl-decision-body">PSA’s own site confirms the QR code is genuine and the card is active.</p>
+      {item.qr_download_url ? (
+        <ol className="rpl-idr-steps">
+          <li>
+            <a className="rpl-button rpl-button--secondary rpl-button--compact" href={item.qr_download_url}>Download QR photo</a>
+          </li>
+          <li>
+            <a className="rpl-button rpl-button--secondary rpl-button--compact" href={PHILSYS_CHECK} target="_blank" rel="noreferrer">
+              Open PhilSys Check<span className="web-sr-only"> in a new tab</span>
+            </a>
+          </li>
+          <li>Press <strong>Click to scan QR code</strong>, then <strong>Camera</strong>, then <strong>Scan an Image File</strong>. You don’t need to allow the camera.</li>
+          <li>Press <strong>Select Image</strong> and pick the file you downloaded.</li>
+          <li>Delete the downloaded file from this computer when you finish.</li>
+        </ol>
+      ) : (
+        <p className="rpl-inline-error" role="alert">This submission has no QR photo, so it can’t be checked. Ask them to update the app and try again.</p>
+      )}
+    </section>
+  );
+}
+
 function Review({ item, onBack, onDecided }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [asking, setAsking] = useState(false);
   const [reason, setReason] = useState('');
+  const [result, setResult] = useState(null);
   const name = nameOf(item);
+  const failed = RESULTS.find((r) => r.key === result)?.reason ? result : null;
 
   async function approve() {
     setBusy(true);
     setError(null);
     try {
-      const res = await api.approveVerification(item.id);
-      await onDecided(`ID approved. ${name} is now at ${res?.verified_percent ?? '—'}%.`);
+      const res = await api.approveVerification(item.id, result);
+      await onDecided(`ID approved and photos deleted. ${name} is now at ${res?.verified_percent ?? '—'}%.`);
     } catch (e) {
       setError(e.message || 'The ID was not approved. Try again.');
       setBusy(false);
@@ -194,10 +250,10 @@ function Review({ item, onBack, onDecided }) {
   }
 
   async function askAgain() {
-    if (!reason.trim()) throw new Error('Say what they should fix — it is recorded with this review.');
-    await api.rejectVerification(item.id, reason.trim());
+    if (!reason.trim()) throw new Error('Say what they should fix — they read this in the app.');
+    await api.rejectVerification(item.id, reason.trim(), failed);
     setAsking(false);
-    await onDecided(`${name} was asked to try again.`);
+    await onDecided(`${name} was asked to try again. Their photos were deleted.`);
   }
 
   const details = [
@@ -220,20 +276,38 @@ function Review({ item, onBack, onDecided }) {
       <div className="rpl-idr-grid">
         <Photo label="National ID photo" url={item.id_image_url} />
         <Photo label="Selfie" url={item.selfie_image_url} />
-        <section className="rpl-panel rpl-decision" aria-labelledby="rpl-idr-details">
+        <Photo label="QR code" url={item.qr_image_url} />
+        <PhilSysSteps item={item} />
+        <section className="rpl-panel rpl-decision rpl-idr-decide" aria-labelledby="rpl-idr-details">
           <h2 className="rpl-decision-title" id="rpl-idr-details">Details</h2>
           <dl className="rpl-facts rpl-facts--wide">
             {details.map(([t, v]) => (
               <div className="rpl-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
             ))}
           </dl>
-          <p className="rpl-decision-body">Check the selfie is the same person as the ID photo, and that the name on the ID matches the account.</p>
+          <fieldset className="rpl-choice">
+            <legend className="rpl-field-label">What did PhilSys Check say?</legend>
+            <div className="rpl-choice-options rpl-choice-options--stack">
+              {RESULTS.map((r) => (
+                <label key={r.key} className={`rpl-choice-option${result === r.key ? ' is-on' : ''}`}>
+                  <input type="radio" name="philsys-result" value={r.key} checked={result === r.key} onChange={() => setResult(r.key)} disabled={busy || !item.qr_download_url} />
+                  {r.label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <p className="rpl-decision-body">{result ? NEXT[result] : 'Run PhilSys Check, then choose what it said to approve this ID.'}</p>
           {error && <p className="rpl-inline-error" role="alert">{error}</p>}
           <div className="rpl-idr-actions">
-            <button type="button" className="rpl-button rpl-button--secondary" onClick={() => { setReason(''); setAsking(true); }} disabled={busy}>
+            <button
+              type="button"
+              className="rpl-button rpl-button--secondary"
+              onClick={() => { setReason(RESULTS.find((r) => r.key === result)?.reason ?? ''); setAsking(true); }}
+              disabled={busy}
+            >
               Ask to try again
             </button>
-            <button type="button" className="rpl-button rpl-button--primary" onClick={approve} disabled={busy}>
+            <button type="button" className="rpl-button rpl-button--primary" onClick={approve} disabled={busy || result !== 'verified'}>
               {busy ? 'Approving…' : 'Approve ID'}
             </button>
           </div>
@@ -244,7 +318,7 @@ function Review({ item, onBack, onDecided }) {
         open={asking}
         eyebrow="ID review"
         title={`Ask ${name} to try again?`}
-        description="Their ID isn’t approved and nothing is added. They can start a new check from the app."
+        description="Their ID isn’t approved and nothing is added. Their photos are deleted, and they can send new ones from the app."
         confirmLabel="Ask to try again"
         onClose={() => setAsking(false)}
         onConfirm={askAgain}
@@ -252,7 +326,7 @@ function Review({ item, onBack, onDecided }) {
         <label className="rpl-field">
           <span className="rpl-field-label">What should they fix?</span>
           <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. The ID photo is too blurry to read" maxLength={1000} />
-          <span className="rpl-field-help">Recorded with the review.</span>
+          <span className="rpl-field-help">They read this in the app. It’s also recorded with the review.</span>
         </label>
       </ConfirmDialog>
     </div>

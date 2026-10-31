@@ -817,8 +817,12 @@
 .rpl-idr-row .rpl-cell-meta { font-size: 13px; color: var(--text-2); }
 .rpl-idr-plate { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: var(--radius-sm); background: var(--surface-1); color: var(--text); }
 .rpl-idr-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 440px; gap: 24px; align-items: start; }
-@media (max-width: 1279px) { .rpl-idr-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .rpl-idr-grid > .rpl-panel { grid-column: 1 / -1; } }
+.rpl-idr-decide { grid-column: 3; grid-row: 1 / span 2; }
+@media (max-width: 1279px) { .rpl-idr-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .rpl-idr-decide { grid-column: 1 / -1; grid-row: auto; } }
 @media (max-width: 767px) { .rpl-idr-grid { grid-template-columns: minmax(0, 1fr); } }
+.rpl-idr-check { display: flex; flex-direction: column; gap: 12px; min-height: 320px; }
+.rpl-idr-steps { display: flex; flex-direction: column; gap: 12px; margin: 0; padding-left: 20px; font-size: 14px; line-height: 20px; }
+.rpl-idr-steps .rpl-button { display: inline-flex; }
 .rpl-idr-photo {
   min-height: 320px;
   margin: 0;
@@ -892,6 +896,7 @@
 .rpl-field textarea:focus { outline: none; border: 2px solid var(--focus); padding: 9px 11px; }
 .rpl-choice { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px; }
 .rpl-choice-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.rpl-choice-options--stack { flex-direction: column; align-items: stretch; }
 .rpl-choice-option {
   position: relative;
   display: inline-flex;

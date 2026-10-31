@@ -174,12 +174,15 @@ export const api = {
   // carries short-lived signed URLs for the ID and selfie images, which live in
   // a private bucket.
   pendingVerifications: () => request('/admin/verifications/pending'),
-  approveVerification: (id) =>
-    request(`/admin/verifications/${id}/approve`, { method: 'POST' }),
-  rejectVerification: (id, notes) =>
+  approveVerification: (id, philsysResult) =>
+    request(`/admin/verifications/${id}/approve`, {
+      method: 'POST',
+      body: { philsys_result: philsysResult },
+    }),
+  rejectVerification: (id, notes, philsysResult) =>
     request(`/admin/verifications/${id}/reject`, {
       method: 'POST',
-      body: { notes: notes || null },
+      body: { notes: notes || null, philsys_result: philsysResult || null },
     }),
 
   // Affiliate organization review (admin).

@@ -182,7 +182,7 @@ if (import.meta.env.DEV) {
       [id(105)]: [{ id: id(710), incident_id: id(105), summary_text: 'Fictional example summary.' + String.fromCharCode(10, 10) + 'One team responded; the fire was out within the hour.', generated_at: at(185) }],
     },
     verifications: [
-      { id: id(600), user_id: id(60), email: 'resident@example.test', full_name: 'Example Resident', type: 'national_id', status: 'manual_review', provider: 'didit', submitted_at: at(130), id_image_url: placeholder('Example ID card'), selfie_image_url: null },
+      { id: id(600), user_id: id(60), email: 'resident@example.test', full_name: 'Example Resident', type: 'national_id', status: 'manual_review', provider: 'manual', submitted_at: at(130), id_image_url: placeholder('Example ID card'), selfie_image_url: placeholder('Example selfie'), qr_image_url: placeholder('Example QR code'), qr_download_url: placeholder('Example QR code') },
     ],
     affiliates: [
       { id: id(400), organization_name: 'Example Rescue Brigade', agency_type: 'fire_volunteer', status: 'pending', contact_name: 'Example Contact', contact_email: 'brigade@example.test', contact_phone: '0900 000 0000', address: 'Sample Street corner Example Avenue', details: { roster: [{ full_name: 'Example Member' }, { full_name: 'Sample Member' }], equipment: [], sec_certificate_name: null }, created_at: at(600), updated_at: at(600) },

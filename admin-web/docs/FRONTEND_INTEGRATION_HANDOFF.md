@@ -61,7 +61,7 @@ and lets the BFP Admin set the alarm level; the API runs without it.
 | A47 | Organisation | INTEGRATED | The Admin's own organisation (`primary_org_id`): profile, people counts, equipment. |
 | A48 | Accounts | INTEGRATED *(ARBAC)* | Own organisation's Coordinators (email, title, status, created by) and Responders, view only. Turn off / on. |
 | A49, A49b | Create a Coordinator | INTEGRATED *(ARBAC)* | `POST /admin/coordinators`: own organisation, emailed a set-password link. |
-| A50, A51 | ID reviews | INTEGRATED | Photos hidden until Show; approve; ask to try again (reason required). |
+| A50, A51 | ID reviews | INTEGRATED | Photos hidden until Show; PhilSys Check steps and QR download; approve needs its Verified result; ask to try again (reason required, filled in for a failed check). Deciding deletes the photos. |
 | A60, A61 | Reports, filed report | INTEGRATED | PIR list and detail, AI summary tab, PDF download. |
 | A62, A63, A63b | CIAR six parts, generating, failed | UI READY | `components/reports/CiarView.jsx`. The server writes a narrative summary, shown on A61's AI summary tab. |
 | A64 | Audit log | INTEGRATED | Search, Area and action filters. Actor column shows role and agency (no name stored). |
