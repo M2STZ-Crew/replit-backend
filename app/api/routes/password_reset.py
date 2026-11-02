@@ -27,6 +27,7 @@ from app.core.logging import get_logger
 from app.integrations.brevo_email import BrevoEmailClient
 from app.integrations.supabase_auth import AuthError, SupabaseAuthClient
 from app.schemas.common import MessageResponse
+from app.services.email_layout import EmailAction, RenderedEmail, render_email
 
 log = get_logger(__name__)
 
@@ -87,27 +88,27 @@ _RECOVER_COOLDOWN = timedelta(seconds=60)
 _last_sent: dict[str, datetime] = {}
 
 
-def _reset_email_html(link: str) -> str:
-    return (
-        '<div style="font-family:Inter,Arial,sans-serif;color:#111;max-width:520px">'
-        "<h2 style='margin:0 0 12px'>Reset your RepLiT password</h2>"
-        "<p>Someone asked to reset the password for this RepLiT account. If it was "
-        "you, choose a new one here (the link works once, for one hour):</p>"
-        f'<p><a href="{link}" style="display:inline-block;background:#EB4800;'
-        'color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;'
-        'font-weight:bold">Choose a new password</a></p>'
-        '<p style="color:#666;font-size:13px">If you did not ask for this, ignore this '
-        "email - your password stays as it is.</p>"
-        "</div>"
-    )
-
-
-def _reset_email_text(link: str) -> str:
-    return (
-        "Reset your RepLiT password\n\n"
-        "Someone asked to reset the password for this RepLiT account. If it was you, "
-        f"choose a new one here (the link works once, for one hour):\n{link}\n\n"
-        "If you did not ask for this, ignore this email.\n"
+def _reset_email(link: str) -> RenderedEmail:
+    return render_email(
+        preheader="Choose a new password for your RepLiT account. The link works once, "
+        "for one hour.",
+        heading="Reset your password",
+        paragraphs=[
+            "We received a request to reset the password for the RepLiT account that "
+            "uses this email address.",
+            "If you made this request, choose a new password with the button below.",
+        ],
+        action=EmailAction("Choose a new password", link),
+        facts=[
+            "This link works once and expires one hour after this email was sent. "
+            "If it has expired, open the RepLiT app, tap Forgot password?, and use "
+            "the new link we email you.",
+        ],
+        notice="If you did not ask to reset your password, ignore this email: your "
+        "password stays as it is. Do not forward this email, because the link lets "
+        "whoever opens it set a new password.",
+        reason="You are receiving this email because a password reset was requested "
+        "for this address on RepLiT.",
     )
 
 
@@ -123,11 +124,12 @@ async def send_reset_email(
         link = resp.get("action_link") or (resp.get("properties") or {}).get("action_link")
         if not isinstance(link, str) or not link:
             return
+        message = _reset_email(link)
         await email_client.send(
             to=email,
             subject="Reset your RepLiT password",
-            html=_reset_email_html(link),
-            text=_reset_email_text(link),
+            html=message.html,
+            text=message.text,
         )
         log.info("password_reset_email_sent")
     except AppError:

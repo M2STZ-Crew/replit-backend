@@ -33,6 +33,7 @@ from app.schemas.affiliate import (
     AffiliateRequestResponse,
     AffiliateReviewRequest,
 )
+from app.services.email_layout import EmailAction, RenderedEmail, render_email
 
 log = get_logger(__name__)
 
@@ -69,31 +70,30 @@ class _AccountStatus(TypedDict):
     detail: str | None
 
 
-def _approval_email_html(org_name: str, link: str) -> str:
-    """Branded 'you're approved — set your password' email (HTML)."""
-    return (
-        '<div style="font-family:Inter,Arial,sans-serif;color:#111;max-width:520px">'
-        f"<h2 style='margin:0 0 12px'>Welcome to RepLiT, {org_name}!</h2>"
-        "<p>Your affiliate organization has been <b>approved</b>. A sub-admin "
-        "account has been created for this email address.</p>"
-        "<p>Set your password to start using the RepLiT sub-admin dashboard on the "
-        "mobile app:</p>"
-        f'<p><a href="{link}" style="display:inline-block;background:#EB4800;'
-        'color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;'
-        'font-weight:bold">Set my password</a></p>'
-        '<p style="color:#666;font-size:13px">If the button does not work, copy this '
-        f"link into your browser:<br>{link}</p>"
-        "</div>"
-    )
+def _approval_email(org_name: str, link: str) -> RenderedEmail:
+    """Branded 'you're approved — set your password' email (HTML and plain text).
 
-
-def _approval_email_text(org_name: str, link: str) -> str:
-    """Plain-text fallback for the approval email."""
-    return (
-        f"Welcome to RepLiT, {org_name}!\n\n"
-        "Your affiliate organization has been approved and a sub-admin account was "
-        "created for this email address.\n\n"
-        f"Set your password to sign in to the mobile sub-admin dashboard:\n{link}\n"
+    The organization's name came from a public form: render_email escapes it.
+    """
+    return render_email(
+        preheader=f"{org_name} is approved. Set your password to start using RepLiT.",
+        heading=f"Welcome to RepLiT, {org_name}",
+        paragraphs=[
+            "Your affiliate organization has been approved, and a sub-admin account "
+            "has been created for this email address.",
+            "Set your password to start using the RepLiT sub-admin dashboard on the "
+            "mobile app.",
+        ],
+        action=EmailAction("Set my password", link),
+        facts=[
+            "This link works once and expires one hour after this email was sent. "
+            "If it has expired, open the RepLiT app, tap Forgot password?, and enter "
+            "this email address to get a new one.",
+        ],
+        notice="If you were not expecting this email, you can ignore it. Do not forward "
+        "it, because the link lets whoever opens it set the account's password.",
+        reason="You are receiving this email because this address is the contact for "
+        "an affiliate organization approved on RepLiT.",
     )
 
 
@@ -177,11 +177,12 @@ async def _provision_subadmin(
             link_resp.get("properties") or {}
         ).get("action_link")
         if isinstance(action_link, str) and action_link:
+            message = _approval_email(org_name, action_link)
             await email_client.send(
                 to=email,
                 subject="Your RepLiT affiliate account is approved",
-                html=_approval_email_html(org_name, action_link),
-                text=_approval_email_text(org_name, action_link),
+                html=message.html,
+                text=message.text,
             )
             info["invite_email_sent"] = True
         else:
@@ -224,30 +225,22 @@ async def submit_affiliate_request(
     return _to_response(row)
 
 
-def _received_email_html() -> str:
-    """'We have your application' (HTML). Carries nothing the applicant typed:
-    the form is public, so anything echoed here could be used to send spam."""
-    return (
-        '<div style="font-family:Inter,Arial,sans-serif;color:#111;max-width:520px">'
-        "<h2 style='margin:0 0 12px'>We received your application</h2>"
-        "<p>Thank you for applying to join RepLiT as an affiliate organization. "
-        "An administrator will review it.</p>"
-        "<p>Once it is approved, we will email you again at this address with a "
-        "link to set your password and sign in.</p>"
-        '<p style="color:#666;font-size:13px">If you did not apply, you can ignore '
-        "this email.</p>"
-        "</div>"
-    )
-
-
-def _received_email_text() -> str:
-    """Plain-text fallback for the application-received email."""
-    return (
-        "We received your application\n\n"
-        "Thank you for applying to join RepLiT as an affiliate organization. An "
-        "administrator will review it. Once it is approved, we will email you again "
-        "at this address with a link to set your password and sign in.\n\n"
-        "If you did not apply, you can ignore this email.\n"
+def _received_email() -> RenderedEmail:
+    """'We have your application' (HTML and plain text). Carries nothing the
+    applicant typed: the form is public, so anything echoed here could be used
+    to send spam."""
+    return render_email(
+        preheader="An administrator will review your application to join RepLiT.",
+        heading="We received your application",
+        paragraphs=[
+            "Thank you for applying to join RepLiT as an affiliate organization. An "
+            "administrator will review your application.",
+            "Once it is approved, we will email you again at this address with a link "
+            "to set your password and sign in.",
+        ],
+        notice="If you did not apply, you can ignore this email.",
+        reason="You are receiving this email because this address was given as the "
+        "contact on an application to join RepLiT.",
     )
 
 
@@ -259,11 +252,12 @@ _RECEIVED_EMAIL_WINDOW_MIN = 10
 async def _send_received_email(email_client: BrevoEmailClient, to: str) -> None:
     """Best effort: a failed acknowledgement must not lose the application."""
     try:
+        message = _received_email()
         await email_client.send(
             to=to,
             subject="We received your RepLiT affiliate application",
-            html=_received_email_html(),
-            text=_received_email_text(),
+            html=message.html,
+            text=message.text,
         )
     except AppError as exc:
         log.warning("affiliate_received_email_failed", error=str(exc))

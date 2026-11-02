@@ -6,6 +6,68 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.19 — 2 November 2026 — Every RepLiT email on one formal layout
+
+Backend, with mobile v1.12.23. No migration, no new setting, no new email. The
+Admin console changes only its version number. Deploy order does not matter.
+
+### Changes
+
+**Found**
+- **Five emails, five looks.** Verify your email, reset your password, the
+  affiliate's "received" and "approved", and the new Coordinator's invitation
+  were each a bare `<div>` with a heading, a paragraph and an orange button: no
+  header, no footer, no word on why the email came.
+- **The email-verification message had no plain-text part,** so a text-only
+  client showed "Please view this email in an HTML-capable client."
+- **Two emails put names in unescaped.** The verification email's greeting used
+  the account's full name as HTML, and the affiliate approval used the
+  organisation's name from the public form the same way.
+
+**Changed**
+- **One layout, `app/services/email_layout.py`, for all five.** A dark header with
+  the app's mark (served by the Admin console, `assets/logo-mark.png`) and the
+  coral wordmark; a white card with the heading, the message, one button with
+  its link written out beneath it; a panel with how long the link lasts; a
+  security note; a footer that says why the email was sent. The colours are the
+  app's ground and coral and the reset page's light set; the button is coral ink
+  `#A63A0A` under white text (6.5:1).
+- **Built for mail clients.** Tables and inline styles; no web fonts, scripts or
+  background images; a 600 px column that narrows on a phone; a hidden preheader
+  for the inbox preview; dark colours where the client asks for them (Apple
+  Mail, iOS Mail, Outlook for Mac). Gmail and Outlook, which recolour on their
+  own, get a light card under a dark header.
+- **Every email has a plain-text twin with the same words,** built from the same
+  call, and every value a caller passes is escaped.
+- **Formal wording, same meaning.** Each link's lifetime is now stated in the
+  email itself, unchanged: 24 hours for email verification, one hour for the
+  password links (reset, affiliate approval, Coordinator invitation).
+
+**Unchanged:** recipients, subjects, links and their tokens, link lifetimes, the
+cooldowns, the Brevo SMTP settings, when each email is sent.
+
+**Tests**
+- `tests/test_email_templates.py`: each email has the layout and a plain-text
+  part, the link twice (button and written out), the stated lifetimes, no
+  markup from a name or a link, and the verification route now sends text.
+- `tests/test_lifecycle_sounds.py`: what a reporter hears at each stage (the
+  mapping below), one push per status change, nothing at Reported, and the
+  general "Report updates" sound for news that is not a stage.
+
+| Stage | Event | Sound | Android channel |
+|---|---|---|---|
+| Reported | none | none | none |
+| Verified | `incident_verified` | `sound_verified` | `citizen_verified_v1` |
+| On the way | `incident_en_route` | `sound_on_route` | `citizen_on_route_v1` |
+| On scene | `incident_arrived` | `sound_on_scene` | `citizen_on_scene_v1` |
+| Fire out | `incident_resolved` | `sound_fire_out` | `citizen_fire_out_v1` |
+
+**Not tested:** how the emails look in Gmail, Outlook or Apple Mail (they were
+checked in a browser only, at 375 px and desktop, light and dark), and delivery:
+no email was sent.
+
+---
+
 ## v1.12.18 — 31 October 2026 — National ID, checked on PSA's PhilSys Check
 
 Backend and Admin console, with mobile v1.12.21. No migration, no new setting.

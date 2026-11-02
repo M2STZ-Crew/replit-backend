@@ -12,7 +12,6 @@ console lists the roster from GET /organizations/{id}/personnel.
 
 from __future__ import annotations
 
-import html
 import secrets
 from typing import Any
 from uuid import UUID
@@ -41,6 +40,7 @@ from app.schemas.organization import (
 )
 from app.services.access import admin_access
 from app.services.audit import record_audit
+from app.services.email_layout import TAGLINE, EmailAction, RenderedEmail, render_email
 
 log = get_logger(__name__)
 
@@ -91,31 +91,29 @@ async def _own_coordinator(
     return await _member(db, user_id)
 
 
-def _invite_html(name: str, org_name: str, link: str) -> str:
-    name, org_name, link = html.escape(name), html.escape(org_name), html.escape(link)
-    return (
-        '<div style="font-family:Inter,Arial,sans-serif;color:#111;max-width:520px">'
-        f"<h2 style='margin:0 0 12px'>You're a Coordinator for {org_name}</h2>"
-        f"<p>Hi {name}, your organization's Admin made you a Coordinator on RepLiT, "
-        "Pasay City's fire reporting and response network.</p>"
-        "<p>Set your password, then sign in to the RepLiT mobile app with this email "
-        "address. From there you acknowledge incidents and create your Responders' "
-        "accounts.</p>"
-        f'<p><a href="{link}" style="display:inline-block;background:#EB4800;'
-        'color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;'
-        'font-weight:bold">Set my password</a></p>'
-        '<p style="color:#666;font-size:13px">If the button does not work, copy this '
-        f"link into your browser:<br>{link}</p>"
-        "</div>"
-    )
-
-
-def _invite_text(name: str, org_name: str, link: str) -> str:
-    return (
-        f"Hi {name},\n\n"
-        f"Your organization's Admin made you a Coordinator for {org_name} on RepLiT.\n\n"
-        "Set your password, then sign in to the RepLiT mobile app with this email "
-        f"address:\n{link}\n"
+def _invite(name: str, org_name: str, link: str) -> RenderedEmail:
+    """The new Coordinator's email (HTML and plain text); render_email escapes."""
+    return render_email(
+        preheader=f"Set your password to start as a Coordinator for {org_name}.",
+        heading=f"You're a Coordinator for {org_name}",
+        greeting=f"Hello {name},",
+        paragraphs=[
+            "Your organization's Admin has made you a Coordinator on RepLiT, "
+            f"{TAGLINE}.",
+            "Set your password, then sign in to the RepLiT mobile app with this email "
+            "address. From there you acknowledge incidents and create your "
+            "Responders' accounts.",
+        ],
+        action=EmailAction("Set my password", link),
+        facts=[
+            "This link works once and expires one hour after this email was sent. "
+            "If it has expired, open the RepLiT app, tap Forgot password?, and enter "
+            "this email address to get a new one.",
+        ],
+        notice="If you were not expecting this email, you can ignore it. Do not forward "
+        "it, because the link lets whoever opens it set the account's password.",
+        reason="You are receiving this email because your organization's Admin "
+        "created a RepLiT Coordinator account for this address.",
     )
 
 
@@ -245,11 +243,12 @@ async def create_coordinator(
             link_resp.get("properties") or {}
         ).get("action_link")
         if isinstance(action_link, str) and action_link:
+            message = _invite(full_name, org["name"], action_link)
             await email_client.send(
                 to=email,
                 subject=f"You're a Coordinator for {org['name']} on RepLiT",
-                html=_invite_html(full_name, org["name"], action_link),
-                text=_invite_text(full_name, org["name"], action_link),
+                html=message.html,
+                text=message.text,
             )
             sent = True
         else:

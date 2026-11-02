@@ -42,6 +42,7 @@ from app.schemas.verification import (
     VerificationResultResponse,
     VerificationStatusResponse,
 )
+from app.services.email_layout import EmailAction, RenderedEmail, render_email
 from app.services.national_id import BUCKET, photo_paths, remove_photos
 from app.services.phone_verification import check_code, request_code
 
@@ -375,6 +376,29 @@ async def submit_national_id_manual(
 # --------------------------------------------------------------------------- #
 # Email verification (+10%) — Brevo link-based
 # --------------------------------------------------------------------------- #
+def _verification_email(full_name: str | None, link: str) -> RenderedEmail:
+    """The verify-your-email message (HTML and plain text). Until v1.12.19 it
+    was HTML alone, with the name unescaped; render_email escapes it."""
+    return render_email(
+        preheader="Confirm this email address for your RepLiT account. The link "
+        "works for 24 hours.",
+        heading="Verify your email address",
+        greeting=f"Hello {full_name}," if full_name else "Hello,",
+        paragraphs=[
+            "Please confirm that this is the email address for your RepLiT account.",
+        ],
+        action=EmailAction("Verify my email", link),
+        facts=[
+            "This link expires 24 hours after this email was sent. After that, "
+            "request a new one from the RepLiT app.",
+        ],
+        notice="If you did not ask to verify this address, you can ignore this email: "
+        "nothing changes until the link is opened.",
+        reason="You are receiving this email because email verification was "
+        "requested for a RepLiT account that uses this address.",
+    )
+
+
 @router.post(
     "/email/request",
     response_model=MessageResponse,
@@ -406,13 +430,13 @@ async def request_email_verification(
         expires_at,
     )
     link = f"{settings.public_base_url.rstrip('/')}/verification/email/confirm?token={token}"
-    html = (
-        f"<p>Hi {user.full_name or 'there'},</p>"
-        "<p>Confirm your email for RepLiT (link valid for 24 hours):</p>"
-        f'<p><a href="{link}">Verify my email</a></p>'
-        f"<p>Or paste this URL into your browser:<br>{link}</p>"
+    message = _verification_email(user.full_name, link)
+    await email.send(
+        to=user.email,
+        subject="Verify your RepLiT email",
+        html=message.html,
+        text=message.text,
     )
-    await email.send(to=user.email, subject="Verify your RepLiT email", html=html)
     log.info("email_verification_requested", user_id=str(user.id))
     return MessageResponse(message="Verification email sent. Check your inbox.")
 
