@@ -36,14 +36,23 @@ router = APIRouter(prefix="/reports", tags=["reports"])
 
 _VALID_AGENCIES = {"fire_volunteer", "bfp", "barangay", "medical", "police"}
 
+# Every RepLiT report is a fire report. The app locks its "Fire" choice on, and
+# the server holds to the same rule, so an older build, or a request made by
+# hand, cannot file a report that leaves the Fire Volunteers out of it.
+FIRE_AGENCY = "fire_volunteer"
+
 
 def _parse_agencies(raw: str) -> list[str]:
-    """Parse + validate a comma-separated agency list against agency_type values."""
+    """Parse + validate a comma-separated agency list against agency_type values.
+
+    The Fire Volunteers are always first: added when the list leaves them out,
+    and never listed twice.
+    """
     agencies = [a.strip() for a in raw.split(",") if a.strip()]
     invalid = [a for a in agencies if a not in _VALID_AGENCIES]
     if invalid:
         raise BadRequestError(f"Invalid agency selection: {', '.join(invalid)}.")
-    return agencies
+    return list(dict.fromkeys([FIRE_AGENCY, *agencies]))
 
 
 # How long a report can hold its reporter to one report at a time. The app lets
