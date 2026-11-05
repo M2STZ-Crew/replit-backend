@@ -13,6 +13,7 @@ from app.core.logging import get_logger
 from app.db.session import Database
 from app.integrations.fcm import PushService
 from app.integrations.supabase_storage import SupabaseStorageClient
+from app.services.citizen_copy import NATIONAL_ID_APPROVED, NATIONAL_ID_RETRY, languages_of
 from app.services.notification_inbox import record_inbox
 
 log = get_logger(__name__)
@@ -44,12 +45,13 @@ async def notify_review_decided(
     Their photos are gone by now, so someone asked to try again has to hear it
     and has to read why. Best-effort; returns the devices sent to.
     """
+    language = (await languages_of(db, [user_id])).get(user_id, "en")
     if approved:
-        title = "National ID verified"
-        body = "Your verification went up. Your photos have been deleted."
+        title, body = NATIONAL_ID_APPROVED[language]
     else:
-        title = "Try your National ID again"
-        body = notes or "It was not accepted. Send new photos from the app."
+        title, fallback = NATIONAL_ID_RETRY[language]
+        # The reviewer's own words, as they wrote them, when there are any.
+        body = notes or fallback
     data = {"type": "national_id_reviewed"}
     await record_inbox(db, [user_id], "national_id_reviewed", title, body, data)
     token_rows = await db.fetch(

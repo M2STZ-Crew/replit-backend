@@ -6,6 +6,44 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.20 — 5 November 2026 — The 5 November issue list
+
+Backend and Admin console, with mobile v1.12.24. **Two migrations — run them
+before deploying this backend**, which reads both new columns:
+`20261105090000_location_updated_at.sql` and `20261105090100_user_language.sql`.
+One new optional setting, `NEIGHBORHOOD_LOCATION_MAX_AGE_MINUTES` (default 30).
+
+### Changes
+
+**Found**
+- **The 150 m alert reached people who were not there.** The neighbourhood
+  worker counted anyone whose last-known location was within 150 m, however old
+  it was, and a phone reported it only when the app opened.
+- **A report could leave the Fire Volunteers out.** `POST /reports/submit`
+  took `selected_agencies` as given.
+- **The light Admin console drew the dark map.**
+
+**Changed**
+- **150 m alerts count only a location reported in the last 30 minutes**
+  (`users.location_updated_at`, stamped by `POST /auth/me/location` and by a
+  report's own fix). The app keeps it fresh, open or closed.
+- **Fire is always asked:** `fire_volunteer` comes first in every report's
+  agencies, added when a request leaves it out.
+- **Residents' alerts in English or Tagalog** (`users.language`,
+  `PUT /auth/me/language`, `app/services/citizen_copy.py`): the neighbourhood
+  alert, the six report updates, the National ID answer and the test alert.
+  Staff alerts stay in English. Residents who have not chosen a language now get
+  the neighbourhood alert in English, the app's default.
+- **"The central hub", not "Barangay 76"**, in the 403s and the console copy.
+- **Admin console:** Mapbox `light-v11` on the light ground; skeleton loaders
+  wherever it said "Loading…".
+
+**Tests**
+- `tests/test_citizen_language.py`, `tests/test_phase6.py` (Fire always
+  asked), `tests/test_fixes_oct24.py` (the 30-minute window).
+
+---
+
 ## v1.12.19 — 2 November 2026 — Every RepLiT email on one formal layout
 
 Backend, with mobile v1.12.23. No migration, no new setting, no new email. The

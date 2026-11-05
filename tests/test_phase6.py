@@ -56,6 +56,21 @@ def test_parse_agencies_valid() -> None:
     assert _parse_agencies("fire_volunteer, bfp") == ["fire_volunteer", "bfp"]
 
 
+@pytest.mark.parametrize(
+    ("raw", "parsed"),
+    [
+        ("", ["fire_volunteer"]),
+        ("medical", ["fire_volunteer", "medical"]),
+        ("police, barangay", ["fire_volunteer", "police", "barangay"]),
+        ("medical,fire_volunteer", ["fire_volunteer", "medical"]),
+        ("fire_volunteer,fire_volunteer", ["fire_volunteer"]),
+    ],
+)
+def test_fire_is_always_asked(raw: str, parsed: list[str]) -> None:
+    """Fire is locked in: a report that leaves it out gets it, first, once."""
+    assert _parse_agencies(raw) == parsed
+
+
 def test_parse_agencies_invalid() -> None:
     """An unknown agency is rejected."""
     with pytest.raises(BadRequestError):

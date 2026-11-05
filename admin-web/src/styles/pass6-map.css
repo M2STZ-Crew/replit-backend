@@ -57,8 +57,8 @@
 .rpl-map-legend-note { margin: 10px 0 0; color: var(--text-3); font-size: 12px; max-width: 24ch; }
 
 /* ── Map frame ────────────────────────────────────────────────────────── */
-.rpl-map { position: relative; height: 100%; min-height: 0; background: #0b0b0b; }
-.rpl-map .leaflet-container { background: #0b0b0b; }
+.rpl-map { position: relative; height: 100%; min-height: 0; background: var(--map-ground); }
+.rpl-map .leaflet-container { background: var(--map-ground); }
 .rpl-map-chips {
   position: absolute;
   top: 16px;
@@ -183,7 +183,7 @@
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius-panel);
-  background: #0b0b0b;
+  background: var(--map-ground);
 }
 .rpl-water-panel { right: 16px; }
 .rpl-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }

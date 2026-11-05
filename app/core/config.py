@@ -37,7 +37,7 @@ class Settings(BaseSettings):
         description='Deployment environment: "development" | "staging" | "production".',
     )
     app_name: str = Field(default="RepLiT Backend", description="Human-readable app name.")
-    app_version: str = Field(default="1.12.19", description="Semantic version of the build.")
+    app_version: str = Field(default="1.12.20", description="Semantic version of the build.")
     host: str = Field(default="0.0.0.0", description="Uvicorn bind host.")
     port: int = Field(default=8000, ge=1, le=65535, description="Uvicorn bind port.")
 
@@ -156,6 +156,12 @@ class Settings(BaseSettings):
     gps_discrepancy_threshold_m: float = Field(
         default=100.0, gt=0, description=
         "Device-vs-EXIF distance that flags a discrepancy (Section 3.1)."
+    )
+    neighborhood_location_max_age_minutes: int = Field(
+        default=30, ge=1, description=
+        "How old a user's last-known location may be and still put them inside "
+        "a fire's 150 m neighbourhood alert. Older ones are where they were, not "
+        "where they are."
     )
 
     # ----- Verification percents (Sections 2, 3.2, 3.3) -----

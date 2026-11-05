@@ -18,7 +18,7 @@ export default function CiarView({ state, ciar, onRetry }) {
 
   if (state === 'generating') {
     return (
-      <StatePanel kind="loading" title="The CIAR is being written" busy
+      <StatePanel kind="loading" skeleton="lines" rows={8} title="The CIAR is being written" busy
                   description="It is compiled from the filed report and the audit log, and appears here when it is ready. The report itself is already on record." />
     );
   }

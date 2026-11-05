@@ -30,6 +30,7 @@ from app.schemas.auth import (
     AuthenticatedUser,
     ConsoleAccess,
     ConsoleOrganization,
+    LanguageUpdateRequest,
     LocationUpdateRequest,
     LoginRequest,
     MeResponse,
@@ -261,15 +262,38 @@ async def update_my_location(
 
     public.users.location is generated from latitude/longitude, so updating those
     columns refreshes the geography used by the neighborhood-notification worker.
+    location_updated_at says how fresh it is: the worker ignores a location older
+    than NEIGHBORHOOD_LOCATION_MAX_AGE_MINUTES.
     """
     await db.execute(
-        "update public.users set latitude = $2, longitude = $3, last_active_at = now() "
+        "update public.users set latitude = $2, longitude = $3, "
+        "location_updated_at = now(), last_active_at = now() "
         "where id = $1",
         user.id,
         payload.latitude,
         payload.longitude,
     )
     log.info("user_location_updated", user_id=str(user.id))
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.put(
+    "/me/language",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Set the language my alerts come in",
+)
+async def update_my_language(
+    payload: LanguageUpdateRequest, user: SessionUser, db: DatabaseDep
+) -> Response:
+    """English or Tagalog: residents' pushes and inbox rows follow it (citizen_copy).
+
+    Behind the session only, not the phone gate: the app sends it at sign-in,
+    before a new resident has verified a number.
+    """
+    await db.execute(
+        "update public.users set language = $2 where id = $1", user.id, payload.language
+    )
+    log.info("user_language_updated", user_id=str(user.id), language=payload.language)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

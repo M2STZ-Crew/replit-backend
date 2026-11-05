@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+import Skeleton from './ui/Skeleton.jsx';
+
 /* What the console shows while a stored session is checked on load, and when
  * that check could not finish. Before this the wait was a small grey
  * "Loading…" on the dark ground — on a slow start it read as a black screen —
@@ -17,6 +19,7 @@ export function StartupLoading() {
     <main className="rpl-startup" aria-busy="true">
       <img className="rpl-startup-mark" src="/icons/auth-mark.svg" alt="" />
       <p className="rpl-startup-title" role="status">Opening the Admin console…</p>
+      <Skeleton shape="table" rows={3} />
       {slow && (
         <p className="rpl-startup-body">
           The server is taking a while to answer. After a quiet spell it can need up to a minute to wake.

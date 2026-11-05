@@ -194,7 +194,7 @@ export default function SituationBoard({ onNavigate }) {
             ? `${metrics.count} incident${metrics.count === 1 ? '' : 's'}` +
               `${metricsTruncated ? ` (the latest ${HISTORY_LIMIT})` : ''}` +
               ' · medians over incidents that reached both steps'
-            : 'Loading…'}
+            : <span className="rpl-skel rpl-skel-line" style={{ width: 220, height: 12, display: 'inline-block' }} aria-label="Loading" />}
         </p>
         <div className="rpl-measures">
           {[

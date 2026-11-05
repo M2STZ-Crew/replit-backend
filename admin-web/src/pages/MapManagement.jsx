@@ -11,10 +11,10 @@ import {
   ZoomControl,
 } from 'react-leaflet';
 
-import BaseTiles from '../map/BaseTiles.jsx';
+import BaseTiles, { useConsoleTheme } from '../map/BaseTiles.jsx';
 
 import { api } from '../api/client.js';
-import { OUTSIDE_PASAY_STYLE } from '../components/LiveMap.jsx';
+import { outsidePasayStyle } from '../components/LiveMap.jsx';
 import { ConfirmDialog } from '../components/ui/index.js';
 import {
   RISK_CIRCLE_STYLE, RISK_RADIUS_M, RISK_RADIUS_MAX_M, RISK_RADIUS_MIN_M, markerIcon, riskRadius,
@@ -224,6 +224,7 @@ function ClickCapture({ active, onPick }) {
 }
 
 export default function MapManagement({ query = '', initialLayer, onOpenIncident }) {
+  const theme = useConsoleTheme();
   const [data, setData] = useState({}); // key → array of rows
   const [incidents, setIncidents] = useState([]);
   const [enabled, setEnabled] = useState(
@@ -394,7 +395,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
         <MapContainer
           center={PASAY}
           zoom={13}
-          style={{ height: '100%', width: '100%', background: '#0b0b0b' }}
+          style={{ height: '100%', width: '100%', background: 'var(--map-ground)' }}
           zoomControl={false}
           attributionControl={false}
         >
@@ -471,7 +472,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
                   radius={l.key === 'evac' && r.outside_pasay ? 9 : 7}
                   pathOptions={
                     l.key === 'evac' && r.outside_pasay
-                      ? OUTSIDE_PASAY_STYLE
+                      ? outsidePasayStyle(theme)
                       : { color: '#fff', weight: 1, fillColor: color, fillOpacity: inactive(r) ? 0.35 : 0.95 }
                   }
                   eventHandlers={{ click: () => openEdit(l.key, r) }}

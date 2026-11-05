@@ -198,7 +198,7 @@ export default function WaterResources({ onManage }) {
       <PageHeader
         eyebrow="Shared across every organization"
         title="Water resources"
-        description={`Every hydrant, body of water and underground cistern on the shared map. Any Admin may delete one; every deletion is recorded.${managesMap ? '' : ' Fire Volunteer, BFP and Barangay 76 Admins add and change them.'}`}
+        description={`Every hydrant, body of water and underground cistern on the shared map. Any Admin may delete one; every deletion is recorded.${managesMap ? '' : ' Fire Volunteer, BFP and central hub Admins add and change them.'}`}
         actions={managesMap && (
           <button type="button" className="rpl-button rpl-button--primary" onClick={onManage}>
             Add or change resources

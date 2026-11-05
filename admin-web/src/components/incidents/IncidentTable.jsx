@@ -4,6 +4,7 @@ import { RAIL_BELOW, useMedia } from '../../lib/useMedia.js';
 import Icon from '../ui/Icon.jsx';
 import StatusChip from '../ui/StatusChip.jsx';
 import LifecycleChip from './LifecycleChip.jsx';
+import Skeleton from '../ui/Skeleton.jsx';
 
 /* The incident list (REPLIT (MAIN) 04 · Incident row; PRD v13 §4.6.2, §4.14):
  * the Area and where it is, its status, the agencies its reporters asked for,
@@ -36,7 +37,14 @@ function IncidentCards({
   incidents, isNew, selectedId, onOpen, loading, emptyMessage, staleAt, yourOrg,
 }) {
   if (incidents.length === 0) {
-    return <p className="rpl-empty-line">{loading ? 'Loading incidents…' : emptyMessage}</p>;
+    return loading ? (
+      <div role="status" aria-busy="true">
+        <span className="web-sr-only">Loading incidents…</span>
+        <Skeleton shape="table" rows={4} />
+      </div>
+    ) : (
+      <p className="rpl-empty-line">{emptyMessage}</p>
+    );
   }
   return (
     <ul className={`rpl-incident-cards${staleAt ? ' is-stale' : ''}`} aria-busy={loading || undefined}>
@@ -162,7 +170,12 @@ export default function IncidentTable({
           {incidents.length === 0 && (
             <tr>
               <td className="web-table-empty" colSpan={columns}>
-                {loading ? 'Loading incidents…' : emptyMessage}
+                {loading ? (
+                  <span role="status">
+                    <span className="web-sr-only">Loading incidents…</span>
+                    <Skeleton shape="table" rows={4} />
+                  </span>
+                ) : emptyMessage}
               </td>
             </tr>
           )}

@@ -27,12 +27,20 @@ export const hasMapboxToken = TOKEN.startsWith('pk.');
 export const mapboxToken = hasMapboxToken ? TOKEN : '';
 
 /// `dark-v11` is Mapbox's dark style, which is what the design draws its maps
-/// on. Raster rather than vector: the console already renders with Leaflet, and
-/// swapping to Mapbox GL JS would mean a second map engine in the bundle for a
-/// difference nobody looking at a dashboard would notice.
-export const TILE_URL = hasMapboxToken
-  ? `https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token=${TOKEN}`
-  : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+/// on, and `light-v11` its light twin: the console's light ground gets the light
+/// map, as the mobile app's does (lib/widgets/map_tiles.dart). Until then a
+/// light console drew the dark map in every map frame. Raster rather than
+/// vector: the console already renders with Leaflet, and swapping to Mapbox GL
+/// JS would mean a second map engine in the bundle for a difference nobody
+/// looking at a dashboard would notice.
+export function tileUrl(theme = 'dark') {
+  if (!hasMapboxToken) return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+  const style = theme === 'light' ? 'light-v11' : 'dark-v11';
+  return `https://api.mapbox.com/styles/v1/mapbox/${style}/tiles/256/{z}/{x}/{y}@2x?access_token=${TOKEN}`;
+}
+
+/// The dark map's address, for anything drawn before the ground is known.
+export const TILE_URL = tileUrl('dark');
 
 /// Attribution is a licence condition for both providers, not decoration. The
 /// map components hide Leaflet's default control and render this instead, so

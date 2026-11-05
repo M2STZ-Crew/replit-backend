@@ -263,7 +263,7 @@ AffiliateReviewer = Annotated[
     Depends(
         require_admin_permission(
             console_access.REVIEW_AFFILIATES,
-            "Affiliate applications are reviewed by the central hub (Barangay 76).",
+            "Affiliate applications are reviewed by the central hub's Admins.",
         )
     ),
 ]
@@ -272,7 +272,7 @@ IdReviewer = Annotated[
     Depends(
         require_admin_permission(
             console_access.REVIEW_IDS,
-            "National ID reviews are done by the central hub (Barangay 76).",
+            "National ID reviews are done by the central hub's Admins.",
         )
     ),
 ]
@@ -281,7 +281,7 @@ MapManager = Annotated[
     Depends(
         require_admin_permission(
             console_access.MANAGE_MAP,
-            "Map layers are added and changed by Fire Volunteer, BFP and Barangay 76 Admins.",
+            "Map layers are added and changed by Fire Volunteer, BFP and central hub Admins.",
         )
     ),
 ]

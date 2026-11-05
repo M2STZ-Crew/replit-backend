@@ -61,7 +61,7 @@ export default function IncidentSummary({ areaId, readSummary }) {
   }, [areaId, attempt, readSummary]);
 
   if (result.areaId !== areaId || result.reader !== readSummary || result.loading) {
-    return <StatePanel kind="loading" title="Loading the AI summary" />;
+    return <StatePanel kind="loading" skeleton="lines" title="Loading the AI summary" />;
   }
 
   const { state, summary, statusError, textError } = result;
@@ -85,7 +85,7 @@ export default function IncidentSummary({ areaId, readSummary }) {
         This is the incident’s AI summary. It is separate from each team’s filed report.
       </p>
       {state === 'writing' && (
-        <StatePanel kind="loading" title="A summary is being prepared"
+        <StatePanel kind="loading" skeleton="lines" title="A summary is being prepared"
                     description={summary
                       ? 'The previous summary is shown below. It may not include the latest filed reports.'
                       : 'The latest filed reports are being summarized.'} />
