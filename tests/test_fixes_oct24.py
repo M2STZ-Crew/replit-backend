@@ -56,6 +56,21 @@ async def test_only_neighbours_within_150_m_are_alerted() -> None:
     assert db.args[2] == 150, "the radius the query is given"
 
 
+async def test_only_a_location_reported_in_the_last_30_minutes_counts() -> None:
+    """A location the phone sent hours ago is where they were, not where they
+    are: it no longer puts them inside the 150 m (5 Nov 2026, issue list 2.2)."""
+    db = _NeighbourQuery()
+    await neighborhood.notify_area_neighbors(
+        db,  # type: ignore[arg-type]
+        object(),  # type: ignore[arg-type]
+        uuid4(),
+        14.5,
+        121.0,
+    )
+    assert "u.location_updated_at > now() - make_interval(mins => $4::int)" in db.query
+    assert db.args[3] == 30, "the default window the query is given"
+
+
 # --------------------------------------------------------------------------- #
 # Alarm requests: cancel and delete
 # --------------------------------------------------------------------------- #
@@ -133,3 +148,41 @@ async def test_a_new_risk_zone_is_saved_with_its_radius() -> None:
     assert "radius_m" in db.query
     assert got.radius_m == 320
     assert isinstance(got, RiskZoneResponse)
+
+
+# --------------------------------------------------------------------------- #
+# A reported location carries its time (5 Nov 2026, issue list 2.2)
+# --------------------------------------------------------------------------- #
+class _LocationDb:
+    def __init__(self) -> None:
+        self.executed: list[tuple[str, tuple[Any, ...]]] = []
+
+    async def execute(self, query: str, *args: Any) -> str:
+        self.executed.append((query, args))
+        return "UPDATE 1"
+
+
+def test_reporting_a_location_stamps_when() -> None:
+    from fastapi.testclient import TestClient
+
+    from app.api.deps import get_current_user, get_database
+    from app.main import app
+    from app.schemas.auth import AuthenticatedUser
+
+    db = _LocationDb()
+    # Past the phone gate, as every resident who can report is.
+    user = AuthenticatedUser(id=uuid4(), role="general_user", phone_verified=True)
+    app.dependency_overrides[get_current_user] = lambda: user
+    app.dependency_overrides[get_database] = lambda: db
+    try:
+        with TestClient(app) as client:
+            resp = client.post(
+                "/auth/me/location", json={"latitude": 14.54, "longitude": 121.0}
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert resp.status_code == 204
+    (query, args), = db.executed
+    assert "location_updated_at = now()" in query
+    assert args == (user.id, 14.54, 121.0)

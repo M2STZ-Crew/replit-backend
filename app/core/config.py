@@ -157,6 +157,12 @@ class Settings(BaseSettings):
         default=100.0, gt=0, description=
         "Device-vs-EXIF distance that flags a discrepancy (Section 3.1)."
     )
+    neighborhood_location_max_age_minutes: int = Field(
+        default=30, ge=1, description=
+        "How old a user's last-known location may be and still put them inside "
+        "a fire's 150 m neighbourhood alert. Older ones are where they were, not "
+        "where they are."
+    )
 
     # ----- Verification percents (Sections 2, 3.2, 3.3) -----
     phone_verification_percent: int = Field(default=40, ge=0, le=100)

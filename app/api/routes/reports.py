@@ -228,7 +228,8 @@ async def submit_report(
     # Keep the reporter locatable for future incidents, then immediately alert
     # nearby users (150 m) — they don't have to wait for the 60 s worker tick.
     await db.execute(
-        "update public.users set latitude = $2, longitude = $3, last_active_at = now() "
+        "update public.users set latitude = $2, longitude = $3, "
+        "location_updated_at = now(), last_active_at = now() "
         "where id = $1",
         user.id,
         device_lat,

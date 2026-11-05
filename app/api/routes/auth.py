@@ -261,9 +261,12 @@ async def update_my_location(
 
     public.users.location is generated from latitude/longitude, so updating those
     columns refreshes the geography used by the neighborhood-notification worker.
+    location_updated_at says how fresh it is: the worker ignores a location older
+    than NEIGHBORHOOD_LOCATION_MAX_AGE_MINUTES.
     """
     await db.execute(
-        "update public.users set latitude = $2, longitude = $3, last_active_at = now() "
+        "update public.users set latitude = $2, longitude = $3, "
+        "location_updated_at = now(), last_active_at = now() "
         "where id = $1",
         user.id,
         payload.latitude,

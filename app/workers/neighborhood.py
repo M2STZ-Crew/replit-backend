@@ -2,7 +2,9 @@
 
 Every 60 s, for each active area, pushes a Tagalog alert to registered users whose
 last known location is within 150 m of the centroid (PRD v13/v14 §4.2: 300 m dragged
-in too many unrelated households in dense Pasay) — excluding the area's reporters,
+in too many unrelated households in dense Pasay) and was reported within the last
+NEIGHBORHOOD_LOCATION_MAX_AGE_MINUTES (30): a location the phone sent hours ago is
+where they were, not where they are (5 Nov 2026, issue list 2.2) — excluding the area's reporters,
 users who already responded (Report/Ignore), users at the 10-alert cap, and anyone
 alerted in the last 60 s — and records per-(area, user) state. Stops automatically
 once an incident is resolved or rejected (only active areas are processed).
@@ -14,6 +16,7 @@ from uuid import UUID
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.session import Database, database
 from app.integrations.fcm import PushService, SoundCategory
@@ -39,6 +42,7 @@ async def notify_area_neighbors(
 ) -> int:
     """Push the alert to eligible users near an area; return the number alerted."""
     point = f"SRID=4326;POINT({lng} {lat})"
+    max_age = get_settings().neighborhood_location_max_age_minutes
     users = await db.fetch(
         f"""
         select u.id as user_id,
@@ -48,6 +52,7 @@ async def notify_area_neighbors(
                ) as alerted_before
         from public.users u
         where u.location is not null
+          and u.location_updated_at > now() - make_interval(mins => $4::int)
           and extensions.ST_DWithin(
                 u.location, extensions.ST_GeographyFromText($2), $3::double precision)
           and exists (
@@ -71,6 +76,7 @@ async def notify_area_neighbors(
         area_id,
         point,
         NEIGHBORHOOD_RADIUS_M,
+        max_age,
     )
     if not users:
         return 0
