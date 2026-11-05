@@ -15,7 +15,10 @@ from collections.abc import Sequence
 from typing import Literal
 from uuid import UUID
 
+from app.core.logging import get_logger
 from app.db.session import Database
+
+log = get_logger(__name__)
 
 Language = Literal["en", "tl"]
 LANGUAGES: tuple[Language, ...] = ("en", "tl")
@@ -28,14 +31,22 @@ def language_of(raw: object) -> Language:
 
 
 async def languages_of(db: Database, user_ids: Sequence[UUID]) -> dict[UUID, Language]:
-    """Each user's language. Users not found read as English."""
+    """Each user's language. Users not found read as English.
+
+    Best-effort, like the alerts it serves: if the lookup fails, everyone reads
+    as English rather than the alert not going at all.
+    """
     ids = list(dict.fromkeys(user_ids))
     if not ids:
         return {}
-    rows = await db.fetch(
-        "select id, language from public.users where id = any($1::uuid[])", ids
-    )
-    found = {r["id"]: language_of(r["language"]) for r in rows}
+    try:
+        rows = await db.fetch(
+            "select id, language from public.users where id = any($1::uuid[])", ids
+        )
+        found = {r["id"]: language_of(r["language"]) for r in rows}
+    except Exception:
+        log.warning("user_language_lookup_failed", users=len(ids), exc_info=True)
+        found = {}
     return {uid: found.get(uid, DEFAULT_LANGUAGE) for uid in ids}
 
 
