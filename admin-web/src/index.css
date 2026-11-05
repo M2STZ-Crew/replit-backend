@@ -32,6 +32,9 @@
 }
 
 :root {
+  /* What a map frame shows while its tiles load: the basemap's own ground. */
+  --map-ground: #0b0b0b;
+
   /* Surfaces, darkest to lightest. */
   --bg: #131313; /* color/background/ground */
   --surface-1: #1a1a1a; /* color/surface/subtle — the sidebar */
@@ -126,6 +129,9 @@
  * button looks the same in both. As ink it darkens to #a63a0a, because
  * #ff9066 on a pale ground reads at about 2:1. */
 :root[data-theme='light'] {
+  /* Mapbox light-v11's land colour, so a loading map is not a black box. */
+  --map-ground: #efefef;
+
   --bg: #eae8e4;
   --surface-1: #f1f0ed;
   --surface-2: #f7f6f4;
