@@ -14,6 +14,7 @@ from app.core.logging import get_logger
 from app.integrations.fcm import fcm_failure_reason, fcm_status
 from app.schemas.common import MessageResponse
 from app.schemas.device import DeviceTokenCreate, DeviceTokenResponse
+from app.services.citizen_copy import TEST_ALERT, languages_of
 
 log = get_logger(__name__)
 
@@ -114,10 +115,11 @@ async def send_test_push(
     tokens = [r["fcm_token"] for r in rows]
     if not tokens:
         raise BadRequestError("No active device tokens registered.")
+    title, body = TEST_ALERT[(await languages_of(db, [user.id])).get(user.id, "en")]
     result = await push.send_to_tokens(
         tokens=tokens,
-        title="RepLiT test",
-        body="Push notifications are working.",
+        title=title,
+        body=body,
         data={"type": "test"},
         # A second test replaces the first in the shade rather than stacking.
         tag="test-alert",

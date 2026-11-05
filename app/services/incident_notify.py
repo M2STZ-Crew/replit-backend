@@ -24,6 +24,13 @@ from app.core.logging import get_logger
 from app.db.session import Database
 from app.integrations.fcm import PushService, SoundCategory, sound_for_agency
 from app.schemas.alarm import AlarmRequestResponse, alarm_label
+from app.services.citizen_copy import (
+    REPORTER_MESSAGES,
+    Language,
+    by_language,
+    language_of,
+    verified_by,
+)
 from app.services.incident import COORDINATING_AGENCIES, OBSERVER_AGENCIES
 from app.services.notification_inbox import record_inbox
 from app.services.verifier import fetch_verifier
@@ -131,32 +138,10 @@ async def notify_staff_new_incident(db: Database, area_id: UUID) -> int:
     )
     return len(staff_ids)
 
-# Broadcast event_type -> (title, body) for the citizen who filed the report.
+# Broadcast event_type -> (title, body) for the citizen who filed the report, in
+# English; citizen_copy.REPORTER_MESSAGES has both languages.
 _REPORTER_MESSAGES: dict[str, tuple[str, str]] = {
-    "incident_verified": (
-        "Report verified",
-        "Your fire report was verified. Responders are being assigned.",
-    ),
-    "responder_dispatched": (
-        "Responders dispatched",
-        "A response team has been dispatched to the incident you reported.",
-    ),
-    "incident_en_route": (
-        "Help is on the way",
-        "Responders are on the way to the fire you reported. Open RepLiT to see them.",
-    ),
-    "incident_arrived": (
-        "Responders on scene",
-        "Responders have arrived at the incident you reported.",
-    ),
-    "incident_resolved": (
-        "Incident resolved",
-        "The incident you reported has been resolved. Stay safe.",
-    ),
-    "incident_rejected": (
-        "Report closed",
-        "Your report has been reviewed and closed.",
-    ),
+    event: texts["en"] for event, texts in REPORTER_MESSAGES.items()
 }
 
 # Keep existing lifecycle triggers; only select a distinct sound for each event.
@@ -174,45 +159,47 @@ async def notify_incident_reporters(db: Database, area_id: UUID, event_type: str
     No-op for events not in [_REPORTER_MESSAGES]. Deactivates dead tokens.
     Returns the number of device tokens targeted.
     """
-    message = _REPORTER_MESSAGES.get(event_type)
-    if message is None:
+    texts = REPORTER_MESSAGES.get(event_type)
+    if texts is None:
         return 0
 
-    title, body = message
+    # Say which team: "...verified by Hercules Fire Brigade." Never the person.
+    team: str | None = None
     if event_type == "incident_verified":
-        # Say which team: "...verified by Hercules Fire Brigade." Never the person.
         verifier = await fetch_verifier(db, area_id)
         if verifier is not None:
-            body = (
-                f"Your fire report was verified by {verifier.public_label}. "
-                "Responders are being assigned."
-            )
+            team = verifier.public_label
 
-    # In-app inbox for every reporter (even those without a device token).
+    def message(language: Language) -> tuple[str, str]:
+        title, body = texts[language]
+        return title, (verified_by(language, team) if team else body)
+
+    data = {"area_id": str(area_id), "event": event_type}
+
+    # In-app inbox for every reporter (even those without a device token), in
+    # the language each reads the app in.
     reporter_rows = await db.fetch(
         """
-        select distinct r.reporter_id as user_id
+        select distinct r.reporter_id as user_id, u.language
         from public.area_reports ar
         join public.reports r on r.id = ar.report_id
+        left join public.users u on u.id = r.reporter_id
         where ar.area_id = $1 and r.reporter_id is not null
         """,
         area_id,
     )
-    await record_inbox(
-        db,
-        [r["user_id"] for r in reporter_rows],
-        "incident_update",
-        title,
-        body,
-        {"area_id": str(area_id), "event": event_type},
-    )
+    reporters = {r["user_id"]: language_of(r.get("language")) for r in reporter_rows}
+    for language, ids in by_language(reporters).items():
+        title, body = message(language)
+        await record_inbox(db, ids, "incident_update", title, body, data)
 
     rows = await db.fetch(
         """
-        select distinct dt.fcm_token
+        select distinct dt.fcm_token, u.language
         from public.area_reports ar
         join public.reports r on r.id = ar.report_id
         join public.device_tokens dt on dt.user_id = r.reporter_id
+        left join public.users u on u.id = r.reporter_id
         where ar.area_id = $1 and r.reporter_id is not null and dt.is_active
         """,
         area_id,
@@ -220,23 +207,28 @@ async def notify_incident_reporters(db: Database, area_id: UUID, event_type: str
     tokens = [r["fcm_token"] for r in rows]
     if not tokens:
         return 0
+    by_tongue: dict[Language, list[str]] = {}
+    for r in rows:
+        by_tongue.setdefault(language_of(r.get("language")), []).append(r["fcm_token"])
 
     push = PushService()
-    result = await push.send_to_tokens(
-        tokens=tokens,
-        title=title,
-        body=body,
-        data={"type": "incident_update", "area_id": str(area_id), "event": event_type},
-        sound=_REPORTER_SOUNDS.get(event_type, "citizen"),
-        # One per incident in the shade: the latest news replaces the last.
-        tag=f"report-{area_id}",
-    )
-    if result.invalid_tokens:
-        await db.execute(
-            "update public.device_tokens set is_active = false "
-            "where fcm_token = any($1::text[])",
-            result.invalid_tokens,
+    for language, group in by_tongue.items():
+        title, body = message(language)
+        result = await push.send_to_tokens(
+            tokens=group,
+            title=title,
+            body=body,
+            data={"type": "incident_update", **data},
+            sound=_REPORTER_SOUNDS.get(event_type, "citizen"),
+            # One per incident in the shade: the latest news replaces the last.
+            tag=f"report-{area_id}",
         )
+        if result.invalid_tokens:
+            await db.execute(
+                "update public.device_tokens set is_active = false "
+                "where fcm_token = any($1::text[])",
+                result.invalid_tokens,
+            )
     log.info(
         "incident_reporters_notified",
         area_id=str(area_id),

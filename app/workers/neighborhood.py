@@ -1,6 +1,7 @@
 """Crowdsourced neighborhood notification worker (Section 3.5).
 
-Every 60 s, for each active area, pushes a Tagalog alert to registered users whose
+Every 60 s, for each active area, pushes an alert — in each user's language
+(citizen_copy.NEIGHBOUR_ALERT: Tagalog, or English) — to registered users whose
 last known location is within 150 m of the centroid (PRD v13/v14 §4.2: 300 m dragged
 in too many unrelated households in dense Pasay) and was reported within the last
 NEIGHBORHOOD_LOCATION_MAX_AGE_MINUTES (30): a location the phone sent hours ago is
@@ -20,16 +21,15 @@ from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.session import Database, database
 from app.integrations.fcm import PushService, SoundCategory
+from app.services.citizen_copy import NEIGHBOUR_ALERT, Language, by_language, language_of
 from app.services.incident import active_area_sql
 from app.services.notification_inbox import record_inbox
 
 log = get_logger(__name__)
 
-_ALERT_TITLE = "Alerto sa Sunog"
-_ALERT_BODY = (
-    "May sunog ba sa lugar na ito? "
-    "I-click ang notif na ito para makapag-submit ka rin ng report!"
-)
+# The Tagalog alert PRD v14 §4.2 was written with; residents who read the app in
+# English get NEIGHBOUR_ALERT["en"].
+_ALERT_TITLE, _ALERT_BODY = NEIGHBOUR_ALERT["tl"]
 # Nobody farther than this from the fire is alerted (PRD v14 §4.2, §4.13.3).
 NEIGHBORHOOD_RADIUS_M = 150
 _MAX_ALERTS = 10
@@ -46,6 +46,7 @@ async def notify_area_neighbors(
     users = await db.fetch(
         f"""
         select u.id as user_id,
+               u.language,
                exists (
                    select 1 from public.neighborhood_notifications nn
                    where nn.area_id = $1 and nn.user_id = u.id and nn.alerts_sent > 0
@@ -85,13 +86,19 @@ async def notify_area_neighbors(
     # The first alert plays the fire recording; the reminders after it (one a
     # minute, up to ten, until they answer) play the citizen recording and
     # replace the last one in the shade — ten sirens would teach people to mute
-    # the app.
-    first = [u["user_id"] for u in users if not u["alerted_before"]]
-    again = [u["user_id"] for u in users if u["alerted_before"]]
-    sounds: tuple[tuple[list[UUID], SoundCategory], ...] = ((first, "fire"), (again, "citizen"))
-    for ids, sound in sounds:
-        if ids:
-            await _push_alert(db, push, area_id, ids, sound=sound)
+    # the app. Each in the language the resident reads the app in.
+    languages: dict[UUID, Language] = {
+        u["user_id"]: language_of(u.get("language")) for u in users
+    }
+    first = {u["user_id"]: languages[u["user_id"]] for u in users if not u["alerted_before"]}
+    again = {u["user_id"]: languages[u["user_id"]] for u in users if u["alerted_before"]}
+    sounds: tuple[tuple[dict[UUID, Language], SoundCategory], ...] = (
+        (first, "fire"),
+        (again, "citizen"),
+    )
+    for group, sound in sounds:
+        for language, ids in by_language(group).items():
+            await _push_alert(db, push, area_id, ids, sound=sound, language=language)
 
     await db.execute(
         f"""
@@ -105,9 +112,9 @@ async def notify_area_neighbors(
         area_id,
         user_ids,
     )
-    await record_inbox(
-        db, user_ids, "fire_alert", _ALERT_TITLE, _ALERT_BODY, {"area_id": str(area_id)}
-    )
+    for language, ids in by_language(languages).items():
+        title, body = NEIGHBOUR_ALERT[language]
+        await record_inbox(db, ids, "fire_alert", title, body, {"area_id": str(area_id)})
     log.info("neighborhood_alerts_sent", area_id=str(area_id), users=len(user_ids))
     return len(user_ids)
 
@@ -119,8 +126,10 @@ async def _push_alert(
     user_ids: list[UUID],
     *,
     sound: SoundCategory,
+    language: Language = "tl",
 ) -> None:
     """Push the neighbourhood alert to these users' phones; retire dead tokens."""
+    title, body = NEIGHBOUR_ALERT[language]
     token_rows = await db.fetch(
         "select fcm_token from public.device_tokens "
         "where user_id = any($1::uuid[]) and is_active",
@@ -131,8 +140,8 @@ async def _push_alert(
         return
     result = await push.send_to_tokens(
         tokens=tokens,
-        title=_ALERT_TITLE,
-        body=_ALERT_BODY,
+        title=title,
+        body=body,
         data={"type": "neighborhood_alert", "area_id": str(area_id)},
         sound=sound,
         tag=f"nearby-{area_id}",

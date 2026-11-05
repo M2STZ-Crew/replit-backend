@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
@@ -153,6 +154,12 @@ class LocationUpdateRequest(BaseModel):
 
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
+
+
+class LanguageUpdateRequest(BaseModel):
+    """The language the user reads RepLiT in; residents' alerts follow it."""
+
+    language: Literal["en", "tl"]
 
 
 class RecoverRequest(BaseModel):
