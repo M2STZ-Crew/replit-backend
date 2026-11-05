@@ -185,7 +185,7 @@ export default function Register() {
               <Label required>Organization name</Label>
               <input
                 autoComplete="organization"
-                placeholder="e.g. Barangay 76 Fire Brigade"
+                placeholder="e.g. Barangay Fire Brigade"
                 value={orgName}
                 onChange={(e) => setOrgName(e.target.value)}
               />
