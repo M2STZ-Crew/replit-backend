@@ -121,7 +121,7 @@ export default function IdReview() {
       />
 
       {phase === 'loading' ? (
-        <StatePanel kind="loading" title="Loading reviews…" busy />
+        <StatePanel kind="loading" skeleton="cards" rows={4} title="Loading reviews…" busy />
       ) : phase === 'error' ? (
         <StatePanel kind="error" title="The reviews couldn’t load" description={error} onRetry={load} />
       ) : items.length === 0 ? (

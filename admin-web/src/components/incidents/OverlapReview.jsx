@@ -5,6 +5,7 @@ import { statusOf } from '../../lib/status.js';
 import { ConfirmDialog, PageHeader, StatePanel } from '../ui/index.js';
 import AreaMap from './AreaMap.jsx';
 import { agenciesOf, confidenceOf } from './IncidentTable.jsx';
+import Skeleton from '../ui/Skeleton.jsx';
 
 /* Two Areas that grew within range of each other (REPLIT (MAIN) 10 · A27
  * 868:3155, A27b 868:3356; PRD v13 §4.3): are they one fire? Merge moves the
@@ -41,7 +42,10 @@ function Side({ title, area }) {
           ))}
         </dl>
       ) : (
-        <p className="rpl-decision-body">Loading…</p>
+        <>
+          <p className="web-sr-only" role="status">Loading…</p>
+          <Skeleton shape="lines" rows={4} />
+        </>
       )}
     </section>
   );
@@ -96,7 +100,7 @@ export default function OverlapReview({ overlap, onDone, onBack }) {
       />
 
       {error && <p className="rpl-inline-error" role="alert">{error}</p>}
-      {!a && !b && !error && <StatePanel kind="loading" title="Loading both Areas…" />}
+      {!a && !b && !error && <StatePanel kind="loading" skeleton="detail" rows={2} title="Loading both Areas…" />}
 
       <AreaMap
         height={240}

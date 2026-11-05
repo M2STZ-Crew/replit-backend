@@ -245,7 +245,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
       );
     }
     if (!detail || detail.id !== selectedId) {
-      return <div className="rpl-page"><StatePanel kind="loading" title="Loading the incident…" /></div>;
+      return <div className="rpl-page"><StatePanel kind="loading" skeleton="detail" rows={3} title="Loading the incident…" /></div>;
     }
     return (
       <>

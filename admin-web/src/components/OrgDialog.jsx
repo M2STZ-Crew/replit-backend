@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 
 import { api } from '../api/client.js';
 import { agencyAuthority, agencyLabel } from '../auth.jsx';
+import Skeleton from './ui/Skeleton.jsx';
 
 const ROLE = {
   admin: 'Admin',
@@ -218,7 +219,7 @@ export default function OrgDialog({ org, application, glyph, color, onClose }) {
                 <span className="od-count">{personnel ? personnel.length : '·'}</span>
               </div>
               {personnel === null ? (
-                <p className="od-empty">Loading…</p>
+                <Skeleton shape="table" rows={3} />
               ) : personnel.length === 0 ? (
                 <p className="od-empty">No accounts belong to this organization yet.</p>
               ) : (
@@ -244,7 +245,7 @@ export default function OrgDialog({ org, application, glyph, color, onClose }) {
                 <span className="od-count">{equipment ? equipment.length : '·'}</span>
               </div>
               {equipment === null ? (
-                <p className="od-empty">Loading…</p>
+                <Skeleton shape="table" rows={3} />
               ) : equipment.length === 0 ? (
                 <p className="od-empty">No equipment registered yet.</p>
               ) : (

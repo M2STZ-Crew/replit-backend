@@ -173,7 +173,7 @@ function Console() {
       {flush && <AlarmBanner onOpen={(incidentId) => go('incidents', { incidentId })} />}
       <div className={`db-scroll rpl-scroll${flush ? ' db-scroll-flush' : ''}`}>
         {!flush && <AlarmBanner onOpen={(incidentId) => go('incidents', { incidentId })} />}
-        <Suspense fallback={<StatePanel kind="loading" title="Opening…" busy />}>
+        <Suspense fallback={<StatePanel kind="loading" skeleton="detail" rows={3} title="Opening…" busy />}>
           <Destination active={active} focusId={focusId} focusTab={focusTab} go={go} />
         </Suspense>
       </div>

@@ -311,7 +311,7 @@ export default function Affiliates() {
       </div>
 
       {phase === 'loading' ? (
-        <StatePanel kind="loading" title="Loading affiliate requests…" busy />
+        <StatePanel kind="loading" skeleton="cards" rows={4} title="Loading affiliate requests…" busy />
       ) : phase === 'error' ? (
         <StatePanel kind="error" title="The affiliate requests couldn’t load" description={error} onRetry={load} />
       ) : tab === 'network' ? (
