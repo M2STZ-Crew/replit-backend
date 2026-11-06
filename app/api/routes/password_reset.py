@@ -24,6 +24,7 @@ from app.api.deps import AuthClientDep
 from app.core.config import get_settings
 from app.core.exceptions import AppError, BadRequestError
 from app.core.logging import get_logger
+from app.db.session import Database
 from app.integrations.brevo_email import BrevoEmailClient
 from app.integrations.supabase_auth import AuthError, SupabaseAuthClient
 from app.schemas.common import MessageResponse
@@ -113,10 +114,26 @@ def _reset_email(link: str) -> RenderedEmail:
 
 
 async def send_reset_email(
-    auth: SupabaseAuthClient, email_client: BrevoEmailClient, email: str
+    auth: SupabaseAuthClient,
+    email_client: BrevoEmailClient,
+    email: str,
+    db: Database | None = None,
 ) -> None:
     """Email a recovery link. Silent on failure: an unknown address lands here too,
-    and the caller must not learn which addresses have accounts."""
+    and the caller must not learn which addresses have accounts.
+
+    A staff account that signs in at @replit.com has no mailbox there: its link
+    goes to its personal email instead (routes/staff_email.py). If that lookup
+    fails, the usual reset still goes.
+    """
+    if db is not None:
+        from app.api.routes.staff_email import send_staff_resets
+
+        try:
+            if await send_staff_resets(db, email_client, email):
+                return
+        except Exception:
+            log.warning("staff_reset_lookup_failed", exc_info=True)
     try:
         resp = await auth.admin_generate_link(
             link_type="recovery", email=email, redirect_to=reset_page_url()
@@ -141,6 +158,7 @@ def schedule_reset_email(
     auth: SupabaseAuthClient,
     email_client: BrevoEmailClient,
     email: str,
+    db: Database | None = None,
 ) -> None:
     """Queue a reset email after the response, at most one per address a minute."""
     key = email.strip().lower()
@@ -151,7 +169,7 @@ def schedule_reset_email(
     _last_sent[key] = now
     for stale in [k for k, t in _last_sent.items() if now - t > _RECOVER_COOLDOWN]:
         del _last_sent[stale]
-    background.add_task(send_reset_email, auth, email_client, key)
+    background.add_task(send_reset_email, auth, email_client, key, db)
 
 
 # --------------------------------------------------------------------------- #

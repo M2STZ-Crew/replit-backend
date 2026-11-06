@@ -167,6 +167,7 @@ async def recover(
     payload: RecoverRequest,
     auth: AuthClientDep,
     email: EmailClientDep,
+    db: DatabaseDep,
     background: BackgroundTasks,
 ) -> MessageResponse:
     """Email a password-reset link. Generic response (no account enumeration).
@@ -175,8 +176,11 @@ async def recover(
     Supabase's own mailer only delivers to the project's team, and with no
     redirect its links opened the default Site URL, http://localhost:3000. It is
     sent after the response, so timing does not tell which addresses exist.
+
+    A staff account at @replit.com, named by its sign-in or its personal email,
+    gets its link at the personal email (routes/staff_email.py).
     """
-    schedule_reset_email(background, auth, email, str(payload.email))
+    schedule_reset_email(background, auth, email, str(payload.email), db)
     return MessageResponse(message="If that email is registered, a reset link has been sent.")
 
 

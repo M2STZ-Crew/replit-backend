@@ -5,22 +5,24 @@ Tier 1 creates Tier 2: every organisation's Admin creates the Coordinator
 Coordinators then create their Responders on the mobile app (routes/team.py).
 The system Admin, which belongs to no organisation, names the organisation.
 
-A new Coordinator gets an email with a link to set their own password, the same
-way an accepted affiliate's contact does, so the Admin never handles it. The
-console lists the roster from GET /organizations/{id}/personnel.
+A new Coordinator signs in with an address made from their name, agency and
+role (obryan.fircor@replit.com, the 6 November list). @replit.com has no
+mailboxes, so the Admin gives their own email too: a link there confirms it and
+sets their password, and later password resets go there as well
+(app/services/staff_links.py). The Admin never handles a password. The console
+lists the roster from GET /organizations/{id}/personnel.
 """
 
 from __future__ import annotations
 
 import secrets
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, Query, Request, status
 
 from app.api.deps import AuthClientDep, CoordinatorManager, DatabaseDep, EmailClientDep
 from app.api.routes.organizations import PERSONNEL_SELECT
-from app.api.routes.password_reset import reset_page_url
 from app.core.exceptions import (
     AppError,
     BadRequestError,
@@ -36,11 +38,19 @@ from app.schemas.auth import AuthenticatedUser
 from app.schemas.organization import (
     CoordinatorCreateRequest,
     CoordinatorCreateResult,
+    CoordinatorEmailPreview,
     OrganizationMember,
 )
 from app.services.access import admin_access
 from app.services.audit import record_audit
-from app.services.email_layout import TAGLINE, EmailAction, RenderedEmail, render_email
+from app.services.responder_accounts import (
+    AGENCY_CODES,
+    InvalidNameError,
+    is_staff_address,
+    staff_email,
+    staff_like_pattern,
+)
+from app.services.staff_links import WELCOME_FOR, password_link, welcome_email
 
 log = get_logger(__name__)
 
@@ -91,30 +101,57 @@ async def _own_coordinator(
     return await _member(db, user_id)
 
 
-def _invite(name: str, org_name: str, link: str) -> RenderedEmail:
-    """The new Coordinator's email (HTML and plain text); render_email escapes."""
-    return render_email(
-        preheader=f"Set your password to start as a Coordinator for {org_name}.",
-        heading=f"You're a Coordinator for {org_name}",
-        greeting=f"Hello {name},",
-        paragraphs=[
-            "Your organization's Admin has made you a Coordinator on RepLiT, "
-            f"{TAGLINE}.",
-            "Set your password, then sign in to the RepLiT mobile app with this email "
-            "address. From there you acknowledge incidents and create your "
-            "Responders' accounts.",
-        ],
-        action=EmailAction("Set my password", link),
-        facts=[
-            "This link works once and expires one hour after this email was sent. "
-            "If it has expired, open the RepLiT app, tap Forgot password?, and enter "
-            "this email address to get a new one.",
-        ],
-        notice="If you were not expecting this email, you can ignore it. Do not forward "
-        "it, because the link lets whoever opens it set the account's password.",
-        reason="You are receiving this email because your organization's Admin "
-        "created a RepLiT Coordinator account for this address.",
+async def _organization(db: Database, org_id: UUID) -> Any:
+    """The organisation a Coordinator is made for: live, with an agency that has
+    staff addresses."""
+    org = await db.fetchrow(
+        "select id, name, agency_type::text as agency_type, is_active "
+        "from public.organizations where id = $1",
+        org_id,
     )
+    if org is None:
+        raise NotFoundError("Organization not found.")
+    if not org["is_active"]:
+        raise ConflictError("That organization is not active on RepLiT.")
+    if org["agency_type"] not in AGENCY_CODES:
+        raise BadRequestError("This organization's agency has no Coordinator accounts.")
+    return org
+
+
+async def _taken(db: Database, first: str, last: str, agency: str) -> list[str]:
+    """Every address this Coordinator's could collide with."""
+    rows = await db.fetch(
+        "select email from public.users where lower(email) like $1",
+        staff_like_pattern(first, last, agency, "coordinator"),
+    )
+    return [str(r["email"]) for r in rows if r["email"]]
+
+
+@router.get(
+    "/email-preview",
+    response_model=CoordinatorEmailPreview,
+    summary="The address a new Coordinator with this name would get (Admin)",
+)
+async def preview_coordinator_email(
+    admin: CoordinatorManager,
+    db: DatabaseDep,
+    first_name: str = Query(min_length=1, max_length=60),
+    last_name: str = Query(min_length=1, max_length=60),
+    organization_id: Annotated[UUID | None, Query()] = None,
+) -> CoordinatorEmailPreview:
+    """Shown on the form as the name is typed; the create takes the next free one."""
+    org = await _organization(db, _target_organization(admin, organization_id))
+    try:
+        email = staff_email(
+            first_name,
+            last_name,
+            org["agency_type"],
+            "coordinator",
+            await _taken(db, first_name, last_name, org["agency_type"]),
+        )
+    except InvalidNameError as exc:
+        raise BadRequestError(str(exc)) from exc
+    return CoordinatorEmailPreview(email=email)
 
 
 @router.post(
@@ -131,46 +168,53 @@ async def create_coordinator(
     auth: AuthClientDep,
     email_client: EmailClientDep,
 ) -> CoordinatorCreateResult:
-    """A Coordinator of the Admin's organisation, emailed a link to set a password.
+    """A Coordinator of the Admin's organisation, signing in at a made address.
 
-    Refuses an email that already has an account, rather than taking it over:
-    promoting someone's existing account is not an organisation Admin's call.
+    The address takes the next number when the name is taken, and a second Admin
+    making the same name at once gets the next one rather than an error. The
+    link to set a password goes to the Coordinator's personal email.
     """
     org_id = _target_organization(admin, payload.organization_id)
-    org = await db.fetchrow(
-        "select id, name, agency_type::text as agency_type, is_active "
-        "from public.organizations where id = $1",
-        org_id,
-    )
-    if org is None:
-        raise NotFoundError("Organization not found.")
-    if not org["is_active"]:
-        raise ConflictError("That organization is not active on RepLiT.")
-
-    email = str(payload.email).strip().lower()
-    full_name = payload.full_name.strip()
+    org = await _organization(db, org_id)
+    agency = org["agency_type"]
+    first = payload.first_name.strip()
+    last = payload.last_name.strip()
+    full_name = f"{first} {last}"
+    personal = str(payload.personal_email).strip().lower()
+    if is_staff_address(personal):
+        raise BadRequestError(
+            "Use the Coordinator's own email: @replit.com addresses have no mailbox.",
+            error_code="not_personal",
+        )
     title = payload.title.strip() if payload.title and payload.title.strip() else None
-    taken = await db.fetchval(
-        "select 1 from public.users where lower(email) = $1", email
-    )
-    if taken:
-        raise ConflictError(
-            "An account already uses this email. Use another address for the "
-            "Coordinator."
-        )
 
-    try:
-        created: dict[str, Any] = await auth.admin_create_user(
-            email=email,
-            # Never used: the Coordinator sets their own from the email.
-            password=secrets.token_urlsafe(24),
-            email_confirm=True,
-            user_metadata={"full_name": full_name},
-        )
-    except (BadRequestError, AuthError) as exc:
-        raise ConflictError(
-            "That email could not be used for a new account. Use another address."
-        ) from exc
+    created: dict[str, Any] | None = None
+    email = ""
+    for attempt in range(3):
+        try:
+            email = staff_email(
+                first, last, agency, "coordinator", await _taken(db, first, last, agency)
+            )
+        except InvalidNameError as exc:
+            raise BadRequestError(str(exc)) from exc
+        try:
+            created = await auth.admin_create_user(
+                email=email,
+                # Never used: the Coordinator sets their own from the email.
+                password=secrets.token_urlsafe(24),
+                email_confirm=True,
+                user_metadata={"full_name": full_name},
+            )
+            break
+        except (BadRequestError, AuthError) as exc:
+            # Taken between the check and the create: take the next number.
+            message = getattr(exc, "message", str(exc))
+            if "already" not in str(message).lower() or attempt == 2:
+                raise ConflictError(
+                    "The account could not be made. Try again in a moment."
+                ) from exc
+            log.info("coordinator_email_race", email=email)
+    assert created is not None
     raw_id = created.get("id") or (created.get("user") or {}).get("id")
     if not isinstance(raw_id, str):
         raise ExternalServiceError("Account created but no id was returned by Supabase Auth.")
@@ -186,15 +230,18 @@ async def create_coordinator(
                        primary_org_id = $3,
                        full_name = $4,
                        created_by = $5,
+                       personal_email = $6,
+                       personal_email_verified_at = null,
                        is_active = true,
                        updated_at = now()
                  where id = $1
                 """,
                 new_id,
-                org["agency_type"],
+                agency,
                 org_id,
                 full_name,
                 admin.id,
+                personal,
             )
             if updated.endswith(" 0"):
                 raise ExternalServiceError("Account created but its profile was not found.")
@@ -219,8 +266,9 @@ async def create_coordinator(
                 entity_id=new_id,
                 after_state={
                     "email": email,
+                    "personal_email": personal,
                     "role": "sub_admin",
-                    "agency": org["agency_type"],
+                    "agency": agency,
                     "organization_id": str(org_id),
                     "title": title,
                 },
@@ -236,27 +284,25 @@ async def create_coordinator(
     sent = False
     detail: str | None = None
     try:
-        link_resp = await auth.admin_generate_link(
-            link_type="recovery", email=email, redirect_to=reset_page_url()
+        message = welcome_email(
+            name=full_name,
+            role="Coordinator",
+            organization=org["name"],
+            address=email,
+            link=password_link(new_id, personal, WELCOME_FOR),
+            made_by="Your organization's Admin",
         )
-        action_link = link_resp.get("action_link") or (
-            link_resp.get("properties") or {}
-        ).get("action_link")
-        if isinstance(action_link, str) and action_link:
-            message = _invite(full_name, org["name"], action_link)
-            await email_client.send(
-                to=email,
-                subject=f"You're a Coordinator for {org['name']} on RepLiT",
-                html=message.html,
-                text=message.text,
-            )
-            sent = True
-        else:
-            detail = "The account is ready, but no password link was generated."
+        await email_client.send(
+            to=personal,
+            subject=f"You're a Coordinator for {org['name']} on RepLiT",
+            html=message.html,
+            text=message.text,
+        )
+        sent = True
     except AppError as exc:
         detail = (
-            "The account is ready, but the email with the password link could not be "
-            "sent. They can use “Forgot password?” on the app with this email."
+            f"The account is ready, but the email to {personal} could not be sent. "
+            f"They can use “Forgot password?” on the app with {email} or {personal}."
         )
         log.warning("coordinator_invite_failed", user_id=str(new_id), error=str(exc))
 
@@ -268,7 +314,10 @@ async def create_coordinator(
         invite_email_sent=sent,
     )
     return CoordinatorCreateResult(
-        coordinator=await _member(db, new_id), invite_email_sent=sent, detail=detail
+        coordinator=await _member(db, new_id),
+        personal_email=personal,
+        invite_email_sent=sent,
+        detail=detail,
     )
 
 

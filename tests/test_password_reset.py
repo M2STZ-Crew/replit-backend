@@ -16,7 +16,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.deps import get_auth_client, get_email_client
+from app.api.deps import get_auth_client, get_database, get_email_client
 from app.api.routes import affiliates, password_reset
 from app.core.exceptions import BadRequestError, ExternalServiceError
 from app.integrations.supabase_auth import AuthError
@@ -62,9 +62,25 @@ def client() -> Iterator[TestClient]:
     app.dependency_overrides.clear()
 
 
-def _wire(auth: _Auth, mail: _Mail | None = None) -> None:
+class _Users:
+    """public.users as far as Forgot password? asks: staff accounts at
+    @replit.com with a personal email."""
+
+    def __init__(self, rows: list[dict[str, Any]] | None = None) -> None:
+        self.rows = rows or []
+
+    async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
+        asked = args[0]
+        return [
+            r for r in self.rows
+            if asked in (r["email"].lower(), r["personal_email"].lower())
+        ]
+
+
+def _wire(auth: _Auth, mail: _Mail | None = None, users: _Users | None = None) -> None:
     app.dependency_overrides[get_auth_client] = lambda: auth
     app.dependency_overrides[get_email_client] = lambda: mail or _Mail()
+    app.dependency_overrides[get_database] = lambda: users or _Users()
 
 
 _TOKEN = "eyJ" + "x" * 60
@@ -155,6 +171,44 @@ def test_one_reset_email_a_minute_per_address(client: TestClient) -> None:
         r = client.post("/auth/recover", json={"email": "a@brigade.example.com"})
         assert r.status_code == 200
     assert len(mail.sent) == 1
+
+
+# The 6 November list: a staff account signs in at @replit.com, which has no
+# mailbox, so its link goes to its personal email, by either address.
+@pytest.mark.parametrize(
+    "asked", ["OBryan.FirCor@replit.com", "odyssey.bryan@gmail.com"]
+)
+def test_a_staff_account_gets_its_link_at_its_personal_email(
+    client: TestClient, asked: str
+) -> None:
+    auth, mail = _Auth(), _Mail()
+    users = _Users([{
+        "id": uuid4(),
+        "email": "obryan.fircor@replit.com",
+        "personal_email": "odyssey.bryan@gmail.com",
+    }])
+    _wire(auth, mail, users)
+
+    r = client.post("/auth/recover", json={"email": asked})
+
+    assert r.status_code == 200
+    assert r.json()["message"] == "If that email is registered, a reset link has been sent."
+    assert auth.links == [], "no Supabase link until the emailed one is opened"
+    (sent,) = mail.sent
+    assert sent["to"] == "odyssey.bryan@gmail.com"
+    assert "obryan.fircor@replit.com" in sent["text"]
+    assert "/auth/staff/password-link?token=" in sent["text"]
+
+
+def test_a_broken_staff_lookup_still_sends_the_usual_reset(client: TestClient) -> None:
+    class _Down(_Users):
+        async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
+            raise RuntimeError("database down")
+
+    auth, mail = _Auth(), _Mail()
+    _wire(auth, mail, _Down())
+    client.post("/auth/recover", json={"email": "captain@brigade.example.com"})
+    assert [m["to"] for m in mail.sent] == ["captain@brigade.example.com"]
 
 
 # ------------------------------------------------------ affiliate approval --

@@ -44,7 +44,6 @@ from app.api.routes import (
 )
 from app.core.exceptions import (
     BadRequestError,
-    ConflictError,
     ForbiddenError,
     NotFoundError,
 )
@@ -502,6 +501,9 @@ class _Auth:
         self.new_id = str(uuid4())
 
     async def admin_create_user(self, **kw: Any) -> dict[str, Any]:
+        if kw["email"] == getattr(self, "race_on", None):
+            self.race_on = None
+            raise BadRequestError("A user with this email address has already been registered")
         self.created.append(kw["email"])
         return {"id": self.new_id}
 
@@ -515,6 +517,7 @@ class _Auth:
 class _Email:
     def __init__(self, fail: bool = False) -> None:
         self.sent: list[str] = []
+        self.texts: list[str] = []
         self.fail = fail
 
     async def send(self, *, to: str, subject: str, html: str, text: str | None = None) -> None:
@@ -523,11 +526,12 @@ class _Email:
         if self.fail:
             raise AppError("smtp down")
         self.sent.append(to)
+        self.texts.append(text or "")
 
 
 class _AccountsDb:
-    def __init__(self, *, taken: bool = False, org_agency: str = "police") -> None:
-        self.taken = taken
+    def __init__(self, *, taken: list[str] | None = None, org_agency: str = "police") -> None:
+        self.taken = taken or []
         self.org_agency = org_agency
         self.profile: dict[str, Any] = {}
         self.roster: list[tuple[Any, ...]] = []
@@ -556,14 +560,22 @@ class _AccountsDb:
             }
         raise AssertionError(f"unexpected fetchrow: {q[:100]}")
 
-    async def fetchval(self, query: str, *args: Any) -> Any:
-        return 1 if self.taken else None
+    async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
+        q = " ".join(query.split())
+        if "lower(email) like $1" in q:
+            stem, tail = args[0].split("%")
+            return [
+                {"email": e} for e in self.taken
+                if e.startswith(stem) and e.endswith(tail)
+            ]
+        raise AssertionError(f"unexpected fetch: {q[:100]}")
 
     async def execute(self, query: str, *args: Any) -> str:
         q = " ".join(query.split())
         if q.startswith("update public.users set role = 'sub_admin'"):
             self.profile = {"id": args[0], "agency": args[1], "org": args[2],
-                            "full_name": args[3], "created_by": args[4]}
+                            "full_name": args[3], "created_by": args[4],
+                            "personal_email": args[5]}
             return "UPDATE 1"
         if q.startswith("insert into public.org_roster"):
             self.roster.append(args)
@@ -574,10 +586,12 @@ class _AccountsDb:
         raise AssertionError(f"unexpected execute: {q[:100]}")
 
 
-def _new_coordinator(org: UUID | None = None) -> CoordinatorCreateRequest:
+def _new_coordinator(
+    org: UUID | None = None, personal: str = "D.Villareal@Gmail.com"
+) -> CoordinatorCreateRequest:
     return CoordinatorCreateRequest(
-        full_name="Dante Villareal", email="D.Villareal@pnp.example", title="Lieutenant",
-        organization_id=org,
+        first_name="Dante", last_name="Villareal", personal_email=personal,
+        title="Lieutenant", organization_id=org,
     )
 
 
@@ -594,13 +608,19 @@ async def test_an_admin_creates_its_own_coordinator() -> None:
     db, auth_client, email = _AccountsDb(), _Auth(), _Email()
     police = _admin("police")
     result = await _create(db, police, _new_coordinator(), auth_client, email)
-    assert auth_client.created == ["d.villareal@pnp.example"]
+    # The 6 November list: a made address, agency first, and the link to set
+    # the password at their own email.
+    assert auth_client.created == ["dvillareal.polcor@replit.com"]
     assert db.profile["agency"] == "police" and db.profile["org"] == OWN_ORG
     assert db.profile["created_by"] == police.id
+    assert db.profile["personal_email"] == "d.villareal@gmail.com"
     assert db.roster[0][2] == "Lieutenant"
     assert db.audits == ["user.coordinator_created"]
-    assert email.sent == ["d.villareal@pnp.example"]
+    assert email.sent == ["d.villareal@gmail.com"]
+    assert "dvillareal.polcor@replit.com" in email.texts[0]
+    assert "/auth/staff/password-link?token=" in email.texts[0]
     assert result.invite_email_sent and result.coordinator.title == "Lieutenant"
+    assert result.personal_email == "d.villareal@gmail.com"
 
 
 async def test_an_admin_cannot_create_into_another_organisation() -> None:
@@ -617,10 +637,37 @@ async def test_the_system_admin_names_the_organisation() -> None:
     assert result.coordinator.role == "sub_admin"
 
 
-async def test_an_email_in_use_is_not_taken_over() -> None:
+async def test_a_taken_address_gets_the_next_number() -> None:
     auth_client = _Auth()
-    with pytest.raises(ConflictError):
-        await _create(_AccountsDb(taken=True), _admin("police"), _new_coordinator(), auth_client)
+    db = _AccountsDb(taken=["dvillareal.polcor@replit.com"])
+    await _create(db, _admin("police"), _new_coordinator(), auth_client)
+    assert auth_client.created == ["dvillareal1.polcor@replit.com"]
+
+
+async def test_two_admins_at_once_get_two_numbers() -> None:
+    auth_client = _Auth()
+    auth_client.race_on = "dvillareal.polcor@replit.com"  # type: ignore[attr-defined]
+    db = _AccountsDb()
+    original = db.fetch
+
+    async def fetch(query: str, *args: Any) -> list[dict[str, Any]]:
+        rows = await original(query, *args)
+        if getattr(auth_client, "race_on", None) is None:
+            rows.append({"email": "dvillareal.polcor@replit.com"})
+        return rows
+
+    db.fetch = fetch  # type: ignore[method-assign]
+    await _create(db, _admin("police"), _new_coordinator(), auth_client)
+    assert auth_client.created == ["dvillareal1.polcor@replit.com"]
+
+
+async def test_a_replit_address_is_not_a_personal_email() -> None:
+    auth_client = _Auth()
+    with pytest.raises(BadRequestError):
+        await _create(
+            _AccountsDb(), _admin("police"),
+            _new_coordinator(personal="someone.polcor@replit.com"), auth_client,
+        )
     assert auth_client.created == []
 
 

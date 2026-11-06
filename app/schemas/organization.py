@@ -55,19 +55,31 @@ class OrganizationMember(BaseModel):
 class CoordinatorCreateRequest(BaseModel):
     """An Admin creates a Coordinator for its organisation (PRD §4.6.4, pass 6 A49).
 
-    ``organization_id`` is for the system Admin, which belongs to no
+    The sign-in address is made from the name, the organisation's agency and
+    the role (obryan.fircor@replit.com; app/services/responder_accounts.py).
+    ``personal_email`` is the Coordinator's own, where the link that confirms it
+    and sets their password goes, and later password resets: @replit.com has no
+    mailboxes. ``organization_id`` is for the system Admin, which belongs to no
     organisation; an organisation's Admin always creates into its own.
     """
 
-    full_name: str = Field(min_length=1, max_length=200)
-    email: EmailStr
+    first_name: str = Field(min_length=1, max_length=60)
+    last_name: str = Field(min_length=1, max_length=60, description="The full surname.")
+    personal_email: EmailStr
     title: str | None = Field(default=None, max_length=80)
     organization_id: UUID | None = None
 
 
 class CoordinatorCreateResult(BaseModel):
-    """The new Coordinator, and whether its set-your-password email went out."""
+    """The new Coordinator, and whether the email to their personal address went out."""
 
     coordinator: OrganizationMember
+    personal_email: str | None = None
     invite_email_sent: bool = False
     detail: str | None = None
+
+
+class CoordinatorEmailPreview(BaseModel):
+    """The address a new Coordinator with this name would get."""
+
+    email: str
