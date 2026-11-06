@@ -1074,3 +1074,10 @@
 }
 .web-state--loading .web-state-description { margin: -6px 0 12px; font-size: 13px; }
 .rpl-startup .rpl-skeleton { width: min(420px, 86vw); margin-top: 20px; }
+
+/* ── Settings · Account: change password (follow-up 1.2) ───────────────── */
+.rpl-password-form { display: grid; gap: 12px; max-width: 420px; margin-top: 4px; }
+.rpl-password-form .rpl-button { justify-self: start; }
+.rpl-password-show { display: inline-flex; align-items: center; gap: 8px; color: var(--label); font-size: 13px; cursor: pointer; }
+.rpl-password-result { margin: 0; font-size: 13px; line-height: 1.5; }
+.rpl-password-result.is-ok { color: var(--ok); font-weight: 600; }

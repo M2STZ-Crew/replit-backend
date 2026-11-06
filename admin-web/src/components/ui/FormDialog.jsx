@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
+import { t } from '../../i18n/i18n.jsx';
 
 /* A modal form (REPLIT (MAIN) 10 · A43, A49, A65): an eyebrow and title with
  * a close button, the fields, then a note beside Cancel and the submit
@@ -14,7 +15,7 @@ export default function FormDialog({
   error = null,
   note = null,
   submitLabel,
-  busyLabel = 'Working…',
+  busyLabel = t('Working…'),
   children,
 }) {
   const dialog = useRef(null);
@@ -44,7 +45,7 @@ export default function FormDialog({
             {eyebrow && <p className="web-dialog-eyebrow">{eyebrow}</p>}
             <h2 className="web-dialog-title" id={titleId}>{title}</h2>
           </div>
-          <button type="button" className="rpl-icon-button" onClick={onClose} aria-label="Close" disabled={busy}>
+          <button type="button" className="rpl-icon-button" onClick={onClose} aria-label={t('Close')} disabled={busy}>
             <span aria-hidden="true">✕</span>
           </button>
         </header>
@@ -55,7 +56,7 @@ export default function FormDialog({
 
         <footer className="rpl-form-dialog-foot">
           {note && <p className="rpl-field-help">{note}</p>}
-          <button type="button" className="web-button web-button--secondary" onClick={onClose} disabled={busy}>Cancel</button>
+          <button type="button" className="web-button web-button--secondary" onClick={onClose} disabled={busy}>{t('Cancel')}</button>
           <button type="submit" className="web-button web-button--primary" disabled={busy}>
             {busy ? busyLabel : submitLabel}
           </button>

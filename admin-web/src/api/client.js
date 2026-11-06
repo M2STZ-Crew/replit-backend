@@ -1,3 +1,4 @@
+import { t as tr } from '../i18n/i18n.jsx';
 // Thin fetch wrapper around the RepLiT FastAPI backend.
 //
 // The trailing slash is stripped deliberately. Paths below all start with "/",
@@ -29,10 +30,13 @@ const TIMEOUT_MS = 60_000;
 /// not be reached or did not answer in time, so a caller can tell "your
 /// session ended" (401/403) apart from "the server is unreachable".
 export class ApiError extends Error {
-  constructor(message, status) {
+  constructor(message, status, code = null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    // The API's machine-readable reason ("wrong_password"), for a message in
+    // the console's own words and language.
+    this.code = code;
   }
 }
 
@@ -57,8 +61,8 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
   } catch (e) {
     throw new ApiError(
       e?.name === 'AbortError'
-        ? 'The server did not answer in time. It may be starting up; try again in a minute.'
-        : 'Cannot reach the server. Check your connection and try again.',
+        ? tr('The server did not answer in time. It may be starting up; try again in a minute.')
+        : tr('Cannot reach the server. Check your connection and try again.'),
       0,
     );
   } finally {
@@ -70,11 +74,11 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
       data = JSON.parse(text);
     } catch {
       // A host's own error page (HTML) rather than the API's JSON.
-      throw new ApiError(`The server sent an unexpected answer (${resp.status}). Try again in a minute.`, resp.status);
+      throw new ApiError(tr('The server sent an unexpected answer ({status}). Try again in a minute.', { status: resp.status }), resp.status);
     }
   }
   if (!resp.ok) {
-    throw new ApiError(data.message || `Request failed (${resp.status}).`, resp.status);
+    throw new ApiError(data.message || tr('Request failed ({status}).', { status: resp.status }), resp.status, data.error ?? null);
   }
   return data;
 }
@@ -88,11 +92,11 @@ async function download(path, filename) {
       headers: { Authorization: `Bearer ${getToken() ?? ''}` },
     });
   } catch {
-    throw new Error('Cannot reach the server. Is the API running?');
+    throw new Error(tr('Cannot reach the server. Is the API running?'));
   }
   if (!resp.ok) {
     const data = await resp.json().catch(() => ({}));
-    throw new Error(data.message || `Download failed (${resp.status}).`);
+    throw new Error(data.message || tr('Download failed ({status}).', { status: resp.status }));
   }
   const url = URL.createObjectURL(await resp.blob());
   const link = document.createElement('a');
@@ -108,6 +112,16 @@ export const api = {
   login: (email, password) =>
     request('/auth/login', { method: 'POST', auth: false, body: { email, password } }),
   me: () => request('/auth/me'),
+  // The language this account reads RepLiT in: the console and the app start
+  // in it, and its alerts follow it.
+  setLanguage: (language) => request('/auth/me/language', { method: 'PUT', body: { language } }),
+  // Checked against the current password; other browsers and phones are then
+  // signed out, this one stays signed in.
+  changePassword: (currentPassword, newPassword) =>
+    request('/auth/me/password', {
+      method: 'POST',
+      body: { current_password: currentPassword, new_password: newPassword },
+    }),
   logout: () => request('/auth/logout', { method: 'POST' }).catch(() => {}),
   // "Forgot password?": the server emails a reset link and answers the same
   // way whether or not the address has an account.

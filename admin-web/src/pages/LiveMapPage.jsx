@@ -21,6 +21,7 @@ import { PERM, can } from '../lib/access.js';
 import { AGENCY_LABEL, statusOf } from '../lib/status.js';
 import BaseTiles from '../map/BaseTiles.jsx';
 import { groupOnScreen } from '../map/unitGroups.js';
+import { t } from '../i18n/i18n.jsx';
 
 /* Live map (REPLIT (MAIN) 10 · A30 869:3563, A31 869:3858; PRD v13 §4.4):
  * every active Area on the shared map with the water sources, shelters and
@@ -40,18 +41,18 @@ const PASAY = [14.5378, 121.0014];
 const CLOCK = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' });
 
 const LAYERS = [
-  { key: 'incidents', label: 'Incidents', tone: 'accent' },
-  { key: 'water', label: 'Water', tone: 'info' },
-  { key: 'shelters', label: 'Shelters', tone: 'ok' },
-  { key: 'risk', label: 'Risk zones', tone: 'danger' },
+  { key: 'incidents', get label() { return t('Incidents'); }, tone: 'accent' },
+  { key: 'water', get label() { return t('Water'); }, tone: 'info' },
+  { key: 'shelters', get label() { return t('Shelters'); }, tone: 'ok' },
+  { key: 'risk', get label() { return t('Risk zones'); }, tone: 'danger' },
 ];
 
 const SOURCES = [
-  { key: 'hydrant', path: 'hydrants', layer: 'water', lat: 'latitude', lng: 'longitude', name: (r) => r.code || 'Hydrant' },
-  { key: 'water', path: 'bodies-of-water', layer: 'water', lat: 'latitude', lng: 'longitude', name: (r) => r.name || 'Body of water' },
-  { key: 'cistern', path: 'underground-cisterns', layer: 'water', lat: 'latitude', lng: 'longitude', name: (r) => r.name || r.code || 'Cistern' },
-  { key: 'shelter', path: 'evacuation-sites', layer: 'shelters', lat: 'latitude', lng: 'longitude', name: (r) => r.name || 'Evacuation site' },
-  { key: 'risk', path: 'risk-zones', layer: 'risk', lat: 'centroid_lat', lng: 'centroid_lng', name: (r) => r.name || r.barangay || 'Risk zone' },
+  { key: 'hydrant', path: 'hydrants', layer: 'water', lat: 'latitude', lng: 'longitude', name: (r) => r.code || t('Hydrant') },
+  { key: 'water', path: 'bodies-of-water', layer: 'water', lat: 'latitude', lng: 'longitude', name: (r) => r.name || t('Body of water') },
+  { key: 'cistern', path: 'underground-cisterns', layer: 'water', lat: 'latitude', lng: 'longitude', name: (r) => r.name || r.code || t('Cistern') },
+  { key: 'shelter', path: 'evacuation-sites', layer: 'shelters', lat: 'latitude', lng: 'longitude', name: (r) => r.name || t('Evacuation site') },
+  { key: 'risk', path: 'risk-zones', layer: 'risk', lat: 'centroid_lat', lng: 'centroid_lng', name: (r) => r.name || r.barangay || t('Risk zone') },
 ];
 
 const AGO = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
@@ -75,8 +76,8 @@ function UnitsLayer({ units, onSelect }) {
     const stale = members.every((u) => u.stale);
     const names = members.map((u) => u.label);
     const title = members.length === 1
-      ? `${names[0]}, to ${members[0].designation}`
-      : `${members.length} units: ${names.join(', ')}`;
+      ? t('{name}, to {area}', { name: names[0], area: members[0].designation })
+      : t('{count} units: {names}', { count: members.length, names: names.join(', ') });
     return (
       <Marker
         key={members.map((u) => u.key).join('|')}
@@ -90,7 +91,7 @@ function UnitsLayer({ units, onSelect }) {
           {members.map((u) => (
             <span className="rpl-unit-tip" key={u.key}>
               <strong>{u.label}</strong>
-              {` · ${u.designation} · ${u.stale ? `last seen ${seen(u.at)}` : 'live'}`}
+              {` · ${u.designation} · ${u.stale ? t('last seen {seen}', { seen: seen(u.at) }) : 'live'}`}
             </span>
           ))}
         </Tooltip>
@@ -102,10 +103,10 @@ function UnitsLayer({ units, onSelect }) {
 function Selected({ inc, onClose, onOpen }) {
   const first = (inc.accepted_agencies ?? []).map((a) => AGENCY_LABEL[a] ?? a);
   const facts = [
-    ['Location', <Place lat={inc.centroid_lat} lng={inc.centroid_lng} stacked />],
-    ['Acknowledged', inc.verified_at ? `${first.join(' · ') || 'Yes'} · ${CLOCK.format(new Date(inc.verified_at))}` : 'Not yet'],
-    ['Requested', agenciesOf(inc)],
-    ['Reports', `${inc.report_count} · ${confidenceOf(inc)}`],
+    [t('Location'), <Place lat={inc.centroid_lat} lng={inc.centroid_lng} stacked />],
+    [t('Acknowledged'), inc.verified_at ? `${first.join(' · ') || t('Yes')} · ${CLOCK.format(new Date(inc.verified_at))}` : t('Not yet')],
+    [t('Requested'), agenciesOf(inc)],
+    [t('Reports'), `${inc.report_count} · ${confidenceOf(inc)}`],
   ];
   return (
     <aside className="rpl-map-panel" aria-labelledby="rpl-map-panel-title">
@@ -114,7 +115,7 @@ function Selected({ inc, onClose, onOpen }) {
           <p className="rpl-eyebrow">{inc.designation} · {statusOf(inc.status).label}</p>
           <h2 className="rpl-detail-title" id="rpl-map-panel-title">{inc.designation}</h2>
         </div>
-        <button type="button" className="rpl-icon-button" onClick={onClose} aria-label="Close">
+        <button type="button" className="rpl-icon-button" onClick={onClose} aria-label={t('Close')}>
           <span aria-hidden="true">✕</span>
         </button>
       </div>
@@ -124,7 +125,7 @@ function Selected({ inc, onClose, onOpen }) {
           <div className="rpl-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
         ))}
       </dl>
-      <button type="button" className="rpl-button rpl-button--primary" onClick={onOpen}>Open incident</button>
+      <button type="button" className="rpl-button rpl-button--primary" onClick={onOpen}>{t('Open incident')}</button>
     </aside>
   );
 }
@@ -210,7 +211,7 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
         <UnitsLayer units={units} onSelect={setSelectedId} />
       </MapContainer>
 
-      <div className="rpl-map-chips" role="group" aria-label="Map layers">
+      <div className="rpl-map-chips" role="group" aria-label={t('Map layers')}>
         {LAYERS.map((l) => {
           const active = on.has(l.key);
           return (
@@ -234,8 +235,8 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
           className="rpl-map-tool"
           onClick={() => setLegend((v) => !v)}
           aria-pressed={legend}
-          aria-label={legend ? 'Hide the legend' : 'Show the legend'}
-          title="Legend"
+          aria-label={legend ? t('Hide the legend') : t('Show the legend')}
+          title={t('Legend')}
         >
           <Icon name="map" />
         </button>
@@ -244,8 +245,8 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
             type="button"
             className="rpl-map-tool"
             onClick={onManage}
-            aria-label="Map settings"
-            title="Map settings"
+            aria-label={t('Map settings')}
+            title={t('Map settings')}
           >
             <Icon name="settings" />
           </button>
@@ -253,20 +254,20 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
       </div>
 
       {legend && (
-        <section className="rpl-map-legend" aria-label="Legend">
-          <p className="rpl-eyebrow rpl-eyebrow--quiet">Legend</p>
+        <section className="rpl-map-legend" aria-label={t('Legend')}>
+          <p className="rpl-eyebrow rpl-eyebrow--quiet">{t('Legend')}</p>
           <ul>
             {['incident', 'unit', 'hydrant', 'water', 'cistern', 'shelter', 'risk'].map((k) => (
               <li key={k}>
                 <span className={`rpl-legend-mark rpl-marker-disc--${MARKER_KINDS[k].tone}`} aria-hidden="true">
                   <img src={`/icons/map/${k}.svg`} alt="" width="12" height="12" />
                 </span>
-                {k === 'unit' && access?.variant === 'system' ? 'Responding unit' : MARKER_KINDS[k].label}
+                {k === 'unit' && access?.variant === 'system' ? t('Responding unit') : MARKER_KINDS[k].label}
               </li>
             ))}
           </ul>
           {access?.variant !== 'system' && (
-            <p className="rpl-map-legend-note">Other organizations’ vehicles are never shown.</p>
+            <p className="rpl-map-legend-note">{t('Other organizations’ vehicles are never shown.')}</p>
           )}
         </section>
       )}

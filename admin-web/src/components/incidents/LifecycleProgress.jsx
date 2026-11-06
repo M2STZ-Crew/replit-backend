@@ -1,4 +1,5 @@
 import { statusOf } from '../../lib/status.js';
+import { t } from '../../i18n/i18n.jsx';
 
 /* How far an Area has come (REPLIT (MAIN) 10 · A23, A26): six steps, the
  * reached ones in coral, the current one named in bold, and the status in
@@ -6,12 +7,12 @@ import { statusOf } from '../../lib/status.js';
  * merged, declined — is said in words instead of a half-filled bar. */
 
 const STEPS = [
-  { key: 'reported', label: 'Reported' },
-  { key: 'acknowledged', label: 'Acknowledged', also: ['verified'] },
-  { key: 'en_route', label: 'En route' },
-  { key: 'arrived', label: 'Arrived' },
-  { key: 'fire_out', label: 'Fire out', also: ['post_incident_report'] },
-  { key: 'closed', label: 'Closed' },
+  { key: 'reported', get label() { return t('Reported'); } },
+  { key: 'acknowledged', get label() { return t('Acknowledged'); }, also: ['verified'] },
+  { key: 'en_route', get label() { return t('En route'); } },
+  { key: 'arrived', get label() { return t('Arrived'); } },
+  { key: 'fire_out', get label() { return t('Fire out'); }, also: ['post_incident_report'] },
+  { key: 'closed', get label() { return t('Closed'); } },
 ];
 
 function stepOf(status) {
@@ -24,15 +25,13 @@ export default function LifecycleProgress({ status }) {
   return (
     <div className="rpl-progress">
       <div className="rpl-progress-head">
-        <span className="rpl-eyebrow rpl-eyebrow--quiet">Progress</span>
+        <span className="rpl-eyebrow rpl-eyebrow--quiet">{t('Progress')}</span>
         <span className="rpl-progress-now">{label}</span>
       </div>
       {at < 0 ? (
-        <p className="rpl-progress-off">
-          This Area left the response as {label.toLowerCase()}; it has no further steps.
-        </p>
+        <p className="rpl-progress-off">{t('This Area left the response as {status}; it has no further steps.', { status: label.toLowerCase() })}</p>
       ) : (
-        <ol className="rpl-progress-steps" aria-label={`Progress: ${label}, step ${at + 1} of ${STEPS.length}`}>
+        <ol className="rpl-progress-steps" aria-label={t('Progress: {label}, step {n} of {count}', { label, n: at + 1, count: STEPS.length })}>
           {STEPS.map((s, i) => (
             <li
               key={s.key}

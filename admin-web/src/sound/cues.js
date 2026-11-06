@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n.jsx';
 /// Per-agency notification sounds (Master Context v10, Section 2.8).
 ///
 /// Each incident category has a cue that is recognisable without looking at the
@@ -12,18 +13,18 @@
 export const CATEGORIES = ['fire', 'police', 'medical', 'barangay'];
 
 export const CATEGORY_LABEL = {
-  fire: 'Fire',
-  police: 'Police',
-  medical: 'Medical',
-  barangay: 'Barangay',
+  get fire() { return t('Fire'); },
+  get police() { return t('Police'); },
+  get medical() { return t('Medical'); },
+  get barangay() { return t('Barangay'); },
 };
 
 /// Who each category's sound is for.
 export const CATEGORY_FOR = {
-  fire: 'Fire Volunteers and BFP',
-  police: 'Police',
-  medical: 'Medical teams',
-  barangay: 'Barangay',
+  get fire() { return t('Fire Volunteers and BFP'); },
+  get police() { return t('Police'); },
+  get medical() { return t('Medical teams'); },
+  get barangay() { return t('Barangay'); },
 };
 
 /// The recordings.

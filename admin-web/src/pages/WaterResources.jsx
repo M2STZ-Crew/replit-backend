@@ -12,6 +12,7 @@ import { ConfirmDialog, EmptyState, PageHeader, StatePanel, StatusChip } from '.
 import { PERM, can } from '../lib/access.js';
 import { degrees, knownAddress } from '../lib/place.js';
 import BaseTiles from '../map/BaseTiles.jsx';
+import { t } from '../i18n/i18n.jsx';
 
 /* Water resources (REPLIT (MAIN) 10 · A32 871:4044 list, A33 871:4382 map
  * and detail, A34 delete, A34b deleted; PRD v13 §4.9.6): every hydrant,
@@ -25,22 +26,22 @@ import BaseTiles from '../map/BaseTiles.jsx';
  * Map settings, which this page opens for the Admin who may (`map.manage`). */
 
 const KINDS = [
-  { key: 'hydrant', label: 'Hydrants', singular: 'Hydrant', path: 'hydrants' },
-  { key: 'water', label: 'Bodies of water', singular: 'Body of water', path: 'bodies-of-water' },
-  { key: 'cistern', label: 'Cisterns', singular: 'Cistern', path: 'underground-cisterns' },
+  { key: 'hydrant', get label() { return t('Hydrants'); }, get singular() { return t('Hydrant'); }, path: 'hydrants' },
+  { key: 'water', get label() { return t('Bodies of water'); }, get singular() { return t('Body of water'); }, path: 'bodies-of-water' },
+  { key: 'cistern', get label() { return t('Cisterns'); }, get singular() { return t('Cistern'); }, path: 'underground-cisterns' },
 ];
 const kindOf = (key) => KINDS.find((k) => k.key === key);
 
 const STATUS = {
-  operational: { label: 'Operational', tone: 'ok' },
-  non_operational: { label: 'Not usable', tone: 'danger' },
-  under_maintenance: { label: 'Under maintenance', tone: 'warn' },
-  unknown: { label: 'Not checked', tone: 'neutral' },
+  operational: { get label() { return t('Operational'); }, tone: 'ok' },
+  non_operational: { get label() { return t('Not usable'); }, tone: 'danger' },
+  under_maintenance: { get label() { return t('Under maintenance'); }, tone: 'warn' },
+  unknown: { get label() { return t('Not checked'); }, tone: 'neutral' },
 };
 
 function statusOf(row) {
   if (row.kind === 'water') {
-    return row.is_accessible ? { label: 'Accessible', tone: 'ok' } : { label: 'Not accessible', tone: 'danger' };
+    return row.is_accessible ? { label: t('Accessible'), tone: 'ok' } : { label: t('Not accessible'), tone: 'danger' };
   }
   const value = row.kind === 'hydrant' ? row.effective_status : row.status;
   return STATUS[value] ?? STATUS.unknown;
@@ -71,9 +72,9 @@ const when = (iso) => {
  * the record's last change. */
 function checkedOf(row) {
   if (row.kind === 'hydrant' && row.ground_truth_at) {
-    return { title: 'Checked on the ground', at: when(row.ground_truth_at) };
+    return { title: t('Checked on the ground'), at: when(row.ground_truth_at) };
   }
-  return { title: 'Record updated', at: when(row.updated_at) };
+  return { title: t('Record updated'), at: when(row.updated_at) };
 }
 
 const PAGE = 10;
@@ -82,19 +83,19 @@ function Detail({ row, onClose, onDelete, floating = false }) {
   const status = statusOf(row);
   const checked = checkedOf(row);
   const facts = [
-    ['Status', <StatusChip key="s" label={status.label} tone={status.tone} />],
+    [t('Status'), <StatusChip key="s" label={status.label} tone={status.tone} />],
     [checked.title, checked.at ?? '—'],
-    ['Location', <Place lat={row.latitude} lng={row.longitude} address={row.address} stacked />],
+    [t('Location'), <Place lat={row.latitude} lng={row.longitude} address={row.address} stacked />],
   ];
   if (row.kind === 'hydrant') {
-    facts.push(['BFP status', STATUS[row.bfp_status]?.label ?? '—']);
-    if (row.ground_truth_notes) facts.push(['Field note', row.ground_truth_notes]);
+    facts.push([t('BFP status'), STATUS[row.bfp_status]?.label ?? '—']);
+    if (row.ground_truth_notes) facts.push([t('Field note'), row.ground_truth_notes]);
   }
   if (row.kind === 'cistern' && row.capacity_liters != null) {
-    facts.push(['Capacity', `${row.capacity_liters.toLocaleString('en-PH')} litres`]);
+    facts.push([t('Capacity'), t('{amount} litres', { amount: row.capacity_liters.toLocaleString('en-PH') })]);
   }
-  if (row.kind === 'water' && row.water_type) facts.push(['Type', row.water_type]);
-  if (row.description) facts.push(['Description', row.description]);
+  if (row.kind === 'water' && row.water_type) facts.push([t('Type'), row.water_type]);
+  if (row.description) facts.push([t('Description'), row.description]);
 
   return (
     <aside className={floating ? 'rpl-map-panel rpl-water-panel' : 'rpl-detail'} aria-labelledby="rpl-water-detail-title">
@@ -103,7 +104,7 @@ function Detail({ row, onClose, onDelete, floating = false }) {
           <p className="rpl-eyebrow">{kindOf(row.kind).singular}{row.code ? ` · ${row.code}` : ''}</p>
           <h2 className="rpl-detail-title" id="rpl-water-detail-title">{row.name || row.address || nameOf(row)}</h2>
         </div>
-        <button type="button" className="rpl-icon-button" onClick={onClose} aria-label="Close details">
+        <button type="button" className="rpl-icon-button" onClick={onClose} aria-label={t('Close details')}>
           <span aria-hidden="true">✕</span>
         </button>
       </div>
@@ -115,9 +116,7 @@ function Detail({ row, onClose, onDelete, floating = false }) {
           </div>
         ))}
       </dl>
-      <button type="button" className="rpl-button rpl-button--danger" onClick={onDelete}>
-        Delete resource
-      </button>
+      <button type="button" className="rpl-button rpl-button--danger" onClick={onDelete}>{t('Delete resource')}</button>
     </aside>
   );
 }
@@ -145,7 +144,7 @@ export default function WaterResources({ onManage }) {
         setState({ loading: false, error: null, rows });
       })
       .catch((e) => {
-        if (alive) setState({ loading: false, error: e.message || 'The water resources could not be loaded.', rows: [] });
+        if (alive) setState({ loading: false, error: e.message || t('The water resources could not be loaded.'), rows: [] });
       });
     return () => { alive = false; };
   }, [attempt]);
@@ -173,20 +172,20 @@ export default function WaterResources({ onManage }) {
     setState((s) => ({ ...s, rows: s.rows.filter((r) => !(r.kind === target.kind && r.id === target.id)) }));
     setSelectedId(null);
     setDeleting(null);
-    setNotice(`${nameOf(target)} deleted. It is gone from every map; the deletion is in the audit log.`);
+    setNotice(t('{nameOf} deleted. It is gone from every map; the deletion is in the audit log.', { nameOf: nameOf(target) }));
   }, [deleting]);
 
   const filters = (
     <div className="rpl-filters">
       <label className="rpl-search">
         <Icon name="search" />
-        <span className="web-sr-only">Search water resources</span>
-        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search codes, names and streets" />
+        <span className="web-sr-only">{t('Search water resources')}</span>
+        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search codes, names and streets')} />
       </label>
       <label className="rpl-select">
-        <span className="rpl-select-label">Type</span>
+        <span className="rpl-select-label">{t('Type')}</span>
         <select value={type} onChange={(e) => setType(e.target.value)}>
-          <option value="all">All types</option>
+          <option value="all">{t('All types')}</option>
           {KINDS.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
         </select>
       </label>
@@ -196,13 +195,13 @@ export default function WaterResources({ onManage }) {
   return (
     <div className={`rpl-page${view === 'map' ? ' rpl-page--map' : ''}`}>
       <PageHeader
-        eyebrow="Shared across every organization"
-        title="Water resources"
-        description={`Every hydrant, body of water and underground cistern on the shared map. Any Admin may delete one; every deletion is recorded.${managesMap ? '' : ' Fire Volunteer, BFP and central hub Admins add and change them.'}`}
+        eyebrow={t('Shared across every organization')}
+        title={t('Water resources')}
+        description={managesMap
+          ? t('Every hydrant, body of water and underground cistern on the shared map. Any Admin may delete one; every deletion is recorded.')
+          : t('Every hydrant, body of water and underground cistern on the shared map. Any Admin may delete one; every deletion is recorded. Fire Volunteer, BFP and central hub Admins add and change them.')}
         actions={managesMap && (
-          <button type="button" className="rpl-button rpl-button--primary" onClick={onManage}>
-            Add or change resources
-          </button>
+          <button type="button" className="rpl-button rpl-button--primary" onClick={onManage}>{t('Add or change resources')}</button>
         )}
       />
 
@@ -210,8 +209,8 @@ export default function WaterResources({ onManage }) {
         <div className="rpl-toast" role="status"><span aria-hidden="true">✓</span>{notice}</div>
       )}
 
-      <div className="rpl-tabs rpl-tabs--page" role="tablist" aria-label="View">
-        {[{ key: 'list', label: 'List' }, { key: 'map', label: 'Map' }].map((t) => (
+      <div className="rpl-tabs rpl-tabs--page" role="tablist" aria-label={t('View')}>
+        {[{ key: 'list', label: t('List') }, { key: 'map', label: t('Map') }].map((t) => (
           <button
             key={t.key}
             type="button"
@@ -228,13 +227,11 @@ export default function WaterResources({ onManage }) {
       {filters}
 
       {state.loading ? (
-        <StatePanel kind="loading" title="Loading water resources…" />
+        <StatePanel kind="loading" title={t('Loading water resources…')} />
       ) : state.error ? (
-        <StatePanel kind="error" title="The water resources couldn’t load" description={state.error} onRetry={() => setAttempt((n) => n + 1)} />
+        <StatePanel kind="error" title={t('The water resources couldn’t load')} description={state.error} onRetry={() => setAttempt((n) => n + 1)} />
       ) : state.rows.length === 0 ? (
-        <EmptyState icon="water" title="No water resources yet">
-          Fire Volunteer Coordinators add hydrants, bodies of water and cisterns from the mobile app.
-        </EmptyState>
+        <EmptyState icon="water" title={t('No water resources yet')}>{t('Fire Volunteer Coordinators add hydrants, bodies of water and cisterns from the mobile app.')}</EmptyState>
       ) : view === 'map' ? (
         <div className="rpl-water-map">
           <MapContainer
@@ -265,13 +262,13 @@ export default function WaterResources({ onManage }) {
           <div className="rpl-stack">
             <div className="web-table-wrap">
               <table className="web-table">
-                <caption className="web-sr-only">Water resources</caption>
+                <caption className="web-sr-only">{t('Water resources')}</caption>
                 <thead>
                   <tr>
-                    <th scope="col">Resource</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Last checked</th>
-                    <th scope="col"><span className="web-sr-only">Open</span></th>
+                    <th scope="col">{t('Resource')}</th>
+                    <th scope="col">{t('Status')}</th>
+                    <th scope="col">{t('Last checked')}</th>
+                    <th scope="col"><span className="web-sr-only">{t('Open')}</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -304,7 +301,7 @@ export default function WaterResources({ onManage }) {
                             type="button"
                             className="rpl-icon-button"
                             onClick={() => setSelectedId(key)}
-                            aria-label={`Details and actions for ${nameOf(r)}`}
+                            aria-label={t('Details and actions for {nameOf}', { nameOf: nameOf(r) })}
                             aria-current={key === selectedId ? 'true' : undefined}
                           >
                             <Icon name="more" size={24} />
@@ -314,22 +311,22 @@ export default function WaterResources({ onManage }) {
                     );
                   })}
                   {rows.length === 0 && (
-                    <tr><td className="web-table-empty" colSpan={4}>Nothing matches these filters.</td></tr>
+                    <tr><td className="web-table-empty" colSpan={4}>{t('Nothing matches these filters.')}</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
             <div className="rpl-pager">
               <span className="rpl-pager-range">
-                {rows.length === 0 ? 'Showing 0 of 0' : `Showing ${page * PAGE + 1}–${Math.min(rows.length, page * PAGE + PAGE)} of ${rows.length}`}
+                {rows.length === 0 ? t('Showing 0 of 0') : t('Showing {from}–{to} of {count}', { from: page * PAGE + 1, to: Math.min(rows.length, page * PAGE + PAGE), count: rows.length })}
               </span>
               {pages > 1 && (
-                <nav className="rpl-pager-pages" aria-label="Pages">
-                  <button type="button" className="rpl-page-button" onClick={() => setPage((p) => p - 1)} disabled={page === 0} aria-label="Previous page">‹</button>
+                <nav className="rpl-pager-pages" aria-label={t('Pages')}>
+                  <button type="button" className="rpl-page-button" onClick={() => setPage((p) => p - 1)} disabled={page === 0} aria-label={t('Previous page')}>‹</button>
                   {Array.from({ length: pages }, (_, i) => (
                     <button key={i} type="button" className={`rpl-page-button${i === page ? ' is-current' : ''}`} onClick={() => setPage(i)} aria-current={i === page ? 'page' : undefined}>{i + 1}</button>
                   ))}
-                  <button type="button" className="rpl-page-button" onClick={() => setPage((p) => p + 1)} disabled={page >= pages - 1} aria-label="Next page">›</button>
+                  <button type="button" className="rpl-page-button" onClick={() => setPage((p) => p + 1)} disabled={page >= pages - 1} aria-label={t('Next page')}>›</button>
                 </nav>
               )}
             </div>
@@ -341,9 +338,9 @@ export default function WaterResources({ onManage }) {
       <ConfirmDialog
         open={!!deleting}
         eyebrow={deleting ? kindOf(deleting.kind).singular : undefined}
-        title={deleting ? `Delete ${nameOf(deleting)}?` : ''}
-        description="It disappears from every Admin’s map and every Coordinator’s water patrol. This can’t be undone; the deletion is recorded with your name."
-        confirmLabel={deleting ? `Delete ${kindOf(deleting.kind).singular.toLowerCase()}` : 'Delete'}
+        title={deleting ? t('Delete {nameOf}?', { nameOf: nameOf(deleting) }) : ''}
+        description={t('It disappears from every Admin’s map and every Coordinator’s water patrol. This can’t be undone; the deletion is recorded with your name.')}
+        confirmLabel={deleting ? t('Delete {thing}', { thing: kindOf(deleting.kind).singular.toLowerCase() }) : t('Delete')}
         destructive
         onClose={() => setDeleting(null)}
         onConfirm={confirmDelete}

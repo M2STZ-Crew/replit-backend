@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 import { api, getToken, setToken } from './api/client.js';
+import { t } from './i18n/i18n.jsx';
 
 // Exported for the development previews in docs/, which supply a fictional
 // signed-in Admin without touching the stored session.
@@ -20,9 +21,9 @@ export function isConsoleRole(role) {
 /// Why someone was turned away, in terms of where they should go instead.
 function refusalFor(me) {
   if (me?.role === 'sub_admin') {
-    return 'Coordinators work from the RepLiT mobile app. This console is for Admins.';
+    return t('Coordinators work from the RepLiT mobile app. This console is for Admins.');
   }
-  return 'This console is for Admins. Response Teams and residents use the mobile app.';
+  return t('This console is for Admins. Response Teams and residents use the mobile app.');
 }
 
 /// Agencies that coordinate the fire response. Mirrors COORDINATING_AGENCIES in
@@ -43,17 +44,17 @@ export function agencyAuthority(agency) {
   if (COORDINATING_AGENCIES.includes(agency)) {
     return {
       key: 'responds',
-      label: 'Runs the response',
+      label: t('Runs the response'),
       color: '#FF9066',
-      note: 'Acknowledges, goes to the scene, marks fire out and files the report.',
+      note: t('Acknowledges, goes to the scene, marks fire out and files the report.'),
     };
   }
   if (ACKNOWLEDGING_AGENCIES.includes(agency)) {
     return {
       key: 'acknowledges',
-      label: 'Acknowledges',
+      label: t('Acknowledges'),
       color: '#6098D6',
-      note: 'Acknowledges the incidents that asked for this agency, and follows them.',
+      note: t('Acknowledges the incidents that asked for this agency, and follows them.'),
     };
   }
   return { key: 'unknown', label: '—', color: '#8a8a8a', note: null };
@@ -62,11 +63,11 @@ export function agencyAuthority(agency) {
 /// Human label for an agency, used where the console explains someone's standing.
 export function agencyLabel(agency) {
   return {
-    fire_volunteer: 'Fire Volunteers',
-    bfp: 'Bureau of Fire Protection',
-    police: 'Police',
-    medical: 'Medical',
-    barangay: 'Barangay',
+    fire_volunteer: t('Fire Volunteers'),
+    bfp: t('Bureau of Fire Protection'),
+    police: t('Police'),
+    medical: t('Medical'),
+    barangay: t('Barangay'),
   }[agency] ?? agency ?? '—';
 }
 
@@ -92,7 +93,7 @@ export function AuthProvider({ children }) {
       else setToken(null);
     } catch (e) {
       if (e?.status === 401 || e?.status === 403) setToken(null);
-      else setStartupError(e?.message || 'Could not reach the server.');
+      else setStartupError(e?.message || t('Could not reach the server.'));
     } finally {
       setLoading(false);
     }

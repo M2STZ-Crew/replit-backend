@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { StatePanel } from '../ui/index.js';
+import { t } from '../../i18n/i18n.jsx';
 
 /* The CIAR, read only (REPLIT (MAIN) 10 · A62 878:8549 six parts, A63
  * 878:8767 generating, A63b 878:8929 couldn't be generated). UI READY — the
@@ -18,22 +19,22 @@ export default function CiarView({ state, ciar, onRetry }) {
 
   if (state === 'generating') {
     return (
-      <StatePanel kind="loading" skeleton="lines" rows={8} title="The CIAR is being written" busy
-                  description="It is compiled from the filed report and the audit log, and appears here when it is ready. The report itself is already on record." />
+      <StatePanel kind="loading" skeleton="lines" rows={8} title={t('The CIAR is being written')} busy
+                  description={t('It is compiled from the filed report and the audit log, and appears here when it is ready. The report itself is already on record.')} />
     );
   }
   if (state === 'failed' || parts.length === 0) {
     return (
-      <StatePanel kind="error" title="The CIAR couldn’t be generated"
-                  description="The filed report is still on record and can be read and downloaded."
-                  onRetry={onRetry} retryLabel="Try again" />
+      <StatePanel kind="error" title={t('The CIAR couldn’t be generated')}
+                  description={t('The filed report is still on record and can be read and downloaded.')}
+                  onRetry={onRetry} retryLabel={t('Try again')} />
     );
   }
 
   return (
     <div className="rpl-ciar">
-      <nav className="rpl-panel rpl-ciar-index" aria-label="CIAR parts">
-        <h3 className="rpl-decision-title">{parts.length === 6 ? 'Six parts' : 'Parts'}</h3>
+      <nav className="rpl-panel rpl-ciar-index" aria-label={t('CIAR parts')}>
+        <h3 className="rpl-decision-title">{parts.length === 6 ? t('Six parts') : t('Parts')}</h3>
         <ul>
           {parts.map((p, i) => (
             <li key={p.key}>
@@ -42,8 +43,7 @@ export default function CiarView({ state, ciar, onRetry }) {
                 className={`rpl-ciar-link${active === p.key ? ' is-active' : ''}`}
                 onClick={() => setActive(p.key)}
                 aria-current={active === p.key ? 'true' : undefined}
-              >
-                Part {['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'][i] ?? i + 1} · {p.title}
+              >{t('Part')}{' '}{['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'][i] ?? i + 1} · {p.title}
               </a>
             </li>
           ))}
@@ -51,11 +51,11 @@ export default function CiarView({ state, ciar, onRetry }) {
       </nav>
       <article className="rpl-panel rpl-ciar-body">
         {ciar.lockedAt && (
-          <p className="rpl-ciar-lock"><span aria-hidden="true">🔒</span> Locked {ciar.lockedAt} · read only{ciar.source ? ` · ${ciar.source}` : ''}</p>
+          <p className="rpl-ciar-lock"><span aria-hidden="true">🔒</span>{' '}{t('Locked')}{' '}{ciar.lockedAt}{' '}{t('· read only')}{ciar.source ? ` · ${ciar.source}` : ''}</p>
         )}
         {parts.map((p, i) => (
           <section key={p.key} id={`rpl-ciar-${p.key}`} className="rpl-ciar-part">
-            <p className="web-eyebrow">Part {['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'][i] ?? i + 1}</p>
+            <p className="web-eyebrow">{t('Part')}{' '}{['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'][i] ?? i + 1}</p>
             <h4 className="rpl-decision-title">{p.title}</h4>
             {p.rows && (
               <dl className="rpl-facts rpl-facts--wide">

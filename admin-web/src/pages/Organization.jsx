@@ -4,6 +4,7 @@ import { api } from '../api/client.js';
 import { agencyLabel, useAuth } from '../auth.jsx';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import { EmptyState, PageHeader, StatePanel, StatusChip } from '../components/ui/index.js';
+import { t } from '../i18n/i18n.jsx';
 
 /* Organisation (REPLIT (MAIN) 10 · A47 875:7012): the signed-in Admin's own
  * organisation — its profile, how many Coordinators and Responders it has,
@@ -17,10 +18,10 @@ import { EmptyState, PageHeader, StatePanel, StatusChip } from '../components/ui
 const DAY = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', day: 'numeric', month: 'short', year: 'numeric' });
 
 const EQUIPMENT = {
-  available: { label: 'Ready', tone: 'ok' },
-  in_use: { label: 'Deployed', tone: 'accent' },
-  maintenance: { label: 'Maintenance', tone: 'warn' },
-  out_of_service: { label: 'Out of service', tone: 'neutral' },
+  available: { get label() { return t('Ready'); }, tone: 'ok' },
+  in_use: { get label() { return t('Deployed'); }, tone: 'accent' },
+  maintenance: { get label() { return t('Maintenance'); }, tone: 'warn' },
+  out_of_service: { get label() { return t('Out of service'); }, tone: 'neutral' },
 };
 
 function words(s) {
@@ -56,7 +57,7 @@ export default function Organization({ onNavigate }) {
       setEquipment(Array.isArray(e) ? e : []);
       setPhase('ready');
     } catch (err) {
-      setError(err.message || 'The organization could not be loaded.');
+      setError(err.message || t('The organization could not be loaded.'));
       setPhase('error');
     }
   }, [profile]);
@@ -65,10 +66,8 @@ export default function Organization({ onNavigate }) {
   if (!profile) {
     return (
       <div className="rpl-page">
-        <PageHeader eyebrow="Organization" title="Organization" />
-        <EmptyState icon="organization" title="No organization on this account">
-          Your Admin account isn’t attached to an accredited organization, so there is no profile to show. The organizations on the network are under Affiliates.
-        </EmptyState>
+        <PageHeader eyebrow={t('Organization')} title={t('Organization')} />
+        <EmptyState icon="organization" title={t('No organization on this account')}>{t('Your Admin account isn’t attached to an accredited organization, so there is no profile to show. The organizations on the network are under Affiliates.')}</EmptyState>
       </div>
     );
   }
@@ -77,68 +76,66 @@ export default function Organization({ onNavigate }) {
   const responders = people.filter((p) => p.role === 'response_team').length;
   const contact = [profile.contact_email, profile.contact_phone].filter(Boolean).join(' · ');
   const profileRows = [
-    ['Type', agencyLabel(profile.agency_type)],
-    ['Admin', [user?.full_name, user?.email].filter(Boolean).join(' · ') || '—'],
-    ['Address', profile.address || 'Not on record'],
-    ['Contact', contact || 'Not on record'],
-    ['Status', profile.is_active ? 'Active' : 'Inactive'],
+    [t('Type'), agencyLabel(profile.agency_type)],
+    [t('Admin'), [user?.full_name, user?.email].filter(Boolean).join(' · ') || '—'],
+    [t('Address'), profile.address || t('Not on record')],
+    [t('Contact'), contact || t('Not on record')],
+    [t('Status'), profile.is_active ? t('Active') : t('Inactive')],
   ];
 
   return (
     <div className="rpl-page">
       <PageHeader
-        eyebrow={`Organization · ${agencyLabel(profile.agency_type)}`}
+        eyebrow={t('Organization · {agencyLabel}', { agencyLabel: agencyLabel(profile.agency_type) })}
         title={profile.name}
-        description={profile.created_at ? `On the network since ${DAY.format(new Date(profile.created_at))}.` : null}
+        description={profile.created_at ? t('On the network since {date}.', { date: DAY.format(new Date(profile.created_at)) }) : null}
       />
 
       {phase === 'error' ? (
-        <StatePanel kind="error" title="The organization couldn’t load" description={error} onRetry={load} />
+        <StatePanel kind="error" title={t('The organization couldn’t load')} description={error} onRetry={load} />
       ) : (
         <>
           <div className="rpl-incident-grid">
             <section className="rpl-panel" aria-labelledby="rpl-org-profile">
-              <h2 className="rpl-decision-title" id="rpl-org-profile">Profile</h2>
+              <h2 className="rpl-decision-title" id="rpl-org-profile">{t('Profile')}</h2>
               <Facts rows={profileRows} />
               {profile.description && <p className="rpl-decision-body rpl-org-about">{profile.description}</p>}
             </section>
 
             <section className="rpl-panel rpl-decision" aria-labelledby="rpl-org-people" aria-busy={phase === 'loading' || undefined}>
-              <h2 className="rpl-decision-title" id="rpl-org-people">People</h2>
+              <h2 className="rpl-decision-title" id="rpl-org-people">{t('People')}</h2>
               <Facts rows={[
-                ['Coordinators', phase === 'loading' ? '…' : String(coordinators)],
-                ['Responders', phase === 'loading' ? '…' : `${responders} · created by your Coordinators`],
+                [t('Coordinators'), phase === 'loading' ? '…' : String(coordinators)],
+                [t('Responders'), phase === 'loading' ? '…' : t('{count} · created by your Coordinators', { count: responders })],
               ]} />
               <div className="rpl-alert rpl-alert--info">
                 <span className="rpl-alert-mark" aria-hidden="true">i</span>
-                <p className="rpl-alert-body">Coordinators create Responder accounts for their team on the mobile app.</p>
+                <p className="rpl-alert-body">{t('Coordinators create Responder accounts for their team on the mobile app.')}</p>
               </div>
               {onNavigate && (
-                <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onNavigate('accounts')}>
-                  View accounts
-                </button>
+                <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onNavigate('accounts')}>{t('View accounts')}</button>
               )}
             </section>
           </div>
 
           <section className="rpl-board-section" aria-labelledby="rpl-org-equipment">
             <div className="rpl-section-head">
-              <h2 className="rpl-section-title" id="rpl-org-equipment">Equipment</h2>
+              <h2 className="rpl-section-title" id="rpl-org-equipment">{t('Equipment')}</h2>
               <span className="rpl-section-meta">{phase === 'ready' ? equipment.length : '…'}</span>
             </div>
             {phase === 'loading' ? (
-              <StatePanel kind="loading" title="Loading equipment…" busy />
+              <StatePanel kind="loading" title={t('Loading equipment…')} busy />
             ) : equipment.length === 0 ? (
-              <p className="rpl-empty-line">No equipment on record.</p>
+              <p className="rpl-empty-line">{t('No equipment on record.')}</p>
             ) : (
               <div className="web-table-wrap">
                 <table className="web-table">
-                  <caption className="web-sr-only">Equipment</caption>
+                  <caption className="web-sr-only">{t('Equipment')}</caption>
                   <thead>
                     <tr>
-                      <th scope="col">Equipment</th>
-                      <th scope="col">Category</th>
-                      <th scope="col">Status</th>
+                      <th scope="col">{t('Equipment')}</th>
+                      <th scope="col">{t('Category')}</th>
+                      <th scope="col">{t('Status')}</th>
                     </tr>
                   </thead>
                   <tbody>

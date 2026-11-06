@@ -1,3 +1,5 @@
+import { t } from '../i18n/i18n.jsx';
+
 /// The operational success metrics of Master Context v10 §11.2, computed from
 /// the incident timestamps the console already loads — nothing estimated.
 ///
@@ -59,9 +61,9 @@ export function responseMetrics(incidents, { days = 30, now = Date.now() } = {})
 export function formatMinutes(m) {
   if (m == null) return '—';
   if (m < 1) return `${Math.round(m * 60)} s`;
-  if (m < 60) return `${m < 10 ? m.toFixed(1) : Math.round(m)} min`;
+  if (m < 60) return t('{n} min', { n: m < 10 ? m.toFixed(1) : Math.round(m) });
   const h = Math.floor(m / 60);
-  return `${h} h ${Math.round(m % 60)} min`;
+  return t('{h} h {m} min', { h, m: Math.round(m % 60) });
 }
 
 export function formatShare(share) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { CATEGORY_LABEL, categoriesOf } from './cues.js';
+import { t } from '../i18n/i18n.jsx';
 
 /// The repeating incident alarm (Admin Console).
 ///
@@ -107,12 +108,12 @@ export function recordAcknowledged(ids) {
 
 // ── how an incident reads in an alert ───────────────────────────────────────
 const STATUS_LABEL = {
-  reported: 'Awaiting acceptance',
-  verified: 'Accepted',
-  en_route: 'Responders en route',
-  arrived: 'Responders on scene',
-  fire_out: 'Fire out',
-  post_incident_report: 'Report owed',
+  get reported() { return t('Awaiting acceptance'); },
+  get verified() { return t('Accepted'); },
+  get en_route() { return t('Responders en route'); },
+  get arrived() { return t('Responders on scene'); },
+  get fire_out() { return t('Fire out'); },
+  get post_incident_report() { return t('Report owed'); },
 };
 
 export function statusLabel(status) {
@@ -121,7 +122,7 @@ export function statusLabel(status) {
 
 export function kindOf(incident) {
   const cats = categoriesOf(incident).map((c) => CATEGORY_LABEL[c]);
-  return cats.length ? cats.join(' · ') : 'Incident';
+  return cats.length ? cats.join(' · ') : t('Incident');
 }
 
 export function reportsOf(incident) {
@@ -154,7 +155,7 @@ export function notifyDesktop(incidents, { again = false } = {}) {
   if (typeof document !== 'undefined' && !document.hidden) return;
   for (const inc of incidents) {
     try {
-      const n = new Notification(`New incident: ${inc.designation}`, {
+      const n = new Notification(t('New incident: {designation}', { designation: inc.designation }), {
         body: `${kindOf(inc)} · ${reportsOf(inc)} · ${statusLabel(inc.status)}. `
           + 'Open the Admin Console to acknowledge it.',
         tag: `incident-${inc.id}`,

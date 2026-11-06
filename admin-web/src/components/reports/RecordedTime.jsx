@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n.jsx';
 const FORMAT = new Intl.DateTimeFormat('en-PH', {
   timeZone: 'Asia/Manila',
   dateStyle: 'medium',
@@ -5,8 +6,8 @@ const FORMAT = new Intl.DateTimeFormat('en-PH', {
 });
 
 export default function RecordedTime({ value }) {
-  if (!value) return <>Not recorded</>;
+  if (!value) return <>{t('Not recorded')}</>;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return <>Not recorded</>;
+  if (Number.isNaN(date.getTime())) return <>{t('Not recorded')}</>;
   return <time dateTime={date.toISOString()}>{FORMAT.format(date)} PHT</time>;
 }

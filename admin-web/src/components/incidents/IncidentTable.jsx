@@ -5,6 +5,7 @@ import Icon from '../ui/Icon.jsx';
 import StatusChip from '../ui/StatusChip.jsx';
 import LifecycleChip from './LifecycleChip.jsx';
 import Skeleton from '../ui/Skeleton.jsx';
+import { t } from '../../i18n/i18n.jsx';
 
 /* The incident list (REPLIT (MAIN) 04 · Incident row; PRD v13 §4.6.2, §4.14):
  * the Area and where it is, its status, the agencies its reporters asked for,
@@ -19,13 +20,13 @@ import Skeleton from '../ui/Skeleton.jsx';
  *
  * Below 1280 px, beside the rail, the rows stack as cards (A85). */
 
-const BAND = { high: 'High', medium: 'Medium', low: 'Low' };
+const BAND = { get high() { return t('High'); }, get medium() { return t('Medium'); }, get low() { return t('Low'); } };
 
 const LOADED = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' });
 
 export function agenciesOf(inc) {
   const list = (inc.requested_agencies ?? []).map((a) => AGENCY_LABEL[a] ?? a);
-  return list.length ? list.join(' · ') : 'Not stated';
+  return list.length ? list.join(' · ') : t('Not stated');
 }
 
 export function confidenceOf(inc) {
@@ -39,7 +40,7 @@ function IncidentCards({
   if (incidents.length === 0) {
     return loading ? (
       <div role="status" aria-busy="true">
-        <span className="web-sr-only">Loading incidents…</span>
+        <span className="web-sr-only">{t('Loading incidents…')}</span>
         <Skeleton shape="table" rows={4} />
       </div>
     ) : (
@@ -51,9 +52,9 @@ function IncidentCards({
       {incidents.map((inc) => {
         const unread = isNew(inc);
         const stats = [
-          ['Reports', inc.report_count],
-          ['Confidence', confidenceOf(inc)],
-          [staleAt ? 'Last loaded' : 'Updated', staleAt ? LOADED.format(new Date(staleAt)) : ago(inc.updated_at ?? inc.reported_at)],
+          [t('Reports'), inc.report_count],
+          [t('Confidence'), confidenceOf(inc)],
+          [staleAt ? t('Last loaded') : t('Updated'), staleAt ? LOADED.format(new Date(staleAt)) : ago(inc.updated_at ?? inc.reported_at)],
         ];
         return (
           <li key={inc.id} className={`rpl-incident-card${unread ? ' is-unread' : ''}${inc.id === selectedId ? ' is-selected' : ''}`}>
@@ -66,7 +67,7 @@ function IncidentCards({
               <span className="rpl-cell-text">
                 <span className="rpl-cell-title">
                   {inc.designation}
-                  {unread && <span className="web-sr-only">, new since you last looked</span>}
+                  {unread && <span className="web-sr-only">{t(', new since you last looked')}</span>}
                 </span>
                 <span className="rpl-cell-meta"><Place lat={inc.centroid_lat} lng={inc.centroid_lng} /> · {agenciesOf(inc)}</span>
               </span>
@@ -76,8 +77,7 @@ function IncidentCards({
                 <div key={t}><dt>{t}</dt><dd>{v}</dd></div>
               ))}
             </dl>
-            <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onOpen(inc)}>
-              Open incident<span className="web-sr-only"> {inc.designation}</span>
+            <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onOpen(inc)}>{t('Open incident')}<span className="web-sr-only"> {inc.designation}</span>
             </button>
           </li>
         );
@@ -115,14 +115,14 @@ export default function IncidentTable({
       <table className="web-table rpl-incidents" aria-busy={loading || undefined}>
         <thead>
           <tr>
-            <th scope="col">Area</th>
-            <th scope="col">Status</th>
-            <th scope="col">Requested</th>
-            <th scope="col">Confidence</th>
-            <th scope="col">Reports</th>
-            <th scope="col">Updated</th>
-            {yourOrg && <th scope="col">Your org</th>}
-            <th scope="col"><span className="web-sr-only">Open</span></th>
+            <th scope="col">{t('Area')}</th>
+            <th scope="col">{t('Status')}</th>
+            <th scope="col">{t('Requested')}</th>
+            <th scope="col">{t('Confidence')}</th>
+            <th scope="col">{t('Reports')}</th>
+            <th scope="col">{t('Updated')}</th>
+            {yourOrg && <th scope="col">{t('Your org')}</th>}
+            <th scope="col"><span className="web-sr-only">{t('Open')}</span></th>
           </tr>
         </thead>
         <tbody>
@@ -140,7 +140,7 @@ export default function IncidentTable({
                     <span className="rpl-cell-text">
                       <span className="rpl-cell-title">
                         {inc.designation}
-                        {unread && <span className="web-sr-only">, new since you last looked</span>}
+                        {unread && <span className="web-sr-only">{t(', new since you last looked')}</span>}
                       </span>
                       <span className="rpl-cell-meta"><Place lat={inc.centroid_lat} lng={inc.centroid_lng} /></span>
                     </span>
@@ -151,7 +151,7 @@ export default function IncidentTable({
                 <td>{confidenceOf(inc)}</td>
                 <td className="rpl-cell-strong">{inc.report_count}</td>
                 <td className="rpl-cell-quiet">
-                  {staleAt ? `Last loaded ${LOADED.format(new Date(staleAt))}` : ago(inc.updated_at ?? inc.reported_at)}
+                  {staleAt ? t('Last loaded {time}', { time: LOADED.format(new Date(staleAt)) }) : ago(inc.updated_at ?? inc.reported_at)}
                 </td>
                 {yourOrg && <td><StatusChip {...yourOrg(inc)} /></td>}
                 <td className="web-table-action-cell">
@@ -160,8 +160,7 @@ export default function IncidentTable({
                     className="web-table-row-action"
                     onClick={() => onOpen(inc)}
                     aria-current={selected ? 'true' : undefined}
-                  >
-                    Open<span className="web-sr-only"> {inc.designation}</span>
+                  >{t('Open')}<span className="web-sr-only"> {inc.designation}</span>
                   </button>
                 </td>
               </tr>
@@ -172,7 +171,7 @@ export default function IncidentTable({
               <td className="web-table-empty" colSpan={columns}>
                 {loading ? (
                   <span role="status">
-                    <span className="web-sr-only">Loading incidents…</span>
+                    <span className="web-sr-only">{t('Loading incidents…')}</span>
                     <Skeleton shape="table" rows={4} />
                   </span>
                 ) : emptyMessage}

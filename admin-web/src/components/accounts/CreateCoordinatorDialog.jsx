@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import FormDialog from '../ui/FormDialog.jsx';
+import { t } from '../../i18n/i18n.jsx';
 
 /* Create a Coordinator account (REPLIT (MAIN) 10 · A49 875:7435; PRD v13
  * §4.6.4: an organisation's Admin creates its Coordinators).
@@ -32,9 +33,9 @@ export default function CreateCoordinatorDialog({ open, organization, organizati
   const picking = Array.isArray(organizations);
   const chosen = picking ? organizations.find((o) => o.id === organizationId) : null;
   const orgName = picking ? (chosen?.name ?? 'the organization') : organization;
-  const nameError = tried && !fullName.trim() ? 'Enter the Coordinator’s full name.' : null;
-  const emailError = tried && !EMAIL.test(email.trim()) ? 'Enter an email address like name@example.com.' : null;
-  const orgError = tried && picking && !organizationId ? 'Choose their organization.' : null;
+  const nameError = tried && !fullName.trim() ? t('Enter the Coordinator’s full name.') : null;
+  const emailError = tried && !EMAIL.test(email.trim()) ? t('Enter an email address like name@example.com.') : null;
+  const orgError = tried && picking && !organizationId ? t('Choose their organization.') : null;
 
   async function submit() {
     setTried(true);
@@ -49,7 +50,7 @@ export default function CreateCoordinatorDialog({ open, organization, organizati
         organizationId: picking ? organizationId : null,
       });
     } catch (err) {
-      setError(err?.message || 'The account was not created. Try again.');
+      setError(err?.message || t('The account was not created. Try again.'));
     } finally {
       setBusy(false);
     }
@@ -58,41 +59,41 @@ export default function CreateCoordinatorDialog({ open, organization, organizati
   return (
     <FormDialog
       open={open}
-      eyebrow={`Organization · ${orgName}`}
-      title="Create a Coordinator account"
+      eyebrow={t('Organization · {orgName}', { orgName })}
+      title={t('Create a Coordinator account')}
       onClose={onClose}
       onSubmit={submit}
       busy={busy}
       error={error}
-      note={`They can acknowledge Areas and create Responder accounts for ${orgName}. We email them a link to set their password.`}
-      submitLabel="Create account"
-      busyLabel="Creating…"
+      note={t('They can acknowledge Areas and create Responder accounts for {orgName}. We email them a link to set their password.', { orgName })}
+      submitLabel={t('Create account')}
+      busyLabel={t('Creating…')}
     >
       {picking && (
         <label className="rpl-field">
-          <span className="rpl-field-label">Organization</span>
+          <span className="rpl-field-label">{t('Organization')}</span>
           <select value={organizationId} onChange={(e) => setOrganizationId(e.target.value)} aria-invalid={!!orgError} disabled={busy}>
-            <option value="">Choose…</option>
+            <option value="">{t('Choose…')}</option>
             {organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
           </select>
           {orgError && <span className="rpl-field-error">{orgError}</span>}
         </label>
       )}
       <label className="rpl-field">
-        <span className="rpl-field-label">Full name</span>
+        <span className="rpl-field-label">{t('Full name')}</span>
         <input value={fullName} onChange={(e) => setFullName(e.target.value)} aria-invalid={!!nameError} disabled={busy} autoComplete="name" />
         {nameError && <span className="rpl-field-error">{nameError}</span>}
       </label>
       <label className="rpl-field">
-        <span className="rpl-field-label">Email</span>
+        <span className="rpl-field-label">{t('Email')}</span>
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={!!emailError} disabled={busy} autoComplete="email" />
         {emailError
           ? <span className="rpl-field-error">{emailError}</span>
-          : <span className="rpl-field-help">They sign in to the mobile app with this.</span>}
+          : <span className="rpl-field-help">{t('They sign in to the mobile app with this.')}</span>}
       </label>
       <label className="rpl-field">
-        <span className="rpl-field-label">Title (optional)</span>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} disabled={busy} placeholder="e.g. Lieutenant" maxLength={80} />
+        <span className="rpl-field-label">{t('Title (optional)')}</span>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} disabled={busy} placeholder={t('e.g. Lieutenant')} maxLength={80} />
       </label>
     </FormDialog>
   );

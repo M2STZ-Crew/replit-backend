@@ -98,3 +98,6 @@
 .lg-preview-status.is-danger { color: var(--danger); }
 .lg-preview-status.is-quiet { color: var(--label); }
 .lg-submit--link { display: grid; place-items: center; text-decoration: none; }
+
+/* English | Tagalog on the sign-in page, before anyone has signed in. */
+.lg-language { margin-bottom: 18px; }

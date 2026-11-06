@@ -4,6 +4,7 @@ import { api } from '../api/client.js';
 import { agencyLabel } from '../auth.jsx';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import { EmptyState, Icon, PageHeader, StatePanel } from '../components/ui/index.js';
+import { t } from '../i18n/i18n.jsx';
 
 /* Audit log (REPLIT (MAIN) 10 · A64 879:8852; Section 2.5 audit trail): the
  * append-only record of consequential actions, newest first.
@@ -23,23 +24,23 @@ const DAY = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', day: 'nu
  * convention the migration documents. Anything unrecognised is "Other"
  * rather than dropped. */
 const CATEGORY = {
-  incident: 'Incident',
-  area: 'Incident',
-  alarm: 'Alarm',
-  kyc: 'Identity',
-  hydrant: 'Water',
-  map_layer: 'Map layer',
-  user: 'Account',
-  report: 'Report',
-  dispatch: 'Dispatch',
+  get incident() { return t('Incident'); },
+  get area() { return t('Incident'); },
+  get alarm() { return t('Alarm'); },
+  get kyc() { return t('Identity'); },
+  get hydrant() { return t('Water'); },
+  get map_layer() { return t('Map layer'); },
+  get user() { return t('Account'); },
+  get report() { return t('Report'); },
+  get dispatch() { return t('Dispatch'); },
 };
-const categoryOf = (action = '') => CATEGORY[action.split('.')[0]] ?? 'Other';
+const categoryOf = (action = '') => CATEGORY[action.split('.')[0]] ?? t('Other');
 
 const VERB = {
-  'incident.route': 'Routed to agencies',
-  'incident.accept': 'Acknowledged',
-  'incident.verify': 'Acknowledged',
-  'incident.post_incident_report': 'Filed post-incident report',
+  get 'incident.route'() { return t('Routed to agencies'); },
+  get 'incident.accept'() { return t('Acknowledged'); },
+  get 'incident.verify'() { return t('Acknowledged'); },
+  get 'incident.post_incident_report'() { return t('Filed post-incident report'); },
 };
 function labelOf(action = '') {
   if (VERB[action]) return VERB[action];
@@ -47,7 +48,7 @@ function labelOf(action = '') {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-const ROLE = { admin: 'Admin', sub_admin: 'Coordinator', response_team: 'Responder', general_user: 'Citizen' };
+const ROLE = { get admin() { return t('Admin'); }, get sub_admin() { return t('Coordinator'); }, get response_team() { return t('Responder'); }, get general_user() { return t('Citizen'); } };
 
 function detailOf(r) {
   if (r.action === 'incident.route' && Array.isArray(r.metadata?.routes)) {
@@ -84,7 +85,7 @@ export default function ActionRecord() {
       setRows(Array.isArray(list) ? list : []);
       setPhase('ready');
     } catch (e) {
-      setError(e.message || 'The audit log could not be loaded.');
+      setError(e.message || t('The audit log could not be loaded.'));
       setPhase('error');
     }
   }, []);
@@ -108,58 +109,54 @@ export default function ActionRecord() {
   return (
     <div className="rpl-page">
       <PageHeader
-        eyebrow={org?.name ?? 'Records'}
-        title="Audit log"
-        description="Append-only. Each entry keeps the actor’s role and agency as they were at the time."
+        eyebrow={org?.name ?? t('Records')}
+        title={t('Audit log')}
+        description={t('Append-only. Each entry keeps the actor’s role and agency as they were at the time.')}
         actions={(
-          <button type="button" className="rpl-button rpl-button--secondary" onClick={load} disabled={phase === 'loading'}>
-            Refresh
-          </button>
+          <button type="button" className="rpl-button rpl-button--secondary" onClick={load} disabled={phase === 'loading'}>{t('Refresh')}</button>
         )}
       />
 
       <div className="rpl-filters">
         <label className="rpl-search">
           <Icon name="search" />
-          <span className="web-sr-only">Search the audit log</span>
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search actions, areas, agencies" />
+          <span className="web-sr-only">{t('Search the audit log')}</span>
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search actions, areas, agencies')} />
         </label>
         <label className="rpl-select">
-          <span className="rpl-select-label">Area</span>
+          <span className="rpl-select-label">{t('Area')}</span>
           <select value={area} onChange={(e) => setArea(e.target.value)}>
-            <option value="all">All areas</option>
+            <option value="all">{t('All areas')}</option>
             {areas.map((a) => <option key={a} value={a}>{a}</option>)}
           </select>
         </label>
         <label className="rpl-select">
-          <span className="rpl-select-label">Action</span>
+          <span className="rpl-select-label">{t('Action')}</span>
           <select value={category} onChange={(e) => setCategory(e.target.value)}>
-            <option value="all">All actions</option>
+            <option value="all">{t('All actions')}</option>
             {categories.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </label>
       </div>
 
       {phase === 'loading' ? (
-        <StatePanel kind="loading" title="Loading the audit log…" busy />
+        <StatePanel kind="loading" title={t('Loading the audit log…')} busy />
       ) : phase === 'error' ? (
-        <StatePanel kind="error" title="The audit log couldn’t load" description={error} onRetry={load} />
+        <StatePanel kind="error" title={t('The audit log couldn’t load')} description={error} onRetry={load} />
       ) : rows.length === 0 ? (
-        <EmptyState icon="audit" title="Nothing recorded yet">
-          Entries appear as incidents are acknowledged, reports are filed and requests are decided.
-        </EmptyState>
+        <EmptyState icon="audit" title={t('Nothing recorded yet')}>{t('Entries appear as incidents are acknowledged, reports are filed and requests are decided.')}</EmptyState>
       ) : (
         <>
           <div className="web-table-wrap">
             <table className="web-table rpl-audit">
-              <caption className="web-sr-only">Audit log, newest first</caption>
+              <caption className="web-sr-only">{t('Audit log, newest first')}</caption>
               <thead>
                 <tr>
-                  <th scope="col">Time (PHT)</th>
-                  <th scope="col">Actor at the time</th>
-                  <th scope="col">Action</th>
-                  <th scope="col">Target</th>
-                  <th scope="col">Detail</th>
+                  <th scope="col">{t('Time (PHT)')}</th>
+                  <th scope="col">{t('Actor at the time')}</th>
+                  <th scope="col">{t('Action')}</th>
+                  <th scope="col">{t('Target')}</th>
+                  <th scope="col">{t('Detail')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -170,8 +167,8 @@ export default function ActionRecord() {
                     </td>
                     <td>
                       <span className="rpl-cell-text">
-                        <span className="rpl-cell-title">{r.actor_role ? (ROLE[r.actor_role] ?? r.actor_role) : 'System'}</span>
-                        <span className="rpl-cell-meta">{r.actor_agency ? agencyLabel(r.actor_agency) : r.actor_user_id ? `Account ${shortId(r.actor_user_id)}` : 'Automatic'}</span>
+                        <span className="rpl-cell-title">{r.actor_role ? (ROLE[r.actor_role] ?? r.actor_role) : t('System')}</span>
+                        <span className="rpl-cell-meta">{r.actor_agency ? agencyLabel(r.actor_agency) : r.actor_user_id ? t('Account {shortId}', { shortId: shortId(r.actor_user_id) }) : t('Automatic')}</span>
                       </span>
                     </td>
                     <th scope="row">
@@ -187,12 +184,12 @@ export default function ActionRecord() {
                   </tr>
                 ))}
                 {shown.length === 0 && (
-                  <tr><td className="web-table-empty" colSpan={5}>No entries match these filters.</td></tr>
+                  <tr><td className="web-table-empty" colSpan={5}>{t('No entries match these filters.')}</td></tr>
                 )}
               </tbody>
             </table>
           </div>
-          <p className="rpl-table-foot">Showing {shown.length} of the latest {rows.length} entries</p>
+          <p className="rpl-table-foot">{t('Showing {shown} of the latest {total} entries', { shown: shown.length, total: rows.length })}</p>
         </>
       )}
     </div>

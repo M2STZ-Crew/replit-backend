@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n.jsx';
 /* What this Admin may do in the console (ARBAC; PRD v13/v14 §4.6; REPLIT
  * (MAIN) 10 · A00 "Four permission variants").
  *
@@ -81,9 +82,9 @@ export function acknowledgedByUs(access, incident) {
 /// The "Your org" chip of an incident row (A21, A22): routed and still to
 /// acknowledge, routed and acknowledged, or someone else's (view only).
 export function yourOrg(access, incident) {
-  if (!actsOn(access, incident)) return { key: 'view', label: 'View only', tone: 'neutral' };
-  if (acknowledgedByUs(access, incident)) return { key: 'acknowledged', label: 'Acknowledged', tone: 'ok' };
-  return { key: 'routed', label: 'Routed to you', tone: 'accent' };
+  if (!actsOn(access, incident)) return { key: 'view', label: t('View only'), tone: 'neutral' };
+  if (acknowledgedByUs(access, incident)) return { key: 'acknowledged', label: t('Acknowledged'), tone: 'ok' };
+  return { key: 'routed', label: t('Routed to you'), tone: 'accent' };
 }
 
 /// Whether the console splits incidents into "Routed to you" and "Other
@@ -93,54 +94,54 @@ export function splitsIncidents(access) {
 }
 
 const AGENCY_WORD = {
-  fire_volunteer: 'Fire',
-  bfp: 'Fire',
-  police: 'Police',
-  medical: 'Medical',
-  barangay: 'Barangay',
+  get fire_volunteer() { return t('Fire'); },
+  get bfp() { return t('Fire'); },
+  get police() { return t('Police'); },
+  get medical() { return t('Medical'); },
+  get barangay() { return t('Barangay'); },
 };
 
 const VARIANT_LABEL = {
-  system: 'System',
-  central: 'Central hub',
-  fire_volunteer: 'Fire Volunteer',
-  bfp: 'Bureau of Fire Protection',
-  police: 'Police',
-  medical: 'Medical',
-  barangay: 'Barangay',
+  get system() { return t('System'); },
+  get central() { return t('Central hub'); },
+  get fire_volunteer() { return t('Fire Volunteer'); },
+  get bfp() { return t('Bureau of Fire Protection'); },
+  get police() { return t('Police'); },
+  get medical() { return t('Medical'); },
+  get barangay() { return t('Barangay'); },
 };
 
 /// What this Admin answers for, in a word: "Fire", "Police" …
 export function routedWord(access) {
-  return AGENCY_WORD[access?.organization?.agency_type] ?? 'your agency';
+  return AGENCY_WORD[access?.organization?.agency_type] ?? t('your agency');
 }
 
 /// The sidebar's line under the organisation's name (A00): "Police · Admin".
 export function roleLine(access) {
-  return `${VARIANT_LABEL[access?.variant] ?? 'Organization'} · Admin`;
+  return t('{team} · Admin', { team: VARIANT_LABEL[access?.variant] ?? t('Organization') });
 }
 
 /// The eyebrow's variant word: "Fire Volunteer", "Central hub", …
 export function variantLabel(access) {
-  return VARIANT_LABEL[access?.variant] ?? 'Admin';
+  return VARIANT_LABEL[access?.variant] ?? t('Admin');
 }
 
 /// The top bar's line (A21, A25, A46): who this organisation is and what it
 /// may act on.
 export function scopeLine(access) {
-  if (!access || access.legacy) return 'Central hub — you review affiliates and act on every incident';
+  if (!access || access.legacy) return t('Central hub — you review affiliates and act on every incident');
   const word = routedWord(access);
   switch (access.variant) {
     case 'system':
-      return 'System administrator — you can act on every incident';
+      return t('System administrator — you can act on every incident');
     case 'central':
-      return `Central hub — you act on incidents that asked for ${word}, and review affiliates and IDs`;
+      return t('Central hub — you act on incidents that asked for {word}, and review affiliates and IDs', { word });
     case 'bfp':
-      return 'BFP — you act on Fire incidents and set the alarm level';
+      return t('BFP — you act on Fire incidents and set the alarm level');
     case 'fire_volunteer':
-      return 'Fire Volunteer — you act on incidents that asked for Fire';
+      return t('Fire Volunteer — you act on incidents that asked for Fire');
     default:
-      return `${VARIANT_LABEL[access.variant] ?? word} — you act on incidents that asked for ${word}`;
+      return t('{team} — you act on incidents that asked for {word}', { team: VARIANT_LABEL[access.variant] ?? word, word });
   }
 }
 

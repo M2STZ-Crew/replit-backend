@@ -1,4 +1,5 @@
 import { PERM, can } from '../../lib/access.js';
+import { t } from '../../i18n/i18n.jsx';
 
 /* The Admin console's destinations, in the pass 6 sidebar's order (REPLIT
  * (MAIN) 04 · Sidebar; 10 · screen map). `badge` names a counter: `new:*`
@@ -10,21 +11,21 @@ import { PERM, can } from '../../lib/access.js';
  * review (PRD v13 §4.1, §4.12; A00 "Four permission variants"), and Map
  * settings, for the Admins who look after the shared map. */
 export const NAV = [
-  { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', group: 'Operations', badge: 'new:dashboard' },
-  { key: 'incidents', label: 'Incidents', icon: 'incidents', group: 'Operations', badge: 'new:incidents' },
-  { key: 'map', label: 'Live map', icon: 'map', group: 'Operations' },
-  { key: 'requests', label: 'Requests', icon: 'requests', group: 'Operations', badge: 'requests' },
-  { key: 'water', label: 'Water resources', icon: 'water', group: 'Resources' },
-  { key: 'mapsettings', label: 'Map settings', icon: 'settings', group: 'Resources', requires: PERM.MANAGE_MAP },
-  { key: 'reports', label: 'Reports & CIAR', icon: 'reports', group: 'Records' },
-  { key: 'audit', label: 'Audit log', icon: 'audit', group: 'Records' },
-  { key: 'organization', label: 'Organization', icon: 'organization', group: 'Organization' },
-  { key: 'accounts', label: 'Accounts', icon: 'accounts', group: 'Organization' },
-  { key: 'idreview', label: 'Verification', icon: 'verification', group: 'Organization', requires: PERM.REVIEW_IDS, badge: 'ids' },
-  { key: 'affiliates', label: 'Affiliates', icon: 'affiliates', group: 'Organization', requires: PERM.REVIEW_AFFILIATES, badge: 'affiliates' },
+  { key: 'dashboard', get label() { return t('Dashboard'); }, icon: 'dashboard', get group() { return t('Operations'); }, badge: 'new:dashboard' },
+  { key: 'incidents', get label() { return t('Incidents'); }, icon: 'incidents', get group() { return t('Operations'); }, badge: 'new:incidents' },
+  { key: 'map', get label() { return t('Live map'); }, icon: 'map', get group() { return t('Operations'); } },
+  { key: 'requests', get label() { return t('Requests'); }, icon: 'requests', get group() { return t('Operations'); }, badge: 'requests' },
+  { key: 'water', get label() { return t('Water resources'); }, icon: 'water', get group() { return t('Resources'); } },
+  { key: 'mapsettings', get label() { return t('Map settings'); }, icon: 'settings', get group() { return t('Resources'); }, requires: PERM.MANAGE_MAP },
+  { key: 'reports', get label() { return t('Reports & CIAR'); }, icon: 'reports', get group() { return t('Records'); } },
+  { key: 'audit', get label() { return t('Audit log'); }, icon: 'audit', get group() { return t('Records'); } },
+  { key: 'organization', get label() { return t('Organization'); }, icon: 'organization', get group() { return t('Organization'); } },
+  { key: 'accounts', get label() { return t('Accounts'); }, icon: 'accounts', get group() { return t('Organization'); } },
+  { key: 'idreview', get label() { return t('Verification'); }, icon: 'verification', get group() { return t('Organization'); }, requires: PERM.REVIEW_IDS, badge: 'ids' },
+  { key: 'affiliates', get label() { return t('Affiliates'); }, icon: 'affiliates', get group() { return t('Organization'); }, requires: PERM.REVIEW_AFFILIATES, badge: 'affiliates' },
 ];
 
-export const SETTINGS = { key: 'settings', label: 'Settings', icon: 'settings' };
+export const SETTINGS = { key: 'settings', get label() { return t('Settings'); }, icon: 'settings' };
 
 export const GROUPS = ['Operations', 'Resources', 'Records', 'Organization'];
 

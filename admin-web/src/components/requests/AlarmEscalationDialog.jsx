@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { ALARM_LEVEL, ASKABLE_ALARM_LEVELS, alarmLabel } from '../../lib/status.js';
 import FormDialog from '../ui/FormDialog.jsx';
+import { t } from '../../i18n/i18n.jsx';
 
 /* Ask BFP to raise the alarm (REPLIT (MAIN) 10 · A45 874:6513; PRD v13 §4.7:
  * Fire Volunteer Admins request, BFP sets the level). A Fire Volunteer
@@ -39,7 +40,7 @@ export default function AlarmEscalationDialog({ open, areas, bfpName = 'BFP', on
 
   const area = (areas ?? []).find((a) => a.id === areaId) ?? null;
   const choices = above(area?.alarm_level);
-  const levelError = tried && !level ? 'Choose the level to ask for.' : null;
+  const levelError = tried && !level ? t('Choose the level to ask for.') : null;
 
   async function submit() {
     setTried(true);
@@ -49,7 +50,7 @@ export default function AlarmEscalationDialog({ open, areas, bfpName = 'BFP', on
     try {
       await onSend({ areaId: area.id, level, justification: justification.trim() || null });
     } catch (err) {
-      setError(err?.message || 'The request was not sent. Try again.');
+      setError(err?.message || t('The request was not sent. Try again.'));
     } finally {
       setBusy(false);
     }
@@ -58,39 +59,38 @@ export default function AlarmEscalationDialog({ open, areas, bfpName = 'BFP', on
   return (
     <FormDialog
       open={open}
-      eyebrow="New request · Alarm escalation"
-      title={`Ask ${bfpName} to raise the alarm`}
+      eyebrow={t('New request · Alarm escalation')}
+      title={t('Ask {bfpName} to raise the alarm', { bfpName })}
       onClose={onClose}
       onSubmit={submit}
       busy={busy}
       error={error}
-      note={`Only ${bfpName} sets the alarm level.`}
-      submitLabel="Send escalation request"
-      busyLabel="Sending…"
+      note={t('Only {bfpName} sets the alarm level.', { bfpName })}
+      submitLabel={t('Send escalation request')}
+      busyLabel={t('Sending…')}
     >
       {(areas ?? []).length > 1 ? (
         <label className="rpl-field">
-          <span className="rpl-field-label">Area</span>
+          <span className="rpl-field-label">{t('Area')}</span>
           <select value={areaId} onChange={(e) => { setAreaId(e.target.value); setLevel(''); }} disabled={busy}>
             {areas.map((a) => <option key={a.id} value={a.id}>{a.designation}</option>)}
           </select>
         </label>
       ) : (
         <p className="rpl-field-static">
-          <span className="rpl-field-label">Area</span>
+          <span className="rpl-field-label">{t('Area')}</span>
           <span>{area?.designation ?? '—'}</span>
         </p>
       )}
       <p className="rpl-field-static">
-        <span className="rpl-field-label">Send to</span>
+        <span className="rpl-field-label">{t('Send to')}</span>
         <span>{bfpName}</span>
       </p>
       <fieldset className="rpl-field" aria-invalid={!!levelError}>
-        <legend className="rpl-field-label">
-          Proposed level{area?.alarm_level ? ` · now ${alarmLabel(area.alarm_level)}` : ''}
+        <legend className="rpl-field-label">{area?.alarm_level ? t('Proposed level · now {alarm}', { alarm: alarmLabel(area.alarm_level) }) : t('Proposed level')}
         </legend>
         {choices.length === 0 ? (
-          <p className="rpl-field-help">This Area is already at the highest level.</p>
+          <p className="rpl-field-help">{t('This Area is already at the highest level.')}</p>
         ) : (
           <div className="rpl-segment">
             {choices.map((key) => (
@@ -111,13 +111,13 @@ export default function AlarmEscalationDialog({ open, areas, bfpName = 'BFP', on
         {levelError && <span className="rpl-field-error">{levelError}</span>}
       </fieldset>
       <label className="rpl-field">
-        <span className="rpl-field-label">Why (optional)</span>
+        <span className="rpl-field-label">{t('Why (optional)')}</span>
         <textarea
           rows={3}
           value={justification}
           onChange={(e) => setJustification(e.target.value)}
           disabled={busy}
-          placeholder="e.g. The fire has reached the next building."
+          placeholder={t('e.g. The fire has reached the next building.')}
           maxLength={2000}
         />
       </label>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import Skeleton from './ui/Skeleton.jsx';
+import { t } from '../i18n/i18n.jsx';
 
 /* What the console shows while a stored session is checked on load, and when
  * that check could not finish. Before this the wait was a small grey
@@ -18,12 +19,10 @@ export function StartupLoading() {
   return (
     <main className="rpl-startup" aria-busy="true">
       <img className="rpl-startup-mark" src="/icons/auth-mark.svg" alt="" />
-      <p className="rpl-startup-title" role="status">Opening the Admin console…</p>
+      <p className="rpl-startup-title" role="status">{t('Opening the Admin console…')}</p>
       <Skeleton shape="table" rows={3} />
       {slow && (
-        <p className="rpl-startup-body">
-          The server is taking a while to answer. After a quiet spell it can need up to a minute to wake.
-        </p>
+        <p className="rpl-startup-body">{t('The server is taking a while to answer. After a quiet spell it can need up to a minute to wake.')}</p>
       )}
     </main>
   );
@@ -33,11 +32,11 @@ export function StartupError({ message, onRetry, onSignOut }) {
   return (
     <main className="rpl-startup" role="alert">
       <img className="rpl-startup-mark" src="/icons/auth-mark.svg" alt="" />
-      <p className="rpl-startup-title">The console couldn’t reach the server</p>
-      <p className="rpl-startup-body">{message} You are still signed in.</p>
+      <p className="rpl-startup-title">{t('The console couldn’t reach the server')}</p>
+      <p className="rpl-startup-body">{message}{' '}{t('You are still signed in.')}</p>
       <div className="rpl-startup-actions">
-        <button type="button" className="rpl-button rpl-button--primary" onClick={onRetry}>Try again</button>
-        <button type="button" className="rpl-button rpl-button--secondary" onClick={onSignOut}>Sign out</button>
+        <button type="button" className="rpl-button rpl-button--primary" onClick={onRetry}>{t('Try again')}</button>
+        <button type="button" className="rpl-button rpl-button--secondary" onClick={onSignOut}>{t('Sign out')}</button>
       </div>
     </main>
   );

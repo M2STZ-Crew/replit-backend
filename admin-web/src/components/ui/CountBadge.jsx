@@ -1,3 +1,5 @@
+import { t } from '../../i18n/i18n.jsx';
+
 export default function CountBadge({
   count,
   label,
@@ -15,7 +17,7 @@ export default function CountBadge({
   const text = total > limit ? `${limit}+` : total;
   const accessibleLabel = typeof label === 'function'
     ? label(total)
-    : (label || `${total} items`);
+    : (label || t('{total} items', { total }));
 
   return (
     <span className={`web-count-badge web-count-badge--${tone} ${className}`.trim()}>

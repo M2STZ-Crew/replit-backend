@@ -20,6 +20,7 @@ import {
   RISK_CIRCLE_STYLE, RISK_RADIUS_M, RISK_RADIUS_MAX_M, RISK_RADIUS_MIN_M, markerIcon, riskRadius,
 } from '../components/map/markers.js';
 import { statusOf } from '../lib/status.js';
+import { t } from '../i18n/i18n.jsx';
 
 const PASAY = [14.5378, 121.0014];
 
@@ -35,11 +36,11 @@ const COLORS = {
 
 // The five layers an admin can create/update/delete here.
 const EDIT_LAYERS = [
-  { key: 'risk', label: 'Risk Areas', singular: 'Risk Area', path: 'risk-zones', icon: '⚠', tagline: 'High-priority zones' },
-  { key: 'evac', label: 'Evacuation Sites', singular: 'Evacuation Site', path: 'evacuation-sites', icon: '🚪', tagline: 'Safe gathering points — Pasay and beyond' },
-  { key: 'hydrants', label: 'Fire Hydrants', singular: 'Fire Hydrant', path: 'hydrants', icon: '🚰', tagline: 'Water supply points' },
-  { key: 'water', label: 'Bodies of Water', singular: 'Body of Water', path: 'bodies-of-water', icon: '🌊', tagline: 'Natural water sources' },
-  { key: 'cisterns', label: 'Underground Cisterns', singular: 'Cistern', path: 'underground-cisterns', icon: '🛢', tagline: 'Underground reserves' },
+  { key: 'risk', get label() { return t('Risk Areas'); }, get singular() { return t('Risk Area'); }, path: 'risk-zones', icon: '⚠', get tagline() { return t('High-priority zones'); } },
+  { key: 'evac', get label() { return t('Evacuation Sites'); }, get singular() { return t('Evacuation Site'); }, path: 'evacuation-sites', icon: '🚪', get tagline() { return t('Safe gathering points — Pasay and beyond'); } },
+  { key: 'hydrants', get label() { return t('Fire Hydrants'); }, get singular() { return t('Fire Hydrant'); }, path: 'hydrants', icon: '🚰', get tagline() { return t('Water supply points'); } },
+  { key: 'water', get label() { return t('Bodies of Water'); }, get singular() { return t('Body of Water'); }, path: 'bodies-of-water', icon: '🌊', get tagline() { return t('Natural water sources'); } },
+  { key: 'cisterns', get label() { return t('Underground Cisterns'); }, get singular() { return t('Cistern'); }, path: 'underground-cisterns', icon: '🛢', get tagline() { return t('Underground reserves'); } },
 ];
 
 // The toggle chips on the map (order mirrors the design). `kind`:
@@ -51,12 +52,12 @@ const EDIT_LAYERS = [
 // table, and responder positions are per incident — so, as §2.7.1 asks, they
 // are left out rather than drawn as toggles that do nothing.
 const CHIPS = [
-  { key: 'incidents', label: 'Incidents', kind: 'incidents' },
-  { key: 'evac', label: 'Evacuation Sites', kind: 'edit' },
-  { key: 'risk', label: 'Risk Areas', kind: 'edit' },
-  { key: 'hydrants', label: 'Fire Hydrants', kind: 'edit' },
-  { key: 'water', label: 'Bodies of Water', kind: 'edit' },
-  { key: 'cisterns', label: 'Underground Cisterns', kind: 'edit' },
+  { key: 'incidents', get label() { return t('Incidents'); }, kind: 'incidents' },
+  { key: 'evac', get label() { return t('Evacuation Sites'); }, kind: 'edit' },
+  { key: 'risk', get label() { return t('Risk Areas'); }, kind: 'edit' },
+  { key: 'hydrants', get label() { return t('Fire Hydrants'); }, kind: 'edit' },
+  { key: 'water', get label() { return t('Bodies of Water'); }, kind: 'edit' },
+  { key: 'cisterns', get label() { return t('Underground Cisterns'); }, kind: 'edit' },
 ];
 
 const RISK_OPTS = ['low', 'medium', 'high', 'critical'];
@@ -65,53 +66,53 @@ const STATUS_OPTS = ['operational', 'non_operational', 'under_maintenance', 'unk
 // Form field schema per editable layer (mirrors the backend create/update models).
 const FIELDS = {
   risk: [
-    { name: 'barangay', label: 'Barangay', type: 'text', required: true },
-    { name: 'name', label: 'Name', type: 'text' },
-    { name: 'risk_level', label: 'Risk level', type: 'select', options: RISK_OPTS, default: 'medium' },
-    { name: 'centroid_lat', label: 'Latitude', type: 'coord', coord: 'lat', required: true },
-    { name: 'centroid_lng', label: 'Longitude', type: 'coord', coord: 'lng', required: true },
+    { name: 'barangay', get label() { return t('Barangay'); }, type: 'text', required: true },
+    { name: 'name', get label() { return t('Name'); }, type: 'text' },
+    { name: 'risk_level', get label() { return t('Risk level'); }, type: 'select', options: RISK_OPTS, default: 'medium' },
+    { name: 'centroid_lat', get label() { return t('Latitude'); }, type: 'coord', coord: 'lat', required: true },
+    { name: 'centroid_lng', get label() { return t('Longitude'); }, type: 'coord', coord: 'lng', required: true },
     // The zone is its icon inside this circle, on every map.
-    { name: 'radius_m', label: 'Radius (metres)', type: 'radius', required: true, default: String(RISK_RADIUS_M) },
-    { name: 'description', label: 'Description', type: 'textarea' },
+    { name: 'radius_m', get label() { return t('Radius (metres)'); }, type: 'radius', required: true, default: String(RISK_RADIUS_M) },
+    { name: 'description', get label() { return t('Description'); }, type: 'textarea' },
   ],
   evac: [
-    { name: 'name', label: 'Name', type: 'text', required: true },
-    { name: 'latitude', label: 'Latitude', type: 'coord', coord: 'lat', required: true },
-    { name: 'longitude', label: 'Longitude', type: 'coord', coord: 'lng', required: true },
+    { name: 'name', get label() { return t('Name'); }, type: 'text', required: true },
+    { name: 'latitude', get label() { return t('Latitude'); }, type: 'coord', coord: 'lat', required: true },
+    { name: 'longitude', get label() { return t('Longitude'); }, type: 'coord', coord: 'lng', required: true },
     // Section 2.4: a fire in Pasay may need a shelter in the next city. Any city
     // other than Pasay is drawn with the distinct outside-Pasay marker.
-    { name: 'city', label: 'City / municipality', type: 'text', required: true, default: 'Pasay City' },
-    { name: 'capacity', label: 'Capacity', type: 'number' },
-    { name: 'address', label: 'Address', type: 'text' },
-    { name: 'contact_info', label: 'Contact info', type: 'text' },
-    { name: 'is_active', label: 'Active', type: 'checkbox', default: true },
+    { name: 'city', get label() { return t('City / municipality'); }, type: 'text', required: true, default: 'Pasay City' },
+    { name: 'capacity', get label() { return t('Capacity'); }, type: 'number' },
+    { name: 'address', get label() { return t('Address'); }, type: 'text' },
+    { name: 'contact_info', get label() { return t('Contact info'); }, type: 'text' },
+    { name: 'is_active', get label() { return t('Active'); }, type: 'checkbox', default: true },
   ],
   hydrants: [
-    { name: 'code', label: 'Code', type: 'text' },
-    { name: 'latitude', label: 'Latitude', type: 'coord', coord: 'lat', required: true },
-    { name: 'longitude', label: 'Longitude', type: 'coord', coord: 'lng', required: true },
-    { name: 'address', label: 'Address', type: 'text' },
-    { name: 'bfp_status', label: 'Status', type: 'select', options: STATUS_OPTS, default: 'unknown' },
-    { name: 'is_active', label: 'Active', type: 'checkbox', default: true },
+    { name: 'code', get label() { return t('Code'); }, type: 'text' },
+    { name: 'latitude', get label() { return t('Latitude'); }, type: 'coord', coord: 'lat', required: true },
+    { name: 'longitude', get label() { return t('Longitude'); }, type: 'coord', coord: 'lng', required: true },
+    { name: 'address', get label() { return t('Address'); }, type: 'text' },
+    { name: 'bfp_status', get label() { return t('Status'); }, type: 'select', options: STATUS_OPTS, default: 'unknown' },
+    { name: 'is_active', get label() { return t('Active'); }, type: 'checkbox', default: true },
   ],
   water: [
-    { name: 'name', label: 'Name', type: 'text', required: true },
-    { name: 'water_type', label: 'Water type', type: 'text' },
-    { name: 'latitude', label: 'Latitude', type: 'coord', coord: 'lat', required: true },
-    { name: 'longitude', label: 'Longitude', type: 'coord', coord: 'lng', required: true },
-    { name: 'is_accessible', label: 'Accessible', type: 'checkbox', default: true },
-    { name: 'description', label: 'Description', type: 'textarea' },
+    { name: 'name', get label() { return t('Name'); }, type: 'text', required: true },
+    { name: 'water_type', get label() { return t('Water type'); }, type: 'text' },
+    { name: 'latitude', get label() { return t('Latitude'); }, type: 'coord', coord: 'lat', required: true },
+    { name: 'longitude', get label() { return t('Longitude'); }, type: 'coord', coord: 'lng', required: true },
+    { name: 'is_accessible', get label() { return t('Accessible'); }, type: 'checkbox', default: true },
+    { name: 'description', get label() { return t('Description'); }, type: 'textarea' },
   ],
   cisterns: [
-    { name: 'name', label: 'Name', type: 'text' },
-    { name: 'code', label: 'Code', type: 'text' },
-    { name: 'latitude', label: 'Latitude', type: 'coord', coord: 'lat', required: true },
-    { name: 'longitude', label: 'Longitude', type: 'coord', coord: 'lng', required: true },
-    { name: 'capacity_liters', label: 'Capacity (liters)', type: 'number' },
-    { name: 'status', label: 'Status', type: 'select', options: STATUS_OPTS, default: 'unknown' },
-    { name: 'address', label: 'Address', type: 'text' },
-    { name: 'description', label: 'Description', type: 'textarea' },
-    { name: 'is_active', label: 'Active', type: 'checkbox', default: true },
+    { name: 'name', get label() { return t('Name'); }, type: 'text' },
+    { name: 'code', get label() { return t('Code'); }, type: 'text' },
+    { name: 'latitude', get label() { return t('Latitude'); }, type: 'coord', coord: 'lat', required: true },
+    { name: 'longitude', get label() { return t('Longitude'); }, type: 'coord', coord: 'lng', required: true },
+    { name: 'capacity_liters', get label() { return t('Capacity (liters)'); }, type: 'number' },
+    { name: 'status', get label() { return t('Status'); }, type: 'select', options: STATUS_OPTS, default: 'unknown' },
+    { name: 'address', get label() { return t('Address'); }, type: 'text' },
+    { name: 'description', get label() { return t('Description'); }, type: 'textarea' },
+    { name: 'is_active', get label() { return t('Active'); }, type: 'checkbox', default: true },
   ],
 };
 
@@ -144,39 +145,41 @@ function inactive(r) {
 
 function entryText(key, r) {
   const { title, sub } = baseText(key, r);
-  return { title, sub: inactive(r) ? `Inactive · ${sub}` : sub };
+  return { title, sub: inactive(r) ? t('Inactive · {sub}', { sub }) : sub };
 }
 
 function baseText(key, r) {
   switch (key) {
     case 'risk':
       return {
-        title: r.name || `Risk Area · ${r.barangay}`,
-        sub: `${prettify(r.risk_level)} · Brgy. ${r.barangay} · ${Math.round(riskRadius(r))} m`,
+        title: r.name || t('Risk Area · {barangay}', { barangay: r.barangay }),
+        sub: t('{level} · Brgy. {barangay} · {radius} m', { level: prettify(r.risk_level), barangay: r.barangay, radius: Math.round(riskRadius(r)) }),
       };
     case 'evac': {
       const base =
         r.capacity != null
-          ? `Capacity ${r.capacity}${r.address ? ` · ${r.address}` : ''}`
-          : r.address || 'Evacuation site';
+          ? (r.address
+            ? t('Capacity {capacity} · {address}', { capacity: r.capacity, address: r.address })
+            : t('Capacity {capacity}', { capacity: r.capacity }))
+          : r.address || t('Evacuation site');
       return {
         title: r.name,
-        sub: r.outside_pasay ? `Outside Pasay · ${r.city} · ${base}` : base,
+        sub: r.outside_pasay ? t('Outside Pasay · {city} · {base}', { city: r.city, base }) : base,
       };
     }
     case 'hydrants':
       return {
-        title: r.code || 'Hydrant',
+        title: r.code || t('Hydrant'),
         sub: `${prettify(r.effective_status)}${r.address ? ` · ${r.address}` : ''}`,
       };
     case 'water':
       return {
         title: r.name,
-        sub: `${r.water_type || 'Water source'} · ${r.is_accessible ? 'Accessible' : 'Restricted'}`,
+        sub: `${r.water_type || t('Water source')} · ${r.is_accessible ? t('Accessible') : t('Restricted')}`,
       };
     case 'cisterns':
       return {
-        title: r.name || r.code || 'Cistern',
+        title: r.name || r.code || t('Cistern'),
         sub: `${prettify(r.status)}${r.capacity_liters ? ` · ${r.capacity_liters} L` : ''}`,
       };
     default:
@@ -311,22 +314,22 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
     for (const f of FIELDS[layer]) {
       const c = coerce(f, form.values[f.name]);
       if (f.required && (c == null || c === '')) {
-        flash(`${f.label} is required.`, 'err');
+        flash(t('{field} is required.', { field: f.label }), 'err');
         return;
       }
       if (f.coord && c != null) {
         const limit = f.coord === 'lat' ? 90 : 180;
         if (Math.abs(c) > limit) {
-          flash(`${f.label} goes from -${limit} to ${limit}.`, 'err');
+          flash(t('{label} goes from -{limit} to {limit2}.', { label: f.label, limit, limit2: limit }), 'err');
           return;
         }
       }
       if (f.type === 'number' && c != null && c < 0) {
-        flash(`${f.label} can’t be negative.`, 'err');
+        flash(t('{field} can’t be negative.', { field: f.label }), 'err');
         return;
       }
       if (f.type === 'radius' && (c < RISK_RADIUS_MIN_M || c > RISK_RADIUS_MAX_M)) {
-        flash(`The radius goes from ${RISK_RADIUS_MIN_M} to ${RISK_RADIUS_MAX_M} metres.`, 'err');
+        flash(t('The radius goes from {RISK_RADIUS_MIN_M} to {RISK_RADIUS_MAX_M} metres.', { RISK_RADIUS_MIN_M, RISK_RADIUS_MAX_M }), 'err');
         return;
       }
       payload[f.name] = c;
@@ -337,9 +340,9 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
       if (form.mode === 'edit') await api.mapLayerUpdate(path, form.id, payload);
       else await api.mapLayerCreate(path, payload);
       setForm(null);
-      flash(form.mode === 'edit' ? 'Marker updated.' : 'Marker added.');
+      flash(form.mode === 'edit' ? t('Marker updated.') : t('Marker added.'));
     } catch (e) {
-      flash(e.message || 'Save failed.', 'err');
+      flash(e.message || t('Save failed.'), 'err');
       return;
     } finally {
       setSaving(false);
@@ -347,7 +350,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
     try {
       await loadLayer(layer);
     } catch {
-      flash('Saved, but the list could not be refreshed. Try again.', 'err');
+      flash(t('Saved, but the list could not be refreshed. Try again.'), 'err');
       setFailed((keys) => [...new Set([...keys, layer])]);
     }
   }
@@ -359,7 +362,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
     setData((d) => ({ ...d, [layer]: (d[layer] || []).filter((r) => r.id !== rec.id) }));
     setForm((f) => (f && f.id === rec.id ? null : f));
     setDeleting(null);
-    flash('Marker deleted.');
+    flash(t('Marker deleted.'));
   }, [deleting]);
 
   const selCfg = cfgOf(selected);
@@ -425,7 +428,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
                   }
                 >
                   <Tooltip>
-                    {(inc.designation || 'Incident')} · {st.label}
+                    {(inc.designation || t('Incident'))} · {st.label}
                   </Tooltip>
                 </CircleMarker>
               );
@@ -515,7 +518,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
         {/* A class, not an inline right offset: the offset differs by screen
             width, and a 372px inline value left a phone's bar with no width. */}
         <div className={`mm-layers${panelOpen ? ' is-panel-open' : ''}`}>
-          <span className="mm-layers-label">☰ Layers</span>
+          <span className="mm-layers-label">{t('☰ Layers')}</span>
           <div className="mm-chips">
             {CHIPS.map((c) => {
               const on = enabled.has(c.key);
@@ -539,9 +542,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
 
         {/* reopen tab when the editor is collapsed */}
         {!panelOpen && (
-          <button className="mm-reopen" onClick={() => setPanelOpen(true)} title="Open editor">
-            ‹ Layers
-          </button>
+          <button className="mm-reopen" onClick={() => setPanelOpen(true)} title={t('Open editor')}>{t('‹ Layers')}</button>
         )}
 
         {/* editor panel */}
@@ -549,13 +550,13 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
           <aside className="mm-panel">
             <div className="mm-panel-head">
               <div>
-                <div className="mm-panel-eyebrow">Shared by every organization</div>
-                <div className="mm-panel-title">Map settings</div>
+                <div className="mm-panel-eyebrow">{t('Shared by every organization')}</div>
+                <div className="mm-panel-title">{t('Map settings')}</div>
               </div>
               <button
                 className="mm-collapse"
                 onClick={() => setPanelOpen(false)}
-                title="Collapse"
+                title={t('Collapse')}
               >
                 ›
               </button>
@@ -601,20 +602,18 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
                 </div>
 
                 <div className="mm-list" aria-busy={loading}>
-                  {loading && <div className="mm-empty">Loading {selCfg.label.toLowerCase()}…</div>}
+                  {loading && <div className="mm-empty">{t('Loading {things}…', { things: selCfg.label.toLowerCase() })}</div>}
                   {!loading && failed.includes(selected) && (
                     <div className="mm-empty" role="alert">
-                      {selCfg.label} could not be loaded.{' '}
-                      <button type="button" className="mm-retry" onClick={() => setAttempt((n) => n + 1)}>
-                        Try again
-                      </button>
+                      {t('{things} could not be loaded.', { things: selCfg.label })}{' '}
+                      <button type="button" className="mm-retry" onClick={() => setAttempt((n) => n + 1)}>{t('Try again')}</button>
                     </div>
                   )}
                   {!loading && !failed.includes(selected) && selRows.length === 0 && (
-                    <div className="mm-empty">No {selCfg.label.toLowerCase()} yet.</div>
+                    <div className="mm-empty">{t('No {things} yet.', { things: selCfg.label.toLowerCase() })}</div>
                   )}
                   {selRows.length > 0 && shownRows.length === 0 && (
-                    <div className="mm-empty">No matches for “{query}”.</div>
+                    <div className="mm-empty">{t('No matches for “{query}”.', { query })}</div>
                   )}
                   {shownRows.map((r) => {
                     const { title, sub } = entryText(selected, r);
@@ -628,14 +627,14 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
                           <button
                             className="mm-iconbtn"
                             onClick={() => openEdit(selected, r)}
-                            title="Edit"
+                            title={t('Edit')}
                           >
                             ✎
                           </button>
                           <button
                             className="mm-iconbtn del"
                             onClick={() => setDeleting({ layer: selected, rec: r })}
-                            title="Delete"
+                            title={t('Delete')}
                           >
                             🗑
                           </button>
@@ -645,16 +644,15 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
                   })}
                 </div>
 
-                <button className="mm-add" onClick={openAdd}>
-                  + ADD {selCfg.singular.toUpperCase()}
+                <button className="mm-add" onClick={openAdd}>{t('+ ADD')}{' '}{selCfg.singular.toUpperCase()}
                 </button>
               </div>
             ) : (
               <div className="mm-panel-body">
                 <div className="mm-form-title">
-                  {form.mode === 'edit' ? 'Edit' : 'New'} {cfgOf(form.layer).singular}
+                  {form.mode === 'edit' ? t('Edit') : t('New')} {cfgOf(form.layer).singular}
                 </div>
-                <div className="mm-hint">Click the map to set the location.</div>
+                <div className="mm-hint">{t('Click the map to set the location.')}</div>
 
                 <div className="mm-form">
                   {FIELDS[form.layer].map((f) => {
@@ -711,7 +709,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
                               step={5}
                               value={Number.isFinite(n) ? Math.min(Math.max(n, 25), 1000) : RISK_RADIUS_M}
                               onChange={(e) => setVal(e.target.value)}
-                              aria-label={`${f.label}, slider`}
+                              aria-label={t('{field}, slider', { field: f.label })}
                             />
                             <input
                               id={id}
@@ -759,11 +757,9 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
                 </div>
 
                 <div className="mm-form-actions">
-                  <button className="mm-back" onClick={() => setForm(null)} disabled={saving}>
-                    Cancel
-                  </button>
+                  <button className="mm-back" onClick={() => setForm(null)} disabled={saving}>{t('Cancel')}</button>
                   <button className="mm-add" onClick={submitForm} disabled={saving}>
-                    {saving ? 'SAVING…' : form.mode === 'edit' ? 'SAVE CHANGES' : 'ADD MARKER'}
+                    {saving ? t('SAVING…') : form.mode === 'edit' ? t('SAVE CHANGES') : t('ADD MARKER')}
                   </button>
                 </div>
               </div>
@@ -779,9 +775,9 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
       <ConfirmDialog
         open={!!deleting}
         eyebrow={deleting ? cfgOf(deleting.layer).singular : undefined}
-        title={deleting ? `Delete ${entryText(deleting.layer, deleting.rec).title}?` : ''}
-        description="It disappears from every Admin’s map and every phone’s map. This can’t be undone."
-        confirmLabel={deleting ? `Delete ${cfgOf(deleting.layer).singular.toLowerCase()}` : 'Delete'}
+        title={deleting ? t('Delete {title}?', { title: entryText(deleting.layer, deleting.rec).title }) : ''}
+        description={t('It disappears from every Admin’s map and every phone’s map. This can’t be undone.')}
+        confirmLabel={deleting ? t('Delete {thing}', { thing: cfgOf(deleting.layer).singular.toLowerCase() }) : t('Delete')}
         destructive
         onClose={() => setDeleting(null)}
         onConfirm={confirmDelete}

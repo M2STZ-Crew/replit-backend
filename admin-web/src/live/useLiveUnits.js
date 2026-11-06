@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { api } from '../api/client.js';
+import { t } from '../i18n/i18n.jsx';
 
 /* The units on the way to, or at, the fires on the live map (REPLIT (MAIN)
  * 10 · A30: "Your organisation's unit").
@@ -45,7 +46,7 @@ async function unitsOf(incident) {
       key: `${incident.id}:${key}`,
       incidentId: incident.id,
       designation: incident.designation,
-      label: vehicle || crew[0].responder_name || 'Unit',
+      label: vehicle || crew[0].responder_name || t('Unit'),
       crew: crew.map((d) => d.responder_name).filter(Boolean),
       lat: best.lat,
       lng: best.lng,

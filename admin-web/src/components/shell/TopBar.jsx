@@ -1,4 +1,5 @@
 import Icon from '../ui/Icon.jsx';
+import { t } from '../../i18n/i18n.jsx';
 
 /* The pass 6 top bar (REPLIT (MAIN) 04 · Top bar): 64 px on the opaque ground
  * with one hairline — which organisation this is and what this Admin may act
@@ -9,7 +10,7 @@ export function AvailabilityChip({ afk, since }) {
   return (
     <span className={`rpl-availability${afk ? ' is-afk' : ''}`}>
       <span className="rpl-availability-dot" aria-hidden="true" />
-      {afk ? (since ? `AFK since ${since}` : 'AFK') : 'Available'}
+      {afk ? (since ? t('AFK since {since}', { since }) : 'AFK') : t('Available')}
     </span>
   );
 }
@@ -36,10 +37,10 @@ export default function TopBar({
         type="button"
         className="rpl-pill"
         onClick={onSound}
-        aria-label={`${soundOn ? 'Sound on' : 'Sound off'}. Open sound settings`}
+        aria-label={soundOn ? t('Sound on. Open sound settings') : t('Sound off. Open sound settings')}
       >
         <Icon name="volume" size={16} />
-        {soundOn ? 'Sound on' : 'Sound off'}
+        {soundOn ? t('Sound on') : t('Sound off')}
       </button>
 
       {availability && <AvailabilityChip afk={availability.afk} since={availability.since} />}
@@ -50,8 +51,10 @@ export default function TopBar({
         onClick={onUnread}
         aria-label={
           unread > 0
-            ? `${unread} new incident${unread === 1 ? '' : 's'} since you last looked. Open Incidents`
-            : 'No new incidents. Open Incidents'
+            ? (unread === 1
+              ? t('{unread} new incident since you last looked. Open Incidents', { unread })
+              : t('{unread} new incidents since you last looked. Open Incidents', { unread }))
+            : t('No new incidents. Open Incidents')
         }
       >
         <Icon name="notifications" size={16} />

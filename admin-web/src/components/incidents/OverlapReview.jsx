@@ -6,6 +6,7 @@ import { ConfirmDialog, PageHeader, StatePanel } from '../ui/index.js';
 import AreaMap from './AreaMap.jsx';
 import { agenciesOf, confidenceOf } from './IncidentTable.jsx';
 import Skeleton from '../ui/Skeleton.jsx';
+import { t } from '../../i18n/i18n.jsx';
 
 /* Two Areas that grew within range of each other (REPLIT (MAIN) 10 · A27
  * 868:3155, A27b 868:3356; PRD v13 §4.3): are they one fire? Merge moves the
@@ -27,10 +28,10 @@ function useSecondsLeft(expiresAt) {
 
 function Side({ title, area }) {
   const rows = area ? [
-    ['Reports', `${area.report_count} · first at ${CLOCK.format(new Date(area.reported_at))}`],
-    ['Status', statusOf(area.status).label],
-    ['Requested agencies', agenciesOf(area)],
-    ['Confidence', confidenceOf(area)],
+    [t('Reports'), t('{report_count} · first at {time}', { report_count: area.report_count, time: CLOCK.format(new Date(area.reported_at)) })],
+    [t('Status'), statusOf(area.status).label],
+    [t('Requested agencies'), agenciesOf(area)],
+    [t('Confidence'), confidenceOf(area)],
   ] : [];
   return (
     <section className="rpl-panel">
@@ -43,7 +44,7 @@ function Side({ title, area }) {
         </dl>
       ) : (
         <>
-          <p className="web-sr-only" role="status">Loading…</p>
+          <p className="web-sr-only" role="status">{t('Loading…')}</p>
           <Skeleton shape="lines" rows={4} />
         </>
       )}
@@ -65,7 +66,7 @@ export default function OverlapReview({ overlap, onDone, onBack }) {
     let alive = true;
     Promise.all([api.incident(overlap.area_a_id), api.incident(overlap.area_b_id)])
       .then(([x, y]) => { if (alive) { setA(x); setB(y); } })
-      .catch((e) => { if (alive) setError(e.message || 'These Areas could not be loaded.'); });
+      .catch((e) => { if (alive) setError(e.message || t('These Areas could not be loaded.')); });
     return () => { alive = false; };
   }, [overlap]);
 
@@ -74,16 +75,16 @@ export default function OverlapReview({ overlap, onDone, onBack }) {
     setError(null);
     try {
       await api.overlapKeepSeparate(overlap.id);
-      onDone(`${nameA} and ${nameB} kept separate`);
+      onDone(t('{nameA} and {nameB} kept separate', { nameA, nameB }));
     } catch (e) {
-      setError(e.message || 'The decision was not saved.');
+      setError(e.message || t('The decision was not saved.'));
       setBusy(false);
     }
   }
 
   async function merge() {
     await api.overlapMerge(overlap.id);
-    onDone(`${nameB} merged into ${nameA}`);
+    onDone(t('{nameB} merged into {nameA}', { nameB, nameA }));
   }
 
   const minutes = Math.floor(left / 60);
@@ -92,15 +93,15 @@ export default function OverlapReview({ overlap, onDone, onBack }) {
 
   return (
     <div className="rpl-page">
-      <button type="button" className="rpl-text-button rpl-back" onClick={onBack}>← All incidents</button>
+      <button type="button" className="rpl-text-button rpl-back" onClick={onBack}>{t('← All incidents')}</button>
       <PageHeader
-        eyebrow="Overlap"
-        title="Are these the same fire?"
-        description={`${nameA} and ${nameB} are ${Math.round(overlap.distance_m)} m apart. Merge them if they are one fire, or keep them separate.`}
+        eyebrow={t('Overlap')}
+        title={t('Are these the same fire?')}
+        description={t('{nameA} and {nameB} are {round} m apart. Merge them if they are one fire, or keep them separate.', { nameA, nameB, round: Math.round(overlap.distance_m) })}
       />
 
       {error && <p className="rpl-inline-error" role="alert">{error}</p>}
-      {!a && !b && !error && <StatePanel kind="loading" skeleton="detail" rows={2} title="Loading both Areas…" />}
+      {!a && !b && !error && <StatePanel kind="loading" skeleton="detail" rows={2} title={t('Loading both Areas…')} />}
 
       <AreaMap
         height={240}
@@ -111,34 +112,33 @@ export default function OverlapReview({ overlap, onDone, onBack }) {
       />
 
       <div className="rpl-overlap-sides">
-        <Side title={`${nameA} · keeps its number`} area={a} />
-        <Side title={`${nameB} · would close as merged`} area={b} />
+        <Side title={t('{nameA} · keeps its number', { nameA })} area={a} />
+        <Side title={t('{nameB} · would close as merged', { nameB })} area={b} />
       </div>
 
       <div className="rpl-overlap-foot">
-        <p className="rpl-decision-body">
-          Merging moves {nameB}’s reports into {nameA} and can’t be undone. Keeping them separate
-          leaves both Areas as they are.{' '}
+        <p className="rpl-decision-body">{t('Merging moves {nameB}’s reports into {nameA} and can’t be undone. Keeping them separate leaves both Areas as they are.', { nameA, nameB })}{' '}
           <strong className={expired ? 'rpl-expired' : undefined}>
             {expired
-              ? 'The time to decide has passed; they stay separate.'
-              : `Decide within ${minutes > 0 ? `${minutes} min ` : ''}${seconds} s, or they stay separate.`}
+              ? t('The time to decide has passed; they stay separate.')
+              : (minutes > 0
+                ? t('Decide within {minutes} min {seconds} s, or they stay separate.', { minutes, seconds })
+                : t('Decide within {seconds} s, or they stay separate.', { seconds }))}
           </strong>
         </p>
-        <button type="button" className="rpl-button rpl-button--secondary" onClick={keepSeparate} disabled={busy || expired}>
-          Keep separate
-        </button>
-        <button type="button" className="rpl-button rpl-button--primary" onClick={() => setConfirming(true)} disabled={busy || expired || !b}>
-          Merge into {nameA}
+        <button type="button" className="rpl-button rpl-button--secondary" onClick={keepSeparate} disabled={busy || expired}>{t('Keep separate')}</button>
+        <button type="button" className="rpl-button rpl-button--primary" onClick={() => setConfirming(true)} disabled={busy || expired || !b}>{t('Merge into {nameA}', { nameA })}
         </button>
       </div>
 
       <ConfirmDialog
         open={confirming}
-        eyebrow={`Overlap · ${nameA} and ${nameB}`}
-        title={`Merge ${nameB} into ${nameA}?`}
-        description={`${nameB}’s ${b?.report_count ?? ''} report${b?.report_count === 1 ? '' : 's'} join ${nameA}. ${nameB} ends as Merged for every organization. This can’t be undone.`}
-        confirmLabel="Merge areas"
+        eyebrow={t('Overlap · {nameA} and {nameB}', { nameA, nameB })}
+        title={t('Merge {nameB} into {nameA}?', { nameB, nameA })}
+        description={b?.report_count === 1
+          ? t('{nameB}’s {count} report joins {nameA}. {nameB} ends as Merged for every organization. This can’t be undone.', { nameB, nameA, count: b?.report_count ?? '' })
+          : t('{nameB}’s {count} reports join {nameA}. {nameB} ends as Merged for every organization. This can’t be undone.', { nameB, nameA, count: b?.report_count ?? '' })}
+        confirmLabel={t('Merge areas')}
         destructive
         onClose={() => setConfirming(false)}
         onConfirm={merge}

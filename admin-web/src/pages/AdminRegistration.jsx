@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import AuthBrand from '../components/AuthBrand.jsx';
+import { t } from '../i18n/i18n.jsx';
 
 /* Set up an organisation's Admin account from its one-time link (REPLIT
  * (MAIN) 10 · A07 862:1013 available, A08 taken, A09 not allowed, A10 link
@@ -18,11 +19,11 @@ import AuthBrand from '../components/AuthBrand.jsx';
  * decide; none is assumed here. */
 
 const STATUS = {
-  available: { tone: 'ok', mark: '✓', text: 'Available' },
-  taken: { tone: 'danger', mark: '✕', text: 'Already taken — try another' },
-  not_allowed: { tone: 'danger', mark: '✕', text: 'Not allowed — choose another' },
+  available: { tone: 'ok', mark: '✓', get text() { return t('Available'); } },
+  taken: { tone: 'danger', mark: '✕', get text() { return t('Already taken — try another'); } },
+  not_allowed: { tone: 'danger', mark: '✕', get text() { return t('Not allowed — choose another'); } },
   invalid: { tone: 'danger', mark: '!', text: null },
-  checking: { tone: 'quiet', mark: '…', text: 'Checking…' },
+  checking: { tone: 'quiet', mark: '…', get text() { return t('Checking…'); } },
 };
 
 function Ended({ link }) {
@@ -31,14 +32,14 @@ function Ended({ link }) {
     <div className="lg-form">
       <div className="lg-head">
         <span className="lg-kicker">{link.organization}</span>
-        <h2 className="lg-title">{used ? 'This link was already used' : 'This link has expired'}</h2>
+        <h2 className="lg-title">{used ? t('This link was already used') : t('This link has expired')}</h2>
         <p className="lg-sub">
           {used
-            ? 'The Admin account for this organization is already set up. Sign in with it, or ask the central hub for a new link.'
-            : 'Registration links work once and for a limited time. Ask the central hub that accepted your organization for a new one.'}
+            ? t('The Admin account for this organization is already set up. Sign in with it, or ask the central hub for a new link.')
+            : t('Registration links work once and for a limited time. Ask the central hub that accepted your organization for a new one.')}
         </p>
       </div>
-      {used && <a className="lg-submit lg-submit--link" href="/login">Go to sign in</a>}
+      {used && <a className="lg-submit lg-submit--link" href="/login">{t('Go to sign in')}</a>}
     </div>
   );
 }
@@ -83,7 +84,7 @@ export default function AdminRegistration({ link, domain, rule, checkPrefix, onC
     try {
       await onCreate({ prefix: prefix.trim(), email });
     } catch (err) {
-      setError(err?.message || 'The account was not created. Try again.');
+      setError(err?.message || t('The account was not created. Try again.'));
     } finally {
       setBusy(false);
     }
@@ -95,13 +96,13 @@ export default function AdminRegistration({ link, domain, rule, checkPrefix, onC
       <div className="lg-panel">
         <form className="lg-form" onSubmit={submit} noValidate>
           <div className="lg-head">
-            <span className="lg-kicker">{link.organization} · Accepted</span>
-            <h2 className="lg-title">Set up your Admin account</h2>
-            <p className="lg-sub">Choose the first part of your Admin email. The ending {domain} is fixed.</p>
+            <span className="lg-kicker">{link.organization}{' '}{t('· Accepted')}</span>
+            <h2 className="lg-title">{t('Set up your Admin account')}</h2>
+            <p className="lg-sub">{t('Choose the first part of your Admin email. The ending {domain} is fixed.', { domain })}</p>
           </div>
 
           <label className="lg-field">
-            <span className="dc-eyebrow">Prefix</span>
+            <span className="dc-eyebrow">{t('Prefix')}</span>
             <span className="lg-prefix">
               <input value={prefix} onChange={(e) => setPrefix(e.target.value.toLowerCase())} autoComplete="off" spellCheck="false" disabled={busy} aria-describedby="lg-prefix-help" />
               <span className="lg-prefix-domain"><span aria-hidden="true">🔒</span> {domain}</span>
@@ -111,7 +112,7 @@ export default function AdminRegistration({ link, domain, rule, checkPrefix, onC
 
           {prefix.trim() && (
             <div className="lg-preview" aria-live="polite">
-              <span className="dc-eyebrow">Your Admin sign-in</span>
+              <span className="dc-eyebrow">{t('Your Admin sign-in')}</span>
               <span className="lg-preview-email">{email}</span>
               {shown && (
                 <span className={`lg-preview-status is-${shown.tone}`}>
@@ -124,9 +125,9 @@ export default function AdminRegistration({ link, domain, rule, checkPrefix, onC
           {error && <div className="lg-error" role="alert">{error}</div>}
 
           <button type="submit" className="lg-submit" disabled={busy || status !== 'available'}>
-            {busy ? 'Creating…' : 'Create Admin account'}
+            {busy ? t('Creating…') : t('Create Admin account')}
           </button>
-          {link.expiresAt && <p className="lg-help">This link works once and expires {link.expiresAt}.</p>}
+          {link.expiresAt && <p className="lg-help">{t('This link works once and expires')}{' '}{link.expiresAt}.</p>}
         </form>
       </div>
     </div>

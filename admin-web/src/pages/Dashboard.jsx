@@ -10,6 +10,7 @@ import { consoleOf } from '../lib/access.js';
 import { LiveFeedProvider } from '../live/LiveFeed.jsx';
 import { OPEN_INCIDENT_EVENT } from '../sound/alarm.js';
 import SituationBoard from './SituationBoard.jsx';
+import { t } from '../i18n/i18n.jsx';
 
 /* Every destination but the Dashboard loads on first use, so signing in
  * fetches the console's frame and its first screen, not every page and the
@@ -173,7 +174,7 @@ function Console() {
       {flush && <AlarmBanner onOpen={(incidentId) => go('incidents', { incidentId })} />}
       <div className={`db-scroll rpl-scroll${flush ? ' db-scroll-flush' : ''}`}>
         {!flush && <AlarmBanner onOpen={(incidentId) => go('incidents', { incidentId })} />}
-        <Suspense fallback={<StatePanel kind="loading" skeleton="detail" rows={3} title="Opening…" busy />}>
+        <Suspense fallback={<StatePanel kind="loading" skeleton="detail" rows={3} title={t('Opening…')} busy />}>
           <Destination active={active} focusId={focusId} focusTab={focusTab} go={go} />
         </Suspense>
       </div>

@@ -10,6 +10,7 @@ import {
   PERM, acknowledgedByUs, actsOn, can, splitsIncidents, variantLabel, yourOrg,
 } from '../lib/access.js';
 import { formatMinutes, formatShare, responseMetrics } from '../lib/metrics.js';
+import { t } from '../i18n/i18n.jsx';
 
 /* Dashboard (REPLIT (MAIN) 10 · A20 865:1310, A21 865:1722, A83; PRD v13
  * §4.6.2, §4.14): this organisation's work first — the queues it must answer,
@@ -36,7 +37,7 @@ function QueueCount({ icon, count, label, onOpen, loading, urgent = false }) {
       type="button"
       className={`rpl-queue${attention ? ' is-attention' : ''}`}
       onClick={onOpen}
-      aria-label={loading ? `${label}, loading` : `${count} ${label}`}
+      aria-label={loading ? t('{label}, loading', { label }) : t('{count} {label}', { count, label })}
     >
       <span className={`rpl-queue-plate${attention ? ' is-attention' : ''}`} aria-hidden="true">
         <Icon name={icon} />
@@ -113,26 +114,26 @@ export default function SituationBoard({ onNavigate }) {
       METRICS_DAYS * 864e5;
 
   const queueList = [
-    { key: 'incidents', icon: 'flame', label: 'To acknowledge', count: toAcknowledge, loading: !loaded, urgent: true, live: true },
-    split && { key: 'incidents', id: 'routed', icon: 'incidents', label: 'Active, routed to you', count: routed.length, loading: !loaded, live: true },
-    answersAlarms && { key: 'requests', icon: 'requests', label: 'Requests to answer', count: queues?.requests },
-    reviewsAffiliates && { key: 'affiliates', icon: 'organization', label: 'Affiliate requests', count: queues?.affiliates },
-    reviewsIds && { key: 'idreview', icon: 'verification', label: 'ID reviews', count: queues?.ids },
+    { key: 'incidents', icon: 'flame', label: t('To acknowledge'), count: toAcknowledge, loading: !loaded, urgent: true, live: true },
+    split && { key: 'incidents', id: 'routed', icon: 'incidents', label: t('Active, routed to you'), count: routed.length, loading: !loaded, live: true },
+    answersAlarms && { key: 'requests', icon: 'requests', label: t('Requests to answer'), count: queues?.requests },
+    reviewsAffiliates && { key: 'affiliates', icon: 'organization', label: t('Affiliate requests'), count: queues?.affiliates },
+    reviewsIds && { key: 'idreview', icon: 'verification', label: t('ID reviews'), count: queues?.ids },
   ].filter((q) => q && (q.live || queues == null || q.count != null));
 
-  const eyebrow = org?.name ? `${org.name} · ${variantLabel(access)}` : 'Operations';
+  const eyebrow = org?.name ? `${org.name} · ${variantLabel(access)}` : t('Operations');
 
   return (
     <div className="rpl-page rpl-board">
       <PageHeader
         eyebrow={eyebrow}
-        title="Dashboard"
+        title={t('Dashboard')}
         description={split
-          ? 'Your work first. Other organizations’ incidents are below for awareness.'
-          : 'Your work first, then every active Area across Pasay City.'}
+          ? t('Your work first. Other organizations’ incidents are below for awareness.')
+          : t('Your work first, then every active Area across Pasay City.')}
       />
 
-      <section aria-label="Your queues" className="rpl-queues">
+      <section aria-label={t('Your queues')} className="rpl-queues">
         {queueList.map((q) => (
           <QueueCount
             key={q.id ?? q.key}
@@ -149,14 +150,12 @@ export default function SituationBoard({ onNavigate }) {
       <section className="rpl-board-section" aria-labelledby="rpl-board-incidents-title">
         <div className="rpl-section-head">
           <h2 className="rpl-section-title" id="rpl-board-incidents-title">
-            {split ? `Routed to ${org?.name ?? 'your organization'}` : 'Active incidents'}
+            {split ? t('Routed to {org}', { org: org?.name ?? t('your organization') }) : t('Active incidents')}
           </h2>
           <span className="rpl-section-meta">
-            {loaded ? `${routed.length} active` : ''}
+            {loaded ? t('{count} active', { count: routed.length }) : ''}
           </span>
-          <button type="button" className="rpl-text-button" onClick={() => onNavigate('incidents')}>
-            All incidents
-          </button>
+          <button type="button" className="rpl-text-button" onClick={() => onNavigate('incidents')}>{t('All incidents')}</button>
         </div>
         <IncidentTable
           incidents={routed}
@@ -165,16 +164,16 @@ export default function SituationBoard({ onNavigate }) {
           yourOrg={orgStatus}
           onOpen={(inc) => onNavigate('incidents', { incidentId: inc.id })}
           emptyMessage={split
-            ? 'Nothing is routed to you right now. An Area that asks for your agency appears here, with its sound.'
-            : 'No active incidents. A new Area appears here the moment its first report is clustered.'}
+            ? t('Nothing is routed to you right now. An Area that asks for your agency appears here, with its sound.')
+            : t('No active incidents. A new Area appears here the moment its first report is clustered.')}
         />
       </section>
 
       {split && (
         <section className="rpl-board-section" aria-labelledby="rpl-board-others-title">
           <div className="rpl-section-head">
-            <h2 className="rpl-section-title" id="rpl-board-others-title">Other organizations’ incidents</h2>
-            <span className="rpl-section-meta">View only</span>
+            <h2 className="rpl-section-title" id="rpl-board-others-title">{t('Other organizations’ incidents')}</h2>
+            <span className="rpl-section-meta">{t('View only')}</span>
           </div>
           <IncidentTable
             incidents={others}
@@ -182,27 +181,29 @@ export default function SituationBoard({ onNavigate }) {
             loading={!loaded}
             yourOrg={orgStatus}
             onOpen={(inc) => onNavigate('incidents', { incidentId: inc.id })}
-            emptyMessage="No other active incidents in Pasay right now."
+            emptyMessage={t('No other active incidents in Pasay right now.')}
           />
         </section>
       )}
 
       <section className="rpl-panel" aria-labelledby="rpl-board-metrics-title">
-        <h2 className="rpl-panel-title" id="rpl-board-metrics-title">Response measures · last {METRICS_DAYS} days</h2>
+        <h2 className="rpl-panel-title" id="rpl-board-metrics-title">{t('Response measures · last {days} days', { days: METRICS_DAYS })}</h2>
         <p className="rpl-panel-note">
           {historyLoaded
-            ? `${metrics.count} incident${metrics.count === 1 ? '' : 's'}` +
-              `${metricsTruncated ? ` (the latest ${HISTORY_LIMIT})` : ''}` +
-              ' · medians over incidents that reached both steps'
-            : <span className="rpl-skel rpl-skel-line" style={{ width: 220, height: 12, display: 'inline-block' }} aria-label="Loading" />}
+            ? (metrics.count === 1
+                ? t('{count} incident', { count: metrics.count })
+                : t('{count} incidents', { count: metrics.count })) +
+              (metricsTruncated ? t(' (the latest {HISTORY_LIMIT})', { HISTORY_LIMIT }) : '') +
+              t(' · medians over incidents that reached both steps')
+            : <span className="rpl-skel rpl-skel-line" style={{ width: 220, height: 12, display: 'inline-block' }} aria-label={t('Loading')} />}
         </p>
         <div className="rpl-measures">
           {[
-            { label: 'Report to acknowledged', m: metrics.reportToVerify, fmt: 'time' },
-            { label: 'Acknowledged to on scene', m: metrics.verifyToScene, fmt: 'time' },
-            { label: 'Fire out to report filed', m: metrics.fireOutToReport, fmt: 'time' },
-            { label: 'Reached high confidence', m: metrics.highConfidence, fmt: 'share' },
-            { label: 'False alarms', m: metrics.falseAlarm, fmt: 'share' },
+            { label: t('Report to acknowledged'), m: metrics.reportToVerify, fmt: 'time' },
+            { label: t('Acknowledged to on scene'), m: metrics.verifyToScene, fmt: 'time' },
+            { label: t('Fire out to report filed'), m: metrics.fireOutToReport, fmt: 'time' },
+            { label: t('Reached high confidence'), m: metrics.highConfidence, fmt: 'share' },
+            { label: t('False alarms'), m: metrics.falseAlarm, fmt: 'share' },
           ].map(({ label, m, fmt }) => (
             <div className="rpl-measure" key={label}>
               <span className="rpl-measure-label">{label}</span>
@@ -210,7 +211,7 @@ export default function SituationBoard({ onNavigate }) {
                 {historyLoaded ? (fmt === 'time' ? formatMinutes(m.median) : formatShare(m.share)) : '·'}
               </span>
               <span className="rpl-measure-foot">
-                {m.n === 0 ? 'None yet' : `over ${m.n} incident${m.n === 1 ? '' : 's'}`}
+                {m.n === 0 ? t('None yet') : (m.n === 1 ? t('over {n} incident', { n: m.n }) : t('over {n} incidents', { n: m.n }))}
               </span>
             </div>
           ))}
