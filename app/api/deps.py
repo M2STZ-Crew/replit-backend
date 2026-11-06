@@ -113,7 +113,7 @@ DEACTIVATED_MESSAGE = (
 CURRENT_USER_SQL = """
     select u.id, u.email, u.phone, u.role, u.agency_type, u.verified_percent, u.badge,
            u.full_name, u.primary_org_id, u.mobile, u.date_of_birth, u.gender,
-           u.phone_verified, u.is_active,
+           u.phone_verified, u.is_active, u.language,
            o.name as org_name, o.agency_type::text as org_agency_type,
            o.is_active as org_is_active,
            coalesce((to_jsonb(o) ->> 'is_central_hub')::boolean, false)

@@ -22,7 +22,7 @@ from app.api.deps import (
     phone_gate_applies,
 )
 from app.api.routes.password_reset import schedule_reset_email
-from app.core.exceptions import BadRequestError
+from app.core.exceptions import BadRequestError, ExternalServiceError
 from app.core.logging import get_logger
 from app.db.session import Database
 from app.integrations.supabase_auth import AuthError
@@ -34,6 +34,7 @@ from app.schemas.auth import (
     LocationUpdateRequest,
     LoginRequest,
     MeResponse,
+    PasswordChangeRequest,
     ProfileUpdateRequest,
     RecoverRequest,
     RefreshRequest,
@@ -294,6 +295,58 @@ async def update_my_language(
         "update public.users set language = $2 where id = $1", user.id, payload.language
     )
     log.info("user_language_updated", user_id=str(user.id), language=payload.language)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/me/password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Change my password",
+)
+async def change_my_password(
+    payload: PasswordChangeRequest,
+    user: SessionUser,
+    token: AccessTokenDep,
+    auth: AuthClientDep,
+) -> Response:
+    """Check the current password, set the new one, sign the other devices out.
+
+    For every role, from the app's Profile and the Admin console's Settings. The
+    current password is checked by signing in with it, so a phone left unlocked
+    cannot have its password changed. The new one is set with the service key,
+    which needs no GoTrue reauthentication nonce. Then every session but this
+    one is revoked — the check's own session included — and this device stays
+    signed in.
+
+    A wrong current password is a 400, never a 401: the clients read 401 as an
+    expired session and would sign the person out. Behind the session only,
+    not the phone gate, like the language.
+    """
+    if payload.new_password == payload.current_password:
+        raise BadRequestError(
+            "The new password is the same as the current one.", error_code="same_password"
+        )
+    if not user.email:
+        raise BadRequestError(
+            "This account has no email to check the password against.",
+            error_code="no_email",
+        )
+    try:
+        await auth.sign_in_with_password(email=user.email, password=payload.current_password)
+    except AuthError as exc:
+        log.info("password_change_wrong_current", user_id=str(user.id))
+        raise BadRequestError(
+            "The current password is not right.", error_code="wrong_password"
+        ) from exc
+    await auth.admin_update_user(
+        user_id=str(user.id), attributes={"password": payload.new_password}
+    )
+    try:
+        await auth.sign_out(access_token=token, scope="others")
+    except (AuthError, ExternalServiceError):
+        # The password is changed either way; old sessions then simply run out.
+        log.warning("password_change_other_sessions_kept", user_id=str(user.id))
+    log.info("user_password_changed", user_id=str(user.id), role=user.role)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

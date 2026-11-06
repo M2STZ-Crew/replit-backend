@@ -18,17 +18,21 @@ play the citizen recording.
 
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
 from app.core.logging import get_logger
 from app.db.session import Database
 from app.integrations.fcm import PushService, SoundCategory, sound_for_agency
 from app.schemas.alarm import AlarmRequestResponse, alarm_label
+from app.services import staff_copy
 from app.services.citizen_copy import (
+    DEFAULT_LANGUAGE,
     REPORTER_MESSAGES,
     Language,
     by_language,
     language_of,
+    languages_of,
     verified_by,
 )
 from app.services.incident import COORDINATING_AGENCIES, OBSERVER_AGENCIES
@@ -93,10 +97,12 @@ async def notify_staff_new_incident(db: Database, area_id: UUID) -> int:
     if not staff_ids:
         return 0
 
-    title = f"Fire reported: {area['designation'] or 'new incident'}"
-    body = "A resident reported a fire. Tap to open it, verify it and respond."
     data = {"area_id": str(area_id), "event": "incident_new"}
-    await record_inbox(db, staff_ids, "incident_new", title, body, data)
+    # In each one's language (staff_copy); the sound is still their agency's.
+    languages = await languages_of(db, staff_ids)
+    for language, ids in by_language(languages).items():
+        title, body = staff_copy.new_fire(language, area["designation"])
+        await record_inbox(db, ids, "incident_new", title, body, data)
 
     sound_of = {r["id"]: sound_for_agency(r["agency_type"]) for r in staff_rows}
     token_rows = await db.fetch(
@@ -104,11 +110,16 @@ async def notify_staff_new_incident(db: Database, area_id: UUID) -> int:
         "where user_id = any($1::uuid[]) and is_active",
         staff_ids,
     )
-    by_sound: dict[SoundCategory, list[str]] = {}
+    groups: dict[tuple[Language, SoundCategory], list[str]] = {}
     for t in token_rows:
-        by_sound.setdefault(sound_of.get(t["user_id"], "fire"), []).append(t["fcm_token"])
+        key = (
+            languages.get(t["user_id"], DEFAULT_LANGUAGE),
+            sound_of.get(t["user_id"], "fire"),
+        )
+        groups.setdefault(key, []).append(t["fcm_token"])
     push = PushService()
-    for sound, tokens in by_sound.items():
+    for (language, sound), tokens in groups.items():
+        title, body = staff_copy.new_fire(language, area["designation"])
         result = await push.send_to_tokens(
             tokens=tokens,
             title=title,
@@ -252,15 +263,8 @@ async def notify_responder_dispatched(
     designation = await db.fetchval(
         "select designation from public.areas where id = $1", area_id
     )
-    where = designation or "an incident"
-    detail_parts: list[str] = []
-    if crew_role:
-        detail_parts.append(crew_role)
-    if vehicle_name:
-        detail_parts.append(f"on {vehicle_name}")
-    suffix = f" — {' '.join(detail_parts)}" if detail_parts else ""
-    title = "You've been dispatched"
-    body = f"Respond to {where}{suffix}."
+    language = (await languages_of(db, [responder_id])).get(responder_id, DEFAULT_LANGUAGE)
+    title, body = staff_copy.dispatched(language, designation, crew_role, vehicle_name)
 
     await record_inbox(
         db, [responder_id], "responder_dispatch", title, body, {"area_id": str(area_id)}
@@ -333,23 +337,23 @@ async def notify_route_recipients(
     designation = await db.fetchval(
         "select designation from public.areas where id = $1", area_id
     )
-    title = "Incident routed to your team"
-    body = f"Admin routed {designation or 'an incident'} to your team. Open it to respond."
+    languages = await languages_of(db, captain_ids)
     # Its own type, not the citizens' "incident_update": the mobile app opens a
     # citizen's live tracker for that one, which is the wrong screen for a captain.
-    await record_inbox(
-        db, captain_ids, "incident_routed", title, body,
-        {"area_id": str(area_id), "event": "incident_routed"},
-    )
-
+    for language, ids in by_language(languages).items():
+        title, body = staff_copy.routed(language, designation)
+        await record_inbox(
+            db, ids, "incident_routed", title, body,
+            {"area_id": str(area_id), "event": "incident_routed"},
+        )
     token_rows = await db.fetch(
-        "select fcm_token from public.device_tokens "
+        "select user_id, fcm_token from public.device_tokens "
         "where user_id = any($1::uuid[]) and is_active",
         captain_ids,
     )
-    tokens = [t["fcm_token"] for t in token_rows]
-    if tokens:
-        push = PushService()
+    push = PushService()
+    for language, tokens in _tokens_by_language(token_rows, languages).items():
+        title, body = staff_copy.routed(language, designation)
         result = await push.send_to_tokens(
             tokens=tokens,
             title=title,
@@ -366,13 +370,15 @@ async def notify_route_recipients(
     return len(captain_ids)
 
 
-def _area_called(designation: str | None, fallback: str) -> str:
-    """"Area 1.2" for a designation (older rows already carry the word), else
-    [fallback]."""
-    text = (designation or "").strip()
-    if not text:
-        return fallback
-    return text if text.lower().startswith("area") else f"Area {text}"
+def _tokens_by_language(
+    token_rows: list[Any], languages: dict[UUID, Language]
+) -> dict[Language, list[str]]:
+    """Device tokens (rows of user_id, fcm_token) grouped by their owner's language."""
+    groups: dict[Language, list[str]] = {}
+    for t in token_rows:
+        language = languages.get(t["user_id"], DEFAULT_LANGUAGE)
+        groups.setdefault(language, []).append(t["fcm_token"])
+    return groups
 
 
 async def notify_bfp_alarm_request(
@@ -407,24 +413,25 @@ async def notify_bfp_alarm_request(
     if not bfp_ids:
         return 0
 
-    title = "Alarm escalation requested"
-    who = requester or "A responder"
-    if organization:
-        who = f"{who} ({organization})"
-    body = f"{who} asked for {level_label} on {_area_called(designation, 'an incident')}."
     data = {"type": "alarm_request", "area_id": str(area_id)}
     if request_id is not None:
         data["request_id"] = str(request_id)
-    await record_inbox(db, bfp_ids, "alarm_request", title, body, dict(data))
-
+    languages = await languages_of(db, bfp_ids)
+    for language, ids in by_language(languages).items():
+        title, body = staff_copy.alarm_requested(
+            language, requester, organization, level_label, designation
+        )
+        await record_inbox(db, ids, "alarm_request", title, body, dict(data))
     token_rows = await db.fetch(
-        "select fcm_token from public.device_tokens "
+        "select user_id, fcm_token from public.device_tokens "
         "where user_id = any($1::uuid[]) and is_active",
         bfp_ids,
     )
-    tokens = [t["fcm_token"] for t in token_rows]
-    if tokens:
-        push = PushService()
+    push = PushService()
+    for language, tokens in _tokens_by_language(token_rows, languages).items():
+        title, body = staff_copy.alarm_requested(
+            language, requester, organization, level_label, designation
+        )
         result = await push.send_to_tokens(
             tokens=tokens,
             title=title,
@@ -453,16 +460,16 @@ async def notify_alarm_request_answered(db: Database, request: AlarmRequestRespo
     """
     if request.status not in ("approved", "rejected"):
         return 0
-    area = _area_called(request.area_designation, "The incident")
-    level = alarm_label(request.requested_alarm_level)
-    if request.status == "approved":
-        title = "BFP raised the alarm"
-        body = f"{area} is now at {level}, as you asked."
-    else:
-        title = "BFP declined your alarm request"
-        body = f"{area} stays as it is."
-        if request.review_notes:
-            body = f"{body} {request.review_notes}"
+    language = (await languages_of(db, [request.requested_by])).get(
+        request.requested_by, DEFAULT_LANGUAGE
+    )
+    title, body = staff_copy.alarm_answered(
+        language,
+        request.status == "approved",
+        alarm_label(request.requested_alarm_level),
+        request.area_designation,
+        request.review_notes if request.status == "rejected" else None,
+    )
     data = {
         "type": "alarm_request_answered",
         "area_id": str(request.area_id),
