@@ -777,6 +777,8 @@
 .rpl-field input:focus { outline: none; border: 2px solid var(--focus); padding: 0 11px; }
 .rpl-field input[aria-invalid="true"] { border-color: var(--danger); }
 .rpl-field-help { color: var(--label); font-size: 12px; line-height: 1.5; }
+/* The made sign-in address on Create Coordinator, read off as it is typed. */
+.rpl-coordinator-address { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; color: var(--text); overflow-wrap: anywhere; }
 .rpl-field-error { color: var(--danger); font-size: 12px; font-weight: 600; line-height: 1.5; }
 
 /* ── Requests (10 · A40, A41, A46) ────────────────────────────────────── */

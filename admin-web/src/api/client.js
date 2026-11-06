@@ -229,17 +229,25 @@ export const api = {
   alarmRequestDelete: (id) => request(`/alarm-requests/${id}`, { method: 'DELETE' }),
 
   // An Admin's Coordinator accounts (A48, A49): created for its own
-  // organisation and emailed a link to set their password; turned off and on.
-  createCoordinator: ({ fullName, email, title, organizationId }) =>
+  // organisation and turned off and on. The sign-in address is made from the
+  // name (obryan.fircor@replit.com); the link to set a password goes to their
+  // personal email.
+  createCoordinator: ({ firstName, lastName, personalEmail, title, organizationId }) =>
     request('/admin/coordinators', {
       method: 'POST',
       body: {
-        full_name: fullName,
-        email,
+        first_name: firstName,
+        last_name: lastName,
+        personal_email: personalEmail,
         title: title || null,
         ...(organizationId ? { organization_id: organizationId } : {}),
       },
     }),
+  coordinatorEmailPreview: ({ firstName, lastName, organizationId }) => {
+    const q = new URLSearchParams({ first_name: firstName, last_name: lastName });
+    if (organizationId) q.set('organization_id', organizationId);
+    return request(`/admin/coordinators/email-preview?${q.toString()}`);
+  },
   deactivateCoordinator: (id) => request(`/admin/coordinators/${id}/deactivate`, { method: 'POST' }),
   reactivateCoordinator: (id) => request(`/admin/coordinators/${id}/reactivate`, { method: 'POST' }),
 

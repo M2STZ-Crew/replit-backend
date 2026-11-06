@@ -98,11 +98,14 @@ export default function Accounts() {
     response_team: people.filter((p) => p.role === 'response_team').length,
   }), [people]);
 
-  async function create({ fullName, email, title, organizationId }) {
-    const result = await api.createCoordinator({ fullName, email, title, organizationId });
+  async function create({ firstName, lastName, personalEmail, title, organizationId }) {
+    const result = await api.createCoordinator({ firstName, lastName, personalEmail, title, organizationId });
     setCreating(false);
     setTab('sub_admin');
-    setNotice(t('Coordinator account created for {name}', { name: result.coordinator?.full_name ?? fullName }));
+    setNotice(t('Coordinator account created: {name} signs in as {address}', {
+      name: result.coordinator?.full_name ?? `${firstName} ${lastName}`,
+      address: result.coordinator?.email ?? '—',
+    }));
     setWarning(result.invite_email_sent ? null : (result.detail || t('The email with their password link was not sent.')));
     await load();
   }
