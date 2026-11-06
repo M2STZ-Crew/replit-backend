@@ -6,6 +6,49 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.21 — 6 November 2026 — Change password, and Tagalog for staff
+
+Backend and Admin console, with mobile v1.12.28. No migration, no new setting.
+**Before mobile v1.12.28 reaches people, set `REQUIRE_CITIZEN_PHONE_VERIFICATION=false`
+on Render.** That app signs up and signs in by email, and asks for no mobile
+number while the SMS provider is undecided; with the gate on, a new resident
+would stop at "Verify your mobile number". Turning it back on needs no deploy.
+
+### Changes
+
+**Added**
+- **Change password, `POST /auth/me/password`.** It checks the current password
+  by signing in with it, sets the new one (8 to 128 characters), then signs out
+  every other session; the one that asked stays signed in. A wrong current
+  password is a 400 `wrong_password`, never a 401, which the app and the console
+  read as an expired session. The same password again is `same_password`.
+- **Staff alerts in English or Tagalog** (`app/services/staff_copy.py`): a new
+  incident, the Coordinator's reminder, "You're dispatched", the routing alert,
+  and an alarm request and its answer each follow the reader's `users.language`.
+  The English is word for word what it was.
+- **`GET /auth/me` returns `language`,** so the app and the console start in it.
+- **The Admin console in Tagalog.** English | Tagalog on the sign-in page and in
+  Settings, saved to the account (`PUT /auth/me/language`); a choice made before
+  signing in is saved once signed in. 1,027 lines, in everyday B1 Tagalog that
+  keeps the words Admins already use (report, Area, dispatch, Coordinator) and
+  BFP's own alarm terms. `npm run check:tagalog` fails when a line has no
+  Tagalog or its `{blanks}` differ.
+- **Change password in the console's Settings:** current, new and again.
+
+**Tests**
+- `tests/test_change_password.py` (10) and `tests/test_staff_language.py` (14).
+
+### Verified
+
+- Backend: pytest (764 passed; the two `test_smoke` version checks fail, as
+  before), ruff; mypy reports only the existing `ai_summary.py:74`.
+- Console: `vite build` and `npm run check:tagalog`; sign-in and Request access
+  looked at in both languages.
+- Not run: a password change against the live server, or a Tagalog staff alert
+  on a phone.
+
+---
+
 ## v1.12.20 — 5 November 2026 — The 5 November issue list
 
 Backend and Admin console, with mobile v1.12.24. **Two migrations — run them
