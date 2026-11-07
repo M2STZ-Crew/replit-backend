@@ -20,6 +20,6 @@ create index if not exists users_personal_email_lower_idx
   where personal_email is not null;
 
 comment on column public.users.personal_email is
-  'A staff member''s own email, where password links go: their sign-in address at @replit.com has no mailbox.';
+  'The own email of a staff member, where password links go: their sign-in address at @replit.com has no mailbox.';
 comment on column public.users.personal_email_verified_at is
   'When a link sent to personal_email was opened; null until then, and again after it changes.';
