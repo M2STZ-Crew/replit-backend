@@ -40,6 +40,14 @@ export class ApiError extends Error {
   }
 }
 
+/// The API's reasons the console says in its own words and language, whichever
+/// page asked; the API's own message is in English. A burner email address
+/// (v1.12.23) is refused on the Create Coordinator dialog and the public
+/// affiliation form alike.
+const OWN_WORDS = new Map([
+  ['disposable_email', () => tr('Temporary email addresses can’t be used. Use an email that will last, such as Gmail or Yahoo.')],
+]);
+
 async function request(path, { method = 'GET', body, auth = true } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) {
@@ -78,7 +86,8 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
     }
   }
   if (!resp.ok) {
-    throw new ApiError(data.message || tr('Request failed ({status}).', { status: resp.status }), resp.status, data.error ?? null);
+    const own = OWN_WORDS.get(data.error);
+    throw new ApiError(own ? own() : data.message || tr('Request failed ({status}).', { status: resp.status }), resp.status, data.error ?? null);
   }
   return data;
 }

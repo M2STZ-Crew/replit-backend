@@ -6,6 +6,56 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.23 — 7 November 2026 — Burner email addresses are refused
+
+Backend and Admin console, with mobile v1.12.30, which says it in its own
+words (older apps show the server's message). No migration; nothing has to be
+set on Render, though two settings can now change the list there.
+
+### Changes
+
+**Logic**
+- **Disposable Email Address (DEA) detection.** An address from a throwaway
+  email service (mailinator.com, 10minutemail.com, yopmail.com and about ten
+  thousand more) stops working within the hour, so it is refused wherever
+  RepLiT takes an email it relies on: signing up, the email link, a staff
+  member's personal email (Profile, a new Coordinator, a new responder), and
+  an affiliate's contact email (the public form and the signed-in request).
+  The answer is a 400 `disposable_email`, with `details.field` and
+  `details.domain`, before anything is looked up, made or sent.
+  (`app/services/disposable_email.py`)
+- **The list** is the community-maintained disposable-email-domains blocklist,
+  CC0 (public domain), 10,143 domains at upstream commit `a72c0ce` (4 November),
+  bundled as `app/data/disposable_email_domains.txt`. A listed domain covers
+  its subdomains (`x.mailinator.com`). The providers people really use (Gmail,
+  Yahoo, Outlook, iCloud, Proton and the rest) are never refused, whatever the
+  list says. `python scripts/update_disposable_domains.py` refreshes it, and
+  refuses to write a list that looks cut off.
+- **Two settings, no deploy:** `DISPOSABLE_EMAIL_DOMAINS_EXTRA` refuses more
+  domains, `DISPOSABLE_EMAIL_DOMAINS_ALLOWED` lifts ones the list has wrong
+  (comma-separated; changing them restarts the service).
+- **Not checked:** signing in and resetting a password, so an account made
+  with such an address before now keeps working (it just cannot confirm the
+  email, for no trust from a throwaway inbox), and an Admin making an account
+  by hand (POST /admin/users), which is how test accounts are made.
+
+**UI (Admin console)**
+- The Create Coordinator dialog and the public affiliation form say "Temporary
+  email addresses can’t be used. Use an email that will last, such as Gmail or
+  Yahoo.", in English or Tagalog. One place does it for every page
+  (`src/api/client.js`), keyed on the error, not its wording.
+
+### Tests
+- `tests/test_disposable_email.py`: finding a burner however it is written and
+  on a subdomain, the providers people use passing, the settings, the bundled
+  list whole and credited, and every route refusing one before touching the
+  database, Supabase Auth or Brevo.
+- Failing before this release and unchanged by it: `tests/test_smoke.py`
+  (expects version 0.1.0) and `tests/test_national_id.py`'s photo removal, 7 in
+  all.
+
+---
+
 ## v1.12.22 — 7 November 2026 — A resident's email link, sign-up's last step
 
 Backend only, with mobile v1.12.29, which ends a resident's sign-up with this
