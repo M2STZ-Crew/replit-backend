@@ -11,7 +11,8 @@ markup. Rendering in real mail clients is checked by hand, not here.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
+from contextlib import asynccontextmanager
 from typing import Any
 from uuid import uuid4
 
@@ -145,6 +146,19 @@ def test_the_preheader_is_hidden_and_first() -> None:
 
 # ------------------------------------------------- the verification route ---
 class _Db:
+    """Enough of the database for one email link: no link yet, every write taken."""
+
+    @asynccontextmanager
+    async def acquire(self) -> AsyncIterator[_Db]:
+        yield self
+
+    @asynccontextmanager
+    async def transaction(self) -> AsyncIterator[None]:
+        yield
+
+    async def fetchrow(self, query: str, *args: Any) -> None:
+        return None
+
     async def execute(self, query: str, *args: Any) -> str:
         return "INSERT 0 1"
 

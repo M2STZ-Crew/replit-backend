@@ -16,7 +16,7 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, File, Form, Request, Response, UploadFile
+from fastapi import APIRouter, File, Form, Query, Request, Response, UploadFile, status
 from fastapi.responses import HTMLResponse
 
 from app.api.deps import (
@@ -29,11 +29,16 @@ from app.api.deps import (
     StorageClientDep,
 )
 from app.core.config import get_settings
-from app.core.exceptions import BadRequestError, ExternalServiceError, UnauthorizedError
+from app.core.exceptions import (
+    AppError,
+    BadRequestError,
+    ExternalServiceError,
+    UnauthorizedError,
+)
 from app.core.logging import get_logger
 from app.db.session import Database
-from app.schemas.common import MessageResponse
 from app.schemas.verification import (
+    EmailLinkResponse,
     NationalIdStartResponse,
     PhoneCodeRequestResponse,
     PhoneVerifyCheckRequest,
@@ -43,6 +48,7 @@ from app.schemas.verification import (
     VerificationStatusResponse,
 )
 from app.services.email_layout import EmailAction, RenderedEmail, render_email
+from app.services.link_page import link_page
 from app.services.national_id import BUCKET, photo_paths, remove_photos
 from app.services.phone_verification import check_code, request_code
 
@@ -374,8 +380,51 @@ async def submit_national_id_manual(
     )
 
 # --------------------------------------------------------------------------- #
-# Email verification (+10%) — Brevo link-based
+# Email verification (+10%) — Brevo link-based. Since app 1.12.29 it is the last
+# step of a resident's sign-up, in place of a texted code while SMS is
+# undecided: the app asks for the link the moment the account exists.
 # --------------------------------------------------------------------------- #
+EMAIL_LINK_FOR = timedelta(hours=24)
+
+
+class EmailLinkCooldownError(AppError):
+    """Asked for another link too soon (HTTP 429)."""
+
+    status_code = status.HTTP_429_TOO_MANY_REQUESTS
+    error_code = "email_link_cooldown"
+
+
+class EmailLinkLimitError(AppError):
+    """The day's links for this account are spent (HTTP 429)."""
+
+    status_code = status.HTTP_429_TOO_MANY_REQUESTS
+    error_code = "email_link_daily_limit"
+
+
+def _recent_sends(raw: str | None, now: datetime) -> list[datetime]:
+    """When the links of the last 24 hours went out, oldest first."""
+    try:
+        stamps = json.loads(raw or "[]")
+    except ValueError:
+        return []
+    day_ago = now - timedelta(hours=24)
+    sends: list[datetime] = []
+    for stamp in stamps if isinstance(stamps, list) else []:
+        try:
+            moment = datetime.fromisoformat(str(stamp))
+        except ValueError:
+            continue
+        if moment.tzinfo is None:
+            moment = moment.replace(tzinfo=UTC)
+        if moment > day_ago:
+            sends.append(moment)
+    return sorted(sends)
+
+
+def _seconds_until(moment: datetime, now: datetime) -> int:
+    return max(1, int((moment - now).total_seconds()) + 1)
+
+
 def _verification_email(full_name: str | None, link: str) -> RenderedEmail:
     """The verify-your-email message (HTML and plain text). Until v1.12.19 it
     was HTML alone, with the name unescaped; render_email escapes it."""
@@ -401,44 +450,99 @@ def _verification_email(full_name: str | None, link: str) -> RenderedEmail:
 
 @router.post(
     "/email/request",
-    response_model=MessageResponse,
+    response_model=EmailLinkResponse,
     summary="Send an email verification link (+10%)",
 )
 async def request_email_verification(
     user: CurrentUser, db: DatabaseDep, email: EmailClientDep
-) -> MessageResponse:
-    """Generate a one-time link and email it to the user's address."""
+) -> EmailLinkResponse:
+    """Email a one-time link that confirms the user's address.
+
+    Runs under an advisory lock keyed on the account, so two taps cannot both
+    pass the wait between links. The email is sent inside the transaction: if
+    Brevo refuses, nothing is recorded, so a failed send spends neither the
+    wait nor the day's allowance. An address already confirmed gets no email
+    and stays confirmed; until v1.12.22 asking again set it back to pending.
+    """
     settings = get_settings()
     if not user.email:
         raise BadRequestError("Your account has no email address to verify.")
-    token = secrets.token_urlsafe(32)
-    token_hash = hashlib.sha256(token.encode()).hexdigest()
-    expires_at = (datetime.now(UTC) + timedelta(hours=24)).isoformat()
-    await db.execute(
-        """
-        insert into public.user_verifications (user_id, type, status, provider, metadata)
-        values ($1, 'email', 'pending', 'brevo',
-                jsonb_build_object('token_hash', $2::text, 'expires_at', $3::text))
-        on conflict (user_id, type) do update
-           set status = 'pending', provider = 'brevo',
-               metadata = public.user_verifications.metadata
-                          || jsonb_build_object('token_hash', $2::text, 'expires_at', $3::text),
-               submitted_at = now(), verified_at = null
-        """,
-        user.id,
-        token_hash,
-        expires_at,
-    )
-    link = f"{settings.public_base_url.rstrip('/')}/verification/email/confirm?token={token}"
-    message = _verification_email(user.full_name, link)
-    await email.send(
-        to=user.email,
-        subject="Verify your RepLiT email",
-        html=message.html,
-        text=message.text,
-    )
+    cooldown = timedelta(seconds=settings.email_link_resend_cooldown_seconds)
+    now = datetime.now(UTC)
+    async with db.acquire() as conn, conn.transaction():
+        await conn.execute(
+            "select pg_advisory_xact_lock(hashtextextended($1, 0))",
+            f"email-link:{user.id}",
+        )
+        row = await conn.fetchrow(
+            """
+            select status::text as status,
+                   coalesce(metadata->'sends', '[]'::jsonb)::text as sends
+              from public.user_verifications
+             where user_id = $1 and type = 'email'
+            """,
+            user.id,
+        )
+        if row is not None and row["status"] == "verified":
+            return EmailLinkResponse(
+                message="Your email is already confirmed.",
+                email=user.email,
+                sent=False,
+                expires_in_seconds=0,
+                resend_after_seconds=0,
+            )
+        sends = _recent_sends(row["sends"] if row is not None else None, now)
+        if sends and now - sends[-1] < cooldown:
+            wait = _seconds_until(sends[-1] + cooldown, now)
+            raise EmailLinkCooldownError(
+                f"We just sent a link. You can ask for another in {wait} seconds.",
+                details={"retry_after_seconds": wait},
+            )
+        if len(sends) >= settings.email_link_daily_limit_per_user:
+            wait = _seconds_until(sends[0] + timedelta(hours=24), now)
+            raise EmailLinkLimitError(
+                "That is all the links we can send today. Use the newest email we "
+                "sent, or ask for another tomorrow.",
+                details={"retry_after_seconds": wait},
+            )
+        token = secrets.token_urlsafe(32)
+        pending = {
+            "token_hash": hashlib.sha256(token.encode()).hexdigest(),
+            "expires_at": (now + EMAIL_LINK_FOR).isoformat(),
+            "sends": [moment.isoformat() for moment in [*sends, now]],
+        }
+        await conn.execute(
+            """
+            insert into public.user_verifications (user_id, type, status, provider, metadata)
+            values ($1, 'email', 'pending', 'brevo', $2::jsonb)
+            on conflict (user_id, type) do update
+               set status = 'pending', provider = 'brevo',
+                   metadata = public.user_verifications.metadata || $2::jsonb,
+                   submitted_at = now(), verified_at = null
+            """,
+            user.id,
+            json.dumps(pending),
+        )
+        link = f"{settings.public_base_url.rstrip('/')}/verification/email/confirm?token={token}"
+        message = _verification_email(user.full_name, link)
+        await email.send(
+            to=user.email,
+            subject="Verify your RepLiT email",
+            html=message.html,
+            text=message.text,
+        )
     log.info("email_verification_requested", user_id=str(user.id))
-    return MessageResponse(message="Verification email sent. Check your inbox.")
+    return EmailLinkResponse(
+        message="Verification email sent. Check your inbox.",
+        email=user.email,
+        sent=True,
+        expires_in_seconds=int(EMAIL_LINK_FOR.total_seconds()),
+        resend_after_seconds=settings.email_link_resend_cooldown_seconds,
+    )
+
+
+# Where a resident sends a new link from, in the app.
+_SEND_A_NEW_ONE = "open the RepLiT app and send a new one: Profile, then Verify next to your email."
 
 
 @router.get(
@@ -446,35 +550,61 @@ async def request_email_verification(
     response_class=HTMLResponse,
     summary="Confirm email verification (+10%)",
 )
-async def confirm_email_verification(token: str, db: DatabaseDep) -> HTMLResponse:
-    """Validate the emailed token and mark the user's email verified (+10%)."""
+async def confirm_email_verification(
+    db: DatabaseDep, token: str = Query(default="", max_length=512)
+) -> HTMLResponse:
+    """The emailed link: the address is confirmed (+10%).
+
+    It opens in a phone's browser, or Gmail's, so every outcome is a page that
+    says what to do next, never an error in JSON. Opening it again says
+    confirmed again and changes nothing.
+    """
     settings = get_settings()
-    token_hash = hashlib.sha256(token.encode()).hexdigest()
-    row = await db.fetchrow(
-        """
-        select id, (metadata->>'expires_at')::timestamptz as expires_at
-        from public.user_verifications
-        where type = 'email' and metadata->>'token_hash' = $1
-        """,
-        token_hash,
-    )
+    row = None
+    if token:
+        row = await db.fetchrow(
+            """
+            select id, status::text as status,
+                   (metadata->>'expires_at')::timestamptz as expires_at
+              from public.user_verifications
+             where type = 'email' and metadata->>'token_hash' = $1
+            """,
+            hashlib.sha256(token.encode()).hexdigest(),
+        )
     if row is None:
-        raise BadRequestError("Invalid or unknown verification link.")
+        return link_page(
+            "Link not valid",
+            "This link does not work",
+            "Each new link replaces the one before it. Use the link in the newest "
+            "email from RepLiT, or " + _SEND_A_NEW_ONE,
+            status_code=400,
+        )
+    if row["status"] == "verified":
+        return link_page(
+            "Email confirmed",
+            "Your email is confirmed",
+            "Go back to the RepLiT app to continue. You can close this page.",
+        )
     if row["expires_at"] is not None and row["expires_at"] < datetime.now(UTC):
-        raise BadRequestError("This verification link has expired; request a new one.")
+        return link_page(
+            "Link expired",
+            "This link has expired",
+            "Links work for 24 hours. To confirm your email, " + _SEND_A_NEW_ONE,
+            status_code=400,
+        )
     await db.execute(
         """
         update public.user_verifications
            set status = 'verified', percent_awarded = $2, verified_at = now()
-         where id = $1
+         where id = $1 and status <> 'verified'
         """,
         row["id"],
         settings.email_verification_percent,
     )
     log.info("email_verified", verification_id=str(row["id"]))
-    return HTMLResponse(
-        "<html><body style='font-family:sans-serif'>"
-        "<h2>Email verified &#10003;</h2>"
-        "<p>Your RepLiT email is confirmed (+10%). You can close this tab.</p>"
-        "</body></html>"
+    return link_page(
+        "Email confirmed",
+        "Your email is confirmed",
+        f"Thank you. Your trust level is up {settings.email_verification_percent}%. "
+        "Go back to the RepLiT app to continue. You can close this page.",
     )

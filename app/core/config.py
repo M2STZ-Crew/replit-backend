@@ -112,6 +112,16 @@ class Settings(BaseSettings):
         default=5, ge=1, le=50,
         description="Codes one phone number may receive in 24 hours, across all accounts.",
     )
+    # A resident's email link (sign-up's last step since app 1.12.29). Each is
+    # an email through Brevo, whose plan allows only so many a day: the wait
+    # and the cap keep one account from spending them.
+    email_link_resend_cooldown_seconds: int = Field(
+        default=60, ge=0, le=3600,
+        description="Minimum wait between two email links to one account.",
+    )
+    email_link_daily_limit_per_user: int = Field(
+        default=5, ge=1, le=50, description="Email links one account may request in 24 hours."
+    )
 
     # ----- Didit.me KYC (Phase 4) -----
     didit_api_key: str = Field(default="", description="Didit.me API key (x-api-key).")
