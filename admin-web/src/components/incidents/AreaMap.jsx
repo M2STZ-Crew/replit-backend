@@ -4,6 +4,7 @@ import L from 'leaflet';
 import { Circle, MapContainer, Marker } from 'react-leaflet';
 
 import BaseTiles from '../../map/BaseTiles.jsx';
+import { t } from '../../i18n/i18n.jsx';
 
 /* One or more Areas on the map (REPLIT (MAIN) 10 · A23, A27; 04 · Map
  * marker, Area radius): the incident marker — the brand's solid step with a
@@ -28,7 +29,7 @@ function markerIcon(small) {
 export default function AreaMap({ lat, lng, label, areas, height }) {
   const list = (areas ?? [{ lat, lng, label }]).filter((a) => a.lat != null && a.lng != null);
   if (list.length === 0) {
-    return <div className="rpl-area-map is-empty">No location recorded for this Area.</div>;
+    return <div className="rpl-area-map is-empty">{t('No location recorded for this Area.')}</div>;
   }
   const centre = [
     list.reduce((s, a) => s + a.lat, 0) / list.length,
@@ -39,7 +40,7 @@ export default function AreaMap({ lat, lng, label, areas, height }) {
       className="rpl-area-map"
       style={height ? { height } : undefined}
       role="img"
-      aria-label={`Map of ${list.map((a) => a.label).join(' and ')}`}
+      aria-label={t('Map of {join}', { join: list.map((a) => a.label).join(' and ') })}
     >
       <MapContainer
         center={centre}

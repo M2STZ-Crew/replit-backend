@@ -1,13 +1,14 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { t } from '../../i18n/i18n.jsx';
 
 export default function ConfirmDialog({
   open,
   eyebrow,
   title,
   description,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
-  busyDismissLabel = 'Close',
+  confirmLabel = t('Confirm'),
+  cancelLabel = t('Cancel'),
+  busyDismissLabel = t('Close'),
   onConfirm,
   onClose,
   busy = false,
@@ -105,7 +106,7 @@ export default function ConfirmDialog({
       await onConfirm();
     } catch (failure) {
       if (mounted.current && actionVersion.current === version) {
-        setError(failure instanceof Error ? failure.message : 'Could not complete this action. Try again.');
+        setError(failure instanceof Error ? failure.message : t('Could not complete this action. Try again.'));
       }
     } finally {
       confirming.current = false;

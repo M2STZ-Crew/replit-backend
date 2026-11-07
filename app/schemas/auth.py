@@ -40,6 +40,23 @@ class AuthenticatedUser(BaseModel):
         ),
     )
     mobile: str | None = Field(default=None, description="Contact mobile number (unverified).")
+    language: Literal["en", "tl"] = Field(
+        default="en",
+        description=(
+            "The language this account reads RepLiT in (PUT /auth/me/language): the app "
+            "and the Admin console start in it, and its alerts follow it."
+        ),
+    )
+    personal_email: str | None = Field(
+        default=None,
+        description=(
+            "A coordinator's or responder's own email, where password links go: an "
+            "@replit.com sign-in has no mailbox (PUT /auth/me/personal-email)."
+        ),
+    )
+    personal_email_verified: bool = Field(
+        default=False, description="A link sent to personal_email has been opened."
+    )
     phone_verification_required: bool = Field(
         default=False,
         description=(
@@ -160,6 +177,22 @@ class LanguageUpdateRequest(BaseModel):
     """The language the user reads RepLiT in; residents' alerts follow it."""
 
     language: Literal["en", "tl"]
+
+
+class PasswordChangeRequest(BaseModel):
+    """Change the caller's password: the one they have now, and the new one.
+
+    The new one follows sign-up's rule (8 to 128 characters).
+    """
+
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class PersonalEmailRequest(BaseModel):
+    """A staff member's own email, for their password links."""
+
+    email: EmailStr
 
 
 class RecoverRequest(BaseModel):

@@ -4,10 +4,12 @@ Every sub-admin — any organisation's coordinator, in the app — makes the
 Response Team accounts of their own agency and team, and looks after them:
 
 * **Create.** The address follows the account directory's rule —
-  ``jdelacruz.resfir@replit.com``, numbered after the surname when taken
-  (app/services/responder_accounts.py) — and the password is generated and
-  returned once, for the coordinator to hand over in person. @replit.com has no
-  mailboxes, so nothing is emailed and no e-mail reset can reach it.
+  ``jdelacruz.firres@replit.com``, numbered after the surname when taken
+  (app/services/responder_accounts.py). @replit.com has no mailboxes, so the
+  coordinator gives the responder's own email (6 Nov 2026): a link there
+  confirms it and sets the password, and Forgot password? sends there later.
+  An older app that gives none gets a temporary password back, once, to hand
+  over in person.
 * **Reset password.** A new temporary password, returned once.
 * **Deactivate / reactivate.** The account keeps its history but cannot sign
   in: Supabase Auth bans it, the API refuses it on every request and the
@@ -24,8 +26,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, Request, status
 
-from app.api.deps import AuthClientDep, DatabaseDep, SubAdminUser
+from app.api.deps import AuthClientDep, DatabaseDep, EmailClientDep, SubAdminUser
 from app.core.exceptions import (
+    AppError,
     BadRequestError,
     ConflictError,
     ExternalServiceError,
@@ -46,10 +49,12 @@ from app.services.phone_verification import normalize_ph_mobile
 from app.services.responder_accounts import (
     AGENCY_CODES,
     InvalidNameError,
+    is_staff_address,
     like_pattern,
     responder_email,
     temporary_password,
 )
+from app.services.staff_links import WELCOME_FOR, password_link, welcome_email
 
 log = get_logger(__name__)
 
@@ -60,7 +65,8 @@ _BAN_FOREVER = "876000h"
 
 _RESPONDER_COLS = """
     u.id, u.full_name, u.email, u.mobile, u.agency_type::text as agency_type,
-    u.is_active, u.created_at, u.deactivated_at,
+    u.is_active, u.created_at, u.deactivated_at, u.personal_email,
+    (u.personal_email_verified_at is not null) as personal_email_verified,
     exists (
         select 1 from public.dispatch_logs d
         where d.responder_id = u.id and d.status = 'active'
@@ -161,16 +167,26 @@ async def create_responder(
     user: SubAdminUser,
     db: DatabaseDep,
     auth: AuthClientDep,
+    email_client: EmailClientDep,
 ) -> ResponderCredentials:
     """A Response Team account of the caller's agency and team.
 
-    Returns the address and a temporary password — once; the coordinator hands
-    them over. If two coordinators name the same person at once, the second
-    takes the next number rather than failing.
+    With the responder's own email, a link there sets their password; without
+    one, a temporary password comes back, once, for the coordinator to hand
+    over. If two coordinators name the same person at once, the second takes
+    the next number rather than failing.
     """
     agency = _agency(user)
     first = payload.first_name.strip()
     last = payload.last_name.strip()
+    personal = (
+        str(payload.personal_email).strip().lower() if payload.personal_email else None
+    )
+    if personal and is_staff_address(personal):
+        raise BadRequestError(
+            "Use the responder's own email: @replit.com addresses have no mailbox.",
+            error_code="not_personal",
+        )
     mobile = (
         normalize_ph_mobile(payload.mobile)
         if payload.mobile and payload.mobile.strip()
@@ -216,6 +232,8 @@ async def create_responder(
                        primary_org_id = $4,
                        mobile = $5,
                        created_by = $6,
+                       personal_email = $7,
+                       personal_email_verified_at = null,
                        is_active = true,
                        updated_at = now()
                  where u.id = $1
@@ -227,6 +245,7 @@ async def create_responder(
                 user.primary_org_id,
                 mobile,
                 user.id,
+                personal,
             )
             if row is None:
                 raise ExternalServiceError("Account created but its profile was not found.")
@@ -239,6 +258,7 @@ async def create_responder(
                 entity_id=new_id,
                 after_state={
                     "email": email,
+                    "personal_email": personal,
                     "role": "response_team",
                     "agency": agency,
                     "organization_id": (
@@ -254,16 +274,58 @@ async def create_responder(
             log.error("responder_rollback_failed", user_id=str(new_id), exc_info=True)
         raise
 
+    responder = TeamResponder.model_validate(dict(row))
+    if personal is None:
+        log.info(
+            "responder_created",
+            coordinator_id=str(user.id),
+            responder_id=str(new_id),
+            agency=agency,
+        )
+        return ResponderCredentials(
+            responder=responder, email=email, temporary_password=password
+        )
+
+    sent = False
+    detail: str | None = None
+    org_name = await db.fetchval(
+        "select name from public.organizations where id = $1", user.primary_org_id
+    )
+    try:
+        message = welcome_email(
+            name=full_name,
+            role="Responder",
+            organization=str(org_name or "your team"),
+            address=email,
+            link=password_link(new_id, personal, WELCOME_FOR),
+            made_by="Your coordinator",
+        )
+        await email_client.send(
+            to=personal,
+            subject="Your RepLiT Responder account is ready",
+            html=message.html,
+            text=message.text,
+        )
+        sent = True
+    except AppError as exc:
+        detail = (
+            f"The account is ready, but the email to {personal} could not be sent. "
+            f"They can use “Forgot password?” on the app with {email} or {personal}."
+        )
+        log.warning("responder_invite_failed", responder_id=str(new_id), error=str(exc))
     log.info(
         "responder_created",
         coordinator_id=str(user.id),
         responder_id=str(new_id),
         agency=agency,
+        invite_email_sent=sent,
     )
     return ResponderCredentials(
-        responder=TeamResponder.model_validate(dict(row)),
+        responder=responder,
         email=email,
-        temporary_password=password,
+        personal_email=personal,
+        invite_email_sent=sent,
+        detail=detail,
     )
 
 

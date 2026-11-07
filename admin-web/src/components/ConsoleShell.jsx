@@ -10,6 +10,7 @@ import TopBar from './shell/TopBar.jsx';
 import { SETTINGS, consoleAccess, navFor } from './shell/nav.js';
 import { useSoundSettings } from './SoundSettings.jsx';
 import Icon from './ui/Icon.jsx';
+import { t } from '../i18n/i18n.jsx';
 
 /* The console frame (REPLIT (MAIN) 10 · A83–A85): the sidebar and the top
  * bar around the destination. 1280 px and wider keep the full 248 px sidebar;
@@ -133,10 +134,10 @@ export default function ConsoleShell({ active, onNavigate, children }) {
       // The surface you are looking at has nothing new to tell you about.
       if (item.key === active) return { count: 0 };
       const count = newSince(seenAt[badge.slice(4)]).length;
-      return { count, label: `${count} new since you last looked` };
+      return { count, label: t('{count} new since you last looked', { count }) };
     }
     const count = queues[badge] ?? 0;
-    return { count, label: `${count} waiting` };
+    return { count, label: t('{count} waiting', { count }) };
   }
 
   // The organisation as the server named it on sign-in, with its full
@@ -148,7 +149,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
     return {
       id,
       profile: own ?? null,
-      name: named?.name ?? own?.name ?? 'RepLiT · Pasay City',
+      name: named?.name ?? own?.name ?? t('RepLiT · Pasay City'),
       agency: named?.agency_type ?? own?.agency_type ?? null,
       role: roleLine(consoleInfo),
     };
@@ -157,7 +158,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
   const scope = scopeLine(consoleInfo);
 
   const person = {
-    name: user?.full_name || user?.email || 'Signed in',
+    name: user?.full_name || user?.email || t('Signed in'),
     email: user?.email || '',
     initials: initials(user?.full_name, user?.email),
   };
@@ -200,7 +201,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
       </div>
 
       {phone && (
-        <nav className="rpl-bar" aria-label="Destinations">
+        <nav className="rpl-bar" aria-label={t('Destinations')}>
           {barItems.map((item) => {
             const { count, label } = counts(item);
             const on = active === item.key;
@@ -226,10 +227,10 @@ export default function ConsoleShell({ active, onNavigate, children }) {
             onClick={() => setMoreOpen(true)}
             aria-haspopup="dialog"
             aria-expanded={moreOpen}
-            aria-label={moreCount ? `More, ${moreCount} waiting` : 'More'}
+            aria-label={moreCount ? t('More, {count} waiting', { count: moreCount }) : t('More')}
           >
             <Icon name="settings" />
-            <span>More</span>
+            <span>{t('More')}</span>
             {moreCount > 0 && <span className="rpl-count" aria-hidden="true">{moreCount}</span>}
           </button>
         </nav>
@@ -247,8 +248,8 @@ export default function ConsoleShell({ active, onNavigate, children }) {
           >
             <span className="rpl-sheet-grip" aria-hidden="true" />
             <div className="rpl-sheet-head">
-              <h2 id="rpl-sheet-title" className="rpl-sheet-title">More</h2>
-              <button type="button" className="rpl-icon-button" onClick={() => setMoreOpen(false)} aria-label="Close">
+              <h2 id="rpl-sheet-title" className="rpl-sheet-title">{t('More')}</h2>
+              <button type="button" className="rpl-icon-button" onClick={() => setMoreOpen(false)} aria-label={t('Close')}>
                 <span aria-hidden="true">✕</span>
               </button>
             </div>
@@ -275,7 +276,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
                 <span className="rpl-user-name">{person.name}</span>
                 <span className="rpl-user-email">{person.email}</span>
               </span>
-              <button type="button" className="rpl-icon-button" onClick={logout} aria-label="Sign out" title="Sign out">
+              <button type="button" className="rpl-icon-button" onClick={logout} aria-label={t('Sign out')} title={t('Sign out')}>
                 <Icon name="logout" />
               </button>
             </div>

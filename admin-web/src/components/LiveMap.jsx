@@ -4,6 +4,7 @@ import { CircleMarker, MapContainer, Tooltip } from 'react-leaflet';
 import { statusOf } from '../lib/status.js';
 import { TILE_ATTRIBUTION } from '../map/tiles.js';
 import BaseTiles, { useConsoleTheme } from '../map/BaseTiles.jsx';
+import { t } from '../i18n/i18n.jsx';
 
 const PASAY = [14.5378, 121.0014];
 
@@ -58,7 +59,7 @@ export default function LiveMap({ incidents = [], layerPoints = {}, enabled, onS
                 radius={p.outside ? 8 : 6}
                 pathOptions={p.outside ? outsidePasayStyle(theme) : dot(color, 1)}
               >
-                {p.label && <Tooltip>{p.outside ? `${p.label} (outside Pasay)` : p.label}</Tooltip>}
+                {p.label && <Tooltip>{p.outside ? t('{label} (outside Pasay)', { label: p.label }) : p.label}</Tooltip>}
               </CircleMarker>
             ))
           : [],
@@ -79,7 +80,7 @@ export default function LiveMap({ incidents = [], layerPoints = {}, enabled, onS
               eventHandlers={onSelectIncident ? { click: () => onSelectIncident(inc) } : undefined}
             >
               <Tooltip>
-                {(inc.designation || 'Incident')} · {st.label}
+                {(inc.designation || t('Incident'))} · {st.label}
               </Tooltip>
             </CircleMarker>
           );

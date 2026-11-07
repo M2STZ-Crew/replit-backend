@@ -10,6 +10,7 @@ import {
 import { useLiveFeed } from '../live/LiveFeed.jsx';
 import { PERM, actsOn, can, mayWithdraw } from '../lib/access.js';
 import { ago, alarmLabel, statusOf } from '../lib/status.js';
+import { t } from '../i18n/i18n.jsx';
 
 /* Requests (REPLIT (MAIN) 10 · A40 873:5264, A41 873:5578, A45 874:6513,
  * A46 874:6933, A46b 874:7126).
@@ -31,10 +32,10 @@ import { ago, alarmLabel, statusOf } from '../lib/status.js';
  * readRequests({ status }) -> Promise<AlarmRequest[]>. */
 
 const REQUEST_STATUS = {
-  pending: { label: 'Pending', tone: 'warn' },
-  approved: { label: 'Approved', tone: 'ok' },
-  rejected: { label: 'Rejected', tone: 'neutral' },
-  cancelled: { label: 'Cancelled', tone: 'neutral' },
+  pending: { get label() { return t('Pending'); }, tone: 'warn' },
+  approved: { get label() { return t('Approved'); }, tone: 'ok' },
+  rejected: { get label() { return t('Rejected'); }, tone: 'neutral' },
+  cancelled: { get label() { return t('Cancelled'); }, tone: 'neutral' },
 };
 
 const CLOCK = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' });
@@ -44,8 +45,8 @@ const CLOCK_S = new Intl.DateTimeFormat('en-PH', {
 
 const clock = (iso) => (iso ? CLOCK.format(new Date(iso)) : '—');
 const requestStatus = (s) => REQUEST_STATUS[s] ?? { label: (s || '—').replace(/_/g, ' '), tone: 'neutral' };
-const areaOf = (r) => r.area_designation || 'Area not recorded';
-const askedBy = (r) => r.requested_by_name || 'A Coordinator';
+const areaOf = (r) => r.area_designation || t('Area not recorded');
+const askedBy = (r) => r.requested_by_name || t('A Coordinator');
 
 function received(iso) {
   if (!iso) return '—';
@@ -79,13 +80,13 @@ export default function Requests({ readRequests, onOpenIncident }) {
       .then(() => readRequests({ status: 'all' }))
       .then((list) => {
         if (!alive) return;
-        if (!Array.isArray(list)) throw new Error('The requests could not be read. Try again.');
+        if (!Array.isArray(list)) throw new Error(t('The requests could not be read. Try again.'));
         setRows(list);
         setPhase('ready');
       })
       .catch((e) => {
         if (!alive) return;
-        setError(e?.message || 'The requests could not be loaded.');
+        setError(e?.message || t('The requests could not be loaded.'));
         setPhase('error');
       });
     return () => { alive = false; };
@@ -142,28 +143,24 @@ export default function Requests({ readRequests, onOpenIncident }) {
   return (
     <div className="rpl-page">
       <PageHeader
-        eyebrow={org?.name ?? 'Requests'}
-        title="Requests"
+        eyebrow={org?.name ?? t('Requests')}
+        title={t('Requests')}
         description={decides
-          ? 'Alarm escalations from the organizations on scene. You set the alarm level or decline.'
+          ? t('Alarm escalations from the organizations on scene. You set the alarm level or decline.')
           : asks
-            ? 'Alarm escalations raised on scene, and BFP\u2019s answers. Ask BFP to raise the alarm on an Area routed to you.'
-            : 'Alarm escalations raised on scene. BFP sets the alarm level; you follow each request and its answer here.'}
+            ? t('Alarm escalations raised on scene, and BFP’s answers. Ask BFP to raise the alarm on an Area routed to you.')
+            : t('Alarm escalations raised on scene. BFP sets the alarm level; you follow each request and its answer here.')}
         actions={(
           <>
-            <button type="button" className="rpl-button rpl-button--secondary" onClick={refresh} disabled={phase === 'loading'}>
-              Refresh
-            </button>
+            <button type="button" className="rpl-button rpl-button--secondary" onClick={refresh} disabled={phase === 'loading'}>{t('Refresh')}</button>
             {asks && (
               <button
                 type="button"
                 className="rpl-button rpl-button--primary"
                 onClick={() => setAsking(true)}
                 disabled={askable.length === 0}
-                title={askable.length === 0 ? 'No acknowledged Area is routed to you right now' : undefined}
-              >
-                New request
-              </button>
+                title={askable.length === 0 ? t('No acknowledged Area is routed to you right now') : undefined}
+              >{t('New request')}</button>
             )}
           </>
         )}
@@ -184,59 +181,59 @@ export default function Requests({ readRequests, onOpenIncident }) {
         onSend={async ({ areaId, level, justification }) => {
           await api.alarmRequestCreate({ areaId, level, justification });
           setAsking(false);
-          setNotice(`Asked BFP for ${alarmLabel(level)} on ${areaById.get(areaId)?.designation ?? 'the Area'}`);
+          setNotice(t('Asked BFP for {level} on {area}', { level: alarmLabel(level), area: areaById.get(areaId)?.designation ?? t('the Area') }));
           refresh();
         }}
       />
 
       <div className="rpl-toolbar">
-        <div className="rpl-tabs" role="tablist" aria-label="Requests">
+        <div className="rpl-tabs" role="tablist" aria-label={t('Requests')}>
           {[
-            { key: 'inbox', label: 'Inbox', count: pending.length },
-            { key: 'history', label: 'History' },
-          ].map((t) => (
+            { key: 'inbox', label: t('Inbox'), count: pending.length },
+            { key: 'history', label: t('History') },
+          ].map((item) => (
             <button
-              key={t.key}
+              key={item.key}
               type="button"
               role="tab"
-              aria-selected={tab === t.key}
-              className={`rpl-tab${tab === t.key ? ' is-active' : ''}`}
-              onClick={() => setTab(t.key)}
+              aria-selected={tab === item.key}
+              className={`rpl-tab${tab === item.key ? ' is-active' : ''}`}
+              onClick={() => setTab(item.key)}
             >
-              {t.label}
-              {t.count > 0 && <span className="web-count-badge" aria-label={`${t.count} pending`}>{t.count}</span>}
+              {item.label}
+              {item.count > 0 && <span className="web-count-badge" aria-label={t('{count} pending', { count: item.count })}>{item.count}</span>}
             </button>
           ))}
         </div>
         <label className="rpl-search">
           <Icon name="search" />
-          <span className="web-sr-only">Search requests</span>
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search areas and names" />
+          <span className="web-sr-only">{t('Search requests')}</span>
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search areas and names')} />
         </label>
       </div>
 
       {phase === 'loading' ? (
-        <StatePanel kind="loading" title="Loading requests…" busy />
+        <StatePanel kind="loading" title={t('Loading requests…')} busy />
       ) : phase === 'error' ? (
-        <StatePanel kind="error" title="The requests couldn’t load" description={error} onRetry={refresh} />
+        <StatePanel kind="error" title={t('The requests couldn’t load')} description={error} onRetry={refresh} />
       ) : shown.length === 0 && !query.trim() ? (
-        <EmptyState icon="requests" title={tab === 'inbox' ? 'Nothing waiting' : 'No answered requests yet'}>
+        <EmptyState icon="requests" title={tab === 'inbox' ? t('Nothing waiting') : t('No answered requests yet')}>
           {tab === 'inbox'
-            ? 'An alarm escalation appears here when someone on scene asks BFP to raise the alarm.'
-            : 'Requests move here once BFP approves or rejects them, or they are cancelled.'}
+            ? t('An alarm escalation appears here when someone on scene asks BFP to raise the alarm.')
+            : t('Requests move here once BFP approves or rejects them, or they are cancelled.')}
         </EmptyState>
       ) : (
         <>
           <div className="web-table-wrap">
             <table className="web-table rpl-requests">
-              <caption className="web-sr-only">{tab === 'inbox' ? 'Pending requests' : 'Answered requests'}</caption>
+              <caption className="web-sr-only">{tab === 'inbox' ? t('Pending requests') : t('Answered requests')}</caption>
               <thead>
                 <tr>
-                  <th scope="col">Request</th>
-                  <th scope="col">From → To</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Received</th>
-                  <th scope="col"><span className="web-sr-only">Open</span></th>
+                  <th scope="col">{t('Request')}</th>
+                  <th scope="col">{t('From → To')}</th>
+                  <th scope="col">{t('Status')}</th>
+                  <th scope="col">{t('Received')}</th>
+                  <th scope="col"><span className="web-sr-only">{t('Open')}</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -248,31 +245,30 @@ export default function Requests({ readRequests, onOpenIncident }) {
                         <span className="rpl-cell-resource">
                           <span className="rpl-plate rpl-plate--request" aria-hidden="true"><Icon name="escalate" /></span>
                           <span className="rpl-cell-text">
-                            <span className="rpl-cell-title">Alarm escalation · {alarmLabel(r.requested_alarm_level)}</span>
+                            <span className="rpl-cell-title">{t('Alarm escalation ·')}{' '}{alarmLabel(r.requested_alarm_level)}</span>
                             <span className="rpl-cell-meta">
                               {areaOf(r)}{area ? ` · ${statusOf(area.status).label}` : ''}
                             </span>
                           </span>
                         </span>
                       </th>
-                      <td className="rpl-cell-strong">{askedBy(r)} → BFP</td>
+                      <td className="rpl-cell-strong">{askedBy(r)}{' '}{t('→ BFP')}</td>
                       <td><StatusChip {...requestStatus(r.status)} /></td>
                       <td className="rpl-cell-quiet">{received(r.created_at)}</td>
                       <td className="web-table-action-cell">
-                        <button type="button" className="web-table-row-action" onClick={() => setSelectedId(r.id)}>
-                          Open<span className="web-sr-only"> the request for {areaOf(r)}</span>
+                        <button type="button" className="web-table-row-action" onClick={() => setSelectedId(r.id)}>{t('Open')}<span className="web-sr-only">{' '}{t('the request for')}{' '}{areaOf(r)}</span>
                         </button>
                       </td>
                     </tr>
                   );
                 })}
                 {shown.length === 0 && (
-                  <tr><td className="web-table-empty" colSpan={5}>Nothing matches “{query}”.</td></tr>
+                  <tr><td className="web-table-empty" colSpan={5}>{t('Nothing matches “{query}”.', { query })}</td></tr>
                 )}
               </tbody>
             </table>
           </div>
-          <p className="rpl-table-foot">Showing {shown.length} of {tab === 'inbox' ? pending.length : rows.length - pending.length}</p>
+          <p className="rpl-table-foot">{t('Showing {shown} of {total}', { shown: shown.length, total: tab === 'inbox' ? pending.length : rows.length - pending.length })}</p>
         </>
       )}
     </div>
@@ -290,41 +286,43 @@ function RequestDetail({
   const [note, setNote] = useState('');
   const level = alarmLabel(r.requested_alarm_level);
   const facts = [
-    ['Area', `${areaOf(r)}${area ? ` · ${statusOf(area.status).label}` : ''}`],
-    ...(area?.alarm_level ? [['Current level', alarmLabel(area.alarm_level)]] : []),
-    ['Proposed level', level],
-    ['Asked by', askedBy(r)],
-    ['Reason', r.justification || 'No reason given'],
+    [t('Area'), `${areaOf(r)}${area ? ` · ${statusOf(area.status).label}` : ''}`],
+    ...(area?.alarm_level ? [[t('Current level'), alarmLabel(area.alarm_level)]] : []),
+    [t('Proposed level'), level],
+    [t('Asked by'), askedBy(r)],
+    [t('Reason'), r.justification || t('No reason given')],
   ];
   const history = [
-    { at: r.created_at, title: `${level} requested`, sub: askedBy(r), tone: 'accent' },
+    { at: r.created_at, title: t('{level} requested', { level }), sub: askedBy(r), tone: 'accent' },
     r.reviewed_at && {
       at: r.reviewed_at,
       title: r.status === 'approved'
-        ? 'Approved by BFP'
+        ? t('Approved by BFP')
         : r.status === 'rejected'
-          ? 'Rejected by BFP'
-          : r.status === 'cancelled' ? 'Cancelled before BFP answered' : 'Reviewed by BFP',
+          ? t('Rejected by BFP')
+          : r.status === 'cancelled' ? t('Cancelled before BFP answered') : t('Reviewed by BFP'),
       sub: r.review_notes || null,
       tone: r.status === 'approved' ? 'ok' : 'quiet',
     },
-    r.executed_at && { at: r.executed_at, title: `Alarm set to ${level}`, sub: 'For every organization on this Area', tone: 'live' },
+    r.executed_at && { at: r.executed_at, title: t('Alarm set to {level}', { level }), sub: t('For every organization on this Area'), tone: 'live' },
   ].filter(Boolean);
   const status = requestStatus(r.status);
 
   return (
     <div className="rpl-page rpl-incident">
-      <button type="button" className="rpl-text-button rpl-back" onClick={onBack}>← All requests</button>
+      <button type="button" className="rpl-text-button rpl-back" onClick={onBack}>{t('← All requests')}</button>
       <PageHeader
-        eyebrow={`From ${askedBy(r)} · ${clock(r.created_at)}`}
-        title={`Alarm escalation · ${level}`}
-        description={`For ${areaOf(r)}${area?.alarm_level ? ` · now ${alarmLabel(area.alarm_level)}` : ''}`}
+        eyebrow={t('From {askedBy} · {clock}', { askedBy: askedBy(r), clock: clock(r.created_at) })}
+        title={t('Alarm escalation · {level}', { level })}
+        description={area?.alarm_level
+          ? t('For {area} · now {alarm}', { area: areaOf(r), alarm: alarmLabel(area.alarm_level) })
+          : t('For {area}', { area: areaOf(r) })}
       />
 
       <div className="rpl-incident-grid">
         <section className="rpl-panel rpl-request-card" aria-labelledby="rpl-request-title">
           <div className="rpl-decision-head">
-            <h2 className="rpl-decision-title" id="rpl-request-title">Request</h2>
+            <h2 className="rpl-decision-title" id="rpl-request-title">{t('Request')}</h2>
             <StatusChip {...status} />
           </div>
           <dl className="rpl-facts rpl-facts--wide">
@@ -332,7 +330,7 @@ function RequestDetail({
               <div className="rpl-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
             ))}
           </dl>
-          <h3 className="rpl-decision-title rpl-request-history">History</h3>
+          <h3 className="rpl-decision-title rpl-request-history">{t('History')}</h3>
           <ol className="rpl-timeline">
             {history.map((h) => (
               <li key={`${h.title}-${h.at}`} className={`rpl-timeline-item is-${h.tone}`}>
@@ -345,39 +343,34 @@ function RequestDetail({
         </section>
 
         <section className="rpl-panel rpl-decision" aria-labelledby="rpl-reply-title">
-          <h2 className="rpl-decision-title" id="rpl-reply-title">{decides && r.status === 'pending' ? 'Your reply' : 'Answer'}</h2>
+          <h2 className="rpl-decision-title" id="rpl-reply-title">{decides && r.status === 'pending' ? t('Your reply') : t('Answer')}</h2>
           {r.status === 'pending' && decides ? (
             <div className="rpl-reply-actions">
-              <button type="button" className="rpl-button rpl-button--primary rpl-button--run" onClick={() => { setNote(''); setConfirm('set'); }}>
-                Set {level}
+              <button type="button" className="rpl-button rpl-button--primary rpl-button--run" onClick={() => { setNote(''); setConfirm('set'); }}>{t('Set {level}', { level })}
               </button>
               <div className="rpl-reply-row">
-                <button type="button" className="rpl-button rpl-button--secondary" onClick={() => { setNote(''); setConfirm('decline'); }}>
-                  Decline
-                </button>
+                <button type="button" className="rpl-button rpl-button--secondary" onClick={() => { setNote(''); setConfirm('decline'); }}>{t('Decline')}</button>
               </div>
               <div className="rpl-alert rpl-alert--info">
                 <span className="rpl-alert-mark" aria-hidden="true">i</span>
-                <p className="rpl-alert-body">
-                  Only {orgName} sets the alarm level. Setting it updates {areaOf(r)} for every organization.
-                </p>
+                <p className="rpl-alert-body">{t('Only {org} sets the alarm level. Setting it updates {area} for every organization.', { org: orgName, area: areaOf(r) })}</p>
               </div>
             </div>
           ) : r.status === 'pending' ? (
             <div className="rpl-alert rpl-alert--info">
               <Icon name="visibility" />
               <div className="rpl-alert-text">
-                <p className="rpl-alert-title">Waiting on BFP</p>
-                <p className="rpl-alert-body">Only BFP sets the alarm level: a BFP Coordinator on the mobile app, or the BFP Admin here. Setting it updates {areaOf(r)} for every organization.</p>
+                <p className="rpl-alert-title">{t('Waiting on BFP')}</p>
+                <p className="rpl-alert-body">{t('Only BFP sets the alarm level: a BFP Coordinator on the mobile app, or the BFP Admin here. Setting it updates {area} for every organization.', { area: areaOf(r) })}</p>
               </div>
             </div>
           ) : r.status === 'cancelled' ? (
             <div className="rpl-alert">
               <span className="rpl-alert-mark" aria-hidden="true">⦸</span>
               <div className="rpl-alert-text">
-                <p className="rpl-alert-title">Cancelled{r.reviewed_at ? ` · ${clock(r.reviewed_at)}` : ''}</p>
+                <p className="rpl-alert-title">{t('Cancelled')}{r.reviewed_at ? ` · ${clock(r.reviewed_at)}` : ''}</p>
                 <p className="rpl-alert-body">
-                  {r.review_notes || 'Taken back before BFP answered. The alarm level was not changed.'}
+                  {r.review_notes || t('Taken back before BFP answered. The alarm level was not changed.')}
                 </p>
               </div>
             </div>
@@ -386,10 +379,10 @@ function RequestDetail({
               <span className="rpl-alert-mark" aria-hidden="true">{r.status === 'approved' ? '✓' : '⦸'}</span>
               <div className="rpl-alert-text">
                 <p className="rpl-alert-title">
-                  {status.label} by BFP{r.reviewed_at ? ` · ${clock(r.reviewed_at)}` : ''}
+                  {status.label}{' '}{t('by BFP')}{r.reviewed_at ? ` · ${clock(r.reviewed_at)}` : ''}
                 </p>
                 <p className="rpl-alert-body">
-                  {r.review_notes || (r.status === 'approved' ? `${areaOf(r)} is at ${level}.` : 'The alarm level was not changed.')}
+                  {r.review_notes || (r.status === 'approved' ? t('{area} is at {level}.', { area: areaOf(r), level }) : t('The alarm level was not changed.'))}
                 </p>
               </div>
             </div>
@@ -397,18 +390,13 @@ function RequestDetail({
           {withdraws && r.status !== 'approved' && (
             <div className="rpl-reply-row">
               {r.status === 'pending' && (
-                <button type="button" className="rpl-button rpl-button--secondary" onClick={() => { setNote(''); setConfirm('cancel'); }}>
-                  Cancel request
-                </button>
+                <button type="button" className="rpl-button rpl-button--secondary" onClick={() => { setNote(''); setConfirm('cancel'); }}>{t('Cancel request')}</button>
               )}
-              <button type="button" className="rpl-button rpl-button--danger" onClick={() => setConfirm('delete')}>
-                Delete request
-              </button>
+              <button type="button" className="rpl-button rpl-button--danger" onClick={() => setConfirm('delete')}>{t('Delete request')}</button>
             </div>
           )}
           {onOpenIncident && area && (
-            <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onOpenIncident(r.area_id)}>
-              Open {areaOf(r)}
+            <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onOpenIncident(r.area_id)}>{t('Open')}{' '}{areaOf(r)}
             </button>
           )}
         </section>
@@ -416,68 +404,68 @@ function RequestDetail({
 
       <ConfirmDialog
         open={confirm === 'set'}
-        eyebrow={`${areaOf(r)} · requested by ${askedBy(r)}`}
-        title={`Set ${areaOf(r)} to ${level}?`}
-        description="Every organization sees the new level at once."
-        confirmLabel={`Set ${level}`}
+        eyebrow={t('{areaOf} · requested by {askedBy}', { areaOf: areaOf(r), askedBy: askedBy(r) })}
+        title={t('Set {areaOf} to {level}?', { areaOf: areaOf(r), level })}
+        description={t('Every organization sees the new level at once.')}
+        confirmLabel={t('Set {level}', { level })}
         onClose={() => setConfirm(null)}
         onConfirm={async () => {
           await api.alarmRequestExecute(r.id, null);
           setConfirm(null);
-          onDecided?.(`${areaOf(r)} is now at ${level}`);
+          onDecided?.(t('{area} is now at {level}', { area: areaOf(r), level }));
         }}
       />
       <ConfirmDialog
         open={confirm === 'decline'}
-        eyebrow={`${areaOf(r)} · requested by ${askedBy(r)}`}
-        title={`Decline ${level} for ${areaOf(r)}?`}
-        description="The alarm level stays as it is. Say why, so the organization on scene knows."
-        confirmLabel="Decline"
+        eyebrow={t('{areaOf} · requested by {askedBy}', { areaOf: areaOf(r), askedBy: askedBy(r) })}
+        title={t('Decline {level} for {areaOf}?', { level, areaOf: areaOf(r) })}
+        description={t('The alarm level stays as it is. Say why, so the organization on scene knows.')}
+        confirmLabel={t('Decline')}
         destructive
         onClose={() => setConfirm(null)}
         onConfirm={async () => {
           await api.alarmRequestReject(r.id, note.trim() || null);
           setConfirm(null);
-          onDecided?.(`Declined ${level} for ${areaOf(r)}`);
+          onDecided?.(t('Declined {level} for {area}', { level, area: areaOf(r) }));
         }}
       >
         <label className="rpl-field">
-          <span className="rpl-field-label">Reason (optional)</span>
+          <span className="rpl-field-label">{t('Reason (optional)')}</span>
           <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} />
         </label>
       </ConfirmDialog>
       <ConfirmDialog
         open={confirm === 'cancel'}
-        eyebrow={`${areaOf(r)} · requested by ${askedBy(r)}`}
-        title={`Cancel the request for ${level}?`}
-        description="BFP stops seeing it as waiting. It stays in History as Cancelled."
-        confirmLabel="Cancel request"
-        cancelLabel="Keep it"
+        eyebrow={t('{areaOf} · requested by {askedBy}', { areaOf: areaOf(r), askedBy: askedBy(r) })}
+        title={t('Cancel the request for {level}?', { level })}
+        description={t('BFP stops seeing it as waiting. It stays in History as Cancelled.')}
+        confirmLabel={t('Cancel request')}
+        cancelLabel={t('Keep it')}
         onClose={() => setConfirm(null)}
         onConfirm={async () => {
           await api.alarmRequestCancel(r.id, note.trim() || null);
           setConfirm(null);
-          onDecided?.(`Cancelled the request for ${level} on ${areaOf(r)}`);
+          onDecided?.(t('Cancelled the request for {level} on {area}', { level, area: areaOf(r) }));
         }}
       >
         <label className="rpl-field">
-          <span className="rpl-field-label">Reason (optional)</span>
+          <span className="rpl-field-label">{t('Reason (optional)')}</span>
           <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} />
         </label>
       </ConfirmDialog>
       <ConfirmDialog
         open={confirm === 'delete'}
-        eyebrow={`${areaOf(r)} · requested by ${askedBy(r)}`}
-        title={`Delete the request for ${level}?`}
-        description="It is removed for every organization and cannot be brought back."
-        confirmLabel="Delete request"
-        cancelLabel="Keep it"
+        eyebrow={t('{areaOf} · requested by {askedBy}', { areaOf: areaOf(r), askedBy: askedBy(r) })}
+        title={t('Delete the request for {level}?', { level })}
+        description={t('It is removed for every organization and cannot be brought back.')}
+        confirmLabel={t('Delete request')}
+        cancelLabel={t('Keep it')}
         destructive
         onClose={() => setConfirm(null)}
         onConfirm={async () => {
           await api.alarmRequestDelete(r.id);
           setConfirm(null);
-          onDeleted?.(`Deleted the request for ${level} on ${areaOf(r)}`);
+          onDeleted?.(t('Deleted the request for {level} on {area}', { level, area: areaOf(r) }));
         }}
       />
     </div>

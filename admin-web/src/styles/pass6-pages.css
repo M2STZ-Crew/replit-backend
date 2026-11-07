@@ -777,6 +777,8 @@
 .rpl-field input:focus { outline: none; border: 2px solid var(--focus); padding: 0 11px; }
 .rpl-field input[aria-invalid="true"] { border-color: var(--danger); }
 .rpl-field-help { color: var(--label); font-size: 12px; line-height: 1.5; }
+/* The made sign-in address on Create Coordinator, read off as it is typed. */
+.rpl-coordinator-address { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; color: var(--text); overflow-wrap: anywhere; }
 .rpl-field-error { color: var(--danger); font-size: 12px; font-weight: 600; line-height: 1.5; }
 
 /* ── Requests (10 · A40, A41, A46) ────────────────────────────────────── */
@@ -1074,3 +1076,10 @@
 }
 .web-state--loading .web-state-description { margin: -6px 0 12px; font-size: 13px; }
 .rpl-startup .rpl-skeleton { width: min(420px, 86vw); margin-top: 20px; }
+
+/* ── Settings · Account: change password (follow-up 1.2) ───────────────── */
+.rpl-password-form { display: grid; gap: 12px; max-width: 420px; margin-top: 4px; }
+.rpl-password-form .rpl-button { justify-self: start; }
+.rpl-password-show { display: inline-flex; align-items: center; gap: 8px; color: var(--label); font-size: 13px; cursor: pointer; }
+.rpl-password-result { margin: 0; font-size: 13px; line-height: 1.5; }
+.rpl-password-result.is-ok { color: var(--ok); font-weight: 600; }

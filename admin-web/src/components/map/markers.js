@@ -1,6 +1,7 @@
 import L from 'leaflet';
 
 import { groupCount } from '../../map/unitGroups.js';
+import { t } from '../../i18n/i18n.jsx';
 
 /* Map markers (REPLIT (MAIN) 04 · Map marker, pass 3): a rounded square in
  * the category's 700 step with a white outline and a white filled glyph, on
@@ -9,13 +10,13 @@ import { groupCount } from '../../map/unitGroups.js';
  * public/icons/map are the Figma exports. */
 
 const KINDS = {
-  incident: { tone: 'incident', label: 'Active incident Area' },
-  hydrant: { tone: 'water', label: 'Hydrant' },
-  water: { tone: 'water', label: 'Body of water' },
-  cistern: { tone: 'water', label: 'Cistern' },
-  shelter: { tone: 'shelter', label: 'Evacuation site' },
-  risk: { tone: 'risk', label: 'Risk zone' },
-  unit: { tone: 'unit', label: 'Your organization’s unit' },
+  incident: { tone: 'incident', get label() { return t('Active incident Area'); } },
+  hydrant: { tone: 'water', get label() { return t('Hydrant'); } },
+  water: { tone: 'water', get label() { return t('Body of water'); } },
+  cistern: { tone: 'water', get label() { return t('Cistern'); } },
+  shelter: { tone: 'shelter', get label() { return t('Evacuation site'); } },
+  risk: { tone: 'risk', get label() { return t('Risk zone'); } },
+  unit: { tone: 'unit', get label() { return t('Your organization’s unit'); } },
 };
 
 export const MARKER_KINDS = KINDS;

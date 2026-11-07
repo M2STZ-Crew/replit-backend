@@ -128,10 +128,15 @@ class SupabaseAuthClient:
         headers = {**self._anon_headers, "Authorization": f"Bearer {access_token}"}
         return await self._request("GET", "/user", headers=headers)
 
-    async def sign_out(self, *, access_token: str) -> None:
-        """Revoke the session for the given access token."""
+    async def sign_out(self, *, access_token: str, scope: str | None = None) -> None:
+        """Revoke sessions for the given access token.
+
+        GoTrue's own default applies with no ``scope``; ``"others"`` revokes every
+        session of the user except this one (after a password change).
+        """
         headers = {**self._anon_headers, "Authorization": f"Bearer {access_token}"}
-        await self._request("POST", "/logout", headers=headers)
+        params = {"scope": scope} if scope else None
+        await self._request("POST", "/logout", headers=headers, params=params)
 
     async def recover(self, *, email: str) -> None:
         """Send a password-reset email via GoTrue (/recover)."""

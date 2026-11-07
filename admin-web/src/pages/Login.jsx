@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
 import { useAuth } from '../auth.jsx';
 import AuthBrand from '../components/AuthBrand.jsx';
+import { LanguageSwitch, t } from '../i18n/i18n.jsx';
 
 export default function Login() {
   const { login } = useAuth();
@@ -25,7 +26,7 @@ export default function Login() {
       await login(email.trim(), password);
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err.message || 'Login failed.');
+      setError(err.message || t('Login failed.'));
     } finally {
       setBusy(false);
     }
@@ -37,16 +38,16 @@ export default function Login() {
     const address = email.trim();
     setError(null);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) {
-      setReset({ tone: 'error', text: 'Type your Admin email above first, then press Forgot password? again.' });
+      setReset({ tone: 'error', text: t('Type your Admin email above first, then press Forgot password? again.') });
       emailInput.current?.focus();
       return;
     }
-    setReset({ tone: 'busy', text: 'Sending…' });
+    setReset({ tone: 'busy', text: t('Sending…') });
     try {
       const res = await api.recover(address);
-      setReset({ tone: 'ok', text: res?.message || 'If that email is registered, a reset link has been sent.' });
+      setReset({ tone: 'ok', text: res?.message || t('If that email is registered, a reset link has been sent.') });
     } catch (err) {
-      setReset({ tone: 'error', text: err.message || 'The reset email could not be sent. Try again.' });
+      setReset({ tone: 'error', text: err.message || t('The reset email could not be sent. Try again.') });
     }
   }
 
@@ -57,17 +58,16 @@ export default function Login() {
       {/* Right: the form. */}
       <div className="lg-panel">
         <form className="lg-form" onSubmit={onSubmit}>
+          <LanguageSwitch className="lg-language" />
           <div className="lg-head">
-            <span className="lg-kicker">Admin Console</span>
-            <h2 className="lg-title">Sign in</h2>
-            <p className="lg-sub">
-              Use your organization’s Admin email.
-            </p>
+            <span className="lg-kicker">{t('Admin Console')}</span>
+            <h2 className="lg-title">{t('Sign in')}</h2>
+            <p className="lg-sub">{t('Use your organization’s Admin email.')}</p>
           </div>
 
           <div className="lg-fields">
             <label className="lg-field">
-              <span className="dc-eyebrow">Admin email</span>
+              <span className="dc-eyebrow">{t('Admin email')}</span>
               <input
                 ref={emailInput}
                 type="email"
@@ -79,12 +79,12 @@ export default function Login() {
             </label>
 
             <label className="lg-field">
-              <span className="dc-eyebrow">Password</span>
+              <span className="dc-eyebrow">{t('Password')}</span>
               <span className="lg-pw">
                 <input
                   type={showPw ? 'text' : 'password'}
                   autoComplete="current-password"
-                  placeholder="Your password"
+                  placeholder={t('Your password')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -92,7 +92,7 @@ export default function Login() {
                   type="button"
                   className="lg-eye"
                   onClick={() => setShowPw((s) => !s)}
-                  aria-label={showPw ? 'Hide password' : 'Show password'}
+                  aria-label={showPw ? t('Hide password') : t('Show password')}
                 >
                   <img src="/icons/visibility.svg" alt="" />
                 </button>
@@ -103,7 +103,7 @@ export default function Login() {
           {error && <div className="lg-error" role="alert">{error}</div>}
 
           <button type="submit" className="lg-submit" disabled={busy}>
-            {busy ? 'Signing in…' : 'Sign in'}
+            {busy ? t('Signing in…') : t('Sign in')}
           </button>
 
           {reset && (
@@ -113,12 +113,8 @@ export default function Login() {
           )}
 
           <div className="lg-affiliate">
-            <button type="button" className="lg-link" onClick={forgot} disabled={reset?.tone === 'busy'}>
-              Forgot password?
-            </button>
-            <button type="button" className="lg-link" onClick={() => navigate('/register')}>
-              New affiliate? Request access
-            </button>
+            <button type="button" className="lg-link" onClick={forgot} disabled={reset?.tone === 'busy'}>{t('Forgot password?')}</button>
+            <button type="button" className="lg-link" onClick={() => navigate('/register')}>{t('New affiliate? Request access')}</button>
           </div>
         </form>
       </div>

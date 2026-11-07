@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { t } from '../../i18n/i18n.jsx';
 
 /* A photo, full screen, to look at closely: a report's scene photo, an ID and
  * its selfie. Zoom with the + and − buttons, the mouse wheel, a pinch, the +
@@ -120,14 +121,14 @@ export default function ImageViewer({ src, alt, caption = null, onClose }) {
     >
       <header className="rpl-viewer-bar">
         <p className="rpl-viewer-title" id={titleId}>{caption || alt}</p>
-        <div className="rpl-viewer-tools" role="group" aria-label="Zoom">
-          <button type="button" className="rpl-viewer-button" onClick={() => zoomTo((s) => s / STEP)} disabled={view.scale <= MIN} aria-label="Zoom out">−</button>
-          <button type="button" className="rpl-viewer-level" onClick={reset} aria-label={`Zoom ${Math.round(view.scale * 100)} percent. Reset to fit`}>
+        <div className="rpl-viewer-tools" role="group" aria-label={t('Zoom')}>
+          <button type="button" className="rpl-viewer-button" onClick={() => zoomTo((s) => s / STEP)} disabled={view.scale <= MIN} aria-label={t('Zoom out')}>−</button>
+          <button type="button" className="rpl-viewer-level" onClick={reset} aria-label={t('Zoom {round} percent. Reset to fit', { round: Math.round(view.scale * 100) })}>
             {Math.round(view.scale * 100)}%
           </button>
-          <button type="button" className="rpl-viewer-button" onClick={() => zoomTo((s) => s * STEP)} disabled={view.scale >= MAX} aria-label="Zoom in">+</button>
+          <button type="button" className="rpl-viewer-button" onClick={() => zoomTo((s) => s * STEP)} disabled={view.scale >= MAX} aria-label={t('Zoom in')}>+</button>
         </div>
-        <button type="button" className="rpl-button rpl-button--secondary rpl-button--compact" onClick={onClose} autoFocus>Close</button>
+        <button type="button" className="rpl-button rpl-button--secondary rpl-button--compact" onClick={onClose} autoFocus>{t('Close')}</button>
       </header>
       <div
         ref={stage}
@@ -146,7 +147,7 @@ export default function ImageViewer({ src, alt, caption = null, onClose }) {
           style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}
         />
       </div>
-      <p className="rpl-viewer-hint">Scroll, pinch or use + and − to zoom. Drag to move around. Double-click to zoom in, or back out.</p>
+      <p className="rpl-viewer-hint">{t('Scroll, pinch or use + and − to zoom. Drag to move around. Double-click to zoom in, or back out.')}</p>
     </dialog>
   );
 }

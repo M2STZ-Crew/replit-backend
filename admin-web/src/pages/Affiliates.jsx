@@ -5,6 +5,7 @@ import { agencyAuthority, agencyLabel } from '../auth.jsx';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import OrgDialog from '../components/OrgDialog.jsx';
 import { ConfirmDialog, EmptyState, Icon, PageHeader, StatePanel, StatusChip } from '../components/ui/index.js';
+import { t } from '../i18n/i18n.jsx';
 
 /* Affiliate requests (REPLIT (MAIN) 10 · A05 860:194, A06 860:528, A06b
  * 860:796, A06c 860:1028; Section 2.6): organisations asking to join, and
@@ -42,19 +43,24 @@ const CLOCK = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', hour: 
 const day = (iso) => (iso ? DAY.format(new Date(iso)) : '—');
 
 const TABS = [
-  { key: 'pending', label: 'Waiting' },
-  { key: 'approved', label: 'Accepted' },
-  { key: 'rejected', label: 'Declined' },
-  { key: 'network', label: 'On the network' },
+  { key: 'pending', get label() { return t('Waiting'); } },
+  { key: 'approved', get label() { return t('Accepted'); } },
+  { key: 'rejected', get label() { return t('Declined'); } },
+  { key: 'network', get label() { return t('On the network'); } },
 ];
 
 const contactOf = (r) => r.contact_name || r.contact_email || 'the contact';
 
 function subline(r, result) {
-  if (result) return `Accepted ${CLOCK.format(new Date(r.reviewed_at ?? Date.now()))}${result.invite_email_sent ? ' · link sent' : ''}`;
-  if (r.status === 'approved') return `Accepted ${day(r.reviewed_at)}`;
-  if (r.status === 'rejected') return `Declined ${day(r.reviewed_at)}`;
-  return `${agencyLabel(r.agency_type)} · sent ${day(r.created_at)}`;
+  if (result) {
+    const time = CLOCK.format(new Date(r.reviewed_at ?? Date.now()));
+    return result.invite_email_sent
+      ? t('Accepted {time} · link sent', { time })
+      : t('Accepted {time}', { time });
+  }
+  if (r.status === 'approved') return t('Accepted {day}', { day: day(r.reviewed_at) });
+  if (r.status === 'rejected') return t('Declined {day}', { day: day(r.reviewed_at) });
+  return t('{agency} · sent {date}', { agency: agencyLabel(r.agency_type), date: day(r.created_at) });
 }
 
 /* What the accept call reported (A06b). Provisioning is best effort on the
@@ -66,8 +72,8 @@ function AcceptOutcome({ result, request }) {
       <div className="rpl-alert rpl-alert--ok" role="status">
         <span className="rpl-alert-mark" aria-hidden="true">✓</span>
         <div className="rpl-alert-text">
-          <p className="rpl-alert-title">Accepted — password link sent</p>
-          <p className="rpl-alert-body">Sent to {email} at {CLOCK.format(new Date(request.reviewed_at ?? Date.now()))}. They sign in as the organization’s Coordinator.</p>
+          <p className="rpl-alert-title">{t('Accepted — password link sent')}</p>
+          <p className="rpl-alert-body">{t('Sent to {email} at {time}. They sign in as the organization’s Coordinator.', { email, time: CLOCK.format(new Date(request.reviewed_at ?? Date.now())) })}</p>
         </div>
       </div>
     );
@@ -77,12 +83,12 @@ function AcceptOutcome({ result, request }) {
       <span className="rpl-alert-mark" aria-hidden="true">!</span>
       <div className="rpl-alert-text">
         <p className="rpl-alert-title">
-          {result.account_provisioned ? 'Accepted — the email didn’t send' : 'Accepted — no Coordinator account yet'}
+          {result.account_provisioned ? t('Accepted — the email didn’t send') : t('Accepted — no Coordinator account yet')}
         </p>
         <p className="rpl-alert-body">
           {result.detail || (result.account_provisioned
-            ? `The account for ${email} is ready, but the password email failed. They can use “Forgot password” on the app.`
-            : 'The organization was created without a Coordinator account.')}
+            ? t('The account for {email} is ready, but the password email failed. They can use “Forgot password” on the app.', { email })
+            : t('The organization was created without a Coordinator account.'))}
         </p>
       </div>
     </div>
@@ -94,19 +100,19 @@ function RequestDetail({ request: r, result, orgs, onAccept, onDecline, onOpenOr
   const roster = Array.isArray(details.roster) ? details.roster.length : null;
   const equipment = Array.isArray(details.equipment) ? details.equipment.length : null;
   const facts = [
-    ['Organization type', agencyLabel(r.agency_type)],
-    ['Address', r.address || 'Not given'],
-    ...(roster != null ? [['Roster size', `${roster} member${roster === 1 ? '' : 's'}`]] : []),
-    ...(equipment != null ? [['Equipment', `${equipment} unit${equipment === 1 ? '' : 's'}`]] : []),
-    ...(details.sec_certificate_name ? [['SEC certificate', details.sec_certificate_name]] : []),
-    ['Submitted by', r.contact_name || 'Not given'],
-    ['Email', r.contact_email || 'Not given'],
-    ['Mobile', r.contact_phone || 'Not given'],
-    ...(r.message ? [['Message', r.message]] : []),
-    ...(r.status === 'rejected' && r.review_notes ? [['Reason declined', r.review_notes]] : []),
+    [t('Organization type'), agencyLabel(r.agency_type)],
+    [t('Address'), r.address || t('Not given')],
+    ...(roster != null ? [[t('Roster size'), roster === 1 ? t('{count} member', { count: roster }) : t('{count} members', { count: roster })]] : []),
+    ...(equipment != null ? [[t('Equipment'), equipment === 1 ? t('{count} unit', { count: equipment }) : t('{count} units', { count: equipment })]] : []),
+    ...(details.sec_certificate_name ? [[t('SEC certificate'), details.sec_certificate_name]] : []),
+    [t('Submitted by'), r.contact_name || t('Not given')],
+    [t('Email'), r.contact_email || t('Not given')],
+    [t('Mobile'), r.contact_phone || t('Not given')],
+    ...(r.message ? [[t('Message'), r.message]] : []),
+    ...(r.status === 'rejected' && r.review_notes ? [[t('Reason declined'), r.review_notes]] : []),
   ];
   const eyebrow = r.status === 'pending'
-    ? `${agencyLabel(r.agency_type)} · waiting since ${day(r.created_at)}`
+    ? t('{agencyLabel} · waiting since {day}', { agencyLabel: agencyLabel(r.agency_type), day: day(r.created_at) })
     : `${agencyLabel(r.agency_type)} · ${r.status === 'approved' ? 'accepted' : 'declined'} ${day(r.reviewed_at)}`;
   const org = r.organization_id ? orgs.find((o) => o.id === r.organization_id) : null;
 
@@ -130,20 +136,19 @@ function RequestDetail({ request: r, result, orgs, onAccept, onDecline, onOpenOr
             <span className="rpl-alert-mark" aria-hidden="true">i</span>
             <p className="rpl-alert-body">
               {r.contact_email
-                ? `Accepting creates the organization and a Coordinator account for ${r.contact_email}, and emails them a link to set their password.`
-                : 'No email was given, so accepting creates the organization without a Coordinator account.'}
+                ? t('Accepting creates the organization and a Coordinator account for {contact_email}, and emails them a link to set their password.', { contact_email: r.contact_email })
+                : t('No email was given, so accepting creates the organization without a Coordinator account.')}
             </p>
           </div>
           <div className="rpl-aff-actions">
-            <button type="button" className="rpl-button rpl-button--secondary" onClick={onDecline}>Decline</button>
-            <button type="button" className="rpl-button rpl-button--primary" onClick={onAccept}>Accept</button>
+            <button type="button" className="rpl-button rpl-button--secondary" onClick={onDecline}>{t('Decline')}</button>
+            <button type="button" className="rpl-button rpl-button--primary" onClick={onAccept}>{t('Accept')}</button>
           </div>
         </>
       )}
 
       {org && (
-        <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onOpenOrg(org.id)}>
-          Open {org.name}
+        <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onOpenOrg(org.id)}>{t('Open')}{' '}{org.name}
         </button>
       )}
     </section>
@@ -152,21 +157,21 @@ function RequestDetail({ request: r, result, orgs, onAccept, onDecline, onOpenOr
 
 function Network({ orgs, onOpen }) {
   if (orgs.length === 0) {
-    return <EmptyState icon="organization" title="No organizations yet">An organization joins the network when its affiliate request is accepted.</EmptyState>;
+    return <EmptyState icon="organization" title={t('No organizations yet')}>{t('An organization joins the network when its affiliate request is accepted.')}</EmptyState>;
   }
   return (
     <div className="web-table-wrap">
       <table className="web-table">
-        <caption className="web-sr-only">Accredited organizations</caption>
+        <caption className="web-sr-only">{t('Accredited organizations')}</caption>
         <thead>
           <tr>
-            <th scope="col">Organization</th>
-            <th scope="col">Type</th>
-            <th scope="col">Authority</th>
-            <th scope="col">Personnel</th>
-            <th scope="col">Units</th>
-            <th scope="col">Status</th>
-            <th scope="col"><span className="web-sr-only">Open</span></th>
+            <th scope="col">{t('Organization')}</th>
+            <th scope="col">{t('Type')}</th>
+            <th scope="col">{t('Authority')}</th>
+            <th scope="col">{t('Personnel')}</th>
+            <th scope="col">{t('Units')}</th>
+            <th scope="col">{t('Status')}</th>
+            <th scope="col"><span className="web-sr-only">{t('Open')}</span></th>
           </tr>
         </thead>
         <tbody>
@@ -178,7 +183,7 @@ function Network({ orgs, onOpen }) {
                   <span className="rpl-cell-text">
                     <span className="rpl-cell-title">{o.name}</span>
                     {(o.address || o.created_at) && (
-                      <span className="rpl-cell-meta">{o.address || `On the network since ${day(o.created_at)}`}</span>
+                      <span className="rpl-cell-meta">{o.address || t('On the network since {day}', { day: day(o.created_at) })}</span>
                     )}
                   </span>
                 </th>
@@ -190,10 +195,9 @@ function Network({ orgs, onOpen }) {
                 </td>
                 <td className="rpl-cell-strong">{o.personnel_count ?? 0}</td>
                 <td className="rpl-cell-strong">{o.equipment_count ?? 0}</td>
-                <td><StatusChip label={o.is_active ? 'Active' : 'Inactive'} tone={o.is_active ? 'ok' : 'neutral'} /></td>
+                <td><StatusChip label={o.is_active ? t('Active') : t('Inactive')} tone={o.is_active ? 'ok' : 'neutral'} /></td>
                 <td className="web-table-action-cell">
-                  <button type="button" className="web-table-row-action" onClick={() => onOpen(o.id)} aria-haspopup="dialog">
-                    Open<span className="web-sr-only"> {o.name}</span>
+                  <button type="button" className="web-table-row-action" onClick={() => onOpen(o.id)} aria-haspopup="dialog">{t('Open')}<span className="web-sr-only"> {o.name}</span>
                   </button>
                 </td>
               </tr>
@@ -227,7 +231,7 @@ export default function Affiliates() {
       setOrgs(Array.isArray(o) ? o : []);
       setPhase('ready');
     } catch (e) {
-      setError(e.message || 'The affiliate requests could not be loaded.');
+      setError(e.message || t('The affiliate requests could not be loaded.'));
       setPhase('error');
     }
   }, []);
@@ -261,7 +265,7 @@ export default function Affiliates() {
     const result = await api.affiliateAccept(r.id, '');
     setConfirm(null);
     setResults((prev) => ({ ...prev, [r.id]: result }));
-    setNotice(`${r.organization_name} accepted`);
+    setNotice(t('{org} accepted', { org: r.organization_name }));
     setTab('approved');
     setSelectedId(r.id);
     refreshQueues?.();
@@ -270,10 +274,10 @@ export default function Affiliates() {
 
   async function decline() {
     const r = confirm.request;
-    if (!reason.trim()) throw new Error('Give a reason — it is recorded with the request.');
+    if (!reason.trim()) throw new Error(t('Give a reason — it is recorded with the request.'));
     await api.affiliateReject(r.id, reason.trim());
     setConfirm(null);
-    setNotice(`${r.organization_name} declined`);
+    setNotice(t('{org} declined', { org: r.organization_name }));
     setTab('rejected');
     setSelectedId(r.id);
     refreshQueues?.();
@@ -283,13 +287,13 @@ export default function Affiliates() {
   return (
     <div className="rpl-page">
       <PageHeader
-        eyebrow={`${org?.name ?? 'Central hub'} · Central hub`}
-        title="Affiliate requests"
-        description="Organizations asking to join. Accepting creates the organization and its Coordinator account, and emails the contact a link to set their password."
+        eyebrow={t('{org} · Central hub', { org: org?.name ?? t('Central hub') })}
+        title={t('Affiliate requests')}
+        description={t('Organizations asking to join. Accepting creates the organization and its Coordinator account, and emails the contact a link to set their password.')}
       />
 
       <div className="rpl-toolbar">
-        <div className="rpl-tabs" role="tablist" aria-label="Affiliate requests">
+        <div className="rpl-tabs" role="tablist" aria-label={t('Affiliate requests')}>
           {TABS.map((t) => {
             const count = t.key === 'network' ? orgs.length : lists[t.key]?.length ?? 0;
             return (
@@ -311,16 +315,16 @@ export default function Affiliates() {
       </div>
 
       {phase === 'loading' ? (
-        <StatePanel kind="loading" skeleton="cards" rows={4} title="Loading affiliate requests…" busy />
+        <StatePanel kind="loading" skeleton="cards" rows={4} title={t('Loading affiliate requests…')} busy />
       ) : phase === 'error' ? (
-        <StatePanel kind="error" title="The affiliate requests couldn’t load" description={error} onRetry={load} />
+        <StatePanel kind="error" title={t('The affiliate requests couldn’t load')} description={error} onRetry={load} />
       ) : tab === 'network' ? (
         <Network orgs={orgs} onOpen={setOpenOrgId} />
       ) : list.length === 0 ? (
-        <EmptyState icon="affiliates" title={{ pending: 'Nothing waiting', approved: 'None accepted yet', rejected: 'None declined' }[tab]}>
+        <EmptyState icon="affiliates" title={{ pending: t('Nothing waiting'), approved: t('None accepted yet'), rejected: t('None declined') }[tab]}>
           {tab === 'pending'
-            ? 'A request appears here when an organization sends the public affiliate form.'
-            : 'Decided requests stay here for reference.'}
+            ? t('A request appears here when an organization sends the public affiliate form.')
+            : t('Decided requests stay here for reference.')}
         </EmptyState>
       ) : (
         <div className="rpl-aff-grid">
@@ -358,29 +362,29 @@ export default function Affiliates() {
 
       <ConfirmDialog
         open={confirm?.kind === 'accept'}
-        eyebrow={`Affiliate request · ${confirm ? agencyLabel(confirm.request.agency_type) : ''}`}
-        title={`Accept ${confirm?.request.organization_name ?? ''}?`}
+        eyebrow={t('Affiliate request · {agency}', { agency: confirm ? agencyLabel(confirm.request.agency_type) : '' })}
+        title={t('Accept {org}?', { org: confirm?.request.organization_name ?? '' })}
         description={confirm?.request.contact_email
-          ? `We create the organization and a Coordinator account for ${contactOf(confirm.request)}, and email ${confirm.request.contact_email} a link to set their password.`
-          : 'We create the organization. No email was given, so no Coordinator account is created.'}
-        confirmLabel={confirm?.request.contact_email ? 'Accept and send link' : 'Accept'}
+          ? t('We create the organization and a Coordinator account for {contactOf}, and email {contact_email} a link to set their password.', { contactOf: contactOf(confirm.request), contact_email: confirm.request.contact_email })
+          : t('We create the organization. No email was given, so no Coordinator account is created.')}
+        confirmLabel={confirm?.request.contact_email ? t('Accept and send link') : t('Accept')}
         onClose={() => setConfirm(null)}
         onConfirm={accept}
       />
       <ConfirmDialog
         open={confirm?.kind === 'decline'}
         destructive
-        eyebrow={`Affiliate request · ${confirm ? agencyLabel(confirm.request.agency_type) : ''}`}
-        title={`Decline ${confirm?.request.organization_name ?? ''}?`}
-        description={`No organization or account is created. RepLiT doesn’t email ${contactOf(confirm?.request ?? {})} about it, so let them know yourself.`}
-        confirmLabel="Decline request"
+        eyebrow={t('Affiliate request · {agency}', { agency: confirm ? agencyLabel(confirm.request.agency_type) : '' })}
+        title={t('Decline {org}?', { org: confirm?.request.organization_name ?? '' })}
+        description={t('No organization or account is created. RepLiT doesn’t email {contactOf} about it, so let them know yourself.', { contactOf: contactOf(confirm?.request ?? {}) })}
+        confirmLabel={t('Decline request')}
         onClose={() => setConfirm(null)}
         onConfirm={decline}
       >
         <label className="rpl-field">
-          <span className="rpl-field-label">Reason</span>
-          <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={1000} placeholder="e.g. Not registered with the SEC" />
-          <span className="rpl-field-help">Recorded with the request.</span>
+          <span className="rpl-field-label">{t('Reason')}</span>
+          <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={1000} placeholder={t('e.g. Not registered with the SEC')} />
+          <span className="rpl-field-help">{t('Recorded with the request.')}</span>
         </label>
       </ConfirmDialog>
 

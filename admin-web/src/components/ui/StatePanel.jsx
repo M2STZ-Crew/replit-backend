@@ -1,12 +1,13 @@
 import { useId } from 'react';
 
 import Skeleton from './Skeleton.jsx';
+import { t } from '../../i18n/i18n.jsx';
 
 const TITLES = {
-  loading: 'Loading…',
-  empty: 'Nothing here yet',
-  error: 'Could not load this view',
-  blocked: 'Not available yet',
+  get loading() { return t('Loading…'); },
+  get empty() { return t('Nothing here yet'); },
+  get error() { return t('Could not load this view'); },
+  get blocked() { return t('Not available yet'); },
 };
 
 /* A loading panel draws a skeleton in the shape of what is coming
@@ -19,7 +20,7 @@ export default function StatePanel({
   title,
   description,
   onRetry,
-  retryLabel = 'Try again',
+  retryLabel = t('Try again'),
   busy = false,
   children,
   className = '',

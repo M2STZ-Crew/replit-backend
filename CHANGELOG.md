@@ -6,6 +6,91 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.21 — 7 November 2026 — Staff sign-in addresses, change password, Tagalog for staff
+
+Backend and Admin console, with mobile v1.12.28. **Two things before this
+backend deploys:**
+
+1. **Run the migration `20261106090000_staff_personal_email.sql`.** This
+   backend reads `users.personal_email` on every signed-in request (GET
+   /auth/me among them), so without it they all fail.
+2. **Set `REQUIRE_CITIZEN_PHONE_VERIFICATION=false` on Render** before mobile
+   v1.12.28 reaches people. That app signs up and signs in by email and asks
+   for no mobile number while the SMS provider is undecided; with the gate on,
+   a new resident would stop at "Verify your mobile number". Turning it back
+   on needs no deploy.
+
+### Changes
+
+**Added**
+- **Staff sign-in addresses, agency first** (the 6 November list). A new
+  Coordinator or Responder signs in at an address made from the name, the
+  agency and the role: Odyssey Bryan, a Fire Volunteer coordinator, is
+  `obryan.fircor@replit.com`; a responder of theirs `jdelacruz.firres`. Every
+  agency follows it (`fir`, `bfp`, `pol`, `med`, `bar`; `cor`, `res`),
+  numbered after the surname when taken. Accounts made before keep their
+  address.
+- **A personal email for staff.** @replit.com has no mailboxes, so whoever
+  makes the account gives the person's own email (`users.personal_email`).
+  One link there, good for three days, confirms it and opens the set-password
+  page through a fresh recovery link: no password passes through anyone.
+  Forgot password? for such an account, by its sign-in or its personal email,
+  sends the link there (one hour). Staff add or change theirs from Profile
+  (`PUT /auth/me/personal-email`), confirmed by a link. The links carry a
+  signed token (`app/services/staff_links.py`); one sent to an address the
+  account no longer has does nothing.
+- **Change password, `POST /auth/me/password`.** It checks the current password
+  by signing in with it, sets the new one (8 to 128 characters), then signs out
+  every other session; the one that asked stays signed in. A wrong current
+  password is a 400 `wrong_password`, never a 401, which the app and the console
+  read as an expired session. The same password again is `same_password`.
+- **Staff alerts in English or Tagalog** (`app/services/staff_copy.py`): a new
+  incident, the Coordinator's reminder, "You're dispatched", the routing alert,
+  and an alarm request and its answer each follow the reader's `users.language`.
+  The English is word for word what it was.
+- **`GET /auth/me` returns `language`, `personal_email` and
+  `personal_email_verified`,** so the app and the console start in the
+  account's language and the Profile can show the personal email.
+- **The Admin console in Tagalog.** English | Tagalog on the sign-in page and in
+  Settings, saved to the account (`PUT /auth/me/language`); a choice made before
+  signing in is saved once signed in. 1,034 lines, in everyday B1 Tagalog that
+  keeps the words Admins already use (report, Area, dispatch, Coordinator) and
+  BFP's own alarm terms. `npm run check:tagalog` fails when a line has no
+  Tagalog or its `{blanks}` differ.
+- **Change password in the console's Settings:** current, new and again.
+
+**Changed**
+- **Create Coordinator** (console) asks for the first and last name, shows the
+  address the server will make as they are typed
+  (`GET /admin/coordinators/email-preview`), and takes the Coordinator's own
+  email instead of a sign-in email. A @replit.com address is refused there.
+- **A coordinator's new Responder** (`POST /team/responders`) takes the
+  responder's own email instead of a mobile number, and nothing comes back to
+  hand over. An older app that sends no personal email still gets a temporary
+  password, so making responders keeps working until it updates.
+
+**Not changed**
+- Accepting an affiliate application still makes its first Coordinator on the
+  contact's own email, with no @replit.com address.
+
+**Tests**
+- `tests/test_change_password.py` (10), `tests/test_staff_language.py` (14),
+  `tests/test_staff_email.py` (10), and the team, coordinator, email-template
+  and password-reset tests for the new addresses and links.
+
+### Verified
+
+- Backend: pytest (786 passed; the two `test_smoke` version checks fail, as
+  before), ruff; mypy reports only the existing `ai_summary.py:74`.
+- Console: `vite build` and `npm run check:tagalog` (1,034 of 1,034); sign-in
+  and Request access looked at in both languages.
+- Not run: anything against the live server or database — the migration, a
+  password change, a staff welcome email, a Tagalog staff alert on a phone.
+  The Create Coordinator dialog was not seen in a browser: it needs an Admin
+  session.
+
+---
+
 ## v1.12.20 — 5 November 2026 — The 5 November issue list
 
 Backend and Admin console, with mobile v1.12.24. **Two migrations — run them

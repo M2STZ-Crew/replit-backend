@@ -2,8 +2,11 @@
 
 What these pin:
 - the address follows the account directory: first initial + full surname,
-  ``.res`` + the agency, ``@replit.com``; numbered after the surname when the
-  same role already has that name, the first keeping the plain address;
+  the agency + ``res``, ``@replit.com`` (agency first since 6 Nov 2026);
+  numbered after the surname when the same role already has that name, the
+  first keeping the plain address;
+- with the responder's own email, a link there sets the password and none is
+  returned; an older app that sends none still gets a temporary one;
 - a coordinator makes responders of their own agency and team only, and only a
   sub-admin can;
 - the password is generated, strong, and returned once;
@@ -23,7 +26,12 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.deps import get_auth_client, get_current_user, get_database
+from app.api.deps import (
+    get_auth_client,
+    get_current_user,
+    get_database,
+    get_email_client,
+)
 from app.core.exceptions import BadRequestError, UnauthorizedError
 from app.main import app
 from app.schemas.auth import AuthenticatedUser
@@ -44,21 +52,21 @@ ORG = uuid4()
 @pytest.mark.parametrize(
     ("agency", "email"),
     [
-        ("fire_volunteer", "jdelacruz.resfir@replit.com"),
-        ("bfp", "jdelacruz.resbfp@replit.com"),
-        ("police", "jdelacruz.respol@replit.com"),
-        ("medical", "jdelacruz.resmed@replit.com"),
-        ("barangay", "jdelacruz.resbar@replit.com"),
+        ("fire_volunteer", "jdelacruz.firres@replit.com"),
+        ("bfp", "jdelacruz.bfpres@replit.com"),
+        ("police", "jdelacruz.polres@replit.com"),
+        ("medical", "jdelacruz.medres@replit.com"),
+        ("barangay", "jdelacruz.barres@replit.com"),
     ],
 )
-def test_the_address_is_initial_surname_role_and_agency(agency: str, email: str) -> None:
+def test_the_address_is_initial_surname_agency_and_role(agency: str, email: str) -> None:
     assert responder_email("Juan", "Dela Cruz", agency, []) == email
 
 
 def test_the_directory_examples() -> None:
-    assert responder_email("Bhora", "Thitot", "police", []) == "bthitot.respol@replit.com"
-    assert responder_email("Sakura", "Haruno", "medical", []) == "sharuno.resmed@replit.com"
-    assert responder_email("Lolo", "Donat", "barangay", []) == "ldonat.resbar@replit.com"
+    assert responder_email("Bhora", "Thitot", "police", []) == "bthitot.polres@replit.com"
+    assert responder_email("Sakura", "Haruno", "medical", []) == "sharuno.medres@replit.com"
+    assert responder_email("Lolo", "Donat", "barangay", []) == "ldonat.barres@replit.com"
 
 
 def test_accents_spaces_and_case_are_flattened() -> None:
@@ -72,29 +80,29 @@ def test_a_name_with_no_letters_is_refused() -> None:
 
 
 def test_the_first_keeps_the_plain_address_and_later_ones_are_numbered() -> None:
-    taken = ["jmoral.resbar@replit.com"]
+    taken = ["jmoral.barres@replit.com"]
     assert responder_email("Justine", "Moral", "barangay", taken) == (
-        "jmoral1.resbar@replit.com"
+        "jmoral1.barres@replit.com"
     )
-    taken.append("jmoral1.resbar@replit.com")
-    assert responder_email("Jose", "Moral", "barangay", taken) == "jmoral2.resbar@replit.com"
+    taken.append("jmoral1.barres@replit.com")
+    assert responder_email("Jose", "Moral", "barangay", taken) == "jmoral2.barres@replit.com"
 
 
 def test_numbers_count_only_the_same_role_and_name() -> None:
     taken = [
-        "jmoral.obsbar@replit.com",  # an observer, not a responder
-        "jmoral.respol@replit.com",  # a police responder
-        "jmorales.resbar@replit.com",  # a different surname
+        "jmoral.barobs@replit.com",  # an observer, not a responder
+        "jmoral.polres@replit.com",  # a police responder
+        "jmorales.barres@replit.com",  # a different surname
     ]
     assert responder_email("Justine", "Moral", "barangay", taken) == (
-        "jmoral.resbar@replit.com"
+        "jmoral.barres@replit.com"
     )
 
 
 def test_numbers_run_on_rather_than_refill() -> None:
     # jmoral1 was removed; the next is still after the highest.
-    taken = ["jmoral.resbar@replit.com", "jmoral2.resbar@replit.com"]
-    assert responder_email("J", "Moral", "barangay", taken) == "jmoral3.resbar@replit.com"
+    taken = ["jmoral.barres@replit.com", "jmoral2.barres@replit.com"]
+    assert responder_email("J", "Moral", "barangay", taken) == "jmoral3.barres@replit.com"
 
 
 def test_no_responders_for_an_unknown_agency() -> None:
@@ -162,6 +170,8 @@ class _Db:
             "created_at": datetime.now(UTC),
             "deactivated_at": None,
             "responding": cols.get("responding", False),
+            "personal_email": cols.get("personal_email"),
+            "personal_email_verified": False,
         }
         return uid
 
@@ -172,7 +182,8 @@ class _Db:
     def _row(self, u: dict[str, Any]) -> dict[str, Any]:
         return {k: u[k] for k in (
             "id", "full_name", "email", "mobile", "agency_type", "is_active",
-            "created_at", "deactivated_at", "responding",
+            "created_at", "deactivated_at", "responding", "personal_email",
+            "personal_email_verified",
         )}
 
     def _in_scope(self, u: dict[str, Any], agency: str, org: Any) -> bool:
@@ -202,16 +213,22 @@ class _Db:
 
     async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
         if query.lstrip().startswith("update public.users"):
-            uid, agency, full_name, org, mobile, _by = args
+            uid, agency, full_name, org, mobile, _by, personal = args
             u = self.users[uid]
             u.update(
                 role="response_team", agency_type=agency, full_name=full_name,
                 primary_org_id=org, mobile=mobile, is_active=True,
+                personal_email=personal,
             )
             return self._row(u)
         agency, org, uid = args
         u = self.users.get(uid)
         return self._row(u) if u and self._in_scope(u, agency, org) else None
+
+    async def fetchval(self, query: str, *args: Any) -> Any:
+        if "from public.organizations" in query:
+            return "Barangay 76 Response Team"
+        raise AssertionError(f"unexpected fetchval: {query[:80]}")
 
     async def execute(self, query: str, *args: Any) -> str:
         if "insert into public.audit_logs" in query:
@@ -263,17 +280,37 @@ def client() -> Iterator[TestClient]:
     app.dependency_overrides.clear()
 
 
-def _wire(user: AuthenticatedUser, db: _Db, auth: _Auth) -> None:
+class _Email:
+    """Brevo, recorded."""
+
+    def __init__(self, fail: bool = False) -> None:
+        self.sent: list[tuple[str, str, str]] = []
+        self.fail = fail
+
+    async def send(self, *, to: str, subject: str, html: str, text: str | None = None) -> None:
+        if self.fail:
+            from app.core.exceptions import AppError
+
+            raise AppError("Brevo is down")
+        self.sent.append((to, subject, text or ""))
+
+
+def _wire(
+    user: AuthenticatedUser, db: _Db, auth: _Auth, email: _Email | None = None
+) -> _Email:
+    mail = email or _Email()
     app.dependency_overrides[get_current_user] = lambda: user
     app.dependency_overrides[get_database] = lambda: db
     app.dependency_overrides[get_auth_client] = lambda: auth
+    app.dependency_overrides[get_email_client] = lambda: mail
+    return mail
 
 
 def test_a_coordinator_creates_a_responder_of_their_agency_and_team(
     client: TestClient,
 ) -> None:
     db = _Db()
-    db.add("ldonat.resbar@replit.com", full_name="Lolo Donat")
+    db.add("ldonat.barres@replit.com", full_name="Lolo Donat")
     auth = _Auth(db)
     coordinator = _coordinator("barangay")
     _wire(coordinator, db, auth)
@@ -284,7 +321,7 @@ def test_a_coordinator_creates_a_responder_of_their_agency_and_team(
     )
     assert resp.status_code == 201, resp.text
     body = resp.json()
-    assert body["email"] == "ldonat1.resbar@replit.com", "the second Lito/Lolo Donat"
+    assert body["email"] == "ldonat1.barres@replit.com", "the second Lito/Lolo Donat"
     assert body["temporary_password"] == auth.created[0][1]
     responder = body["responder"]
     assert responder["agency_type"] == "barangay" and responder["is_active"] is True
@@ -295,25 +332,83 @@ def test_a_coordinator_creates_a_responder_of_their_agency_and_team(
     assert db.audit == ["user.responder_created"]
 
 
+def test_with_their_own_email_a_link_sets_the_password(client: TestClient) -> None:
+    db = _Db()
+    auth = _Auth(db)
+    mail = _wire(_coordinator("fire_volunteer"), db, auth)
+
+    resp = client.post(
+        "/team/responders",
+        json={
+            "first_name": "Juan",
+            "last_name": "Dela Cruz",
+            "personal_email": "Juan.DelaCruz@Gmail.com",
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert body["email"] == "jdelacruz.firres@replit.com"
+    assert body["temporary_password"] is None
+    assert body["personal_email"] == "juan.delacruz@gmail.com"
+    assert body["invite_email_sent"] is True
+    assert body["responder"]["personal_email"] == "juan.delacruz@gmail.com"
+    (to, subject, text), = mail.sent
+    assert to == "juan.delacruz@gmail.com"
+    assert "Responder" in subject
+    assert "jdelacruz.firres@replit.com" in text
+    assert "/auth/staff/password-link?token=" in text
+
+
+def test_a_replit_address_is_not_a_personal_email(client: TestClient) -> None:
+    db = _Db()
+    auth = _Auth(db)
+    _wire(_coordinator("fire_volunteer"), db, auth)
+    resp = client.post(
+        "/team/responders",
+        json={
+            "first_name": "Juan",
+            "last_name": "Dela Cruz",
+            "personal_email": "someone.firres@replit.com",
+        },
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "not_personal"
+    assert auth.created == []
+
+
+def test_an_email_that_does_not_go_still_leaves_the_account(client: TestClient) -> None:
+    db = _Db()
+    auth = _Auth(db)
+    _wire(_coordinator("fire_volunteer"), db, auth, _Email(fail=True))
+    resp = client.post(
+        "/team/responders",
+        json={"first_name": "Juan", "last_name": "Dela Cruz", "personal_email": "j@x.ph"},
+    )
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert body["invite_email_sent"] is False
+    assert "Forgot password" in body["detail"]
+
+
 def test_a_race_for_the_address_takes_the_next_number(client: TestClient) -> None:
     db = _Db()
     auth = _Auth(db)
-    auth.race_on = "bthitot.respol@replit.com"
+    auth.race_on = "bthitot.polres@replit.com"
     _wire(_coordinator("police"), db, auth)
     resp = client.post("/team/responders", json={"first_name": "Bhora", "last_name": "Thitot"})
     assert resp.status_code == 201, resp.text
-    assert resp.json()["email"] == "bthitot1.respol@replit.com"
+    assert resp.json()["email"] == "bthitot1.polres@replit.com"
 
 
 def test_the_preview_shows_the_address_the_name_would_get(client: TestClient) -> None:
     db = _Db()
-    db.add("sharuno.resmed@replit.com", agency_type="medical")
+    db.add("sharuno.medres@replit.com", agency_type="medical")
     _wire(_coordinator("medical"), db, _Auth(db))
     resp = client.get(
         "/team/responders/email-preview",
         params={"first_name": "Sasuke", "last_name": "Haruno"},
     )
-    assert resp.json() == {"email": "sharuno1.resmed@replit.com"}
+    assert resp.json() == {"email": "sharuno1.medres@replit.com"}
 
 
 @pytest.mark.parametrize("role", ["response_team", "general_user", "admin"])
@@ -333,9 +428,9 @@ def test_only_a_sub_admin_makes_responders(client: TestClient, role: str) -> Non
 
 def test_the_roster_is_the_coordinator_s_own_team_and_agency(client: TestClient) -> None:
     db = _Db()
-    mine = db.add("amine.resbar@replit.com")
-    db.add("bother.resbar@replit.com", primary_org_id=uuid4())  # another team
-    db.add("cpolice.respol@replit.com", agency_type="police")  # another agency
+    mine = db.add("amine.barres@replit.com")
+    db.add("bother.barres@replit.com", primary_org_id=uuid4())  # another team
+    db.add("cpolice.polres@replit.com", agency_type="police")  # another agency
     db.add("dcaptain.corbar@replit.com", role="sub_admin")  # not a responder
     _wire(_coordinator("barangay"), db, _Auth(db))
     ids = [r["id"] for r in client.get("/team/responders").json()]
@@ -344,7 +439,7 @@ def test_the_roster_is_the_coordinator_s_own_team_and_agency(client: TestClient)
 
 def test_another_team_s_responder_cannot_be_touched(client: TestClient) -> None:
     db = _Db()
-    theirs = db.add("bother.resbar@replit.com", primary_org_id=uuid4())
+    theirs = db.add("bother.barres@replit.com", primary_org_id=uuid4())
     auth = _Auth(db)
     _wire(_coordinator("barangay"), db, auth)
     for action in ("reset-password", "deactivate", "reactivate"):
@@ -354,7 +449,7 @@ def test_another_team_s_responder_cannot_be_touched(client: TestClient) -> None:
 
 def test_reset_password_gives_a_new_one_once(client: TestClient) -> None:
     db = _Db()
-    rid = db.add("amine.resbar@replit.com")
+    rid = db.add("amine.barres@replit.com")
     auth = _Auth(db)
     _wire(_coordinator("barangay"), db, auth)
     resp = client.post(f"/team/responders/{rid}/reset-password")
@@ -365,7 +460,7 @@ def test_reset_password_gives_a_new_one_once(client: TestClient) -> None:
 
 def test_deactivate_bans_releases_and_keeps_the_account(client: TestClient) -> None:
     db = _Db()
-    rid = db.add("amine.resbar@replit.com", responding=True)
+    rid = db.add("amine.barres@replit.com", responding=True)
     auth = _Auth(db)
     _wire(_coordinator("barangay"), db, auth)
 
@@ -392,7 +487,7 @@ async def test_a_deactivated_account_is_refused_on_every_request() -> None:
         async def fetchrow(self, query: str, *args: Any) -> dict[str, Any]:
             assert "is_active" in query
             return {
-                "id": uuid4(), "email": "x.resbar@replit.com", "phone": None,
+                "id": uuid4(), "email": "x.barres@replit.com", "phone": None,
                 "role": "response_team", "agency_type": "barangay",
                 "verified_percent": 0, "badge": "yellow", "full_name": "X",
                 "primary_org_id": None, "mobile": None, "date_of_birth": None,

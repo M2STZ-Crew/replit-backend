@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import FormDialog from '../ui/FormDialog.jsx';
+import { t } from '../../i18n/i18n.jsx';
 
 /* A request from one Admin to another (REPLIT (MAIN) 10 · A43 873:6098 water,
  * A44 874:6104 backup; PRD v13 §4.6.3). UI READY — the server has no
@@ -17,14 +18,14 @@ import FormDialog from '../ui/FormDialog.jsx';
  * here decides them. */
 
 const URGENCY = [
-  { key: 'low', label: 'Low' },
-  { key: 'medium', label: 'Medium' },
-  { key: 'high', label: 'High' },
+  { key: 'low', get label() { return t('Low'); } },
+  { key: 'medium', get label() { return t('Medium'); } },
+  { key: 'high', get label() { return t('High'); } },
 ];
 
 const COPY = {
-  water: { eyebrow: 'New request · Need water', title: 'Ask another organization for water', submit: 'Send request' },
-  backup: { eyebrow: 'New request · Need backup', title: 'Ask another organization for backup', submit: 'Send request' },
+  water: { get eyebrow() { return t('New request · Need water'); }, get title() { return t('Ask another organization for water'); }, get submit() { return t('Send request'); } },
+  backup: { get eyebrow() { return t('New request · Need backup'); }, get title() { return t('Ask another organization for backup'); }, get submit() { return t('Send request'); } },
 };
 
 export default function NewRequestDialog({ open, kind = 'water', areas = [], organizations = [], roles = [], onSend, onClose }) {
@@ -47,13 +48,13 @@ export default function NewRequestDialog({ open, kind = 'water', areas = [], org
   }, [open]);
 
   const copy = COPY[kind] ?? COPY.water;
-  const toName = organizations.find((o) => o.id === to)?.name ?? 'They';
+  const toName = organizations.find((o) => o.id === to)?.name ?? t('They');
   const missing = {
-    area: !areaId ? 'Choose the Area this is for.' : null,
-    to: !to ? 'Choose who to ask.' : null,
-    amount: kind === 'water' && !amount.trim() ? 'Say roughly how much water.' : null,
-    role: kind === 'backup' && !role ? 'Choose who you need.' : null,
-    count: kind === 'backup' && !(Number(count) >= 1) ? 'Ask for at least one.' : null,
+    area: !areaId ? t('Choose the Area this is for.') : null,
+    to: !to ? t('Choose who to ask.') : null,
+    amount: kind === 'water' && !amount.trim() ? t('Say roughly how much water.') : null,
+    role: kind === 'backup' && !role ? t('Choose who you need.') : null,
+    count: kind === 'backup' && !(Number(count) >= 1) ? t('Ask for at least one.') : null,
   };
 
   async function submit() {
@@ -70,7 +71,7 @@ export default function NewRequestDialog({ open, kind = 'water', areas = [], org
         urgency,
       });
     } catch (e) {
-      setError(e?.message || 'The request was not sent. Try again.');
+      setError(e?.message || t('The request was not sent. Try again.'));
     } finally {
       setBusy(false);
     }
@@ -87,19 +88,19 @@ export default function NewRequestDialog({ open, kind = 'water', areas = [], org
       onSubmit={submit}
       busy={busy}
       error={error}
-      note={`${toName} can accept, decline or acknowledge it.`}
+      note={t('{toName} can accept, decline or acknowledge it.', { toName })}
       submitLabel={copy.submit}
-      busyLabel="Sending…"
+      busyLabel={t('Sending…')}
     >
       <div className="rpl-form-row">
         <label className="rpl-select">
-          <span className="rpl-select-label">Area</span>
+          <span className="rpl-select-label">{t('Area')}</span>
           <select value={areaId} onChange={(e) => setAreaId(e.target.value)} disabled={busy}>
             {areas.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
           </select>
         </label>
         <label className="rpl-select">
-          <span className="rpl-select-label">Send to</span>
+          <span className="rpl-select-label">{t('Send to')}</span>
           <select value={to} onChange={(e) => setTo(e.target.value)} disabled={busy}>
             {organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
           </select>
@@ -109,20 +110,20 @@ export default function NewRequestDialog({ open, kind = 'water', areas = [], org
 
       {kind === 'water' ? (
         <label className="rpl-field">
-          <span className="rpl-field-label">Estimated amount</span>
-          <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 2,000 litres" disabled={busy} aria-invalid={!!(tried && missing.amount)} />
-          {show('amount') || <span className="rpl-field-help">Litres or gallons</span>}
+          <span className="rpl-field-label">{t('Estimated amount')}</span>
+          <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={t('e.g. 2,000 litres')} disabled={busy} aria-invalid={!!(tried && missing.amount)} />
+          {show('amount') || <span className="rpl-field-help">{t('Litres or gallons')}</span>}
         </label>
       ) : (
         <div className="rpl-form-row">
           <label className="rpl-select">
-            <span className="rpl-select-label">Need</span>
+            <span className="rpl-select-label">{t('Need')}</span>
             <select value={role} onChange={(e) => setRole(e.target.value)} disabled={busy}>
               {roles.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </label>
           <label className="rpl-field">
-            <span className="rpl-field-label">How many</span>
+            <span className="rpl-field-label">{t('How many')}</span>
             <input type="number" min="1" value={count} onChange={(e) => setCount(e.target.value)} disabled={busy} aria-invalid={!!(tried && missing.count)} />
           </label>
         </div>
@@ -130,7 +131,7 @@ export default function NewRequestDialog({ open, kind = 'water', areas = [], org
       {kind === 'backup' && (show('role') || show('count'))}
 
       <fieldset className="rpl-choice">
-        <legend className="rpl-field-label">Urgency</legend>
+        <legend className="rpl-field-label">{t('Urgency')}</legend>
         <div className="rpl-choice-options">
           {URGENCY.map((u) => (
             <label key={u.key} className={`rpl-choice-option${urgency === u.key ? ' is-on' : ''}`}>

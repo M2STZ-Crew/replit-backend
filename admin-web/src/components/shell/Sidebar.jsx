@@ -1,5 +1,6 @@
 import Icon from '../ui/Icon.jsx';
 import { GROUPS, SETTINGS } from './nav.js';
+import { t } from '../../i18n/i18n.jsx';
 
 /* The pass 6 Admin sidebar (REPLIT (MAIN) 04 · Sidebar, Sidebar item, Rail
  * item): 248 px on the subtle surface with one hairline edge; below 1280 px a
@@ -66,7 +67,7 @@ function Brand({ rail }) {
       {!rail && (
         <span className="rpl-brand-words">
           <span className="rpl-brand-name">REPLIT</span>
-          <span className="rpl-brand-sub">Admin console</span>
+          <span className="rpl-brand-sub">{t('Admin console')}</span>
         </span>
       )}
     </div>
@@ -106,11 +107,11 @@ export default function Sidebar({
 }) {
   const Item = rail ? RailItem : SidebarItem;
   return (
-    <aside className={`rpl-sidebar${rail ? ' is-rail' : ''}`} aria-label="Console">
+    <aside className={`rpl-sidebar${rail ? ' is-rail' : ''}`} aria-label={t('Console')}>
       <Brand rail={rail} />
       <Organization org={org} rail={rail} />
 
-      <nav className="rpl-nav" aria-label="Destinations">
+      <nav className="rpl-nav" aria-label={t('Destinations')}>
         {GROUPS.map((group) => {
           const groupItems = items.filter((item) => item.group === group);
           if (groupItems.length === 0) return null;
@@ -157,8 +158,8 @@ export default function Sidebar({
           type="button"
           className="rpl-icon-button"
           onClick={onSignOut}
-          aria-label="Sign out"
-          title="Sign out"
+          aria-label={t('Sign out')}
+          title={t('Sign out')}
         >
           <Icon name="logout" />
         </button>

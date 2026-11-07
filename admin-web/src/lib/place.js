@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { mapboxToken } from '../map/tiles.js';
+import { t } from '../i18n/i18n.jsx';
 
 /* Where a point is, in words: the street and barangay beside its coordinates.
  *
@@ -20,7 +21,7 @@ const keyOf = (lat, lng) => `${lat.toFixed(5)},${lng.toFixed(5)}`;
 
 /// "14.5378° N, 121.0014° E".
 export function degrees(lat, lng) {
-  if (lat == null || lng == null) return 'Location unknown';
+  if (lat == null || lng == null) return t('Location unknown');
   return `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(4)}° ${lng >= 0 ? 'E' : 'W'}`;
 }
 

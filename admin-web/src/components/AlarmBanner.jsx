@@ -12,15 +12,16 @@ import {
   statusLabel,
   useAlarmSettings,
 } from '../sound/alarm.js';
+import { t } from '../i18n/i18n.jsx';
 
 const BASE_TITLE = typeof document !== 'undefined' ? document.title : 'RepLiT Admin';
 
 function ago(iso, now) {
   const mins = Math.floor((now - new Date(iso).getTime()) / 60_000);
   if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins} min ago`;
+  if (mins < 60) return t('{mins} min ago', { mins });
   const hrs = Math.floor(mins / 60);
-  return `${hrs} h ${mins % 60} min ago`;
+  return t('{hrs} h {mins} min ago', { hrs, mins: mins % 60 });
 }
 
 function clock(iso) {
@@ -32,7 +33,9 @@ function clock(iso) {
 function useTitleFlash(count) {
   useEffect(() => {
     if (!count) return undefined;
-    const alert = `(${count}) New incident${count === 1 ? '' : 's'}`;
+    const alert = count === 1
+      ? t('({count}) New incident', { count })
+      : t('({count}) New incidents', { count });
     let lit = false;
     const flip = () => {
       lit = !lit;
@@ -94,14 +97,12 @@ export default function AlarmBanner({ onOpen }) {
     <section className="rpl-alarms" role="alert" aria-live="assertive">
       {many && (
         <div className="rpl-alarms-head">
-          <span>{alarms.length} new incidents are ringing</span>
+          <span>{alarms.length}{' '}{t('new incidents are ringing')}</span>
           <button
             type="button"
             className="rpl-text-button"
             onClick={() => acknowledge(alarms.map((inc) => inc.id))}
-          >
-            Stop every sound
-          </button>
+          >{t('Stop every sound')}</button>
         </div>
       )}
       {alarms.map((inc) => {
@@ -114,28 +115,18 @@ export default function AlarmBanner({ onOpen }) {
               <img src="/icons/fire.svg" alt="" width="20" height="20" />
             </span>
             <div className="rpl-alarm-text">
-              <p className="rpl-alarm-eyebrow">
-                New incident · {heard} sound playing
-              </p>
-              <p className="rpl-alarm-title">{kind} reported — {inc.designation}</p>
+              <p className="rpl-alarm-eyebrow">{t('New incident ·')}{' '}{heard}{' '}{t('sound playing')}</p>
+              <p className="rpl-alarm-title">{kind}{' '}{t('reported —')}{' '}{inc.designation}</p>
               <p className="rpl-alarm-body">
                 {reportsOf(inc)} · {statusLabel(inc.status)} ·{' '}
                 <span title={new Date(inc.reported_at).toLocaleString()}>
                   {clock(inc.reported_at)}, {ago(inc.reported_at, now)}
-                </span>
-                . Opening the incident stops the sound; it doesn’t acknowledge it.
-              </p>
+                </span>{t('. Opening the incident stops the sound; it doesn’t acknowledge it.')}</p>
             </div>
             <span className="rpl-alarm-loop">
-              <img src="/icons/volume.svg" alt="" width="16" height="16" />
-              Looping until answered
-            </span>
-            <button type="button" className="rpl-text-button" onClick={() => acknowledge(inc.id)}>
-              Stop the sound
-            </button>
-            <button type="button" className="rpl-button rpl-button--primary" onClick={() => onOpen(inc.id)}>
-              Open incident
-            </button>
+              <img src="/icons/volume.svg" alt="" width="16" height="16" />{t('Looping until answered')}</span>
+            <button type="button" className="rpl-text-button" onClick={() => acknowledge(inc.id)}>{t('Stop the sound')}</button>
+            <button type="button" className="rpl-button rpl-button--primary" onClick={() => onOpen(inc.id)}>{t('Open incident')}</button>
           </div>
         );
       })}
@@ -143,17 +134,11 @@ export default function AlarmBanner({ onOpen }) {
       {(!canSound || alarm.permission === 'default') && (
         <div className="rpl-alarms-hints">
           {!canSound && (
-            <p>
-              The browser is holding the alarm sound back. Click anywhere on this page to let
-              it ring.
-            </p>
+            <p>{t('The browser is holding the alarm sound back. Click anywhere on this page to let it ring.')}</p>
           )}
           {alarm.permission === 'default' && (
-            <p>
-              Want an alert when this tab is in the background?{' '}
-              <button type="button" className="rpl-text-button" onClick={askDesktopPermission}>
-                Turn on desktop alerts
-              </button>
+            <p>{t('Want an alert when this tab is in the background?')}{' '}
+              <button type="button" className="rpl-text-button" onClick={askDesktopPermission}>{t('Turn on desktop alerts')}</button>
             </p>
           )}
         </div>

@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n.jsx';
 /// Labels and colours for public.area_status, shared by every console screen.
 ///
 /// v11 renames the operator-facing set (Section 2.5) and drops 'dispatched':
@@ -12,17 +13,17 @@
 /// day the server sends them. A person's identity "Verified" badge is a
 /// different thing and keeps its word.
 export const STATUS = {
-  reported: { label: 'Reported', color: '#FFB020' },
-  verified: { label: 'Acknowledged', color: '#5B93F5' },
-  acknowledged: { label: 'Acknowledged', color: '#5B93F5' },
-  declined: { label: 'Declined', color: '#9E9E9E' },
-  en_route: { label: 'En route', color: '#FF9066' },
-  arrived: { label: 'Arrived', color: '#FF544E' },
-  fire_out: { label: 'Fire out', color: '#22C55E' },
-  post_incident_report: { label: 'Report due', color: '#2DD4BF' },
-  closed: { label: 'Closed', color: '#16A34A' },
-  rejected: { label: 'Rejected', color: '#9E9E9E' },
-  merged: { label: 'Merged', color: '#7E57C2' },
+  reported: { get label() { return t('Reported'); }, color: '#FFB020' },
+  verified: { get label() { return t('Acknowledged'); }, color: '#5B93F5' },
+  acknowledged: { get label() { return t('Acknowledged'); }, color: '#5B93F5' },
+  declined: { get label() { return t('Declined'); }, color: '#9E9E9E' },
+  en_route: { get label() { return t('En route'); }, color: '#FF9066' },
+  arrived: { get label() { return t('Arrived'); }, color: '#FF544E' },
+  fire_out: { get label() { return t('Fire out'); }, color: '#22C55E' },
+  post_incident_report: { get label() { return t('Report due'); }, color: '#2DD4BF' },
+  closed: { get label() { return t('Closed'); }, color: '#16A34A' },
+  rejected: { get label() { return t('Rejected'); }, color: '#9E9E9E' },
+  merged: { get label() { return t('Merged'); }, color: '#7E57C2' },
 };
 
 export function statusOf(status) {
@@ -33,11 +34,11 @@ export function statusOf(status) {
 export const OFF_FEED = ['fire_out', 'post_incident_report', 'closed', 'rejected', 'declined', 'merged'];
 
 export const AGENCY_LABEL = {
-  fire_volunteer: 'Fire Volunteers',
+  get fire_volunteer() { return t('Fire Volunteers'); },
   bfp: 'BFP',
-  police: 'Police',
-  medical: 'Medical',
-  barangay: 'Barangay',
+  get police() { return t('Police'); },
+  get medical() { return t('Medical'); },
+  get barangay() { return t('Barangay'); },
 };
 
 /// v11 removed Admin's manual routing (§2.6.2), and routableAgencies with it:
@@ -47,13 +48,13 @@ export const AGENCY_LABEL = {
 /// public.alarm_level, the BFP alarm ladder. Positive fire alarm is what a
 /// verified fire starts at, set by the first verify; BFP sets every level above.
 export const ALARM_LEVEL = {
-  positive_fire_alarm: 'Positive fire alarm',
+  get positive_fire_alarm() { return t('Positive fire alarm'); },
   first_alarm: '1st alarm',
   second_alarm: '2nd alarm',
   third_alarm: '3rd alarm',
   fourth_alarm: '4th alarm',
   fifth_alarm: '5th alarm',
-  general_alarm: 'General alarm',
+  get general_alarm() { return t('General alarm'); },
 };
 
 /// The levels a request can name: everything above the initial classification.
@@ -78,11 +79,11 @@ export function since(iso) {
 export function ago(iso) {
   if (!iso) return '—';
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins} min ago`;
+  if (mins < 1) return t('Just now');
+  if (mins < 60) return t('{mins} min ago', { mins });
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs} h ago`;
-  return `${Math.floor(hrs / 24)} d ago`;
+  if (hrs < 24) return t('{hrs} h ago', { hrs });
+  return t('{days} d ago', { days: Math.floor(hrs / 24) });
 }
 
 export function when(iso) {

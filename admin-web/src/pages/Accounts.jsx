@@ -9,6 +9,7 @@ import {
   ConfirmDialog, EmptyState, PageHeader, StatePanel, StatusChip,
 } from '../components/ui/index.js';
 import { PERM, can } from '../lib/access.js';
+import { t } from '../i18n/i18n.jsx';
 
 /* Accounts (REPLIT (MAIN) 10 · A48 875:7204, A49 875:7435, A49b 875:7722;
  * PRD v13 §4.6.4: Tier 1 creates Tier 2).
@@ -29,9 +30,9 @@ function initials(name) {
 }
 
 function created(p, myName) {
-  const by = p.created_by_name ? (p.created_by_name === myName ? 'By you' : `By ${p.created_by_name}`) : null;
+  const by = p.created_by_name ? (p.created_by_name === myName ? t('By you') : t('By {created_by_name}', { created_by_name: p.created_by_name })) : null;
   const on = p.created_at ? DAY.format(new Date(p.created_at)) : null;
-  const off = !p.is_active && p.deactivated_at ? `turned off ${SHORT.format(new Date(p.deactivated_at))}` : null;
+  const off = !p.is_active && p.deactivated_at ? t('turned off {date}', { date: SHORT.format(new Date(p.deactivated_at)) }) : null;
   return [by, on, off].filter(Boolean).join(' · ') || '—';
 }
 
@@ -78,7 +79,7 @@ export default function Accounts() {
         setPeople([]);
       }
     } catch (e) {
-      setError(e.message || 'The accounts could not be loaded.');
+      setError(e.message || t('The accounts could not be loaded.'));
     } finally {
       setLoading(false);
     }
@@ -97,19 +98,22 @@ export default function Accounts() {
     response_team: people.filter((p) => p.role === 'response_team').length,
   }), [people]);
 
-  async function create({ fullName, email, title, organizationId }) {
-    const result = await api.createCoordinator({ fullName, email, title, organizationId });
+  async function create({ firstName, lastName, personalEmail, title, organizationId }) {
+    const result = await api.createCoordinator({ firstName, lastName, personalEmail, title, organizationId });
     setCreating(false);
     setTab('sub_admin');
-    setNotice(`Coordinator account created for ${result.coordinator?.full_name ?? fullName}`);
-    setWarning(result.invite_email_sent ? null : (result.detail || 'The email with their password link was not sent.'));
+    setNotice(t('Coordinator account created: {name} signs in as {address}', {
+      name: result.coordinator?.full_name ?? `${firstName} ${lastName}`,
+      address: result.coordinator?.email ?? '—',
+    }));
+    setWarning(result.invite_email_sent ? null : (result.detail || t('The email with their password link was not sent.')));
     await load();
   }
 
   async function turnOff(person) {
     await api.deactivateCoordinator(person.id);
     setTurningOff(null);
-    setNotice(`${person.full_name}’s account is turned off`);
+    setNotice(t('{full_name}’s account is turned off', { full_name: person.full_name }));
     await load();
   }
 
@@ -117,10 +121,10 @@ export default function Accounts() {
     setError(null);
     try {
       await api.reactivateCoordinator(person.id);
-      setNotice(`${person.full_name}’s account is turned on`);
+      setNotice(t('{full_name}’s account is turned on', { full_name: person.full_name }));
       await load();
     } catch (e) {
-      setError(e.message || 'The account could not be turned on.');
+      setError(e.message || t('The account could not be turned on.'));
     }
   }
 
@@ -130,10 +134,8 @@ export default function Accounts() {
   if (!everyOrg && !org?.id) {
     return (
       <div className="rpl-page">
-        <PageHeader eyebrow="Organization" title="Accounts" />
-        <EmptyState icon="accounts" title="No organization on this account">
-          Your Admin account isn’t attached to an organization, so there are no accounts to manage here.
-        </EmptyState>
+        <PageHeader eyebrow={t('Organization')} title={t('Accounts')} />
+        <EmptyState icon="accounts" title={t('No organization on this account')}>{t('Your Admin account isn’t attached to an organization, so there are no accounts to manage here.')}</EmptyState>
       </div>
     );
   }
@@ -141,15 +143,13 @@ export default function Accounts() {
   return (
     <div className="rpl-page">
       <PageHeader
-        eyebrow={org?.name ?? 'Organization'}
-        title="Accounts"
+        eyebrow={org?.name ?? t('Organization')}
+        title={t('Accounts')}
         description={everyOrg
-          ? 'Coordinators of every accredited organization. Responder accounts are created by Coordinators.'
-          : 'You create and turn off Coordinator accounts. Responder accounts are created by Coordinators.'}
+          ? t('Coordinators of every accredited organization. Responder accounts are created by Coordinators.')
+          : t('You create and turn off Coordinator accounts. Responder accounts are created by Coordinators.')}
         actions={manages && (
-          <button type="button" className="rpl-button rpl-button--primary" onClick={() => setCreating(true)}>
-            Create Coordinator
-          </button>
+          <button type="button" className="rpl-button rpl-button--primary" onClick={() => setCreating(true)}>{t('Create Coordinator')}</button>
         )}
       />
 
@@ -157,18 +157,18 @@ export default function Accounts() {
         <div className="rpl-alert rpl-alert--warn" role="status">
           <span className="rpl-alert-mark" aria-hidden="true">!</span>
           <div className="rpl-alert-text">
-            <p className="rpl-alert-title">The account is ready, but its email didn’t go out</p>
+            <p className="rpl-alert-title">{t('The account is ready, but its email didn’t go out')}</p>
             <p className="rpl-alert-body">{warning}</p>
-            <button type="button" className="rpl-text-button" onClick={() => setWarning(null)}>Dismiss</button>
+            <button type="button" className="rpl-text-button" onClick={() => setWarning(null)}>{t('Dismiss')}</button>
           </div>
         </div>
       )}
 
       <div className="rpl-toolbar">
-        <div className="rpl-tabs" role="tablist" aria-label="Accounts">
+        <div className="rpl-tabs" role="tablist" aria-label={t('Accounts')}>
           {[
-            { key: 'sub_admin', label: 'Coordinators' },
-            { key: 'response_team', label: 'Responders · view only' },
+            { key: 'sub_admin', label: t('Coordinators') },
+            { key: 'response_team', label: t('Responders · view only') },
           ].map((t) => (
             <button
               key={t.key}
@@ -185,33 +185,33 @@ export default function Accounts() {
         </div>
         <label className="rpl-search">
           <Icon name="search" />
-          <span className="web-sr-only">Search accounts</span>
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search names, emails and titles" />
+          <span className="web-sr-only">{t('Search accounts')}</span>
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search names, emails and titles')} />
         </label>
       </div>
 
       {loading ? (
-        <StatePanel kind="loading" title="Loading accounts…" />
+        <StatePanel kind="loading" title={t('Loading accounts…')} />
       ) : error ? (
-        <StatePanel kind="error" title="The accounts couldn’t load" description={error} onRetry={load} />
+        <StatePanel kind="error" title={t('The accounts couldn’t load')} description={error} onRetry={load} />
       ) : counts[tab] === 0 ? (
-        <EmptyState icon="accounts" title={coordinators ? 'No Coordinators yet' : 'No Responders yet'}>
+        <EmptyState icon="accounts" title={coordinators ? t('No Coordinators yet') : t('No Responders yet')}>
           {coordinators
-            ? (manages ? 'Create the first one: they get an email with a link to set their password.' : 'A Coordinator account is created when an affiliate application is accepted.')
-            : 'Coordinators create Responder accounts for their team on the mobile app.'}
+            ? (manages ? t('Create the first one: they get an email with a link to set their password.') : t('A Coordinator account is created when an affiliate application is accepted.'))
+            : t('Coordinators create Responder accounts for their team on the mobile app.')}
         </EmptyState>
       ) : (
         <div className="web-table-wrap">
           <table className="web-table">
-            <caption className="web-sr-only">{coordinators ? 'Coordinators' : 'Responders'}</caption>
+            <caption className="web-sr-only">{coordinators ? t('Coordinators') : t('Responders')}</caption>
             <thead>
               <tr>
-                <th scope="col">{coordinators ? 'Coordinator' : 'Responder'}</th>
-                {everyOrg && <th scope="col">Organization</th>}
-                <th scope="col">Title</th>
-                <th scope="col">Status</th>
-                <th scope="col">Created</th>
-                {coordinators && manages && <th scope="col"><span className="web-sr-only">Actions</span></th>}
+                <th scope="col">{coordinators ? t('Coordinator') : t('Responder')}</th>
+                {everyOrg && <th scope="col">{t('Organization')}</th>}
+                <th scope="col">{t('Title')}</th>
+                <th scope="col">{t('Status')}</th>
+                <th scope="col">{t('Created')}</th>
+                {coordinators && manages && <th scope="col"><span className="web-sr-only">{t('Actions')}</span></th>}
               </tr>
             </thead>
             <tbody>
@@ -221,7 +221,7 @@ export default function Accounts() {
                     <span className="rpl-cell-resource">
                       <span className="rpl-avatar" aria-hidden="true">{initials(p.full_name)}</span>
                       <span className="rpl-cell-text">
-                        <span className="rpl-cell-title">{p.full_name || 'Unnamed account'}</span>
+                        <span className="rpl-cell-title">{p.full_name || t('Unnamed account')}</span>
                         <span className="rpl-cell-meta">{p.email || (p.agency_type ? agencyLabel(p.agency_type) : '—')}</span>
                       </span>
                     </span>
@@ -230,7 +230,7 @@ export default function Accounts() {
                   <td>{p.title || '—'}</td>
                   <td>
                     <StatusChip
-                      label={p.is_active === false ? 'Disabled' : 'Active'}
+                      label={p.is_active === false ? t('Disabled') : t('Active')}
                       tone={p.is_active === false ? 'neutral' : 'ok'}
                     />
                   </td>
@@ -239,12 +239,10 @@ export default function Accounts() {
                     <td className="web-table-action-cell">
                       <span className="rpl-account-actions">
                         {p.is_active === false ? (
-                          <button type="button" className="web-table-row-action" onClick={() => turnOn(p)}>
-                            Turn on<span className="web-sr-only"> {p.full_name}’s account</span>
+                          <button type="button" className="web-table-row-action" onClick={() => turnOn(p)}>{t('Turn on')}<span className="web-sr-only">{t(' {name}’s account', { name: p.full_name })}</span>
                           </button>
                         ) : (
-                          <button type="button" className="web-table-row-action" onClick={() => setTurningOff(p)}>
-                            Turn off<span className="web-sr-only"> {p.full_name}’s account</span>
+                          <button type="button" className="web-table-row-action" onClick={() => setTurningOff(p)}>{t('Turn off')}<span className="web-sr-only">{t(' {name}’s account', { name: p.full_name })}</span>
                           </button>
                         )}
                       </span>
@@ -253,7 +251,7 @@ export default function Accounts() {
                 </tr>
               ))}
               {rows.length === 0 && (
-                <tr><td className="web-table-empty" colSpan={6}>Nobody matches “{query}”.</td></tr>
+                <tr><td className="web-table-empty" colSpan={6}>{t('Nobody matches “{query}”.', { query })}</td></tr>
               )}
             </tbody>
           </table>
@@ -269,7 +267,7 @@ export default function Accounts() {
 
       <CreateCoordinatorDialog
         open={creating}
-        organization={org?.name ?? 'your organization'}
+        organization={org?.name ?? t('your organization')}
         organizations={everyOrg ? orgs.filter((o) => o.is_active) : null}
         onCreate={create}
         onClose={() => setCreating(false)}
@@ -277,10 +275,10 @@ export default function Accounts() {
 
       <ConfirmDialog
         open={Boolean(turningOff)}
-        eyebrow={turningOff ? `Coordinator · ${turningOff.org ?? org?.name ?? ''}` : ''}
-        title={turningOff ? `Turn off ${turningOff.full_name}’s account?` : ''}
-        description="They can’t sign in until you turn it back on. Their history stays, and any response they’re on is released."
-        confirmLabel="Turn off"
+        eyebrow={turningOff ? t('Coordinator · {org}', { org: turningOff.org ?? org?.name ?? '' }) : ''}
+        title={turningOff ? t('Turn off {full_name}’s account?', { full_name: turningOff.full_name }) : ''}
+        description={t('They can’t sign in until you turn it back on. Their history stays, and any response they’re on is released.')}
+        confirmLabel={t('Turn off')}
         destructive
         onClose={() => setTurningOff(null)}
         onConfirm={() => turnOff(turningOff)}

@@ -681,15 +681,19 @@ async def test_a_waiting_request_tells_the_asker_nothing(monkeypatch: pytest.Mon
 class _BfpDb:
     def __init__(self) -> None:
         self.recipients: tuple[str, tuple[Any, ...]] | None = None
+        self.bfp = uuid4()
 
     async def fetchval(self, query: str, *args: Any) -> Any:
         return "1.2" if "designation" in query else "R. Alonzo"
 
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
         if "device_tokens" in query:
-            return [{"fcm_token": "tok"}]
+            return [{"user_id": self.bfp, "fcm_token": "tok"}]
+        if "select id, language" in query:
+            # Each one's language (staff_copy): this BFP coordinator reads English.
+            return [{"id": self.bfp, "language": "en"}]
         self.recipients = (query, args)
-        return [{"id": uuid4()}]
+        return [{"id": self.bfp}]
 
     async def execute(self, *_: Any) -> str:
         return "OK"

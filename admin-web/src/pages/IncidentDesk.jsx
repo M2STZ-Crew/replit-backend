@@ -12,6 +12,7 @@ import { useLiveFeed, useSurfaceVisit } from '../live/LiveFeed.jsx';
 import { actsOn, splitsIncidents, yourOrg } from '../lib/access.js';
 import { degrees, knownAddress } from '../lib/place.js';
 import { AGENCY_LABEL } from '../lib/status.js';
+import { t as tr } from '../i18n/i18n.jsx';
 
 /* Incidents (REPLIT (MAIN) 10 · A22 865:2061, A23–A28, A80–A82, A84).
  *
@@ -27,18 +28,18 @@ import { AGENCY_LABEL } from '../lib/status.js';
 const PAGE = 10;
 
 const STATUSES = [
-  { key: 'all', label: 'All active' },
-  { key: 'reported', label: 'Reported' },
-  { key: 'verified', label: 'Acknowledged' },
-  { key: 'en_route', label: 'En route' },
-  { key: 'arrived', label: 'Arrived' },
-  { key: 'post_incident_report', label: 'Report due' },
+  { key: 'all', get label() { return tr('All active'); } },
+  { key: 'reported', get label() { return tr('Reported'); } },
+  { key: 'verified', get label() { return tr('Acknowledged'); } },
+  { key: 'en_route', get label() { return tr('En route'); } },
+  { key: 'arrived', get label() { return tr('Arrived'); } },
+  { key: 'post_incident_report', get label() { return tr('Report due'); } },
 ];
 const CONFIDENCE = [
-  { key: 'any', label: 'Any' },
-  { key: 'high', label: 'High' },
-  { key: 'medium', label: 'Medium' },
-  { key: 'low', label: 'Low' },
+  { key: 'any', get label() { return tr('Any'); } },
+  { key: 'high', get label() { return tr('High'); } },
+  { key: 'medium', get label() { return tr('Medium'); } },
+  { key: 'low', get label() { return tr('Low'); } },
 ];
 const AGENCIES = ['any', 'fire_volunteer', 'bfp', 'police', 'medical', 'barangay'];
 
@@ -119,7 +120,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
       const rows = await api.incidents({ activeOnly: false, status: key, limit: 200 });
       setFetched((f) => ({ ...f, [key]: Array.isArray(rows) ? rows : [] }));
     } catch (e) {
-      setFetchError(e.message || 'The incidents could not be loaded.');
+      setFetchError(e.message || tr('The incidents could not be loaded.'));
     }
   }, []);
   useEffect(() => { loadList(needs); }, [needs, loadList]);
@@ -167,7 +168,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
       setDetailState('ready');
     } catch (e) {
       setDetailState('error');
-      setError(e.message || 'This incident could not be loaded.');
+      setError(e.message || tr('This incident could not be loaded.'));
     }
   }, []);
 
@@ -200,7 +201,9 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
       await api.incidentAccept(detail.id);
       await Promise.all([refreshFeed(), loadDetail(detail.id)]);
       setConfirming(false);
-      setNotice(`${detail.designation} acknowledged${org?.id && org?.name ? ` for ${org.name}` : ''}`);
+      setNotice(org?.id && org?.name
+        ? tr('{area} acknowledged for {org}', { area: detail.designation, org: org.name })
+        : tr('{area} acknowledged', { area: detail.designation }));
     } finally {
       setBusy(false);
     }
@@ -212,7 +215,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
     try {
       await api.incidentReportPdf(detail.id, detail.designation);
     } catch (e) {
-      setError(e.message || 'The report could not be downloaded.');
+      setError(e.message || tr('The report could not be downloaded.'));
     } finally {
       setBusy(false);
     }
@@ -239,13 +242,13 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
     if (detailState === 'error' && !detail) {
       return (
         <div className="rpl-page">
-          <button type="button" className="rpl-text-button rpl-back" onClick={() => setSelectedId(null)}>← All incidents</button>
-          <StatePanel kind="error" title="This incident couldn’t load" description={error} onRetry={() => loadDetail(selectedId)} />
+          <button type="button" className="rpl-text-button rpl-back" onClick={() => setSelectedId(null)}>{tr('← All incidents')}</button>
+          <StatePanel kind="error" title={tr('This incident couldn’t load')} description={error} onRetry={() => loadDetail(selectedId)} />
         </div>
       );
     }
     if (!detail || detail.id !== selectedId) {
-      return <div className="rpl-page"><StatePanel kind="loading" skeleton="detail" rows={3} title="Loading the incident…" /></div>;
+      return <div className="rpl-page"><StatePanel kind="loading" skeleton="detail" rows={3} title={tr('Loading the incident…')} /></div>;
     }
     return (
       <>
@@ -265,7 +268,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
           onBack={() => { setSelectedId(null); setNotice(null); }}
           onPdf={downloadPdf}
           access={access}
-          orgName={org?.name ?? 'your organization'}
+          orgName={org?.name ?? tr('your organization')}
           onAskAlarm={() => setAskingAlarm(true)}
         />
         <AlarmEscalationDialog
@@ -276,7 +279,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
           onSend={async ({ areaId, level, justification }) => {
             await api.alarmRequestCreate({ areaId, level, justification });
             setAskingAlarm(false);
-            setNotice(`Asked BFP to raise ${detail.designation} to ${level.replace(/_/g, ' ')}`);
+            setNotice(tr('Asked BFP to raise {area} to {level}', { area: detail.designation, level: level.replace(/_/g, ' ') }));
             await loadDetail(detail.id);
           }}
         />
@@ -292,33 +295,31 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
 
   const listLoading = needs ? fetched[needs] == null && !fetchError : !loaded;
   const emptyMessage = query || agency !== 'any' || band !== 'any' || status !== 'all'
-    ? 'Nothing matches these filters.'
+    ? tr('Nothing matches these filters.')
     : tab === 'closed'
-      ? 'Nothing closed yet.'
+      ? tr('Nothing closed yet.')
       : tab === 'routed'
-        ? 'Nothing is routed to you right now. An Area that asks for your agency appears here, with its sound.'
-        : 'No active incidents. A new Area appears here the moment its first report is clustered.';
+        ? tr('Nothing is routed to you right now. An Area that asks for your agency appears here, with its sound.')
+        : tr('No active incidents. A new Area appears here the moment its first report is clustered.');
 
   return (
     <div className="rpl-page">
       <PageHeader
-        eyebrow={org?.name ?? 'Operations'}
-        title="Incidents"
+        eyebrow={org?.name ?? tr('Operations')}
+        title={tr('Incidents')}
         description={split
-          ? 'Every active incident in Pasay. You can act on the ones routed to you.'
-          : 'Every active incident in Pasay. Open one to see it in full and acknowledge it.'}
+          ? tr('Every active incident in Pasay. You can act on the ones routed to you.')
+          : tr('Every active incident in Pasay. Open one to see it in full and acknowledge it.')}
       />
 
       {overlaps.map((o) => (
         <div className="rpl-overlap-alert" key={o.id} role="status">
           <span className="rpl-overlap-alert-mark" aria-hidden="true">!</span>
           <span className="rpl-overlap-alert-text">
-            <span className="rpl-cell-title">{o.area_a_designation} and {o.area_b_designation} may be the same fire</span>
-            <span className="rpl-cell-meta">{Math.round(o.distance_m)} m apart · decide in the next two minutes, or they stay separate</span>
+            <span className="rpl-cell-title">{tr('{a} and {b} may be the same fire', { a: o.area_a_designation, b: o.area_b_designation })}</span>
+            <span className="rpl-cell-meta">{tr('{m} m apart · decide in the next two minutes, or they stay separate', { m: Math.round(o.distance_m) })}</span>
           </span>
-          <button type="button" className="rpl-button rpl-button--secondary rpl-button--compact" onClick={() => setReviewing(o)}>
-            Review
-          </button>
+          <button type="button" className="rpl-button rpl-button--secondary rpl-button--compact" onClick={() => setReviewing(o)}>{tr('Review')}</button>
         </div>
       ))}
 
@@ -329,11 +330,11 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
         </div>
       )}
 
-      <div className="rpl-tabs rpl-tabs--page" role="tablist" aria-label="Incident lists">
+      <div className="rpl-tabs rpl-tabs--page" role="tablist" aria-label={tr('Incident lists')}>
         {[
-          { key: 'active', label: 'All active' },
-          ...(split ? [{ key: 'routed', label: 'Routed to you', count: routedCount }] : []),
-          { key: 'closed', label: 'Closed' },
+          { key: 'active', label: tr('All active') },
+          ...(split ? [{ key: 'routed', label: tr('Routed to you'), count: routedCount }] : []),
+          { key: 'closed', label: tr('Closed') },
         ].map((t) => (
           <button
             key={t.key}
@@ -344,7 +345,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
             onClick={() => setTab(t.key)}
           >
             {t.label}
-            {t.count > 0 && <span className="web-count-badge" aria-label={`${t.count} routed to you`}>{t.count}</span>}
+            {t.count > 0 && <span className="web-count-badge" aria-label={tr('{count} routed to you', { count: t.count })}>{t.count}</span>}
           </button>
         ))}
       </div>
@@ -352,59 +353,57 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
       <div className="rpl-filters">
         <label className="rpl-search">
           <Icon name="search" />
-          <span className="web-sr-only">Search incidents</span>
+          <span className="web-sr-only">{tr('Search incidents')}</span>
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search areas and coordinates"
+            placeholder={tr('Search areas and coordinates')}
           />
         </label>
         {tab !== 'closed' && (
-          <Select label="Status" value={status} onChange={setStatus} options={STATUSES} />
+          <Select label={tr('Status')} value={status} onChange={setStatus} options={STATUSES} />
         )}
         <Select
-          label="Agency"
+          label={tr('Agency')}
           value={agency}
           onChange={setAgency}
-          options={AGENCIES.map((a) => ({ key: a, label: a === 'any' ? 'Any' : AGENCY_LABEL[a] ?? a }))}
+          options={AGENCIES.map((a) => ({ key: a, label: a === 'any' ? tr('Any') : AGENCY_LABEL[a] ?? a }))}
         />
-        <Select label="Confidence" value={band} onChange={setBand} options={CONFIDENCE} />
+        <Select label={tr('Confidence')} value={band} onChange={setBand} options={CONFIDENCE} />
       </div>
 
       {(fetchError || (!needs && failed)) && (
         <div className="rpl-alert rpl-alert--danger" role="alert">
           <span className="rpl-alert-mark" aria-hidden="true">!</span>
           <div className="rpl-alert-text">
-            <p className="rpl-alert-title">Couldn’t load incidents</p>
+            <p className="rpl-alert-title">{tr('Couldn’t load incidents')}</p>
             <p className="rpl-alert-body">
               {fetchError
-                ? `${fetchError} Check your connection, then try again.`
-                : 'Check your connection. Alerts with sound start again when the console reconnects.'}
+                ? tr('{fetchError} Check your connection, then try again.', { fetchError })
+                : tr('Check your connection. Alerts with sound start again when the console reconnects.')}
             </p>
             <button
               type="button"
               className="rpl-text-button"
               onClick={() => (fetchError ? loadList(needs) : refreshFeed())}
-            >
-              Try again
-            </button>
+            >{tr('Try again')}</button>
           </div>
         </div>
       )}
 
       {listLoading && !failed ? (
-        <StatePanel kind="loading" title="Loading incidents…" />
+        <StatePanel kind="loading" title={tr('Loading incidents…')} />
       ) : rows.length === 0 && !(query || agency !== 'any' || band !== 'any' || status !== 'all') && !(fetchError || failed) ? (
         <EmptyState
           icon="requests"
-          title={tab === 'closed' ? 'Nothing closed yet' : tab === 'routed' ? 'Nothing routed to you' : 'No active incidents in Pasay'}
+          title={tab === 'closed' ? tr('Nothing closed yet') : tab === 'routed' ? tr('Nothing routed to you') : tr('No active incidents in Pasay')}
         >
           {tab === 'closed'
-            ? 'An Area lands here once its post-incident report is filed.'
+            ? tr('An Area lands here once its post-incident report is filed.')
             : tab === 'routed'
-              ? 'An Area that asks for your agency appears here, with its sound. Every other one is under All active.'
-              : 'New reports appear here with a sound. Closed incidents are under Closed.'}
+              ? tr('An Area that asks for your agency appears here, with its sound. Every other one is under All active.')
+              : tr('New reports appear here with a sound. Closed incidents are under Closed.')}
         </EmptyState>
       ) : (rows.length > 0 || !(fetchError || failed)) ? (
         <>
@@ -418,11 +417,11 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
           />
           <div className="rpl-pager">
             <span className="rpl-pager-range">
-              {rows.length === 0 ? 'Showing 0 of 0' : `Showing ${page * PAGE + 1}–${Math.min(rows.length, page * PAGE + PAGE)} of ${rows.length}`}
+              {rows.length === 0 ? tr('Showing 0 of 0') : tr('Showing {from}–{to} of {count}', { from: page * PAGE + 1, to: Math.min(rows.length, page * PAGE + PAGE), count: rows.length })}
             </span>
             {pages > 1 && (
-              <nav className="rpl-pager-pages" aria-label="Pages">
-                <button type="button" className="rpl-page-button" onClick={() => setPage((p) => p - 1)} disabled={page === 0} aria-label="Previous page">‹</button>
+              <nav className="rpl-pager-pages" aria-label={tr('Pages')}>
+                <button type="button" className="rpl-page-button" onClick={() => setPage((p) => p - 1)} disabled={page === 0} aria-label={tr('Previous page')}>‹</button>
                 {Array.from({ length: pages }, (_, i) => (
                   <button
                     key={i}
@@ -434,7 +433,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
                     {i + 1}
                   </button>
                 ))}
-                <button type="button" className="rpl-page-button" onClick={() => setPage((p) => p + 1)} disabled={page >= pages - 1} aria-label="Next page">›</button>
+                <button type="button" className="rpl-page-button" onClick={() => setPage((p) => p + 1)} disabled={page >= pages - 1} aria-label={tr('Next page')}>›</button>
               </nav>
             )}
           </div>

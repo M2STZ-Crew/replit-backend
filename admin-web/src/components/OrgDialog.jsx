@@ -4,19 +4,20 @@ import { createPortal } from 'react-dom';
 import { api } from '../api/client.js';
 import { agencyAuthority, agencyLabel } from '../auth.jsx';
 import Skeleton from './ui/Skeleton.jsx';
+import { t } from '../i18n/i18n.jsx';
 
 const ROLE = {
-  admin: 'Admin',
+  get admin() { return t('Admin'); },
   sub_admin: 'Sub-Admin',
-  response_team: 'Response Team',
-  general_user: 'Member',
+  get response_team() { return t('Response Team'); },
+  get general_user() { return t('Member'); },
 };
 
 const EQ_STATUS = {
-  available: { label: 'Ready', tone: 'ok' },
-  in_use: { label: 'Deployed', tone: 'accent' },
-  maintenance: { label: 'Maintenance', tone: 'warn' },
-  out_of_service: { label: 'Out of service', tone: 'off' },
+  available: { get label() { return t('Ready'); }, tone: 'ok' },
+  in_use: { get label() { return t('Deployed'); }, tone: 'accent' },
+  maintenance: { get label() { return t('Maintenance'); }, tone: 'warn' },
+  out_of_service: { get label() { return t('Out of service'); }, tone: 'off' },
 };
 
 const FOCUSABLE = 'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
@@ -164,11 +165,11 @@ export default function OrgDialog({ org, application, glyph, color, onClose }) {
               </span>
               <span className={`af-status${org.is_active ? ' is-on' : ''}`}>
                 <span className="af-status-dot" />
-                {org.is_active ? 'Active' : 'Inactive'}
+                {org.is_active ? t('Active') : t('Inactive')}
               </span>
             </div>
           </div>
-          <button type="button" className="od-close" onClick={onClose} aria-label="Close">
+          <button type="button" className="od-close" onClick={onClose} aria-label={t('Close')}>
             <CloseIcon />
           </button>
         </header>
@@ -177,19 +178,19 @@ export default function OrgDialog({ org, application, glyph, color, onClose }) {
           {/* Key figures -------------------------------------------------- */}
           <dl className="od-band">
             <div>
-              <dt className="dc-eyebrow">Personnel</dt>
+              <dt className="dc-eyebrow">{t('Personnel')}</dt>
               <dd>{org.personnel_count ?? 0}</dd>
             </div>
             <div>
-              <dt className="dc-eyebrow">Units</dt>
+              <dt className="dc-eyebrow">{t('Units')}</dt>
               <dd>{org.equipment_count ?? 0}</dd>
             </div>
             <div>
-              <dt className="dc-eyebrow">Accredited</dt>
+              <dt className="dc-eyebrow">{t('Accredited')}</dt>
               <dd className="od-band-date">{day(app?.reviewed_at || org.created_at)}</dd>
             </div>
             <div>
-              <dt className="dc-eyebrow">Applied</dt>
+              <dt className="dc-eyebrow">{t('Applied')}</dt>
               <dd className="od-band-date">{app ? day(app.created_at) : '—'}</dd>
             </div>
           </dl>
@@ -198,16 +199,16 @@ export default function OrgDialog({ org, application, glyph, color, onClose }) {
 
           {/* Contact ------------------------------------------------------ */}
           <section className="od-section">
-            <h3 className="od-section-title">Contact</h3>
+            <h3 className="od-section-title">{t('Contact')}</h3>
             <dl className="od-facts">
-              <Fact k="Contact person">{app?.contact_name}</Fact>
-              <Fact k="Email">
+              <Fact k={t('Contact person')}>{app?.contact_name}</Fact>
+              <Fact k={t('Email')}>
                 {contactEmail && <a href={`mailto:${contactEmail}`}>{contactEmail}</a>}
               </Fact>
-              <Fact k="Phone">
+              <Fact k={t('Phone')}>
                 {contactPhone && <a href={`tel:${contactPhone.replace(/\s+/g, '')}`}>{contactPhone}</a>}
               </Fact>
-              <Fact k="Address">{address}</Fact>
+              <Fact k={t('Address')}>{address}</Fact>
             </dl>
           </section>
 
@@ -215,13 +216,13 @@ export default function OrgDialog({ org, application, glyph, color, onClose }) {
           <div className="od-split">
             <section className="od-section">
               <div className="od-section-head">
-                <h3 className="od-section-title">Personnel</h3>
+                <h3 className="od-section-title">{t('Personnel')}</h3>
                 <span className="od-count">{personnel ? personnel.length : '·'}</span>
               </div>
               {personnel === null ? (
                 <Skeleton shape="table" rows={3} />
               ) : personnel.length === 0 ? (
-                <p className="od-empty">No accounts belong to this organization yet.</p>
+                <p className="od-empty">{t('No accounts belong to this organization yet.')}</p>
               ) : (
                 <ul className="od-list">
                   {personnel.map((m) => (
@@ -230,7 +231,7 @@ export default function OrgDialog({ org, application, glyph, color, onClose }) {
                         {initials(m.full_name)}
                       </span>
                       <span className="od-person-text">
-                        <span className="od-person-name">{m.full_name || 'Unnamed'}</span>
+                        <span className="od-person-name">{m.full_name || t('Unnamed')}</span>
                         <span className="od-person-sub">{ROLE[m.role] ?? prettify(m.role)}</span>
                       </span>
                     </li>
@@ -241,19 +242,19 @@ export default function OrgDialog({ org, application, glyph, color, onClose }) {
 
             <section className="od-section">
               <div className="od-section-head">
-                <h3 className="od-section-title">Equipment</h3>
+                <h3 className="od-section-title">{t('Equipment')}</h3>
                 <span className="od-count">{equipment ? equipment.length : '·'}</span>
               </div>
               {equipment === null ? (
                 <Skeleton shape="table" rows={3} />
               ) : equipment.length === 0 ? (
-                <p className="od-empty">No equipment registered yet.</p>
+                <p className="od-empty">{t('No equipment registered yet.')}</p>
               ) : (
                 <ul className="od-list">
                   {equipment.map((e) => {
                     const st = EQ_STATUS[e.status] ?? { label: prettify(e.status), tone: 'off' };
                     const sub = [
-                      e.category ? prettify(e.category) : 'Equipment',
+                      e.category ? prettify(e.category) : t('Equipment'),
                       e.quantity > 1 ? `× ${e.quantity}` : null,
                       e.capacity_liters ? `${Number(e.capacity_liters).toLocaleString()} L` : null,
                     ].filter(Boolean).join(' · ');
@@ -274,27 +275,24 @@ export default function OrgDialog({ org, application, glyph, color, onClose }) {
 
           {/* Application -------------------------------------------------- */}
           <section className="od-section">
-            <h3 className="od-section-title">Application</h3>
+            <h3 className="od-section-title">{t('Application')}</h3>
             {!app ? (
-              <p className="od-empty">
-                No application on file. This organization was added directly rather than
-                through the affiliation form.
-              </p>
+              <p className="od-empty">{t('No application on file. This organization was added directly rather than through the affiliation form.')}</p>
             ) : (
               <>
                 <dl className="od-facts">
-                  <Fact k="Submitted">{stamp(app.created_at)}</Fact>
-                  <Fact k="Approved">{stamp(app.reviewed_at)}</Fact>
-                  <Fact k="SEC certificate">{details.sec_certificate_name}</Fact>
-                  {app.review_notes && <Fact k="Review notes">{app.review_notes}</Fact>}
+                  <Fact k={t('Submitted')}>{stamp(app.created_at)}</Fact>
+                  <Fact k={t('Approved')}>{stamp(app.reviewed_at)}</Fact>
+                  <Fact k={t('SEC certificate')}>{details.sec_certificate_name}</Fact>
+                  {app.review_notes && <Fact k={t('Review notes')}>{app.review_notes}</Fact>}
                 </dl>
                 {app.message && <p className="od-quote">“{app.message}”</p>}
 
                 <div className="od-split od-declared">
                   <div>
-                    <span className="dc-eyebrow">Roster as submitted · {declaredRoster.length}</span>
+                    <span className="dc-eyebrow">{t('Roster as submitted ·')}{' '}{declaredRoster.length}</span>
                     {declaredRoster.length === 0 ? (
-                      <p className="od-empty">None listed.</p>
+                      <p className="od-empty">{t('None listed.')}</p>
                     ) : (
                       <ul className="od-plain">
                         {declaredRoster.map((m, i) => (
@@ -307,9 +305,9 @@ export default function OrgDialog({ org, application, glyph, color, onClose }) {
                     )}
                   </div>
                   <div>
-                    <span className="dc-eyebrow">Equipment as submitted · {declaredUnits.length}</span>
+                    <span className="dc-eyebrow">{t('Equipment as submitted ·')}{' '}{declaredUnits.length}</span>
                     {declaredUnits.length === 0 ? (
-                      <p className="od-empty">None listed.</p>
+                      <p className="od-empty">{t('None listed.')}</p>
                     ) : (
                       <ul className="od-plain">
                         {declaredUnits.map((u, i) => (

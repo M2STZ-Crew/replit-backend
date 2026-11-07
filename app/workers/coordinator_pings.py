@@ -27,6 +27,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.core.logging import get_logger
 from app.db.session import Database, database
 from app.integrations.fcm import PushService, sound_for_agency
+from app.services import staff_copy
+from app.services.citizen_copy import language_of
 from app.services.incident import active_area_sql
 
 log = get_logger(__name__)
@@ -82,10 +84,13 @@ async def _send_reminder(
     if not tokens:
         return
     area_id = str(row["area_id"])
+    # In the coordinator's own language (staff_copy); older rows read as English.
+    language = language_of(row.get("language"))
+    title, body = staff_copy.reminder(language, row["designation"])
     result = await push.send_to_tokens(
         tokens=tokens,
-        title=f"Fire reported: {row['designation'] or 'new incident'}",
-        body="Still waiting for you. Tap to open it and acknowledge.",
+        title=title,
+        body=body,
         data={"type": "incident_reminder", "area_id": area_id, "event": "incident_reminder"},
         sound=sound_for_agency(row["agency_type"]) if sound else None,
         silent=not sound,
@@ -108,7 +113,7 @@ async def run_pings(db: Database, push: PushService) -> int:
     rows = await db.fetch(
         f"""
         select p.area_id, p.user_id, p.step, a.designation,
-               u.agency_type::text as agency_type,
+               u.agency_type::text as agency_type, u.language,
                extract(epoch from now() - p.started_at) as age,
                ({active_area_sql("a")}) and u.is_active as live,
                exists (
