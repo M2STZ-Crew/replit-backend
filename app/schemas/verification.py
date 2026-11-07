@@ -34,6 +34,21 @@ class PhoneCodeRequestResponse(BaseModel):
     resend_after_seconds: int = Field(ge=0)
 
 
+class EmailLinkResponse(BaseModel):
+    """What asking for an email link came to.
+
+    ``message`` stays first so a client that only reads it keeps working (the
+    app before 1.12.29). ``resend_after_seconds`` lets a client count down its
+    Send again button.
+    """
+
+    message: str
+    email: str = Field(description="The address the link went to.")
+    sent: bool = Field(description="False when the address was already confirmed.")
+    expires_in_seconds: int = Field(ge=0)
+    resend_after_seconds: int = Field(ge=0)
+
+
 class PhoneVerifyCheckRequest(BaseModel):
     """Submit the received phone OTP code."""
 

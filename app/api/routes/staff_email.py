@@ -17,7 +17,6 @@ to the personal email through :func:`send_staff_resets`.
 
 from __future__ import annotations
 
-import html
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
@@ -32,6 +31,7 @@ from app.db.session import Database
 from app.integrations.brevo_email import BrevoEmailClient
 from app.schemas.auth import PersonalEmailRequest
 from app.schemas.common import MessageResponse
+from app.services.link_page import link_page
 from app.services.responder_accounts import is_staff_address
 from app.services.staff_links import (
     RESET_FOR,
@@ -53,35 +53,8 @@ STAFF_ROLES = ("sub_admin", "response_team")
 # --------------------------------------------------------------------------- #
 # The small pages a link lands on
 # --------------------------------------------------------------------------- #
-def _page(title: str, heading: str, message: str, *, status_code: int = 200) -> HTMLResponse:
-    body = f"""<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="referrer" content="no-referrer">
-<title>{html.escape(title)} · RepLiT</title>
-<style>
-  :root {{ --bg:#131313; --card:#1c1c1c; --line:#333; --text:#f4f4f4; --muted:#a8a8a8; }}
-  @media (prefers-color-scheme: light) {{
-    :root {{ --bg:#f3f1ee; --card:#fff; --line:#ddd; --text:#161616; --muted:#5f5f5f; }}
-  }}
-  body {{ margin:0; min-height:100vh; display:grid; place-items:center; padding:24px 16px;
-         background:var(--bg); color:var(--text);
-         font:16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }}
-  main {{ width:100%; max-width:400px; background:var(--card); border:1px solid var(--line);
-         border-radius:16px; padding:28px 24px; box-sizing:border-box; }}
-  h1 {{ font-size:22px; margin:0 0 12px; }}
-  p {{ margin:0; color:var(--muted); }}
-</style>
-</head>
-<body><main><h1>{html.escape(heading)}</h1><p>{html.escape(message)}</p></main></body>
-</html>"""
-    return HTMLResponse(body, status_code=status_code, headers={"Cache-Control": "no-store"})
-
-
 def _expired() -> HTMLResponse:
-    return _page(
+    return link_page(
         "Link expired",
         "This link has expired",
         "Open the RepLiT app, tap Forgot password?, and enter your sign-in address "
@@ -139,7 +112,7 @@ async def staff_password_link(
         resp = {}
     link = resp.get("action_link") or (resp.get("properties") or {}).get("action_link")
     if not isinstance(link, str) or not link:
-        return _page(
+        return link_page(
             "Try again",
             "Something went wrong",
             "Your email is confirmed, but the password page did not open. Open this "
@@ -159,7 +132,7 @@ async def verify_personal_email(
     try:
         user_id, sent_to = read_token(token, "verify")
     except LinkError:
-        return _page(
+        return link_page(
             "Link expired",
             "This link has expired",
             "Open Profile in the RepLiT app and add your personal email again. We "
@@ -168,7 +141,7 @@ async def verify_personal_email(
         )
     row = await _staff_row(db, user_id)
     if not _matches(row, sent_to):
-        return _page(
+        return link_page(
             "Link expired",
             "This link is out of date",
             "Your account has a different personal email now. Use the link in the "
@@ -180,7 +153,7 @@ async def verify_personal_email(
         user_id,
     )
     log.info("personal_email_verified", user_id=str(user_id))
-    return _page(
+    return link_page(
         "Email confirmed",
         "Your email is confirmed",
         "If you forget your RepLiT password, we will send the reset link to this "

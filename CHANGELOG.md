@@ -6,6 +6,51 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.22 — 7 November 2026 — A resident's email link, sign-up's last step
+
+Backend only, with mobile v1.12.29, which ends a resident's sign-up with this
+link. No migration and nothing to set on Render. Deploy it before that app
+reaches people; the app copes with v1.12.21 too, without the limits below.
+
+### Changes
+
+**Logic**
+- **The email link is sign-up's last step** (7 November: "instead of OTP, they
+  will confirm it via email in Gmail"). Mobile v1.12.29 asks for it the moment
+  a resident's account exists. POST /verification/email/request now answers
+  like the phone code's request, `{message, email, sent, expires_in_seconds,
+  resend_after_seconds}`; a client that reads only `message` keeps working.
+- **One link a minute, five a day**, per account
+  (`EMAIL_LINK_RESEND_COOLDOWN_SECONDS`, `EMAIL_LINK_DAILY_LIMIT_PER_USER`):
+  a 429 `email_link_cooldown` or `email_link_daily_limit`, with
+  `details.retry_after_seconds`. Each link is a Brevo email, and the plan
+  allows only so many a day. The email is sent inside the transaction, so a
+  send Brevo refuses records nothing and spends neither.
+
+**Fixed**
+- **Asking again no longer un-confirms an email.** A confirmed address gets
+  no email (`sent: false`) and stays confirmed; until now the request set it
+  back to pending, and the 10% was gone until the new link was opened.
+- **The link lands on a page in every case**, readable on a phone, in light
+  and dark: confirmed, already confirmed (opening it twice changes nothing),
+  expired, or replaced by a newer link, each saying what to do next. An
+  expired or replaced link showed raw JSON, and the confirmed page was
+  unstyled and tiny on a phone.
+
+**Internal**
+- The page a link lands on is one helper (`app/services/link_page.py`), for
+  the staff links and this one.
+
+### Tests
+- `tests/test_email_link.py` (12, hermetic): sending, the wait and the day's
+  cap, a refused send recording nothing, a confirmed address staying
+  confirmed, and each page a link can land on.
+- Failing before this release and unchanged by it: `tests/test_smoke.py`
+  expects version 0.1.0, and `tests/test_national_id.py`'s photo removal
+  (7 tests in all).
+
+---
+
 ## v1.12.21 — 7 November 2026 — Staff sign-in addresses, change password, Tagalog for staff
 
 Backend and Admin console, with mobile v1.12.28. **Two things before this
