@@ -31,6 +31,7 @@ from app.db.session import Database
 from app.integrations.brevo_email import BrevoEmailClient
 from app.schemas.auth import PersonalEmailRequest
 from app.schemas.common import MessageResponse
+from app.services.disposable_email import ensure_not_disposable
 from app.services.link_page import link_page
 from app.services.responder_accounts import is_staff_address
 from app.services.staff_links import (
@@ -204,6 +205,7 @@ async def set_personal_email(
             "Use an email you can open: @replit.com addresses have no mailbox.",
             error_code="not_personal",
         )
+    ensure_not_disposable(email)
     row = await db.fetchrow(
         "select personal_email, personal_email_verified_at from public.users where id = $1",
         user.id,

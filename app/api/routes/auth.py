@@ -43,6 +43,7 @@ from app.schemas.auth import (
 )
 from app.schemas.common import MessageResponse
 from app.services.access import admin_access
+from app.services.disposable_email import ensure_not_disposable
 from app.services.phone_verification import PhoneNumberTakenError, normalize_ph_mobile
 
 log = get_logger(__name__)
@@ -83,7 +84,12 @@ async def signup(
     a 400 and one another account already verified is a 409, so neither leaves
     behind an account that can never pass the phone gate. It is stored in E.164;
     proving it is the phone's is the next step, POST /verification/phone/request.
+
+    An email from a throwaway service is refused first, a 400
+    ``disposable_email``: the account would lose its sign-in and password reset
+    within the hour (app/services/disposable_email.py).
     """
+    ensure_not_disposable(str(payload.email))
     mobile = normalize_ph_mobile(payload.mobile) if payload.mobile else None
     if mobile is not None and await _verified_owner_email(db, mobile) is not None:
         raise PhoneNumberTakenError(

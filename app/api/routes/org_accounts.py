@@ -43,6 +43,7 @@ from app.schemas.organization import (
 )
 from app.services.access import admin_access
 from app.services.audit import record_audit
+from app.services.disposable_email import ensure_not_disposable
 from app.services.responder_accounts import (
     AGENCY_CODES,
     InvalidNameError,
@@ -172,8 +173,10 @@ async def create_coordinator(
 
     The address takes the next number when the name is taken, and a second Admin
     making the same name at once gets the next one rather than an error. The
-    link to set a password goes to the Coordinator's personal email.
+    link to set a password goes to the Coordinator's personal email, so one
+    from a throwaway service is refused before anything is looked up.
     """
+    ensure_not_disposable(str(payload.personal_email), field="personal_email")
     org_id = _target_organization(admin, payload.organization_id)
     org = await _organization(db, org_id)
     agency = org["agency_type"]

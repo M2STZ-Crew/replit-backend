@@ -45,6 +45,7 @@ from app.schemas.team import (
     TeamResponder,
 )
 from app.services.audit import record_audit
+from app.services.disposable_email import ensure_not_disposable
 from app.services.phone_verification import normalize_ph_mobile
 from app.services.responder_accounts import (
     AGENCY_CODES,
@@ -187,6 +188,7 @@ async def create_responder(
             "Use the responder's own email: @replit.com addresses have no mailbox.",
             error_code="not_personal",
         )
+    ensure_not_disposable(personal, field="personal_email")
     mobile = (
         normalize_ph_mobile(payload.mobile)
         if payload.mobile and payload.mobile.strip()

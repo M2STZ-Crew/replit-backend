@@ -33,6 +33,7 @@ from app.schemas.affiliate import (
     AffiliateRequestResponse,
     AffiliateReviewRequest,
 )
+from app.services.disposable_email import ensure_not_disposable
 from app.services.email_layout import EmailAction, RenderedEmail, render_email
 
 log = get_logger(__name__)
@@ -204,6 +205,9 @@ async def submit_affiliate_request(
     payload: AffiliateRequestCreate, user: CurrentUser, db: DatabaseDep
 ) -> AffiliateRequestResponse:
     """Submit a pending affiliation request for an organization."""
+    ensure_not_disposable(
+        str(payload.contact_email) if payload.contact_email else None, field="contact_email"
+    )
     row = await db.fetchrow(
         f"""
         insert into public.affiliate_requests
@@ -280,8 +284,10 @@ async def register_affiliate(
     requested_by is null; the roster/equipment/SEC-cert metadata is captured in
     ``details`` (jsonb) and summarized into ``message`` for the admin queue. The
     applicant is emailed straight away that it arrived, and again with a
-    password-setup link when an admin approves it.
+    password-setup link when an admin approves it, so a contact email from a
+    throwaway service is refused.
     """
+    ensure_not_disposable(str(payload.contact_email), field="contact_email")
     recently_emailed = await db.fetchval(
         "select exists (select 1 from public.affiliate_requests "
         "where lower(contact_email) = lower($1) "

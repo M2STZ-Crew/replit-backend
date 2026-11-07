@@ -47,6 +47,7 @@ from app.schemas.verification import (
     VerificationResultResponse,
     VerificationStatusResponse,
 )
+from app.services.disposable_email import ensure_not_disposable
 from app.services.email_layout import EmailAction, RenderedEmail, render_email
 from app.services.link_page import link_page
 from app.services.national_id import BUCKET, photo_paths, remove_photos
@@ -467,6 +468,12 @@ async def request_email_verification(
     settings = get_settings()
     if not user.email:
         raise BadRequestError("Your account has no email address to verify.")
+    # An account made with a burner address before v1.12.23 keeps working, but
+    # a throwaway inbox earns no trust.
+    ensure_not_disposable(
+        user.email,
+        message="Your email is from a temporary email service, so it cannot be confirmed.",
+    )
     cooldown = timedelta(seconds=settings.email_link_resend_cooldown_seconds)
     now = datetime.now(UTC)
     async with db.acquire() as conn, conn.transaction():

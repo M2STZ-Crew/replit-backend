@@ -122,6 +122,17 @@ class Settings(BaseSettings):
     email_link_daily_limit_per_user: int = Field(
         default=5, ge=1, le=50, description="Email links one account may request in 24 hours."
     )
+    # Disposable (burner) email addresses, refused wherever RepLiT takes an
+    # email it relies on (app/services/disposable_email.py). Comma-separated
+    # domains, each covering its subdomains: _EXTRA refuses more than the
+    # bundled list, _ALLOWED lifts a domain the list has wrong. Changing either
+    # on Render restarts the service; no deploy.
+    disposable_email_domains_extra: str = Field(
+        default="", description="More burner-email domains to refuse, comma-separated."
+    )
+    disposable_email_domains_allowed: str = Field(
+        default="", description="Domains never refused as burner email, comma-separated."
+    )
 
     # ----- Didit.me KYC (Phase 4) -----
     didit_api_key: str = Field(default="", description="Didit.me API key (x-api-key).")
