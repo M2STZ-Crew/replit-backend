@@ -50,6 +50,7 @@ SoundCategory = Literal[
     "on_route",
     "on_scene",
     "fire_out",
+    "rejected",
 ]
 
 # The channels the app creates (android/app/src/main/kotlin/.../MainActivity.kt)
@@ -57,16 +58,24 @@ SoundCategory = Literal[
 # the sound from the channel; ``sound`` is for phones before Android 8. A
 # channel's sound is fixed once the phone has made it, so a new recording
 # needs a new channel id here and in the app.
+#
+# v1.12.25 (9 November): "rejected" has its own recording, where it played the
+# general one. Its file, sound_rejected, sorts before sound_verified, and a
+# channel a phone made before app v1.12.23 holds its file by number, so on
+# such a phone "citizen_verified_v1" would now play the rejected recording:
+# verified moves to "citizen_verified_v2", which names its file. An app before
+# v1.12.33 has neither new channel and plays the phone's tone for those two.
 SOUND_CHANNELS: dict[SoundCategory, str] = {
     "fire": "alert_fire",
     "police": "alert_police",
     "medical": "alert_medical",
     "barangay": "alert_barangay",
     "citizen": "citizen_updates",
-    "verified": "citizen_verified_v1",
+    "verified": "citizen_verified_v2",
     "on_route": "citizen_on_route_v1",
     "on_scene": "citizen_on_scene_v1",
     "fire_out": "citizen_fire_out_v1",
+    "rejected": "citizen_rejected_v1",
 }
 
 

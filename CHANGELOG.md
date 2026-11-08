@@ -6,6 +6,35 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.25 — 9 November 2026 — The rejected sound, and verified's new channel
+
+Backend only, with mobile v1.12.33, which has the recordings and channels; deploy
+this first. No migration; nothing to set on Render.
+
+### Changes
+
+**Logic**
+- **A rejected report plays its own recording** (9 November: "the sound of
+  rejected is the default"): sound `rejected`, channel `citizen_rejected_v1`,
+  where it played the general "Report updates" one.
+- **Verified uses `citizen_verified_v2`.** The app's new `sound_rejected` file
+  sorts before `sound_verified`, and a channel a phone made before app v1.12.23
+  holds its file by number, so on such a phone the v1 channel would play the
+  rejected recording. The v2 channel names its file.
+- An app before v1.12.33 has neither new channel, so it plays the phone's own
+  tone for verified and rejected until it updates.
+- The En route fix is the app's (mobile v1.12.33): its recording had been a copy
+  of the On scene one since 28 October.
+
+### Tests
+- `tests/test_lifecycle_sounds.py`: rejected's sound and channel, verified's v2,
+  and one channel per stage.
+- Failing before this release and unchanged by it: `tests/test_smoke.py`
+  (expects version 0.1.0) and `tests/test_national_id.py`'s photo removal, 7 in
+  all.
+
+---
+
 ## v1.12.24 — 8 November 2026 — The server stays awake
 
 Backend only; no app or console change. No migration. Nothing has to be set

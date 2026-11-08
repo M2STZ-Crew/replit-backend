@@ -3,10 +3,15 @@
 The mapping the 2 November brief asked for, pinned where the server decides it:
 
     Reported   -> nothing
-    Verified   -> "Report acknowledged" (sound_verified, citizen_verified_v1)
+    Verified   -> "Report acknowledged" (sound_verified, citizen_verified_v2)
     On the way -> "On route"            (sound_on_route, citizen_on_route_v1)
     On scene   -> "On scene"            (sound_on_scene, citizen_on_scene_v1)
     Fire out   -> "Fire out"            (sound_fire_out, citizen_fire_out_v1)
+    Rejected   -> "Rejected"            (sound_rejected, citizen_rejected_v1)
+
+9 November: rejected has its own recording (it played the general one), and
+verified moved to a v2 channel, since sound_rejected renumbers sound_verified
+for a channel made before app v1.12.23.
 
 One push per status change, so one sound: a second verifier, a second
 responder or a second Arrived press changes no status and sends no stage
@@ -35,10 +40,11 @@ from app.services.incident_notify import (
 AREA = uuid4()
 
 _STAGES = {
-    "incident_verified": ("verified", "citizen_verified_v1"),
+    "incident_verified": ("verified", "citizen_verified_v2"),
     "incident_en_route": ("on_route", "citizen_on_route_v1"),
     "incident_arrived": ("on_scene", "citizen_on_scene_v1"),
     "incident_resolved": ("fire_out", "citizen_fire_out_v1"),
+    "incident_rejected": ("rejected", "citizen_rejected_v1"),
 }
 
 
@@ -93,14 +99,15 @@ def test_each_stage_has_its_own_sound_and_channel() -> None:
         assert note.channel_id == channel
         assert note.sound == f"sound_{sound}"
         assert note.default_sound is False
-    assert len({channel for _, channel in _STAGES.values()}) == 4
+    assert len({channel for _, channel in _STAGES.values()}) == len(_STAGES)
 
 
 def test_reported_has_no_stage_sound() -> None:
     # Filing a report sends the reporter nothing: the neighbour alert leaves
     # out the area's reporters, and the new-fire alert goes to staff only. The
-    # reporter hears only these: the four stages, and two pieces of news.
-    assert set(_REPORTER_MESSAGES) == {*_STAGES, "responder_dispatched", "incident_rejected"}
+    # reporter hears only these: the stages, rejected among them, and one
+    # piece of news.
+    assert set(_REPORTER_MESSAGES) == {*_STAGES, "responder_dispatched"}
 
 
 @pytest.mark.parametrize(("event", "expected"), list(_STAGES.items()))
@@ -127,10 +134,10 @@ async def test_what_is_not_a_stage_sends_the_reporter_nothing(push: _Push, event
     assert push.sent == []
 
 
-@pytest.mark.parametrize("event", ["responder_dispatched", "incident_rejected"])
+@pytest.mark.parametrize("event", ["responder_dispatched"])
 async def test_other_news_keeps_the_report_updates_sound(push: _Push, event: str) -> None:
-    # A second truck on its way, or a report closed: news, not a stage, so the
-    # general "Report updates" recording, never a stage's.
+    # A second truck on its way: news, not a stage, so the general "Report
+    # updates" recording, never a stage's.
     await notify_incident_reporters(_Db(), AREA, event)  # type: ignore[arg-type]
     [sent] = push.sent
     assert sent["sound"] == "citizen"
