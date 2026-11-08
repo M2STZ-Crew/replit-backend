@@ -6,6 +6,53 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.24 — 8 November 2026 — The server stays awake
+
+Backend only; no app or console change. No migration. Nothing has to be set
+on Render; one GitHub secret makes the safety net able to redeploy (below).
+
+### Why
+Render's free plan stops the service after 15 minutes without traffic from
+outside and starts it again on the next request, which used to take about 50
+seconds. On 7 November at 1:29 AM and 8 November at 1:24 PM it stopped
+starting again: requests hung until they timed out, so neither the app ("RepLiT
+did not answer in time") nor the Admin console ("The console couldn't reach the
+server") could sign anyone in. There were no logs at all, a restart did not
+start it, and only a manual deploy brought it back, twice. Waking it is
+Render's job, out of our hands; not sleeping is not.
+
+### Changes
+
+**Logic**
+- **The service keeps itself awake** (`app/workers/keep_awake.py`). Every
+  `KEEP_AWAKE_MINUTES` (10, under Render's 15) it asks for its own `/health`
+  through its public address (`KEEP_AWAKE_URL`, else `RENDER_EXTERNAL_URL`,
+  which Render sets), which counts as traffic from outside; Render's own health
+  checks do not. Off Render there is no such address and nothing runs. Staying
+  up also keeps the 60 s neighbourhood alerts and the coordinator pings running
+  through the night, which paused while it slept.
+- **A safety net on GitHub** (`.github/workflows/keep-awake.yml`): every 10
+  minutes it asks for `/health`, and if the service does not answer twice in a
+  row it starts a deploy through Render's deploy hook, what fixed it by hand.
+  **One-time setup:** Render > replit-backend-2li4 > Settings > Deploy Hook,
+  copy the URL, and save it in this repository as the Actions secret
+  `RENDER_DEPLOY_HOOK_URL`. Until then the workflow only reports.
+
+**Cost**
+- A month awake is 720 to 744 of the workspace's 750 free instance hours, with
+  this the only active service (the other is suspended). A paid instance does
+  not sleep at all; with one, set `KEEP_AWAKE_MINUTES=0`.
+
+### Tests
+- `tests/test_keep_awake.py`: the address is the service's own public
+  `/health` and none off Render; the job knocks every 10 minutes, once at a
+  time, and 0 turns it off; a failed knock is logged, never raised.
+- Failing before this release and unchanged by it: `tests/test_smoke.py`
+  (expects version 0.1.0) and `tests/test_national_id.py`'s photo removal, 7 in
+  all.
+
+---
+
 ## v1.12.23 — 7 November 2026 — Burner email addresses are refused
 
 Backend and Admin console, with mobile v1.12.30, which says it in its own

@@ -1,0 +1,62 @@
+# Keep the RepLiT server answering (8 November 2026).
+#
+# Render's free plan sleeps the service after 15 idle minutes, and on 7 and 8
+# November it stopped waking: requests hung, nobody could sign in, and only a
+# manual deploy brought it back. The server now keeps itself awake
+# (app/workers/keep_awake.py). This is the net under that:
+#
+#   - every 10 minutes (GitHub may run it a few minutes late), ask for /health;
+#   - if it does not answer twice in a row, start a deploy through Render's
+#     deploy hook, which is what fixed it by hand.
+#
+# One-time setup: Render > replit-backend-2li4 > Settings > Deploy Hook, copy
+# the URL, and save it here as the repository secret RENDER_DEPLOY_HOOK_URL
+# (Settings > Secrets and variables > Actions). Without it this only reports.
+#
+# GitHub pauses scheduled workflows in a repository with no activity for 60
+# days; a push, or "Enable workflow" under Actions, starts it again.
+
+name: Keep the server answering
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: keep-awake
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      HEALTH_URL: https://replit-backend-2li4.onrender.com/health
+    steps:
+      - name: Ask the server for /health
+        id: health
+        run: |
+          for attempt in 1 2; do
+            if curl -fsS --max-time 100 -o /dev/null "$HEALTH_URL"; then
+              echo "Answered (attempt $attempt)."
+              echo "up=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "No answer (attempt $attempt)."
+          done
+          echo "up=false" >> "$GITHUB_OUTPUT"
+
+      - name: Not answering, so deploy again
+        if: steps.health.outputs.up == 'false'
+        env:
+          DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "::error::The server is not answering, and RENDER_DEPLOY_HOOK_URL is not set, so it cannot be redeployed from here."
+            exit 1
+          fi
+          curl -fsS --max-time 30 -X POST -o /dev/null "$DEPLOY_HOOK"
+          echo "::warning::The server was not answering; a deploy was started."

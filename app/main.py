@@ -28,6 +28,10 @@ from app.workers.coordinator_pings import (
     shutdown_coordinator_pings_scheduler,
     start_coordinator_pings_scheduler,
 )
+from app.workers.keep_awake import (
+    shutdown_keep_awake_scheduler,
+    start_keep_awake_scheduler,
+)
 from app.workers.neighborhood import (
     shutdown_neighborhood_scheduler,
     start_neighborhood_scheduler,
@@ -50,6 +54,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     init_fcm()
     start_neighborhood_scheduler()
     start_coordinator_pings_scheduler()
+    start_keep_awake_scheduler()
 
     log.info(
         "application_startup",
@@ -60,6 +65,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     yield
 
+    shutdown_keep_awake_scheduler()
     shutdown_coordinator_pings_scheduler()
     shutdown_neighborhood_scheduler()
     shutdown_fcm()

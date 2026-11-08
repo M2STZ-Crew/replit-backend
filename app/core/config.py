@@ -37,7 +37,7 @@ class Settings(BaseSettings):
         description='Deployment environment: "development" | "staging" | "production".',
     )
     app_name: str = Field(default="RepLiT Backend", description="Human-readable app name.")
-    app_version: str = Field(default="1.12.23", description="Semantic version of the build.")
+    app_version: str = Field(default="1.12.24", description="Semantic version of the build.")
     host: str = Field(default="0.0.0.0", description="Uvicorn bind host.")
     port: int = Field(default=8000, ge=1, le=65535, description="Uvicorn bind port.")
 
@@ -132,6 +132,19 @@ class Settings(BaseSettings):
     )
     disposable_email_domains_allowed: str = Field(
         default="", description="Domains never refused as burner email, comma-separated."
+    )
+    # Keeping the free Render instance awake (app/workers/keep_awake.py): every
+    # this many minutes the service asks for its own /health through its public
+    # address, which Render counts as traffic, so it never reaches the 15 idle
+    # minutes after which it sleeps (and, on 7 and 8 November, did not wake).
+    # 0 turns it off, for a paid instance, which does not sleep.
+    keep_awake_minutes: int = Field(
+        default=10, ge=0, le=14,
+        description="Minutes between the service's requests to its own /health; 0 is off.",
+    )
+    keep_awake_url: str = Field(
+        default="",
+        description="The public address to ask; empty uses RENDER_EXTERNAL_URL.",
     )
 
     # ----- Didit.me KYC (Phase 4) -----
