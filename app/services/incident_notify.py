@@ -156,11 +156,14 @@ _REPORTER_MESSAGES: dict[str, tuple[str, str]] = {
 }
 
 # Keep existing lifecycle triggers; only select a distinct sound for each event.
+# 9 November: a rejected report has its own recording, where it played the
+# general "Report updates" one.
 _REPORTER_SOUNDS: dict[str, SoundCategory] = {
     "incident_verified": "verified",
     "incident_en_route": "on_route",
     "incident_arrived": "on_scene",
     "incident_resolved": "fire_out",
+    "incident_rejected": "rejected",
 }
 
 
