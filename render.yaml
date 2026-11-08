@@ -12,11 +12,17 @@
 # pasted into the Render dashboard once — committing them would put the
 # service-role key in git history.
 #
-# Free-tier limits worth knowing before the demo:
-#   - the instance sleeps after ~15 minutes with no traffic, and the next request
-#     takes ~50 s to wake it. Open the URL a minute before showing anyone.
-#   - while asleep the 60 s neighbourhood scheduler does not run, so crowdsourced
-#     alerts pause. Keep a browser tab open during a demo to hold it awake.
+# Free-tier limits worth knowing:
+#   - a free instance sleeps after ~15 minutes with no traffic from outside, and
+#     wakes on the next request (~50 s). On 7 and 8 November it stopped waking:
+#     requests hung, and only a manual deploy brought it back. Since v1.12.24 it
+#     never sleeps: every KEEP_AWAKE_MINUTES (10) it asks for its own /health at
+#     RENDER_EXTERNAL_URL (app/workers/keep_awake.py), which also keeps the 60 s
+#     neighbourhood alerts running all night. A month awake is 720-744 of the
+#     workspace's 750 free instance hours, with this the only service using them.
+#   - .github/workflows/keep-awake.yml checks /health every 10 minutes from
+#     GitHub and, if it does not answer, deploys again through the deploy hook in
+#     the repository secret RENDER_DEPLOY_HOOK_URL (Settings > Deploy Hook).
 #   - 512 MB RAM, no persistent disk. Hence FCM_CREDENTIALS_JSON rather than
 #     FCM_CREDENTIALS_FILE: there is nowhere to put the service-account file.
 
