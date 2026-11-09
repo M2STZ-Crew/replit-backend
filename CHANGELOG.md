@@ -6,6 +6,55 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.26 — 9 November 2026 — Barangay 76: every Admin function, all in one
+
+Backend and Admin console; no app change. **Run the migration
+`20261109090000_central_hub_all_in_one.sql` before this deploys**: until it
+runs, the hub can press Decide on an alarm request and be refused by the
+database, and it still signs in with its old address.
+
+### Changes
+
+**Logic**
+- **The central hub does every Admin function, on every incident** (9
+  November: "barangay 76 as a central hub with all admin functions in web, not
+  separated admin, fire, medic, and barangay; it is all in one"). Its Admin has
+  everything the system account has (acknowledge, overlaps, reject / fire out /
+  dispatch, affiliates, National IDs, map layers, water, Coordinators, accounts
+  of any role, every organisation, every record unredacted) and asks for and
+  decides alarm levels too. It acts on Fire, Police, Medical and Barangay
+  incidents alike; its acknowledgements are still recorded under Barangay, its
+  own agency, and Barangay 76. Until now it was a Barangay Admin that also
+  reviewed affiliates and IDs.
+- **What the system account alone could do, the hub does too**
+  (`AdminAccess.governs_all`): any organisation's equipment and Coordinators
+  (it picks the organisation when it makes one; its own if it names none),
+  every organisation's units on the live map, and withdrawing any alarm
+  request.
+- **The migration** lets the hub's Admin set any alarm level
+  (`enforce_alarm_authority`, as BFP's), and moves its sign-in to
+  **barangay76.admin@replit.com**. @replit.com has no mailbox, so the address
+  it had stays as its personal email, confirmed, where Forgot password? sends
+  the link. It changes nothing when the hub has no Admin or several, or when
+  the address is taken, and says so in a notice. The password is unchanged.
+
+**UI (Admin console)**
+- The hub's top line reads "Central hub — every Admin function, on every
+  incident, for every agency"; it makes Coordinators for any organisation, and
+  the live map shows every unit, as for the system Admin. One check,
+  `governsAll`, in `src/lib/access.js`.
+
+### Tests
+- `tests/test_admin_console_access.py`: the hub has the system's permissions
+  and the alarm ones, acts on every agency's incidents, governs every
+  organisation, and a turned-off hub still fails closed; the hub manages any
+  organisation's equipment.
+- Failing before this release and unchanged by it: `tests/test_smoke.py`
+  (expects version 0.1.0) and `tests/test_national_id.py`'s photo removal, 7 in
+  all.
+
+---
+
 ## v1.12.25 — 9 November 2026 — The rejected sound, and verified's new channel
 
 Backend only, with mobile v1.12.33, which has the recordings and channels; deploy
