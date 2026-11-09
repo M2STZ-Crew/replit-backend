@@ -17,7 +17,7 @@ import Icon from '../components/ui/Icon.jsx';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import { useLiveFeed } from '../live/LiveFeed.jsx';
 import { useLiveUnits } from '../live/useLiveUnits.js';
-import { PERM, can } from '../lib/access.js';
+import { PERM, can, governsAll } from '../lib/access.js';
 import { AGENCY_LABEL, statusOf } from '../lib/status.js';
 import BaseTiles from '../map/BaseTiles.jsx';
 import { groupOnScreen } from '../map/unitGroups.js';
@@ -262,11 +262,11 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
                 <span className={`rpl-legend-mark rpl-marker-disc--${MARKER_KINDS[k].tone}`} aria-hidden="true">
                   <img src={`/icons/map/${k}.svg`} alt="" width="12" height="12" />
                 </span>
-                {k === 'unit' && access?.variant === 'system' ? t('Responding unit') : MARKER_KINDS[k].label}
+                {k === 'unit' && governsAll(access) ? t('Responding unit') : MARKER_KINDS[k].label}
               </li>
             ))}
           </ul>
-          {access?.variant !== 'system' && (
+          {!governsAll(access) && (
             <p className="rpl-map-legend-note">{t('Other organizations’ vehicles are never shown.')}</p>
           )}
         </section>

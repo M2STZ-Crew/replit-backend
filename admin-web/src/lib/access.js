@@ -47,13 +47,20 @@ export function can(access, permission) {
   return Boolean(access?.permissions?.includes(permission));
 }
 
+/// Whether this Admin acts for every organisation: the system Admin, and the
+/// central hub (Barangay 76) since 9 November 2026, "all admin functions, all
+/// in one". The server's AdminAccess.governs_all.
+export function governsAll(access) {
+  return access?.variant === 'system' || access?.variant === 'central';
+}
+
 /// Whether this Admin may cancel or delete an alarm request: it asked, it is
-/// an Admin of the asker's (active) organisation, or it is the system Admin.
-/// The server checks the same (alarm_requests._may_withdraw).
+/// an Admin of the asker's (active) organisation, or it acts for every
+/// organisation. The server checks the same (alarm_requests._may_withdraw).
 export function mayWithdraw(access, me, request) {
   if (!request) return false;
   if (me?.id && me.id === request.requested_by) return true;
-  if (access?.variant === 'system') return true;
+  if (governsAll(access)) return true;
   const orgId = access?.organization?.id;
   return Boolean(
     orgId
@@ -135,7 +142,7 @@ export function scopeLine(access) {
     case 'system':
       return t('System administrator — you can act on every incident');
     case 'central':
-      return t('Central hub — you act on incidents that asked for {word}, and review affiliates and IDs', { word });
+      return t('Central hub — every Admin function, on every incident, for every agency');
     case 'bfp':
       return t('BFP — you act on Fire incidents and set the alarm level');
     case 'fire_volunteer':

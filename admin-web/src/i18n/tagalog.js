@@ -391,7 +391,7 @@ export const TAGALOG = {
   '{team} · Admin': '{team} · Admin',
   'Central hub — you review affiliates and act on every incident': 'Central hub — ikaw ang nagre-review ng mga affiliate at kumikilos sa bawat insidente',
   'System administrator — you can act on every incident': 'System administrator — puwede kang kumilos sa bawat insidente',
-  'Central hub — you act on incidents that asked for {word}, and review affiliates and IDs': 'Central hub — kumikilos ka sa mga insidenteng humingi ng {word}, at nagre-review ng mga affiliate at ID',
+  'Central hub — every Admin function, on every incident, for every agency': 'Central hub — lahat ng gawain ng Admin, sa bawat insidente, para sa bawat ahensya',
   'BFP — you act on Fire incidents and set the alarm level': 'BFP — kumikilos ka sa mga insidente ng sunog at nagtatakda ng antas ng alarma',
   'Fire Volunteer — you act on incidents that asked for Fire': 'Fire Volunteer — kumikilos ka sa mga insidenteng humingi ng tulong sa sunog',
   '{team} — you act on incidents that asked for {word}': '{team} — kumikilos ka sa mga insidenteng humingi ng {word}',
