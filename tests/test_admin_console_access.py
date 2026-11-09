@@ -6,9 +6,9 @@ variants"):
   ones its agency was asked for (Fire Volunteer and BFP for Fire), and records
   the acknowledgement under its organisation's agency and team;
 - it never rejects, marks fire out or dispatches: those stay Coordinators';
-- the central hub (Barangay 76) also reviews affiliates and IDs and looks after
-  the shared map layers, and nothing more — it is not a superuser; the Admin
-  with no organisation is the system account and keeps everything it had;
+- the central hub (Barangay 76) does every Admin function on every incident,
+  all in one (9 November 2026); the Admin with no organisation is the system
+  account and keeps everything it had;
 - a Fire Volunteer Admin asks BFP to raise the alarm, the BFP Admin decides,
   and both look after the shared map layers too;
 - an Admin reads its own organisation's people, its routed incidents' audit
@@ -93,9 +93,6 @@ def _admin(
         ("fire_volunteer", False, "fire_volunteer", A.FIRE_AGENCIES,
          {A.REQUEST_ALARM, A.MANAGE_MAP}, {A.DECIDE_ALARM}),
         ("bfp", False, "bfp", A.FIRE_AGENCIES, {A.DECIDE_ALARM, A.MANAGE_MAP}, {A.REQUEST_ALARM}),
-        ("barangay", True, "central", ("barangay",),
-         {A.REVIEW_AFFILIATES, A.REVIEW_IDS, A.ALL_ORGANIZATIONS, A.MANAGE_MAP},
-         {A.DECIDE_ALARM}),
     ],
 )
 def test_the_four_variants(
@@ -108,20 +105,32 @@ def test_the_four_variants(
     every = {A.ACKNOWLEDGE, A.DECIDE_OVERLAPS, A.DELETE_WATER, A.CREATE_COORDINATORS}
     assert access.permissions == frozenset(every | extra)
     assert not access.permissions & absent
-    # No organisation's Admin coordinates or reads everything; of them the Fire
-    # agencies and the central hub manage the map.
+    # No other organisation's Admin coordinates or reads everything; of them
+    # the Fire agencies manage the map.
     for never in (A.COORDINATE, A.MANAGE_ANY_ACCOUNT, A.ALL_RECORDS):
         assert not access.can(never)
-    assert access.can(A.MANAGE_MAP) is (hub or agency in A.FIRE_AGENCIES)
+    assert access.can(A.MANAGE_MAP) is (agency in A.FIRE_AGENCIES)
+    assert not access.governs_all
 
 
-def test_the_central_hub_is_not_a_superuser() -> None:
+def test_the_central_hub_does_everything_all_in_one() -> None:
+    # 9 November: "barangay 76 as a central hub with all admin functions in
+    # web (not separated admin, fire, medic and barangay; it is all in one)".
     hub = A.admin_access(_admin("barangay", hub=True, name="Barangay 76 Zone 10 Pasay"))
-    assert hub is not None and hub.scope == "central"
-    # It acknowledges what asked for Barangay, like any Barangay Admin.
-    assert hub.acts_on(["barangay", "fire_volunteer"])
-    assert not hub.acts_on(["fire_volunteer"])
-    assert not hub.can(A.COORDINATE) and not hub.can(A.ALL_RECORDS)
+    assert hub is not None and hub.variant == "central" and hub.scope == "central"
+    assert hub.permissions == A._SYSTEM | {A.REQUEST_ALARM, A.DECIDE_ALARM}
+    assert hub.act_agencies is None
+    for asked in (["fire_volunteer"], ["bfp"], ["police"], ["medical"], ["barangay"], []):
+        assert hub.acts_on(asked)
+    assert hub.governs_all and not hub.is_system
+    # Its acknowledgements still go under its own agency and organisation.
+    assert hub.agency == "barangay" and hub.organization_id is not None
+
+
+def test_a_turned_off_central_hub_still_fails_closed() -> None:
+    hub = A.admin_access(_admin("barangay", hub=True, active=False))
+    assert hub is not None and hub.permissions == frozenset()
+    assert hub.act_agencies == ()
 
 
 def test_the_system_admin_keeps_everything() -> None:
@@ -129,6 +138,7 @@ def test_the_system_admin_keeps_everything() -> None:
     assert system is not None and system.is_system and system.scope == "system"
     assert system.act_agencies is None and system.acts_on([])
     assert system.permissions == A._SYSTEM
+    assert system.governs_all
 
 
 def test_a_turned_off_organisation_fails_closed() -> None:
@@ -487,7 +497,9 @@ def test_equipment_follows_the_same_rule() -> None:
     assert equipment._can_view_org(police, OWN_ORG)
     assert not equipment._can_view_org(police, OTHER_ORG)
     assert equipment._can_view_org(hub, OTHER_ORG)
-    assert not equipment._can_manage_org(hub, OTHER_ORG)
+    # 9 November: the central hub manages any organisation's, as the system does.
+    assert equipment._can_manage_org(hub, OTHER_ORG)
+    assert not equipment._can_manage_org(police, OTHER_ORG)
     assert equipment._can_manage_org(_admin(), OTHER_ORG)
 
 

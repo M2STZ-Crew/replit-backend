@@ -1157,13 +1157,16 @@ async def list_responder_locations(
 ) -> list[ResponderLocationItem]:
     """Return the most recent GPS fix for each responder on the incident (live map).
 
-    An organisation's Admin sees its own units only (pass 6 A00, A30).
+    An organisation's Admin sees its own units only (pass 6 A00, A30); the
+    system Admin and the central hub see every unit.
     """
     await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
     access = admin_access(user)
-    own_org = access.organization_id if access is not None and not access.is_system else None
-    if access is not None and not access.is_system and own_org is None:
+    own_org = (
+        access.organization_id if access is not None and not access.governs_all else None
+    )
+    if access is not None and not access.governs_all and own_org is None:
         return []
     rows = await db.fetch(
         """

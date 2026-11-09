@@ -70,13 +70,16 @@ async def _member(db: Database, user_id: UUID) -> OrganizationMember:
 
 def _target_organization(admin: AuthenticatedUser, requested: UUID | None) -> UUID:
     """The organisation this Admin creates into: its own, or for the system
-    Admin the one it named."""
+    Admin and the central hub the one it named (the hub's own when it names
+    none)."""
     access = admin_access(admin)
     assert access is not None  # CoordinatorManager admits Admins only
-    if access.is_system:
-        if requested is None:
+    if access.governs_all:
+        if requested is not None:
+            return requested
+        if access.organization_id is None:
             raise BadRequestError("Choose the organization the Coordinator belongs to.")
-        return requested
+        return access.organization_id
     if requested is not None and requested != access.organization_id:
         raise ForbiddenError("You create Coordinators for your own organization only.")
     assert access.organization_id is not None
@@ -96,7 +99,7 @@ async def _own_coordinator(
     if (
         row is None
         or row["role"] != "sub_admin"
-        or (not access.is_system and row["primary_org_id"] != access.organization_id)
+        or (not access.governs_all and row["primary_org_id"] != access.organization_id)
     ):
         raise NotFoundError("No Coordinator of your organization has that id.")
     return await _member(db, user_id)
