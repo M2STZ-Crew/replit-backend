@@ -172,6 +172,12 @@ class IncidentDetail(IncidentSummary):
     alarm_level_set_at: datetime | None = None
     fire_type_set_by_name: str | None = None
     has_post_incident_report: bool = False
+    # The Post-Incident Report queue (v1.12.27): the fire teams that joined,
+    # how many have filed, and the names of those still to file. The incident
+    # closes, and its CIAR is written, when the last of them files.
+    pir_teams_expected: int = 0
+    pir_teams_filed: int = 0
+    pir_waiting_on: list[str] = Field(default_factory=list)
     routes: list[IncidentRoute] = Field(default_factory=list)
     acceptances: list[IncidentAcceptance] = Field(default_factory=list)
     reports: list[IncidentReportItem] = Field(default_factory=list)

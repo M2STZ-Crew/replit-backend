@@ -13,10 +13,12 @@ Named "Post-Incident Report" throughout because ``audit_logs`` already means the
 append-only action record.
 
 One report per responding team. A fire is often fought by more than one team,
-and each captain records their own units, crew and equipment. The first report
-filed closes the incident; the others are added to the closed incident, one per
-organisation. /post-incident-reports/owed is each captain's tray of the ones
-their team has still to file.
+and each captain records their own units, crew and equipment. Since v1.12.27
+(12 Nov 2026) only a fire team that joined the incident files, the incident
+stays at "To file" until every one of them has, and the last report closes
+it and starts the CIAR (app/services/pir_queue.py). An incident no fire team
+joined is closed by the first report, as before. /post-incident-reports/owed
+is each captain's tray of the ones their team has still to file.
 """
 
 from __future__ import annotations
@@ -30,7 +32,7 @@ from fastapi import APIRouter, BackgroundTasks, Query, Request, status
 
 from app.api.deps import DatabaseDep, StaffUser
 from app.api.routes.incidents import _SUMMARY_COLS, finish_incident_change
-from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
+from app.core.exceptions import BadRequestError, ConflictError, ForbiddenError, NotFoundError
 from app.core.logging import get_logger
 from app.db.session import Database
 from app.schemas.auth import AuthenticatedUser
@@ -54,6 +56,7 @@ from app.services.incident import (
     visible_agencies,
     visible_area_sql,
 )
+from app.services.pir_queue import PirProgress, expected_teams_sql, pir_progress
 
 log = get_logger(__name__)
 
@@ -79,6 +82,10 @@ _REPORT_SELECT = """
 
 
 _ALREADY_FILED = "Your team has already filed its Post-Incident Report for this incident."
+_NOT_JOINED = (
+    "Only the teams that joined this incident file a Post-Incident Report for it, "
+    "and yours did not."
+)
 
 
 def _to_response(row: Any) -> PostIncidentReportResponse:
@@ -143,14 +150,14 @@ async def file_post_incident_report(
 ) -> PostIncidentReportResponse:
     """File once per team, fully filled.
 
-    The first report moves the incident post_incident_report -> closed. A
-    captain of another team that fought the same fire files theirs afterwards,
-    onto the closed incident; a team cannot file twice.
+    Only a fire team that joined the incident files (a 403 ``not_joined``
+    otherwise), once (409). The incident stays post_incident_report until the
+    last joined team has filed; that report closes it. One team's report no
+    longer clears the incident for the others. With no fire team joined, the
+    first report closes it, as before.
 
-    Filing also schedules the AI post-incident summary, rewritten each time so
-    it covers every team's report filed so far. It used to run at fire out, but
-    the reports are filed after that, so a summary written then could never
-    include them.
+    The AI post-incident summary (the CIAR) is scheduled only once every
+    joined team has filed, so it covers all of them (12 Nov 2026).
     """
     assert_team_captain(user)
     await assert_incident_visible(db, incident_id, user)
@@ -186,17 +193,23 @@ async def file_post_incident_report(
         if current is None:
             raise NotFoundError("Incident not found.")
         current = str(current)
-        # Already closed: another team filed first, and this one adds its own.
-        closing = current != "closed"
-        if closing:
+        # Filing is for after the fire: post_incident_report, or (an incident
+        # closed before v1.12.27 by the first team) closed.
+        if current != "closed":
             assert_transition(current, "closed")
-        if await conn.fetchval(
-            f"select 1 from public.post_incident_reports p "
-            f"where p.area_id = $1 and {_TEAM_SQL} = $2",
-            incident_id,
-            team,
-        ):
+        before = await pir_progress(conn, incident_id)
+        if not before.may_file(team):
+            raise ForbiddenError(
+                _NOT_JOINED,
+                error_code="not_joined",
+                details={"waiting_on": list(before.waiting_names)},
+            )
+        if team in before.filed:
             raise ConflictError(_ALREADY_FILED)
+        after = PirProgress(before.expected, before.filed | {team})
+        # The last joined team's report closes it; until then it stays "To
+        # file" for the others.
+        closing = current != "closed" and after.complete
         try:
             report_id = await conn.fetchval(
                 """
@@ -250,8 +263,9 @@ async def file_post_incident_report(
             area_id=incident_id,
             before_state={"status": current},
             after_state={
-                "status": "closed",
+                "status": "closed" if closing or current == "closed" else current,
                 "closed_the_incident": closing,
+                "teams_waiting": len(after.waiting),
                 "units": payload.unit_names,
                 "driver_name": payload.driver_name,
                 "roster_count": len(roster),
@@ -271,7 +285,9 @@ async def file_post_incident_report(
     await finish_incident_change(
         db, incident_id, "incident_closed" if closing else "post_incident_report_added"
     )
-    background.add_task(summarize_in_background, incident_id)
+    # The CIAR, once every team that joined has filed.
+    if after.complete:
+        background.add_task(summarize_in_background, incident_id)
     report = await _load_team_report(db, incident_id, team)
     assert report is not None
     return report
@@ -326,12 +342,13 @@ async def list_owed_post_incident_reports(
 ) -> list[IncidentSummary]:
     """The captain's tray: fire out, and their team has not filed.
 
-    An incident nobody has filed for is owed by every captain who can see it -
-    any of them may file first, as before. Once it is closed by another team's
-    report, it stays in the tray only of a team that actually responded to it
-    (someone in the organisation pressed Respond, or the captain did), so a
-    closed incident does not sit in every other captain's tray for ever.
-    Anyone who is not a team captain owes nothing.
+    At "To file" an incident is owed by every fire team that joined it
+    (app/services/pir_queue.py) until each has filed — one team's report no
+    longer takes it out of the others' trays. One that no fire team joined is
+    owed by every captain who can see it, until the first files. An incident
+    closed before v1.12.27 by another team's report stays owed by a team that
+    responded to it and has not filed. Anyone who is not a team captain owes
+    nothing.
     """
     if not (user.role == "sub_admin" and user.agency_type in COORDINATING_AGENCIES):
         return []
@@ -344,7 +361,13 @@ async def list_owed_post_incident_reports(
         from public.areas a
         where {visible_area_sql(1)}
           and (
-            a.status = 'post_incident_report'
+            (
+              a.status = 'post_incident_report'
+              and (
+                exists (select 1 from ({expected_teams_sql('a.id')}) e where e.team = $2)
+                or not exists (select 1 from ({expected_teams_sql('a.id')}) e2)
+              )
+            )
             or (
               a.status = 'closed'
               and exists (

@@ -2,9 +2,13 @@
 
 A fire is often fought by more than one team, and an incident used to hold a
 single report: whoever filed first closed it and the other teams' units, crews
-and equipment were never recorded. Now each team's captain files their own. The
-first report closes the incident; the others are added to it; no team files
-twice; and each captain's tray lists what their own team still owes.
+and equipment were never recorded. Now each team's captain files their own; no
+team files twice; and each captain's tray lists what their own team still owes.
+
+Since v1.12.27 (12 Nov 2026): only a fire team that joined the incident files;
+the incident stays at "To file" until every joined team has, so one team's
+report no longer clears it for the others; the last report closes it, and only
+then is the CIAR started. With no fire team joined, the first report closes it.
 """
 
 from __future__ import annotations
@@ -45,8 +49,9 @@ def _captain(org: UUID | None, agency: str = "fire_volunteer") -> AuthenticatedU
 class _State:
     """One incident as the database holds it."""
 
-    def __init__(self, status: str) -> None:
+    def __init__(self, status: str, joined: list[UUID] | None = None) -> None:
         self.status = status
+        self.joined: list[UUID] = joined or []  # the fire teams that joined
         self.teams: list[UUID] = []  # who has filed, in order
         self.closes = 0
 
@@ -75,6 +80,15 @@ class _Conn:
         if "insert into public.post_incident_reports" in q:
             self.s.teams.append(args[5] or args[1])  # organization_id, else filed_by
             return uuid4()
+        return None
+
+    async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
+        if "with expected as" in query:  # app/services/pir_queue.py
+            return {
+                "expected": list(self.s.joined),
+                "filed": list(self.s.teams),
+                "waiting_names": [f"Team {t}" for t in self.s.joined if t not in self.s.teams],
+            }
         return None
 
     async def execute(self, query: str, *args: Any) -> str:
@@ -184,7 +198,9 @@ def _file(client: TestClient) -> Any:
 
 
 # ---------------------------------------------------------------- filing ---
-def test_the_first_report_closes_the_incident(client: TestClient, events: list[str]) -> None:
+def test_with_no_team_joined_the_first_report_closes_it(
+    client: TestClient, events: list[str]
+) -> None:
     state = _State("post_incident_report")
     _as(_captain(_HERCULES), _Db(state))
 
@@ -194,23 +210,56 @@ def test_the_first_report_closes_the_incident(client: TestClient, events: list[s
     assert events == ["incident_closed", "summary_scheduled"]
 
 
-def test_a_second_team_adds_its_report_to_the_closed_incident(
+def test_one_teams_report_leaves_the_incident_to_file_for_the_others(
     client: TestClient, events: list[str]
 ) -> None:
-    state = _State("post_incident_report")
+    """12 Nov: "one organization's PIR clears it for other joined organizations"
+    — not any more; and "CIAR must not initialize until every joined
+    organization has filed its PIR"."""
+    state = _State("post_incident_report", joined=[_HERCULES, _BFP])
     db = _Db(state)
     _as(_captain(_HERCULES), db)
-    assert _file(client).status_code == 201
-    _as(_captain(_BFP, "bfp"), db)
 
+    assert _file(client).status_code == 201
+    assert state.status == "post_incident_report", "BFP has still to file"
+    assert state.closes == 0
+    assert events == ["post_incident_report_added"], "no CIAR yet"
+
+    _as(_captain(_BFP, "bfp"), db)
     response = _file(client)
 
     assert response.status_code == 201, response.text
     assert state.teams == [_HERCULES, _BFP]
-    assert state.closes == 1, "only the first report closes it"
-    # The summary is rewritten, so it now covers both teams.
-    assert events[-2:] == ["post_incident_report_added", "summary_scheduled"]
+    assert state.status == "closed" and state.closes == 1, "the last report closes it"
+    assert events[-2:] == ["incident_closed", "summary_scheduled"]
     assert response.json()["organization_id"] == str(_BFP)
+
+
+def test_a_team_that_did_not_join_cannot_file(client: TestClient, events: list[str]) -> None:
+    state = _State("post_incident_report", joined=[_HERCULES])
+    _as(_captain(_BFP, "bfp"), _Db(state))
+
+    response = _file(client)
+
+    assert response.status_code == 403
+    assert response.json()["error"] == "not_joined"
+    assert state.teams == [] and events == []
+
+
+def test_a_late_team_adds_its_report_to_an_incident_closed_before(
+    client: TestClient, events: list[str]
+) -> None:
+    """Closed by the first team before v1.12.27, it still takes the rest."""
+    state = _State("closed", joined=[_HERCULES, _BFP])
+    state.teams = [_HERCULES]
+    _as(_captain(_BFP, "bfp"), _Db(state))
+
+    response = _file(client)
+
+    assert response.status_code == 201, response.text
+    assert state.closes == 0
+    # Everyone has filed now: the CIAR covers both teams.
+    assert events[-2:] == ["post_incident_report_added", "summary_scheduled"]
 
 
 def test_a_team_cannot_file_twice(client: TestClient, events: list[str]) -> None:
@@ -271,9 +320,12 @@ def test_the_tray_is_what_my_team_still_owes(client: TestClient) -> None:
     assert client.get("/post-incident-reports/owed").status_code == 200
 
     query, args = db.fetches[0]
-    # Nobody has filed: anyone who can see it may. Closed by another team: only
-    # a team that actually responded still owes one. Never one already filed.
+    # To file: every fire team that joined owes one until it files; with none
+    # joined, anyone who can see it may. Closed before v1.12.27 by another
+    # team: only a team that actually responded still owes one. Never one
+    # already filed.
     assert "a.status = 'post_incident_report'" in query
+    assert "from public.area_acceptances x" in query and "e.team = $2" in query
     assert "a.status = 'closed' and exists ( select 1 from public.dispatch_logs d" in query
     assert "d.status <> 'withdrawn'" in query
     assert "not exists ( select 1 from public.post_incident_reports p" in query

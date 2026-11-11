@@ -37,13 +37,18 @@ class SummarizedIncident(BaseModel):
     reports_filed: int = Field(description="Post-Incident Reports filed, one per team.")
     teams: list[str] = Field(description="The teams that filed, in filing order.")
     last_filed_at: datetime
-    state: Literal["ready", "writing", "unavailable"] = Field(
+    state: Literal["ready", "writing", "unavailable", "waiting"] = Field(
         description=(
             "ready: the summary covers every team's report. writing: one is owed and "
             "the server is writing it; refresh shortly. unavailable: one is owed and "
-            "the server has no AI key. A summary from before the newest report is "
-            "still returned while its replacement is written."
+            "the server has no AI key. waiting: a team that joined has not filed its "
+            "Post-Incident Report yet, and the CIAR waits for it (v1.12.27). A "
+            "summary from before the newest report is still returned while its "
+            "replacement is written."
         )
+    )
+    pir_waiting: int = Field(
+        default=0, description="Teams that joined and have not filed yet (v1.12.27)."
     )
     summary_id: UUID | None = None
     summary_text: str | None = None

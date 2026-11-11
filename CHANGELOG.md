@@ -42,6 +42,25 @@ fire type reads as empty) but setting one fails.
 - **Back to the app after confirming an email**: every page the emailed link
   lands on has an **Open RepLiT** button (`reportwhatslit://`, an `intent:`
   link on Android), where the waiting sheet sees the address confirmed.
+- **The Post-Incident Report queue** (12 November: "only organizations that
+  joined an incident can file a PIR"; "one organization's PIR clears it for
+  other joined organizations"; "CIAR must not initialize until every joined
+  organization has filed its PIR"). A team *joined* when it acknowledged the
+  incident or someone of it went, and it is a fire team (Fire Volunteers or
+  BFP, whose captains file). Now:
+  - only a joined team files; another is a 403 `not_joined`;
+  - the incident stays at **To file** until every joined team has filed, so
+    one team's report no longer takes it out of the others' trays; the last
+    report closes it;
+  - the **CIAR is written only then**: `POST /ai/{id}/summary` before that is
+    a 409 `pir_pending` naming who it waits for, and the AI summaries list
+    shows such an incident as `waiting` (with `pir_waiting`) and starts
+    nothing;
+  - an incident no fire team joined is closed by the first report, as before,
+    and one closed before this release still takes the reports of the teams
+    that responded.
+  Incident detail carries `pir_teams_expected`, `pir_teams_filed` and
+  `pir_waiting_on` (names). `app/services/pir_queue.py`.
 
 **UI (Admin console)**
 - The Area map draws the 50 m radius, a step closer in.
@@ -49,8 +68,14 @@ fire type reads as empty) but setting one fails.
 ### Tests
 - `tests/test_v1_12_27.py`: 18 and over (birthdays, 29 February, Manila's
   date), the radii, staff V = 1.0, the fire types and subtypes, the route, the
-  Open RepLiT link per phone. `tests/test_email_link.py`: the button on the
-  confirmed page (Android and iPhone) and on a dead link.
+  Open RepLiT link per phone, the PIR queue and the CIAR's wait.
+  `tests/test_email_link.py`: the button on the confirmed page (Android and
+  iPhone) and on a dead link. `tests/test_pir_per_team.py`: one team's report
+  leaves the incident to file for the others, the last closes it and starts
+  the CIAR, a team that did not join is refused, and a late team still files
+  on an incident closed before.
+- Failing before this release and unchanged by it: `tests/test_smoke.py` and
+  `tests/test_national_id.py`'s photo removal, 7 in all.
 
 ---
 

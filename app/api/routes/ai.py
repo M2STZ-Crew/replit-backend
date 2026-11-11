@@ -41,6 +41,7 @@ from app.services.incident import (
     responded_params,
     visible_agencies,
 )
+from app.services.pir_queue import pir_progress
 
 log = get_logger(__name__)
 
@@ -98,6 +99,20 @@ async def generate_summary(
         raise ConflictError(
             "A fire-out report can only be generated once the fire is out.",
             details={"current_status": status_val},
+        )
+    # The CIAR waits until every team that joined has filed its Post-Incident
+    # Report (12 Nov 2026): written before, it would leave some of them out.
+    progress = await pir_progress(db, incident_id)
+    if not progress.complete:
+        raise ConflictError(
+            "The CIAR is written once every team that joined this incident has "
+            "filed its Post-Incident Report.",
+            error_code="pir_pending",
+            details={
+                "teams_expected": len(progress.expected),
+                "teams_filed": len(progress.filed),
+                "waiting_on": list(progress.waiting_names),
+            },
         )
     row = await generate_incident_summary(db, client, incident_id)
     log.info("ai_summary_generated", incident_id=str(incident_id), user_id=str(user.id))

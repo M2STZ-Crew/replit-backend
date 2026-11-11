@@ -187,3 +187,53 @@ def test_a_page_without_an_action_has_no_button() -> None:
     assert 'class="action"' not in bytes(page.body).decode()
     page = link_page("t", "Heading", "Message", action=("Open RepLiT", "x://y?a=1&b=2"))
     assert '<a class="action" href="x://y?a=1&amp;b=2">Open RepLiT</a>' in bytes(page.body).decode()
+
+
+# --------------------------------------------------------------------------- #
+# The Post-Incident Report queue, and when the CIAR is written
+# --------------------------------------------------------------------------- #
+def test_the_last_joined_team_completes_the_queue() -> None:
+    from app.services.pir_queue import PirProgress
+
+    hercules, bfp = uuid4(), uuid4()
+    nobody = PirProgress(frozenset({hercules, bfp}), frozenset())
+    one = PirProgress(frozenset({hercules, bfp}), frozenset({hercules}))
+    both = PirProgress(frozenset({hercules, bfp}), frozenset({hercules, bfp}))
+    assert not nobody.complete and not one.complete and both.complete
+    assert one.waiting == {bfp}
+    # Only a team that joined files - unless no fire team joined at all.
+    assert one.may_file(bfp) and not one.may_file(uuid4())
+    assert PirProgress(frozenset(), frozenset()).may_file(uuid4())
+    # Nobody joined: the first report completes it, as before.
+    assert PirProgress(frozenset(), frozenset({hercules})).complete
+    assert not PirProgress(frozenset(), frozenset()).complete
+
+
+def test_a_joined_team_is_a_fire_team_that_acknowledged_or_went() -> None:
+    from app.services.pir_queue import expected_teams_sql, waiting_count_sql
+
+    sql = " ".join(expected_teams_sql("$1").split())
+    assert "from public.area_acceptances x" in sql
+    assert "from public.dispatch_logs d" in sql and "d.status <> 'withdrawn'" in sql
+    assert "in ('fire_volunteer', 'bfp')" in sql
+    # A responder with no organisation is no team; a captain with none is one.
+    assert "case when u.role::text = 'sub_admin' then d.responder_id end" in sql
+    assert "count(*)" in " ".join(waiting_count_sql("a.id").split())
+
+
+def test_the_ciar_waits_for_every_team() -> None:
+    from app.services.ai_summary import summary_state
+
+    filed = datetime(2026, 11, 12, 8, 0, tzinfo=UTC)
+    waiting = {"generated_at": None, "last_filed_at": filed, "pir_waiting": 1}
+    assert summary_state(waiting, configured=True) == "waiting"
+    owed = {"generated_at": None, "last_filed_at": filed, "pir_waiting": 0}
+    assert summary_state(owed, configured=True) == "writing"
+
+
+def test_asking_for_the_ciar_early_says_who_it_waits_for() -> None:
+    from app.api.routes import ai
+
+    source = inspect.getsource(ai.generate_summary)
+    assert 'error_code="pir_pending"' in source
+    assert "progress.complete" in source

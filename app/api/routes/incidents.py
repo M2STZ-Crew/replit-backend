@@ -80,6 +80,7 @@ from app.services.incident_notify import (
     notify_incident_reporters,
 )
 from app.services.map_feed import publish_area_change
+from app.services.pir_queue import pir_progress
 from app.services.tracking import gps_arrival_distance, publish_tracking
 from app.services.verifier import fetch_verifier
 from app.workers.coordinator_pings import stop_pings
@@ -333,7 +334,11 @@ async def build_incident_detail(db: Database, incident_id: UUID) -> IncidentDeta
         incident_id,
     )
     verifier = await fetch_verifier(db, incident_id)
+    progress = await pir_progress(db, incident_id)
     data = dict(row)
+    data["pir_teams_expected"] = len(progress.expected)
+    data["pir_teams_filed"] = len(progress.filed)
+    data["pir_waiting_on"] = list(progress.waiting_names)
     data["routes"] = [dict(r) for r in routes]
     data["acceptances"] = [dict(r) for r in acceptances]
     data["reports"] = [dict(r) for r in reports]
