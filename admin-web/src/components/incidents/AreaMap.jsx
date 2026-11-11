@@ -9,12 +9,12 @@ import { t } from '../../i18n/i18n.jsx';
 /* One or more Areas on the map (REPLIT (MAIN) 10 · A23, A27; 04 · Map
  * marker, Area radius): the incident marker — the brand's solid step with a
  * white flame, white edge — inside its radius. The radius is the server's
- * clustering radius (app/services/clustering.py, 300 m); the design draws
- * v13's 100 m, which the server does not use yet, so the circle shows what
+ * clustering radius (app/services/clustering.py): 50 m since 12 November
+ * 2026 ("50m actual incident, 100m corroboration"), so the circle shows what
  * actually joins reports. A second Area is drawn smaller, as the one that
  * would be merged away. */
 
-export const CLUSTER_RADIUS_M = 300;
+export const CLUSTER_RADIUS_M = 50;
 
 function markerIcon(small) {
   const size = small ? 36 : 44;
@@ -44,7 +44,7 @@ export default function AreaMap({ lat, lng, label, areas, height }) {
     >
       <MapContainer
         center={centre}
-        zoom={list.length > 1 ? 16 : 15}
+        zoom={list.length > 1 ? 16 : 17}
         zoomControl={false}
         attributionControl={false}
         scrollWheelZoom={false}
