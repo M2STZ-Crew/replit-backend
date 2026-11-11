@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { api } from '../api/client.js';
+import { SIGNED_OUT_NOTE, api } from '../api/client.js';
 import { useAuth } from '../auth.jsx';
 import AuthBrand from '../components/AuthBrand.jsx';
 import { LanguageSwitch, t } from '../i18n/i18n.jsx';
@@ -13,7 +13,17 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
+  // Signed out because the account was opened on another device (v1.12.27):
+  // say so once, on the page it lands on.
+  const [error, setError] = useState(() => {
+    try {
+      const note = sessionStorage.getItem(SIGNED_OUT_NOTE);
+      sessionStorage.removeItem(SIGNED_OUT_NOTE);
+      return note;
+    } catch {
+      return null;
+    }
+  });
   const [reset, setReset] = useState(null);
   const emailInput = useRef(null);
 

@@ -1039,5 +1039,6 @@ export const TAGALOG = {
   'Personal email': 'Personal email',
   'Their own email. The link to set their password goes here, and so do password resets.': 'Ang sarili nilang email. Dito ipapadala ang link para itakda ang password nila, pati ang mga password reset.',
   'Temporary email addresses can’t be used. Use an email that will last, such as Gmail or Yahoo.': 'Hindi puwede ang pansamantalang email. Gumamit ng email na pangmatagalan, gaya ng Gmail o Yahoo.',
+  'Your account was opened on another device, so it has been signed out here.': 'Binuksan ang account mo sa ibang device, kaya na-sign out ito rito.',
   'Coordinator account created: {name} signs in as {address}': 'Nagawa ang Coordinator account: magsa-sign in si {name} bilang {address}',
 };

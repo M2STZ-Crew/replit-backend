@@ -61,6 +61,26 @@ fire type reads as empty) but setting one fails.
     that responded.
   Incident detail carries `pir_teams_expected`, `pir_teams_filed` and
   `pir_waiting_on` (names). `app/services/pir_queue.py`.
+- **Every alert vibrates** ("vibration when notifying, both Android and iOS,
+  every stage and every notif"). The agency alert channels always vibrated;
+  the citizen ones and "updates" did not, and a channel's settings are fixed
+  once a phone has made it. Pushes now name the vibrating copies app v1.12.35
+  makes: `citizen_updates_v2`, `citizen_verified_v3`, `citizen_on_route_v2`,
+  `citizen_on_scene_v2`, `citizen_fire_out_v2`, `citizen_rejected_v2` and
+  `updates_v2`. An app before v1.12.35 shows them on its default channel, with
+  the phone's tone.
+- **One phone per account: the newest sign-in wins** ("single device only
+  policy ... a warning and a button will lead to exit"). Each request's
+  session (the token's `session_id`) must be the account's newest in
+  `auth.sessions`; an older one is a 403 `signed_in_elsewhere`, which the app
+  answers with its warning and Exit (v1.12.35). Read once per 15 s per
+  account. If the database role may not read `auth.sessions` the check turns
+  itself off and logs `one_device_check_unavailable`, rather than refuse
+  everyone. `app/services/one_device.py`.
+
+**UI (Admin console)** (one device)
+- A `signed_in_elsewhere` answer signs the console out, and the sign-in page
+  says the account was opened on another device.
 
 **UI (Admin console)**
 - The Area map draws the 50 m radius, a step closer in.

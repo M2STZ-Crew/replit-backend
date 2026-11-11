@@ -46,7 +46,23 @@ export class ApiError extends Error {
 /// affiliation form alike.
 const OWN_WORDS = new Map([
   ['disposable_email', () => tr('Temporary email addresses can’t be used. Use an email that will last, such as Gmail or Yahoo.')],
+  ['signed_in_elsewhere', () => tr('Your account was opened on another device, so it has been signed out here.')],
 ]);
+
+/// One device per account (v1.12.27): the newest sign-in wins. When the API
+/// says this session was replaced, the console signs out here and the sign-in
+/// page says why (pages/Login.jsx reads the note).
+export const SIGNED_OUT_NOTE = 'replit_admin_signed_out';
+
+function signedInElsewhere(message) {
+  setToken(null);
+  try {
+    sessionStorage.setItem(SIGNED_OUT_NOTE, message);
+  } catch {
+    // Private window: the sign-in page simply shows no note.
+  }
+  window.location.assign('/');
+}
 
 async function request(path, { method = 'GET', body, auth = true } = {}) {
   const headers = { 'Content-Type': 'application/json' };
@@ -87,6 +103,7 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
   }
   if (!resp.ok) {
     const own = OWN_WORDS.get(data.error);
+    if (data.error === 'signed_in_elsewhere' && auth) signedInElsewhere(own());
     throw new ApiError(own ? own() : data.message || tr('Request failed ({status}).', { status: resp.status }), resp.status, data.error ?? null);
   }
   return data;
