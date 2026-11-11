@@ -1,8 +1,8 @@
 """Area clustering service (Section 3.4).
 
 Assigns each new report to an area:
-  1. an active cluster within 300 m whose activity is < 5 min old  -> match,
-  2. else a same-location area (within 300 m) updated < 1 hour ago -> new version
+  1. an active cluster within 50 m whose activity is < 5 min old  -> match,
+  2. else a same-location area (within 50 m) updated < 1 hour ago -> new version
      (Area 1.2, 1.3 ...),
   3. else a brand-new area.
 On every change it recomputes the centroid (arithmetic mean) and the confidence
@@ -23,7 +23,12 @@ from app.services.incident import active_area_sql, versionable_area_sql
 
 log = get_logger(__name__)
 
-_CLUSTER_RADIUS_M = 300
+# 12 November 2026: "50m actual incident, 100m corroboration". An Area is the
+# reports within 50 m of its centre (it was 300 m; PRD v14 §4.3 said 100 m);
+# the neighbours asked to corroborate are those within 100 m
+# (app/workers/neighborhood.py).
+CLUSTER_RADIUS_M = 50
+_CLUSTER_RADIUS_M = CLUSTER_RADIUS_M
 _RECENT_WINDOW = "5 minutes"
 _VERSION_WINDOW = "1 hour"
 
@@ -37,7 +42,7 @@ async def cluster_report(db: Database, *, report_id: UUID, lat: float, lng: floa
     """Cluster a report into an area (match / version / new); return the area id."""
     point = f"SRID=4326;POINT({lng} {lat})"
 
-    # 1) Active cluster within 300 m, active in the last 5 minutes.
+    # 1) Active cluster within 50 m, active in the last 5 minutes.
     match = await db.fetchrow(
         f"""
         select id from public.areas
@@ -179,12 +184,14 @@ async def recompute_area(db: Database, area_id: UUID) -> None:
     await _detect_overlaps(db, area_id)
 
 
-_OVERLAP_RADIUS_M = 600
+# Two distinct Areas this close may be one fire split in two: twice the
+# cluster radius, as it was (600 m for 300 m).
+_OVERLAP_RADIUS_M = 2 * CLUSTER_RADIUS_M
 _OVERLAP_WINDOW = "120 seconds"
 
 
 async def _detect_overlaps(db: Database, area_id: UUID) -> None:
-    """Record pending overlaps with other active areas whose centroids are <600 m apart.
+    """Record pending overlaps with other active areas whose centroids are <100 m apart.
 
     Areas sharing a base number are versions of the same location (Area 7, 7.2, 7.3 ...),
     so they sit metres apart by construction. Flagging those asks the dispatcher to merge

@@ -385,8 +385,8 @@ def test_no_console_name_is_one_an_adblocker_hides() -> None:
 # --------------------------------------------------------------------------- #
 # Issue 02: the radii
 # --------------------------------------------------------------------------- #
-def test_the_alert_is_150_m_and_clustering_is_its_own_setting() -> None:
-    assert NEIGHBORHOOD_RADIUS_M == 150
-    # Not the alert radius: what joins reports into one Area. PRD v14 says 100 m,
-    # the team's issue says 150 m, the code says 300 m; open decision, see CHANGELOG.
-    assert _CLUSTER_RADIUS_M == 300
+def test_the_alert_is_100_m_and_clustering_is_its_own_setting() -> None:
+    # 12 Nov 2026, "50m actual incident, 100m corroboration": the alert reaches
+    # 100 m (was 150 m) and an Area gathers reports from 50 m (was 300 m).
+    assert NEIGHBORHOOD_RADIUS_M == 100
+    assert _CLUSTER_RADIUS_M == 50

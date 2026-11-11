@@ -12,10 +12,43 @@ import html
 
 from fastapi.responses import HTMLResponse
 
+# The app answers links in this scheme (AndroidManifest.xml's intent filter,
+# Info.plist's CFBundleURLTypes; app v1.12.34). "replit" itself belongs to
+# another company's app, so the scheme is the product's full name.
+APP_SCHEME = "reportwhatslit"
 
-def link_page(title: str, heading: str, message: str, *, status_code: int = 200) -> HTMLResponse:
-    """A one-card page: ``heading`` over ``message``. Not cached, no referrer:
-    the URL that opened it carries a token."""
+
+def open_app_href(user_agent: str | None, path: str = "email-confirmed") -> str:
+    """A link that opens the RepLiT app from a phone's browser.
+
+    Android's Chrome, and the Gmail app's browser built on it, open an app
+    through an ``intent:`` link; without a package it does nothing when the app
+    is not installed, rather than sending the person to a store RepLiT is not
+    in. iPhones take the scheme as it is, and Safari asks before opening.
+    """
+    if "android" in (user_agent or "").lower():
+        return f"intent://{path}#Intent;scheme={APP_SCHEME};end"
+    return f"{APP_SCHEME}://{path}"
+
+
+def link_page(
+    title: str,
+    heading: str,
+    message: str,
+    *,
+    status_code: int = 200,
+    action: tuple[str, str] | None = None,
+) -> HTMLResponse:
+    """A one-card page: ``heading`` over ``message``, and a button when
+    ``action`` is (label, href) — "Open RepLiT" after an email is confirmed.
+    Not cached, no referrer: the URL that opened it carries a token."""
+    button = ""
+    if action is not None:
+        label, href = action
+        button = (
+            f'<a class="action" href="{html.escape(href, quote=True)}">'
+            f"{html.escape(label)}</a>"
+        )
     body = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -35,8 +68,12 @@ def link_page(title: str, heading: str, message: str, *, status_code: int = 200)
          border-radius:16px; padding:28px 24px; box-sizing:border-box; }}
   h1 {{ font-size:22px; margin:0 0 12px; }}
   p {{ margin:0; color:var(--muted); }}
+  .action {{ display:block; margin-top:24px; padding:16px; border-radius:12px; text-align:center;
+            background:linear-gradient(#ff9066, #ff7943); color:#581a00; text-decoration:none;
+            font-weight:900; font-size:15px; letter-spacing:1px; text-transform:uppercase; }}
+  .action:focus-visible {{ outline:2px solid #ff9066; outline-offset:3px; }}
 </style>
 </head>
-<body><main><h1>{html.escape(heading)}</h1><p>{html.escape(message)}</p></main></body>
+<body><main><h1>{html.escape(heading)}</h1><p>{html.escape(message)}</p>{button}</main></body>
 </html>"""
     return HTMLResponse(body, status_code=status_code, headers={"Cache-Control": "no-store"})
