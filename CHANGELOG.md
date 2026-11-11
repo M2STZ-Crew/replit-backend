@@ -6,6 +6,54 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.27 — 12 November 2026 — 50 m / 100 m, adults only, what's burning
+
+Backend and Admin console, with app v1.12.34. **Run the migration
+`20261112090000_fire_type_on_arrival.sql` before this deploys** (with
+v1.12.26's, if it has not run yet). Until it runs, incidents still list (the
+fire type reads as empty) but setting one fails.
+
+### Changes
+
+**Logic**
+- **50 m incident, 100 m corroboration** (12 November: "change the area to
+  50m actual incident, 100m corroboration"). A report joins an Area when it is
+  within 50 m of the Area's centre (it was 300 m); two separate Areas within
+  100 m are flagged as maybe one fire (was 600 m); and the neighbours asked
+  "Is there a fire near you?" are those within 100 m (was 150 m).
+- **Adults only** ("date of birth: don't accept 17 y/o and below"). A date of
+  birth under 18, at sign-up or on the profile, is a 400 `underage`
+  ("You must be 18 or older to use RepLiT."), counted on the Philippine
+  calendar; one in the future is a 400 `invalid_date_of_birth`. The date of
+  birth stays optional. `app/services/age.py`.
+- **Staff reports count fully** (PRD v14 §4.1, §4.6.3): a report from a
+  Coordinator or Responder carries V = 1.0 in the Area's confidence, whatever
+  their own profile shows. Coordinators and Responders report a fire with the
+  same flow as residents (app v1.12.34).
+- **What's burning, on arrival** (PRD v14 §4.5.3; Figma C18 / R08b).
+  `POST /incidents/{id}/fire-type` with `fire_type` (structural, electrical,
+  vehicular, rubbish, grass, chemical) and `fire_subtype` for the three that
+  have them (structural: residential, commercial, industrial; no Agricultural,
+  PRD v14). A Coordinator, or a Responder going to the incident, sets it on
+  scene; a later answer corrects it, up to the Post-Incident Report. Before
+  arrival it is a 409 `not_on_scene`. Audited as `incident.fire_type`;
+  incidents carry `fire_type`, `fire_subtype`, `fire_type_set_at` and, in
+  detail, `fire_type_set_by_name`.
+- **Back to the app after confirming an email**: every page the emailed link
+  lands on has an **Open RepLiT** button (`reportwhatslit://`, an `intent:`
+  link on Android), where the waiting sheet sees the address confirmed.
+
+**UI (Admin console)**
+- The Area map draws the 50 m radius, a step closer in.
+
+### Tests
+- `tests/test_v1_12_27.py`: 18 and over (birthdays, 29 February, Manila's
+  date), the radii, staff V = 1.0, the fire types and subtypes, the route, the
+  Open RepLiT link per phone. `tests/test_email_link.py`: the button on the
+  confirmed page (Android and iPhone) and on a dead link.
+
+---
+
 ## v1.12.26 — 9 November 2026 — Barangay 76: every Admin function, all in one
 
 Backend and Admin console; no app change. **Run the migration
