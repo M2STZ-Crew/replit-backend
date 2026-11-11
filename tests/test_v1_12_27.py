@@ -237,3 +237,71 @@ def test_asking_for_the_ciar_early_says_who_it_waits_for() -> None:
     source = inspect.getsource(ai.generate_summary)
     assert 'error_code="pir_pending"' in source
     assert "progress.complete" in source
+
+
+# --------------------------------------------------------------------------- #
+# One phone per account: the newest sign-in wins
+# --------------------------------------------------------------------------- #
+class _Sessions:
+    def __init__(self, newest: str | None = None, fail: bool = False) -> None:
+        self.newest = newest
+        self.fail = fail
+        self.reads = 0
+
+    async def fetchval(self, query: str, *args: object) -> str | None:
+        self.reads += 1
+        assert "from auth.sessions" in query
+        if self.fail:
+            raise PermissionError("permission denied for table sessions")
+        return self.newest
+
+
+async def test_the_newest_session_is_let_in_and_remembered() -> None:
+    from app.services import one_device
+
+    one_device.reset()
+    user = uuid4()
+    db = _Sessions(newest="s-new")
+    await one_device.assert_newest_session(db, user, "s-new", now=100.0)
+    await one_device.assert_newest_session(db, user, "s-new", now=105.0)
+    assert db.reads == 1, "no second read while it is still the newest"
+
+
+async def test_an_older_session_is_signed_out_with_a_reason() -> None:
+    from app.services import one_device
+
+    one_device.reset()
+    db = _Sessions(newest="s-new")
+    with pytest.raises(one_device.SignedInElsewhereError) as caught:
+        await one_device.assert_newest_session(db, uuid4(), "s-old")
+    assert caught.value.status_code == 403
+    assert caught.value.error_code == "signed_in_elsewhere"
+    assert "another phone" in caught.value.message
+
+
+async def test_no_session_claim_and_no_sessions_pass() -> None:
+    from app.services import one_device
+
+    one_device.reset()
+    db = _Sessions(newest=None)
+    await one_device.assert_newest_session(db, uuid4(), None)
+    assert db.reads == 0
+    await one_device.assert_newest_session(db, uuid4(), "s-any")
+
+
+async def test_without_access_to_the_sessions_the_check_steps_aside() -> None:
+    from app.services import one_device
+
+    one_device.reset()
+    db = _Sessions(fail=True)
+    await one_device.assert_newest_session(db, uuid4(), "s-old")
+    await one_device.assert_newest_session(db, uuid4(), "s-old")
+    assert db.reads == 1, "turned off after the first failure"
+    one_device.reset()
+
+
+def test_every_request_checks_the_session() -> None:
+    from app.api import deps
+
+    source = inspect.getsource(deps.get_current_user)
+    assert 'assert_newest_session(db, user_id, claims.get("session_id"))' in source

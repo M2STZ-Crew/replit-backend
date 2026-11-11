@@ -3,11 +3,11 @@
 The mapping the 2 November brief asked for, pinned where the server decides it:
 
     Reported   -> nothing
-    Verified   -> "Report acknowledged" (sound_verified, citizen_verified_v2)
-    On the way -> "On route"            (sound_on_route, citizen_on_route_v1)
-    On scene   -> "On scene"            (sound_on_scene, citizen_on_scene_v1)
-    Fire out   -> "Fire out"            (sound_fire_out, citizen_fire_out_v1)
-    Rejected   -> "Rejected"            (sound_rejected, citizen_rejected_v1)
+    Verified   -> "Report acknowledged" (sound_verified, citizen_verified_v3)
+    On the way -> "On route"            (sound_on_route, citizen_on_route_v2)
+    On scene   -> "On scene"            (sound_on_scene, citizen_on_scene_v2)
+    Fire out   -> "Fire out"            (sound_fire_out, citizen_fire_out_v2)
+    Rejected   -> "Rejected"            (sound_rejected, citizen_rejected_v2)
 
 9 November: rejected has its own recording (it played the general one), and
 verified moved to a v2 channel, since sound_rejected renumbers sound_verified
@@ -40,11 +40,11 @@ from app.services.incident_notify import (
 AREA = uuid4()
 
 _STAGES = {
-    "incident_verified": ("verified", "citizen_verified_v2"),
-    "incident_en_route": ("on_route", "citizen_on_route_v1"),
-    "incident_arrived": ("on_scene", "citizen_on_scene_v1"),
-    "incident_resolved": ("fire_out", "citizen_fire_out_v1"),
-    "incident_rejected": ("rejected", "citizen_rejected_v1"),
+    "incident_verified": ("verified", "citizen_verified_v3"),
+    "incident_en_route": ("on_route", "citizen_on_route_v2"),
+    "incident_arrived": ("on_scene", "citizen_on_scene_v2"),
+    "incident_resolved": ("fire_out", "citizen_fire_out_v2"),
+    "incident_rejected": ("rejected", "citizen_rejected_v2"),
 }
 
 
