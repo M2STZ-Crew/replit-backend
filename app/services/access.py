@@ -23,10 +23,14 @@ The rules are REPLIT (MAIN) pass 6, A00 "Four permission variants":
   organisation shares (Map settings): they are the fire service's working map,
   and PRD §4.9.6 gives water resources to the Fire Volunteers. The layers were
   the system account's alone, and the directory of 28 Oct 2026 has none.
-* **The central hub** (Barangay 76, ``organizations.is_central_hub``) is a
-  Barangay Admin that also reviews affiliate applications and National IDs,
-  and looks after those map layers too. "Nothing here makes the central hub a
-  superuser": it acts on Barangay's incidents like any Barangay Admin.
+* **The central hub** (Barangay 76, ``organizations.is_central_hub``) does
+  every Admin function, for every agency's incidents, all in one console (9
+  November 2026: "barangay 76 as a central hub with all admin functions in web,
+  not separated admin, fire, medic and barangay; it is all in one"). It has
+  everything the system account has, and asks for and decides alarm levels
+  too; its acknowledgements are recorded under Barangay, its own agency. It
+  signs in as barangay76.admin@replit.com. Until then it was a Barangay Admin
+  that also reviewed affiliates and IDs and looked after the map layers.
 
 An Admin with no organisation is the **system** account the console had
 before v13 (admin@replit.com): it keeps the full authority it always had, so
@@ -104,6 +108,13 @@ class AdminAccess:
         return self.variant == "system"
 
     @property
+    def governs_all(self) -> bool:
+        """Acts for every organisation: the system account, and the central hub
+        since 9 November 2026. Any organisation's equipment and Coordinators,
+        every unit on the live map, any alarm request to withdraw."""
+        return self.variant in ("system", "central")
+
+    @property
     def scope(self) -> str:
         """system | central | organization — which sidebar the console draws."""
         if self.variant in ("system", "central"):
@@ -153,6 +164,16 @@ def admin_access(user: AuthenticatedUser) -> AdminAccess | None:
             act_agencies=(),
             permissions=frozenset(),
         )
+    if user.org_is_central_hub:
+        # Every Admin function, on every incident, all in one (9 November).
+        return AdminAccess(
+            variant="central",
+            organization_id=user.primary_org_id,
+            organization_name=user.org_name,
+            agency=agency,
+            act_agencies=None,
+            permissions=_SYSTEM | {REQUEST_ALARM, DECIDE_ALARM},
+        )
     permissions = set(_EVERY_ADMIN)
     if agency in FIRE_AGENCIES:
         permissions.add(MANAGE_MAP)
@@ -160,12 +181,8 @@ def admin_access(user: AuthenticatedUser) -> AdminAccess | None:
         permissions.add(REQUEST_ALARM)
     if agency == "bfp":
         permissions.add(DECIDE_ALARM)
-    variant = agency
-    if user.org_is_central_hub:
-        variant = "central"
-        permissions |= {REVIEW_AFFILIATES, REVIEW_IDS, ALL_ORGANIZATIONS, MANAGE_MAP}
     return AdminAccess(
-        variant=variant,
+        variant=agency,
         organization_id=user.primary_org_id,
         organization_name=user.org_name,
         agency=agency,

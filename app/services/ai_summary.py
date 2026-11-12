@@ -35,6 +35,7 @@ from app.core.logging import get_logger
 from app.db.session import Database, database
 from app.integrations.deepseek_ai import DeepSeekClient
 from app.services.incident import responded_sql, took_part_sql, visible_area_sql
+from app.services.pir_queue import waiting_count_sql
 
 log = get_logger(__name__)
 
@@ -437,6 +438,10 @@ def summary_state(row: dict[str, Any], *, configured: bool) -> str:
     failed the old one no longer covers the incident.
     """
     generated = row.get("generated_at")
+    # The CIAR waits for every team that joined (12 Nov 2026, "CIAR must not
+    # initialize until every joined organization has filed its PIR").
+    if (row.get("pir_waiting") or 0) > 0:
+        return "waiting"
     if generated is not None and generated >= row["last_filed_at"]:
         return "ready"
     return "writing" if configured else "unavailable"
@@ -476,6 +481,7 @@ async def list_summarized_incidents(
         select a.id as area_id, a.designation, a.status::text as status,
                a.reported_at, a.closed_at,
                p.reports_filed, p.teams, p.last_filed_at,
+               {waiting_count_sql('a.id')} as pir_waiting,
                s.id as summary_id, s.summary_text, s.model, s.generated_at
         from public.areas a
         join lateral (

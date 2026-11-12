@@ -28,6 +28,7 @@ from app.integrations.supabase_storage import SupabaseStorageClient
 from app.schemas.auth import AuthenticatedUser
 from app.services import access as console_access
 from app.services.access import acting_agency, admin_access
+from app.services.one_device import assert_newest_session
 
 
 # --------------------------------------------------------------------------- #
@@ -152,6 +153,9 @@ async def get_current_user(
     # request, not only at the next sign-in: its token may still be valid.
     if profile.pop("is_active", True) is False:
         raise UnauthorizedError(DEACTIVATED_MESSAGE)
+    # One phone per account: a session the account has since replaced with a
+    # newer sign-in is refused (app/services/one_device.py).
+    await assert_newest_session(db, user_id, claims.get("session_id"))
     user = AuthenticatedUser.model_validate(profile)
     request.state.actor_id = user.id
     request.state.actor_role = user.role

@@ -126,13 +126,14 @@ def _may_decide(user: AuthenticatedUser) -> bool:
 def _may_withdraw(
     user: AuthenticatedUser, requested_by: UUID, requester_org: UUID | None
 ) -> bool:
-    """Whoever asked, an Admin of their (active) organisation, or the system Admin."""
+    """Whoever asked, an Admin of their (active) organisation, or the system
+    Admin or the central hub."""
     if user.id == requested_by:
         return True
     access = admin_access(user)
     if access is None:
         return False
-    if access.is_system:
+    if access.governs_all:
         return True
     # A turned-off organisation's Admin has no permissions: it may look, not act.
     return (

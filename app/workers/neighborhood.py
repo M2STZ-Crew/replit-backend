@@ -2,8 +2,9 @@
 
 Every 60 s, for each active area, pushes an alert — in each user's language
 (citizen_copy.NEIGHBOUR_ALERT: Tagalog, or English) — to registered users whose
-last known location is within 150 m of the centroid (PRD v13/v14 §4.2: 300 m dragged
-in too many unrelated households in dense Pasay) and was reported within the last
+last known location is within 100 m of the centroid (12 Nov 2026: "100m
+corroboration"; PRD v13/v14 §4.2 had 150 m, and 300 m before it dragged in too
+many unrelated households in dense Pasay) and was reported within the last
 NEIGHBORHOOD_LOCATION_MAX_AGE_MINUTES (30): a location the phone sent hours ago is
 where they were, not where they are (5 Nov 2026, issue list 2.2) — excluding the area's reporters,
 users who already responded (Report/Ignore), users at the 10-alert cap, and anyone
@@ -31,7 +32,7 @@ log = get_logger(__name__)
 # English get NEIGHBOUR_ALERT["en"].
 _ALERT_TITLE, _ALERT_BODY = NEIGHBOUR_ALERT["tl"]
 # Nobody farther than this from the fire is alerted (PRD v14 §4.2, §4.13.3).
-NEIGHBORHOOD_RADIUS_M = 150
+NEIGHBORHOOD_RADIUS_M = 100
 _MAX_ALERTS = 10
 
 _scheduler: AsyncIOScheduler | None = None

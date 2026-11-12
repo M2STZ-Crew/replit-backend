@@ -41,7 +41,8 @@ class _NeighbourQuery:
         return []
 
 
-async def test_only_neighbours_within_150_m_are_alerted() -> None:
+async def test_only_neighbours_within_100_m_are_alerted() -> None:
+    """100 m since 12 Nov 2026 (\"100m corroboration\"); it was 150 m."""
     db = _NeighbourQuery()
     alerted = await neighborhood.notify_area_neighbors(
         db,  # type: ignore[arg-type]
@@ -51,9 +52,9 @@ async def test_only_neighbours_within_150_m_are_alerted() -> None:
         121.0,
     )
     assert alerted == 0
-    assert neighborhood.NEIGHBORHOOD_RADIUS_M == 150
+    assert neighborhood.NEIGHBORHOOD_RADIUS_M == 100
     assert "ST_DWithin" in db.query and "$3" in db.query
-    assert db.args[2] == 150, "the radius the query is given"
+    assert db.args[2] == 100, "the radius the query is given"
 
 
 async def test_only_a_location_reported_in_the_last_30_minutes_counts() -> None:

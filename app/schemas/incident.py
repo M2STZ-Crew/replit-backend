@@ -12,6 +12,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.services.fire_type import FireTypeValue
+
 
 # --------------------------------------------------------------------------- #
 # Read models
@@ -103,6 +105,11 @@ class IncidentSummary(BaseModel):
     # Routing rows, all agencies and teams. Changes whenever Admin routes more,
     # so a console can tell "routed to another team" from "now routed to mine".
     route_count: int = 0
+    # What is burning, set on scene (PRD v14 §4.5.3, v1.12.27); null until
+    # then. Values: app/services/fire_type.py.
+    fire_type: str | None = None
+    fire_subtype: str | None = None
+    fire_type_set_at: datetime | None = None
 
 
 class IncidentRoute(BaseModel):
@@ -163,7 +170,14 @@ class IncidentDetail(IncidentSummary):
     merged_into_area_id: UUID | None = None
     alarm_level_set_by: UUID | None = None
     alarm_level_set_at: datetime | None = None
+    fire_type_set_by_name: str | None = None
     has_post_incident_report: bool = False
+    # The Post-Incident Report queue (v1.12.27): the fire teams that joined,
+    # how many have filed, and the names of those still to file. The incident
+    # closes, and its CIAR is written, when the last of them files.
+    pir_teams_expected: int = 0
+    pir_teams_filed: int = 0
+    pir_waiting_on: list[str] = Field(default_factory=list)
     routes: list[IncidentRoute] = Field(default_factory=list)
     acceptances: list[IncidentAcceptance] = Field(default_factory=list)
     reports: list[IncidentReportItem] = Field(default_factory=list)
@@ -172,6 +186,23 @@ class IncidentDetail(IncidentSummary):
 # --------------------------------------------------------------------------- #
 # Request models (Parts 2-4)
 # --------------------------------------------------------------------------- #
+class FireTypeRequest(BaseModel):
+    """What is burning (PRD v14 §4.5.3): a type, and its subtype when it has them."""
+
+    fire_type: FireTypeValue = Field(
+        description="structural, electrical, vehicular, rubbish, grass or chemical."
+    )
+    fire_subtype: str | None = Field(
+        default=None,
+        max_length=40,
+        description=(
+            "Required for structural (residential, commercial, industrial), electrical "
+            "(high_tension_wire, transformer, entrance_wire, meter) and vehicular "
+            "(motorcycle, tricycle, sedan, suv, truck, e_bike, e_car); none for the rest."
+        ),
+    )
+
+
 class IncidentRejectRequest(BaseModel):
     """Reject an incident as invalid / a false report."""
 

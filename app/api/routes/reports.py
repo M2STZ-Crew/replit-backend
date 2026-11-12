@@ -21,6 +21,7 @@ from app.core.exceptions import BadRequestError, ConflictError, ExternalServiceE
 from app.core.logging import get_logger
 from app.db.session import Database
 from app.integrations.fcm import PushService
+from app.schemas.auth import AuthenticatedUser
 from app.schemas.report import ReportResponse, ReportSubmitResponse
 from app.services.clustering import cluster_report
 from app.services.exif import extract_gps, validate_image
@@ -95,6 +96,19 @@ async def _sign_or_none(
     except ExternalServiceError:
         log.warning("report_media_unsigned", bucket=bucket, path=path)
         return None
+
+# Coordinators and Responders report as staff: their reports count as fully
+# verified whatever their own profile shows (PRD v14 §4.1, "Coordinator and
+# Responder reports carry an implicit V = 1.0"; §4.6.3, 12 Nov 2026).
+_STAFF_REPORTER_ROLES = frozenset({"admin", "sub_admin", "response_team"})
+
+
+def _reporter_verified_percent(user: AuthenticatedUser) -> int:
+    """The V a report carries: 100 from staff, else the reporter's own."""
+    if user.role in _STAFF_REPORTER_ROLES:
+        return 100
+    return int(user.verified_percent or 0)
+
 
 @router.post(
     "/submit",
@@ -211,7 +225,7 @@ async def submit_report(
         video_path,
         len(video_bytes) if video_bytes is not None else None,
         agencies,
-        user.verified_percent,
+        _reporter_verified_percent(user),
         notes,
     )
     
@@ -226,7 +240,7 @@ async def submit_report(
     assert area is not None
 
     # Keep the reporter locatable for future incidents, then immediately alert
-    # nearby users (150 m) — they don't have to wait for the 60 s worker tick.
+    # nearby users (100 m) — they don't have to wait for the 60 s worker tick.
     await db.execute(
         "update public.users set latitude = $2, longitude = $3, "
         "location_updated_at = now(), last_active_at = now() "
@@ -235,7 +249,7 @@ async def submit_report(
         device_lat,
         device_lng,
     )
-    # Centre the 150 m query on the area centroid, not this reporter's position
+    # Centre the 100 m query on the area centroid, not this reporter's position
     # (Section 3.5). Clustering has just recomputed the centroid, so for a report
     # joining an existing area the two differ — using the reporter's coordinates
     # would blast a different circle than every subsequent 60 s tick.

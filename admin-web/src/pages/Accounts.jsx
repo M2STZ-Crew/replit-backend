@@ -8,7 +8,7 @@ import Icon from '../components/ui/Icon.jsx';
 import {
   ConfirmDialog, EmptyState, PageHeader, StatePanel, StatusChip,
 } from '../components/ui/index.js';
-import { PERM, can } from '../lib/access.js';
+import { PERM, can, governsAll } from '../lib/access.js';
 import { t } from '../i18n/i18n.jsx';
 
 /* Accounts (REPLIT (MAIN) 10 · A48 875:7204, A49 875:7435, A49b 875:7722;
@@ -39,7 +39,8 @@ function created(p, myName) {
 export default function Accounts() {
   const { org, console: access } = useConsole();
   const { user } = useAuth();
-  const everyOrg = access?.variant === 'system';
+  // The system Admin and the central hub make Coordinators for any organisation.
+  const everyOrg = governsAll(access);
   const manages = can(access, PERM.CREATE_COORDINATORS) && (everyOrg || Boolean(org?.id));
 
   const [people, setPeople] = useState([]);

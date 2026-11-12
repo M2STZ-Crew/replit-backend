@@ -65,21 +65,28 @@ SoundCategory = Literal[
 # such a phone "citizen_verified_v1" would now play the rejected recording:
 # verified moves to "citizen_verified_v2", which names its file. An app before
 # v1.12.33 has neither new channel and plays the phone's tone for those two.
+#
+# v1.12.27 (12 November): "vibration when notifying ... every stage and every
+# notif". The agency alert channels always vibrated; the citizen ones and
+# "updates" did not, and a channel's settings are fixed once a phone has
+# made it, so app v1.12.35 makes vibrating copies with new ids, named here.
+# An app before v1.12.35 has none of them, and shows those pushes on its
+# default channel, with the phone's tone.
 SOUND_CHANNELS: dict[SoundCategory, str] = {
     "fire": "alert_fire",
     "police": "alert_police",
     "medical": "alert_medical",
     "barangay": "alert_barangay",
-    "citizen": "citizen_updates",
-    "verified": "citizen_verified_v2",
-    "on_route": "citizen_on_route_v1",
-    "on_scene": "citizen_on_scene_v1",
-    "fire_out": "citizen_fire_out_v1",
-    "rejected": "citizen_rejected_v1",
+    "citizen": "citizen_updates_v2",
+    "verified": "citizen_verified_v3",
+    "on_route": "citizen_on_route_v2",
+    "on_scene": "citizen_on_scene_v2",
+    "fire_out": "citizen_fire_out_v2",
+    "rejected": "citizen_rejected_v2",
 }
 
 
-UPDATES_CHANNEL = "updates"
+UPDATES_CHANNEL = "updates_v2"
 SILENT_CHANNEL = "silent_ping"
 
 # Whose sound a staff member hears: their own agency's. The two fire agencies

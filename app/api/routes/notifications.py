@@ -1,6 +1,6 @@
 """Neighborhood notification response endpoint (Phase 8, Section 3.5).
 
-Lets a user record their Report/Ignore reply to a 150 m crowdsourced alert, or
+Lets a user record their Report/Ignore reply to a 100 m crowdsourced alert, or
 say they are safe (PRD v14 §4.2, §4.11). Recording any response stops further
 alerts for that (area, user): the worker in ``app.workers.neighborhood`` excludes
 recipients whose ``response`` is set.

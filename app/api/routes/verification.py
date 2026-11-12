@@ -49,7 +49,7 @@ from app.schemas.verification import (
 )
 from app.services.disposable_email import ensure_not_disposable
 from app.services.email_layout import EmailAction, RenderedEmail, render_email
-from app.services.link_page import link_page
+from app.services.link_page import link_page, open_app_href
 from app.services.national_id import BUCKET, photo_paths, remove_photos
 from app.services.phone_verification import check_code, request_code
 
@@ -558,15 +558,20 @@ _SEND_A_NEW_ONE = "open the RepLiT app and send a new one: Profile, then Verify 
     summary="Confirm email verification (+10%)",
 )
 async def confirm_email_verification(
-    db: DatabaseDep, token: str = Query(default="", max_length=512)
+    request: Request,
+    db: DatabaseDep,
+    token: str = Query(default="", max_length=512),
 ) -> HTMLResponse:
     """The emailed link: the address is confirmed (+10%).
 
     It opens in a phone's browser, or Gmail's, so every outcome is a page that
     says what to do next, never an error in JSON. Opening it again says
-    confirmed again and changes nothing.
+    confirmed again and changes nothing. Every page has an Open RepLiT button
+    back to the app (12 Nov 2026), where the waiting sheet sees the address
+    confirmed, or the resident sends a new link.
     """
     settings = get_settings()
+    back = ("Open RepLiT", open_app_href(request.headers.get("user-agent")))
     row = None
     if token:
         row = await db.fetchrow(
@@ -585,12 +590,14 @@ async def confirm_email_verification(
             "Each new link replaces the one before it. Use the link in the newest "
             "email from RepLiT, or " + _SEND_A_NEW_ONE,
             status_code=400,
+            action=back,
         )
     if row["status"] == "verified":
         return link_page(
             "Email confirmed",
             "Your email is confirmed",
             "Go back to the RepLiT app to continue. You can close this page.",
+            action=back,
         )
     if row["expires_at"] is not None and row["expires_at"] < datetime.now(UTC):
         return link_page(
@@ -598,6 +605,7 @@ async def confirm_email_verification(
             "This link has expired",
             "Links work for 24 hours. To confirm your email, " + _SEND_A_NEW_ONE,
             status_code=400,
+            action=back,
         )
     await db.execute(
         """
@@ -614,4 +622,5 @@ async def confirm_email_verification(
         "Your email is confirmed",
         f"Thank you. Your trust level is up {settings.email_verification_percent}%. "
         "Go back to the RepLiT app to continue. You can close this page.",
+        action=back,
     )

@@ -81,7 +81,7 @@ def test_an_alert_plays_its_recording_on_its_own_channel(sound: Any, channel: st
 def test_a_residents_update_plays_the_citizen_recording() -> None:
     note = android_config(sound="citizen").notification
     assert note is not None
-    assert note.channel_id == "citizen_updates"
+    assert note.channel_id == "citizen_updates_v2"
     assert note.sound == "sound_citizen"
     assert note.priority == "high", "news, not an emergency"
 
@@ -98,7 +98,7 @@ def test_anything_else_is_an_update_with_the_phones_tone() -> None:
     config = android_config()
     note = config.notification
     assert note is not None
-    assert note.channel_id == "updates"
+    assert note.channel_id == "updates_v2"
     assert note.sound is None
     assert note.default_sound is True
     assert config.priority == "high", "delivered at once either way"

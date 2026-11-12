@@ -29,11 +29,11 @@ _COLS = (
 
 
 def _can_manage_org(user: AuthenticatedUser, org_id: UUID) -> bool:
-    """The system Admin manages any org; an organisation's Admin or a sub-admin
-    manages only their own organization."""
+    """The system Admin and the central hub manage any org; an organisation's
+    Admin or a sub-admin manages only their own organization."""
     access = admin_access(user)
     if access is not None:
-        return access.is_system or access.organization_id == org_id
+        return access.governs_all or access.organization_id == org_id
     return user.role == "sub_admin" and user.primary_org_id == org_id
 
 

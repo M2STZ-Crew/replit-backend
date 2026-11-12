@@ -2,7 +2,7 @@
 
 The app is in English or in Tagalog at CEFR B1 (users.language, set by the app
 with PUT /auth/me/language), and the pushes and inbox rows a resident gets
-follow it: the 150 m neighbourhood alert, the news on a report they filed, the
+follow it: the 100 m neighbourhood alert, the news on a report they filed, the
 National ID answer and the test alert. Staff alerts stay in English.
 
 Tagalog here is the app's: everyday Metro Manila Tagalog in short sentences,
@@ -58,7 +58,7 @@ def by_language(languages: dict[UUID, Language]) -> dict[Language, list[UUID]]:
     return groups
 
 
-# The 150 m neighbourhood alert (app/workers/neighborhood.py). The Tagalog is
+# The 100 m neighbourhood alert (app/workers/neighborhood.py). The Tagalog is
 # the alert PRD v14 §4.2 was written with.
 NEIGHBOUR_ALERT: dict[Language, tuple[str, str]] = {
     "en": (

@@ -391,7 +391,7 @@ export const TAGALOG = {
   '{team} · Admin': '{team} · Admin',
   'Central hub — you review affiliates and act on every incident': 'Central hub — ikaw ang nagre-review ng mga affiliate at kumikilos sa bawat insidente',
   'System administrator — you can act on every incident': 'System administrator — puwede kang kumilos sa bawat insidente',
-  'Central hub — you act on incidents that asked for {word}, and review affiliates and IDs': 'Central hub — kumikilos ka sa mga insidenteng humingi ng {word}, at nagre-review ng mga affiliate at ID',
+  'Central hub — every Admin function, on every incident, for every agency': 'Central hub — lahat ng gawain ng Admin, sa bawat insidente, para sa bawat ahensya',
   'BFP — you act on Fire incidents and set the alarm level': 'BFP — kumikilos ka sa mga insidente ng sunog at nagtatakda ng antas ng alarma',
   'Fire Volunteer — you act on incidents that asked for Fire': 'Fire Volunteer — kumikilos ka sa mga insidenteng humingi ng tulong sa sunog',
   '{team} — you act on incidents that asked for {word}': '{team} — kumikilos ka sa mga insidenteng humingi ng {word}',
@@ -1039,5 +1039,6 @@ export const TAGALOG = {
   'Personal email': 'Personal email',
   'Their own email. The link to set their password goes here, and so do password resets.': 'Ang sarili nilang email. Dito ipapadala ang link para itakda ang password nila, pati ang mga password reset.',
   'Temporary email addresses can’t be used. Use an email that will last, such as Gmail or Yahoo.': 'Hindi puwede ang pansamantalang email. Gumamit ng email na pangmatagalan, gaya ng Gmail o Yahoo.',
+  'Your account was opened on another device, so it has been signed out here.': 'Binuksan ang account mo sa ibang device, kaya na-sign out ito rito.',
   'Coordinator account created: {name} signs in as {address}': 'Nagawa ang Coordinator account: magsa-sign in si {name} bilang {address}',
 };

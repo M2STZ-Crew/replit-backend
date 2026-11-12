@@ -332,3 +332,49 @@ def test_an_unknown_link_lands_on_a_page_not_json(
     assert r.status_code == 400
     assert r.headers["content-type"].startswith("text/html")
     assert "This link does not work" in r.text
+    # Even a dead link offers the way back, where a new one is sent.
+    assert ">Open RepLiT</a>" in r.text
+
+
+# --------------------------------------------------------------------------- #
+# Back to the app (12 Nov 2026)
+# --------------------------------------------------------------------------- #
+ANDROID_UA = (
+    "Mozilla/5.0 (Linux; Android 14; SM-A155F) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36"
+)
+IPHONE_UA = (
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 "
+    "(KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1"
+)
+
+
+def test_the_confirmed_page_opens_the_app_on_an_android_phone(client: TestClient) -> None:
+    db, mail, user = _Db(), _Mail(), _resident()
+    _wire(db, mail, user)
+    client.post("/verification/email/request")
+
+    r = client.get(
+        "/verification/email/confirm",
+        params={"token": _token(mail)},
+        headers={"user-agent": ANDROID_UA},
+    )
+
+    assert "Your email is confirmed" in r.text
+    assert ">Open RepLiT</a>" in r.text
+    # An intent link without a package: no store detour when the app is missing.
+    assert 'href="intent://email-confirmed#Intent;scheme=reportwhatslit;end"' in r.text
+
+
+def test_the_confirmed_page_opens_the_app_on_an_iphone(client: TestClient) -> None:
+    db, mail, user = _Db(), _Mail(), _resident()
+    _wire(db, mail, user)
+    client.post("/verification/email/request")
+
+    r = client.get(
+        "/verification/email/confirm",
+        params={"token": _token(mail)},
+        headers={"user-agent": IPHONE_UA},
+    )
+
+    assert 'href="reportwhatslit://email-confirmed"' in r.text

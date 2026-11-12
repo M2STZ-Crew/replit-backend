@@ -6,6 +6,148 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.27 — 12 November 2026 — 50 m / 100 m, adults only, what's burning
+
+Backend and Admin console, with app v1.12.34. **Run the migration
+`20261112090000_fire_type_on_arrival.sql` before this deploys** (with
+v1.12.26's, if it has not run yet). Until it runs, incidents still list (the
+fire type reads as empty) but setting one fails.
+
+### Changes
+
+**Logic**
+- **50 m incident, 100 m corroboration** (12 November: "change the area to
+  50m actual incident, 100m corroboration"). A report joins an Area when it is
+  within 50 m of the Area's centre (it was 300 m); two separate Areas within
+  100 m are flagged as maybe one fire (was 600 m); and the neighbours asked
+  "Is there a fire near you?" are those within 100 m (was 150 m).
+- **Adults only** ("date of birth: don't accept 17 y/o and below"). A date of
+  birth under 18, at sign-up or on the profile, is a 400 `underage`
+  ("You must be 18 or older to use RepLiT."), counted on the Philippine
+  calendar; one in the future is a 400 `invalid_date_of_birth`. The date of
+  birth stays optional. `app/services/age.py`.
+- **Staff reports count fully** (PRD v14 §4.1, §4.6.3): a report from a
+  Coordinator or Responder carries V = 1.0 in the Area's confidence, whatever
+  their own profile shows. Coordinators and Responders report a fire with the
+  same flow as residents (app v1.12.34).
+- **What's burning, on arrival** (PRD v14 §4.5.3; Figma C18 / R08b).
+  `POST /incidents/{id}/fire-type` with `fire_type` (structural, electrical,
+  vehicular, rubbish, grass, chemical) and `fire_subtype` for the three that
+  have them (structural: residential, commercial, industrial; no Agricultural,
+  PRD v14). A Coordinator, or a Responder going to the incident, sets it on
+  scene; a later answer corrects it, up to the Post-Incident Report. Before
+  arrival it is a 409 `not_on_scene`. Audited as `incident.fire_type`;
+  incidents carry `fire_type`, `fire_subtype`, `fire_type_set_at` and, in
+  detail, `fire_type_set_by_name`.
+- **Back to the app after confirming an email**: every page the emailed link
+  lands on has an **Open RepLiT** button (`reportwhatslit://`, an `intent:`
+  link on Android), where the waiting sheet sees the address confirmed.
+- **The Post-Incident Report queue** (12 November: "only organizations that
+  joined an incident can file a PIR"; "one organization's PIR clears it for
+  other joined organizations"; "CIAR must not initialize until every joined
+  organization has filed its PIR"). A team *joined* when it acknowledged the
+  incident or someone of it went, and it is a fire team (Fire Volunteers or
+  BFP, whose captains file). Now:
+  - only a joined team files; another is a 403 `not_joined`;
+  - the incident stays at **To file** until every joined team has filed, so
+    one team's report no longer takes it out of the others' trays; the last
+    report closes it;
+  - the **CIAR is written only then**: `POST /ai/{id}/summary` before that is
+    a 409 `pir_pending` naming who it waits for, and the AI summaries list
+    shows such an incident as `waiting` (with `pir_waiting`) and starts
+    nothing;
+  - an incident no fire team joined is closed by the first report, as before,
+    and one closed before this release still takes the reports of the teams
+    that responded.
+  Incident detail carries `pir_teams_expected`, `pir_teams_filed` and
+  `pir_waiting_on` (names). `app/services/pir_queue.py`.
+- **Every alert vibrates** ("vibration when notifying, both Android and iOS,
+  every stage and every notif"). The agency alert channels always vibrated;
+  the citizen ones and "updates" did not, and a channel's settings are fixed
+  once a phone has made it. Pushes now name the vibrating copies app v1.12.35
+  makes: `citizen_updates_v2`, `citizen_verified_v3`, `citizen_on_route_v2`,
+  `citizen_on_scene_v2`, `citizen_fire_out_v2`, `citizen_rejected_v2` and
+  `updates_v2`. An app before v1.12.35 shows them on its default channel, with
+  the phone's tone.
+- **One phone per account: the newest sign-in wins** ("single device only
+  policy ... a warning and a button will lead to exit"). Each request's
+  session (the token's `session_id`) must be the account's newest in
+  `auth.sessions`; an older one is a 403 `signed_in_elsewhere`, which the app
+  answers with its warning and Exit (v1.12.35). Read once per 15 s per
+  account. If the database role may not read `auth.sessions` the check turns
+  itself off and logs `one_device_check_unavailable`, rather than refuse
+  everyone. `app/services/one_device.py`.
+
+**UI (Admin console)** (one device)
+- A `signed_in_elsewhere` answer signs the console out, and the sign-in page
+  says the account was opened on another device.
+
+**UI (Admin console)**
+- The Area map draws the 50 m radius, a step closer in.
+
+### Tests
+- `tests/test_v1_12_27.py`: 18 and over (birthdays, 29 February, Manila's
+  date), the radii, staff V = 1.0, the fire types and subtypes, the route, the
+  Open RepLiT link per phone, the PIR queue and the CIAR's wait.
+  `tests/test_email_link.py`: the button on the confirmed page (Android and
+  iPhone) and on a dead link. `tests/test_pir_per_team.py`: one team's report
+  leaves the incident to file for the others, the last closes it and starts
+  the CIAR, a team that did not join is refused, and a late team still files
+  on an incident closed before.
+- Failing before this release and unchanged by it: `tests/test_smoke.py` and
+  `tests/test_national_id.py`'s photo removal, 7 in all.
+
+---
+
+## v1.12.26 — 9 November 2026 — Barangay 76: every Admin function, all in one
+
+Backend and Admin console; no app change. **Run the migration
+`20261109090000_central_hub_all_in_one.sql` before this deploys**: until it
+runs, the hub can press Decide on an alarm request and be refused by the
+database, and it still signs in with its old address.
+
+### Changes
+
+**Logic**
+- **The central hub does every Admin function, on every incident** (9
+  November: "barangay 76 as a central hub with all admin functions in web, not
+  separated admin, fire, medic, and barangay; it is all in one"). Its Admin has
+  everything the system account has (acknowledge, overlaps, reject / fire out /
+  dispatch, affiliates, National IDs, map layers, water, Coordinators, accounts
+  of any role, every organisation, every record unredacted) and asks for and
+  decides alarm levels too. It acts on Fire, Police, Medical and Barangay
+  incidents alike; its acknowledgements are still recorded under Barangay, its
+  own agency, and Barangay 76. Until now it was a Barangay Admin that also
+  reviewed affiliates and IDs.
+- **What the system account alone could do, the hub does too**
+  (`AdminAccess.governs_all`): any organisation's equipment and Coordinators
+  (it picks the organisation when it makes one; its own if it names none),
+  every organisation's units on the live map, and withdrawing any alarm
+  request.
+- **The migration** lets the hub's Admin set any alarm level
+  (`enforce_alarm_authority`, as BFP's), and moves its sign-in to
+  **barangay76.admin@replit.com**. @replit.com has no mailbox, so the address
+  it had stays as its personal email, confirmed, where Forgot password? sends
+  the link. It changes nothing when the hub has no Admin or several, or when
+  the address is taken, and says so in a notice. The password is unchanged.
+
+**UI (Admin console)**
+- The hub's top line reads "Central hub — every Admin function, on every
+  incident, for every agency"; it makes Coordinators for any organisation, and
+  the live map shows every unit, as for the system Admin. One check,
+  `governsAll`, in `src/lib/access.js`.
+
+### Tests
+- `tests/test_admin_console_access.py`: the hub has the system's permissions
+  and the alarm ones, acts on every agency's incidents, governs every
+  organisation, and a turned-off hub still fails closed; the hub manages any
+  organisation's equipment.
+- Failing before this release and unchanged by it: `tests/test_smoke.py`
+  (expects version 0.1.0) and `tests/test_national_id.py`'s photo removal, 7 in
+  all.
+
+---
+
 ## v1.12.25 — 9 November 2026 — The rejected sound, and verified's new channel
 
 Backend only, with mobile v1.12.33, which has the recordings and channels; deploy

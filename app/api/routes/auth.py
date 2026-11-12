@@ -43,6 +43,7 @@ from app.schemas.auth import (
 )
 from app.schemas.common import MessageResponse
 from app.services.access import admin_access
+from app.services.age import ensure_adult
 from app.services.disposable_email import ensure_not_disposable
 from app.services.phone_verification import PhoneNumberTakenError, normalize_ph_mobile
 
@@ -85,11 +86,15 @@ async def signup(
     behind an account that can never pass the phone gate. It is stored in E.164;
     proving it is the phone's is the next step, POST /verification/phone/request.
 
+    A date of birth under 18 is a 400 ``underage`` (app/services/age.py).
+
     An email from a throwaway service is refused first, a 400
     ``disposable_email``: the account would lose its sign-in and password reset
     within the hour (app/services/disposable_email.py).
     """
     ensure_not_disposable(str(payload.email))
+    # 18 and over (12 Nov 2026): refused before the account is made.
+    ensure_adult(payload.date_of_birth)
     mobile = normalize_ph_mobile(payload.mobile) if payload.mobile else None
     if mobile is not None and await _verified_owner_email(db, mobile) is not None:
         raise PhoneNumberTakenError(
@@ -236,8 +241,10 @@ async def update_my_profile(
 ) -> AuthenticatedUser:
     """Update the caller's editable profile fields (full name / mobile / DOB / gender).
 
-    Omitted (null) fields are left unchanged via COALESCE.
+    Omitted (null) fields are left unchanged via COALESCE. A date of birth
+    under 18 is refused (app/services/age.py).
     """
+    ensure_adult(payload.date_of_birth)
     row = await db.fetchrow(
         """
         update public.users
@@ -269,7 +276,7 @@ async def update_my_profile(
 async def update_my_location(
     payload: LocationUpdateRequest, user: CurrentUser, db: DatabaseDep
 ) -> Response:
-    """Store the caller's location so they receive 150 m neighborhood alerts.
+    """Store the caller's location so they receive 100 m neighborhood alerts.
 
     public.users.location is generated from latitude/longitude, so updating those
     columns refreshes the geography used by the neighborhood-notification worker.
