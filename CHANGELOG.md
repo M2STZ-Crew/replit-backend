@@ -6,6 +6,23 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.31 — 13 November 2026 — Map settings draws its layers' icons
+
+Admin console only; the service is as in v1.12.30. **No migration.**
+
+### Changes
+
+**Admin console**
+- **Map settings: icons in place of emoji** ("change those emoji to icons
+  that is in map settings and use ICON FOR ADMIN MAP for those new
+  icons"). Risk Areas, Evacuation Sites, Fire Hydrants, Bodies of Water
+  and Underground Cisterns show the supplied icons
+  (`admin-web/public/icons/layers`, unedited), in each layer's colour, on
+  its tile and over its list, drawn the way the rest of the console draws
+  its icons (`<Icon>`).
+
+---
+
 ## v1.12.30 — 12 November 2026 — "New Update!" in its own voice
 
 Backend only; app v1.12.38 goes with it. **No migration.** Deploy in either

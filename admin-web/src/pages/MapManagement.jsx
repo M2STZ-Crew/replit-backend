@@ -15,7 +15,7 @@ import BaseTiles, { useConsoleTheme } from '../map/BaseTiles.jsx';
 
 import { api } from '../api/client.js';
 import { outsidePasayStyle } from '../components/LiveMap.jsx';
-import { ConfirmDialog } from '../components/ui/index.js';
+import { ConfirmDialog, Icon } from '../components/ui/index.js';
 import {
   RISK_CIRCLE_STYLE, RISK_RADIUS_M, RISK_RADIUS_MAX_M, RISK_RADIUS_MIN_M, markerIcon, riskRadius,
 } from '../components/map/markers.js';
@@ -34,13 +34,15 @@ const COLORS = {
   cisterns: '#9A8CFF',
 };
 
-// The five layers an admin can create/update/delete here.
+// The five layers an admin can create/update/delete here. Each `icon` is
+// its glyph in public/icons/layers (13 November 2026: the supplied icons in
+// place of the emoji they had), drawn by <Icon> in the layer's colour.
 const EDIT_LAYERS = [
-  { key: 'risk', get label() { return t('Risk Areas'); }, get singular() { return t('Risk Area'); }, path: 'risk-zones', icon: '⚠', get tagline() { return t('High-priority zones'); } },
-  { key: 'evac', get label() { return t('Evacuation Sites'); }, get singular() { return t('Evacuation Site'); }, path: 'evacuation-sites', icon: '🚪', get tagline() { return t('Safe gathering points — Pasay and beyond'); } },
-  { key: 'hydrants', get label() { return t('Fire Hydrants'); }, get singular() { return t('Fire Hydrant'); }, path: 'hydrants', icon: '🚰', get tagline() { return t('Water supply points'); } },
-  { key: 'water', get label() { return t('Bodies of Water'); }, get singular() { return t('Body of Water'); }, path: 'bodies-of-water', icon: '🌊', get tagline() { return t('Natural water sources'); } },
-  { key: 'cisterns', get label() { return t('Underground Cisterns'); }, get singular() { return t('Cistern'); }, path: 'underground-cisterns', icon: '🛢', get tagline() { return t('Underground reserves'); } },
+  { key: 'risk', get label() { return t('Risk Areas'); }, get singular() { return t('Risk Area'); }, path: 'risk-zones', icon: 'layers/risk-areas', get tagline() { return t('High-priority zones'); } },
+  { key: 'evac', get label() { return t('Evacuation Sites'); }, get singular() { return t('Evacuation Site'); }, path: 'evacuation-sites', icon: 'layers/evacuation-sites', get tagline() { return t('Safe gathering points — Pasay and beyond'); } },
+  { key: 'hydrants', get label() { return t('Fire Hydrants'); }, get singular() { return t('Fire Hydrant'); }, path: 'hydrants', icon: 'layers/fire-hydrants', get tagline() { return t('Water supply points'); } },
+  { key: 'water', get label() { return t('Bodies of Water'); }, get singular() { return t('Body of Water'); }, path: 'bodies-of-water', icon: 'layers/bodies-of-water', get tagline() { return t('Natural water sources'); } },
+  { key: 'cisterns', get label() { return t('Underground Cisterns'); }, get singular() { return t('Cistern'); }, path: 'underground-cisterns', icon: 'layers/underground-cisterns', get tagline() { return t('Underground reserves'); } },
 ];
 
 // The toggle chips on the map (order mirrors the design). `kind`:
@@ -576,7 +578,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
                           className="mm-gicon"
                           style={{ background: `${COLORS[l.key]}26`, color: COLORS[l.key] }}
                         >
-                          {l.icon}
+                          <Icon name={l.icon} size={18} />
                         </span>
                         <span className="mm-gcount">{(data[l.key] || []).length}</span>
                       </div>
@@ -597,7 +599,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
                     className="mm-section-icon"
                     style={{ background: `${COLORS[selected]}26`, color: COLORS[selected] }}
                   >
-                    {selCfg.icon}
+                    <Icon name={selCfg.icon} size={18} />
                   </span>
                 </div>
 
