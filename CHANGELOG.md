@@ -6,6 +6,33 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.30 — 12 November 2026 — "New Update!" in its own voice
+
+Backend only; app v1.12.38 goes with it. **No migration.** Deploy in either
+order: until a phone has app v1.12.38 it is told as before.
+
+### Changes
+
+**Logic**
+- **"New Update!" plays its own recording, in the reader's language**
+  ("update notification sound is in my downloads (replit tutorial). so put
+  it"; answered: English accounts hear the English one, Tagalog accounts the
+  Tagalog one, and it still vibrates). A phone with app v1.12.38 or later is
+  told on its language's channel, `app_update_en_v1` or `app_update_tl_v1`,
+  which the app makes with the recording (`update_en`, `update_tl`; Android
+  before 8 plays the file the push names). A phone on an older app has
+  neither, so it is told on `app_updates_v1` with its own tone, as in
+  v1.12.29. One person with phones on both is told once, each phone as it
+  can play it.
+
+### Tests
+- `tests/test_v1_12_30.py`: which phones have the recordings (and the older
+  apps' version labels); each language's channel and recording; an older
+  phone's tone; one person with two phones told once; Android's settings for
+  a recording.
+
+---
+
 ## v1.12.29 — 12 November 2026 — "New Update!", the first fire team, the version alone
 
 Backend and the APK page; app v1.12.37 goes with it. **No migration.** Deploy
