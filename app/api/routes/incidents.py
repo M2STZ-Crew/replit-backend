@@ -62,7 +62,11 @@ from app.schemas.incident import (
 )
 from app.services.access import ACKNOWLEDGE, acting_agency, admin_access
 from app.services.audit import record_audit
-from app.services.fire_type import ON_SCENE_STATUSES, validate_fire_type
+from app.services.fire_type import (
+    ON_SCENE_STATUSES,
+    assert_may_answer,
+    validate_fire_type,
+)
 from app.services.incident import (
     OFF_FEED_STATUSES,
     active_area_sql,
@@ -279,6 +283,13 @@ async def build_incident_detail(db: Database, incident_id: UUID) -> IncidentDeta
                (select fu.full_name from public.users fu
                  where fu.id = (to_jsonb(a) ->> 'fire_type_set_by')::uuid)
                  as fire_type_set_by_name,
+               (select fu.primary_org_id from public.users fu
+                 where fu.id = (to_jsonb(a) ->> 'fire_type_set_by')::uuid)
+                 as fire_type_org_id,
+               (select fo.name from public.users fu
+                  join public.organizations fo on fo.id = fu.primary_org_id
+                 where fu.id = (to_jsonb(a) ->> 'fire_type_set_by')::uuid)
+                 as fire_type_org_name,
                exists (select 1 from public.post_incident_reports p
                        where p.area_id = a.id) as has_post_incident_report
         from public.areas a
@@ -1070,14 +1081,22 @@ async def set_fire_type(
 
     "What's burning?" is asked once the unit is on scene, before the on-scene
     requests unlock (Figma C18 / R08b); a later answer corrects it, up to the
-    Post-Incident Report. Whoever may mark the incident arrived may set it: a
-    Coordinator, or a Responder going to it. Before arrival it is a 409
-    ``not_on_scene``; a subtype that is not the type's own is a 400.
+    Post-Incident Report. A fire team's Coordinator, or a Responder of it
+    going to it, may set it — the first fire team to answer; after that only
+    that team corrects it (v1.12.29: 403 ``fire_team_only``, 409
+    ``fire_type_answered``). Before arrival it is a 409 ``not_on_scene``; a
+    subtype that is not the type's own is a 400.
     """
     subtype = validate_fire_type(payload.fire_type, payload.fire_subtype)
     await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
     await _assert_responder_or_coordinator(db, incident_id, user)
+    assert_may_answer(
+        agency=user.agency_type,
+        org_id=user.primary_org_id,
+        answered_by_org=None,
+        answered_by_name=None,
+    )
     async with db.acquire() as conn, conn.transaction():
         current = await _lock_status(conn, incident_id)
         if current not in ON_SCENE_STATUSES:
@@ -1089,6 +1108,23 @@ async def set_fire_type(
         before = await conn.fetchrow(
             "select fire_type, fire_subtype from public.areas where id = $1", incident_id
         )
+        answered = await conn.fetchrow(
+            """
+            select u.primary_org_id as org_id, o.name as org_name
+              from public.areas a
+              join public.users u on u.id = a.fire_type_set_by
+              left join public.organizations o on o.id = u.primary_org_id
+             where a.id = $1 and a.fire_type is not null
+            """,
+            incident_id,
+        )
+        if answered is not None:
+            assert_may_answer(
+                agency=user.agency_type,
+                org_id=user.primary_org_id,
+                answered_by_org=answered["org_id"],
+                answered_by_name=answered["org_name"],
+            )
         await conn.execute(
             """
             update public.areas
