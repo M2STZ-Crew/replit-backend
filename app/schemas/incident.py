@@ -171,6 +171,9 @@ class IncidentDetail(IncidentSummary):
     alarm_level_set_by: UUID | None = None
     alarm_level_set_at: datetime | None = None
     fire_type_set_by_name: str | None = None
+    # The team that said what is burning (v1.12.29): only it corrects it.
+    fire_type_org_id: UUID | None = None
+    fire_type_org_name: str | None = None
     has_post_incident_report: bool = False
     # The Post-Incident Report queue (v1.12.27): the fire teams that joined,
     # how many have filed, and the names of those still to file. The incident

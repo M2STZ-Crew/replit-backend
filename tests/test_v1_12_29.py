@@ -9,6 +9,9 @@
   in any platforms": the APK download page shows the version alone, and reads
   the notes' "What's new:" list (releases before app 1.12.37 said "New for
   testers:").
+- "the first fire organization will fill out so that the second or next fire
+  organization arrived will not fill that out": only a fire team says what is
+  burning, the first to answer; after that only that team corrects it.
 """
 
 from __future__ import annotations
@@ -249,3 +252,74 @@ def test_the_download_page_shows_the_version_alone() -> None:
     assert "strong.textContent = fileOf(apk.name);" in page
     # "What's new:" from 1.12.37 on, "New for testers:" before it.
     assert re.search(r"what\['’\]s new\|new for testers", page)
+
+
+# --------------------------------------------------------------------------- #
+# The first fire team says what is burning
+# --------------------------------------------------------------------------- #
+# "in the fill-out of fire structure, the first fire organization will fill
+# out so that the second or next fire organization arrived will not fill that
+# out" (answered: the first fire team only; the rest read it).
+HERCULES = UUID("00000000-0000-0000-0000-0000000000a1")
+BFP = UUID("00000000-0000-0000-0000-0000000000b2")
+
+
+def test_a_fire_team_answers_while_nobody_has() -> None:
+    from app.services.fire_type import assert_may_answer
+
+    for agency, org in (("fire_volunteer", HERCULES), ("bfp", BFP)):
+        assert_may_answer(
+            agency=agency, org_id=org, answered_by_org=None, answered_by_name=None
+        )
+
+
+@pytest.mark.parametrize("agency", ["police", "medical", "barangay", None])
+def test_other_agencies_read_it(agency: str | None) -> None:
+    from app.core.exceptions import ForbiddenError
+    from app.services.fire_type import assert_may_answer
+
+    with pytest.raises(ForbiddenError) as caught:
+        assert_may_answer(
+            agency=agency, org_id=uuid4(), answered_by_org=None, answered_by_name=None
+        )
+    assert caught.value.error_code == "fire_team_only"
+
+
+def test_the_next_fire_team_finds_it_answered() -> None:
+    from app.core.exceptions import ConflictError
+    from app.services.fire_type import assert_may_answer
+
+    with pytest.raises(ConflictError) as caught:
+        assert_may_answer(
+            agency="bfp",
+            org_id=BFP,
+            answered_by_org=HERCULES,
+            answered_by_name="Hercules Fire Brigade",
+        )
+    assert caught.value.error_code == "fire_type_answered"
+    assert caught.value.message == "Hercules Fire Brigade already said what is burning."
+    assert caught.value.details["organization_id"] == str(HERCULES)
+
+
+def test_the_team_that_answered_corrects_it() -> None:
+    from app.services.fire_type import assert_may_answer
+
+    assert_may_answer(
+        agency="fire_volunteer",
+        org_id=HERCULES,
+        answered_by_org=HERCULES,
+        answered_by_name="Hercules Fire Brigade",
+    )
+
+
+def test_the_incident_says_which_team_answered() -> None:
+    from app.schemas.incident import IncidentDetail
+
+    assert {"fire_type_org_id", "fire_type_org_name"} <= set(IncidentDetail.model_fields)
+    source = (ROOT / "app" / "api" / "routes" / "incidents.py").read_text(encoding="utf-8")
+    route = source[source.index("async def set_fire_type(") :]
+    route = route[: route.index("\nasync def ")]
+    # Checked for the agency up front, and for the answering team under the
+    # Area's lock, so two teams answering at once cannot both win.
+    assert route.count("assert_may_answer(") == 2
+    assert route.index("_lock_status(conn") < route.index("answered_by_org=answered")
