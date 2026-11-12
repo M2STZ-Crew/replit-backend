@@ -50,11 +50,12 @@ Figma "Admin web experience · APK download")
   "Check for updates" installs — so a new version needs no edit. Dark and
   light from the design system, Inter, 375 px and up. A Vercel project whose
   root is `apk-web/` serves it; nothing to build.
-- **The console's domain change** (to reportwhatslit-admin.vercel.app): the
-  backend always allows the console's old and new addresses
-  (`CONSOLE_ORIGINS`, whatever `CORS_ORIGINS` says), so the move needs no
-  edit on Render; and the console's `/installation` goes to the download
-  page.
+- **The console's domain change**: it is served at
+  **reportwhatslit.vercel.app**, and reportwhatslit-admin.vercel.app and the
+  old replit-backend-5u9u.vercel.app redirect there (Vercel). The backend
+  always allows all three (`CONSOLE_ORIGINS`, whatever `CORS_ORIGINS` says),
+  so a later change needs no edit on Render; and the console's
+  `/installation` goes to the download page.
 
 **UI (Admin console)**
 - Affiliates → Network: the status says Suspended or Revoked. The

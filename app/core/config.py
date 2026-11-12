@@ -21,12 +21,15 @@ Environment = Literal["development", "staging", "production"]
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
-# The Admin console's addresses, allowed whatever CORS_ORIGINS says, so moving
-# the console to its reportwhatslit-admin domain (12 Nov 2026: "admin domain
-# change") needs no edit on Render. The old address keeps working.
+# The Admin console's addresses, allowed whatever CORS_ORIGINS says, so its
+# domain change (12 Nov 2026: "admin domain change") needs no edit on Render.
+# It is served at reportwhatslit.vercel.app; reportwhatslit-admin and the old
+# replit-backend-5u9u address redirect there, and stay allowed in case either
+# is made the one it is served at.
 CONSOLE_ORIGINS = (
-    "https://replit-backend-5u9u.vercel.app",
+    "https://reportwhatslit.vercel.app",
     "https://reportwhatslit-admin.vercel.app",
+    "https://replit-backend-5u9u.vercel.app",
 )
 
 

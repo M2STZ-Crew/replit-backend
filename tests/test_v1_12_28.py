@@ -22,8 +22,9 @@ def test_the_console_is_allowed_from_its_old_and_new_addresses() -> None:
     settings = Settings(cors_origins="http://localhost:5173")
     assert settings.cors_origins_list == [
         "http://localhost:5173",
-        "https://replit-backend-5u9u.vercel.app",
+        "https://reportwhatslit.vercel.app",
         "https://reportwhatslit-admin.vercel.app",
+        "https://replit-backend-5u9u.vercel.app",
     ]
     # Named in the environment too: not listed twice.
     both = Settings(cors_origins=",".join(CONSOLE_ORIGINS))
