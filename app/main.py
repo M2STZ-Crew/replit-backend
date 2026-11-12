@@ -24,6 +24,10 @@ from app.core.logging import configure_logging, get_logger
 from app.db.session import database
 from app.integrations.fcm import init_fcm, shutdown_fcm
 from app.services.audit import maybe_record_request_audit
+from app.workers.app_updates import (
+    shutdown_app_updates_scheduler,
+    start_app_updates_scheduler,
+)
 from app.workers.coordinator_pings import (
     shutdown_coordinator_pings_scheduler,
     start_coordinator_pings_scheduler,
@@ -55,6 +59,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     start_neighborhood_scheduler()
     start_coordinator_pings_scheduler()
     start_keep_awake_scheduler()
+    start_app_updates_scheduler()
 
     log.info(
         "application_startup",
@@ -65,6 +70,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     yield
 
+    shutdown_app_updates_scheduler()
     shutdown_keep_awake_scheduler()
     shutdown_coordinator_pings_scheduler()
     shutdown_neighborhood_scheduler()

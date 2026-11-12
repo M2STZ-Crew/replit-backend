@@ -264,17 +264,26 @@
     return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
   }
 
-  // "RepLiT 1.12.36 (58)" -> "1.12.36 (build 58)".
+  // The version alone, "1.12.37", with no build number (12 November 2026:
+  // "it is just the version of app will be remain seen in any platforms,
+  // no build number"). Releases before 1.12.37 are named "RepLiT 1.12.36 (58)".
   function versionOf(release) {
-    const m = /(\d+\.\d+\.\d+)\s*\((\d+)\)/.exec(release.name || '') ||
-      /v(\d+\.\d+\.\d+)-(\d+)/.exec(release.tag_name || '');
-    return m ? `${m[1]} (build ${m[2]})` : (release.name || release.tag_name || '—');
+    const m = /(\d+\.\d+\.\d+)/.exec(release.name || '') ||
+      /(\d+\.\d+\.\d+)/.exec(release.tag_name || '');
+    return m ? m[1] : (release.name || release.tag_name || '—');
   }
 
-  // The release notes' "New for testers:" list, line by line.
+  // The file, named for the version alone: releases before 1.12.37 carry the
+  // build number too ("RepLiT-1.12.36-58.apk").
+  function fileOf(name) {
+    return name.replace(/^(RepLiT-\d+\.\d+\.\d+)-\d+(\.apk)$/i, '$1$2');
+  }
+
+  // The release notes' "What's new:" list, line by line ("New for testers:"
+  // on releases before 1.12.37).
   function newsOf(body) {
     const lines = (body || '').split(/\r?\n/);
-    const start = lines.findIndex((l) => /^new for testers:?/i.test(l.trim()));
+    const start = lines.findIndex((l) => /^(what['’]s new|new for testers):?/i.test(l.trim()));
     const items = [];
     for (const line of lines.slice(start + 1)) {
       const text = line.trim();
@@ -318,11 +327,11 @@
       $('size').textContent = megabytes(apk.size);
       const link = $('download');
       link.href = apk.browser_download_url;
-      link.setAttribute('download', apk.name);
+      link.setAttribute('download', fileOf(apk.name));
       link.removeAttribute('aria-disabled');
       $('status').innerHTML = '';
       const strong = document.createElement('strong');
-      strong.textContent = apk.name;
+      strong.textContent = fileOf(apk.name);
       $('status').append('File: ', strong);
 
       const news = newsOf(release.body);

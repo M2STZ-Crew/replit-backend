@@ -89,6 +89,13 @@ SOUND_CHANNELS: dict[SoundCategory, str] = {
 UPDATES_CHANNEL = "updates_v2"
 SILENT_CHANNEL = "silent_ping"
 
+# v1.12.29: "New Update!" (app/workers/app_updates.py) has a channel of its
+# own, so a phone's settings can quiet it apart from the rest. The phone's own
+# tone for now, and vibration; when the update's recording is chosen, it gets
+# a new channel id, here and in the app (app v1.12.37 makes this one). An app
+# before v1.12.37 shows it on its default channel.
+APP_UPDATES_CHANNEL = "app_updates_v1"
+
 # Whose sound a staff member hears: their own agency's. The two fire agencies
 # share the fire recording.
 _AGENCY_SOUND: dict[str, SoundCategory] = {
@@ -250,26 +257,29 @@ def android_config(
     sound: SoundCategory | None = None,
     silent: bool = False,
     tag: str | None = None,
+    channel: str | None = None,
 ) -> messaging.AndroidConfig:
     """How Android shows the push: which channel, and so which sound.
 
     ``sound`` names a recording (its channel plays it); ``silent`` only
-    vibrates; neither is an update with the phone's own tone. High priority
-    either way, so it is delivered at once and shown while the app is closed.
-    ``tag`` makes a later push about the same thing replace the earlier one in
-    the shade instead of stacking under it.
+    vibrates; neither is an update with the phone's own tone, on ``channel``
+    when it has one of its own (``APP_UPDATES_CHANNEL``), otherwise on
+    ``UPDATES_CHANNEL``. High priority either way, so it is delivered at once
+    and shown while the app is closed. ``tag`` makes a later push about the
+    same thing replace the earlier one in the shade instead of stacking under
+    it.
     """
     if silent:
-        channel, file, phone_tone, urgent = SILENT_CHANNEL, None, False, True
+        channel_id, file, phone_tone, urgent = SILENT_CHANNEL, None, False, True
     elif sound is not None:
-        channel, file, phone_tone = SOUND_CHANNELS[sound], f"sound_{sound}", False
+        channel_id, file, phone_tone = SOUND_CHANNELS[sound], f"sound_{sound}", False
         urgent = sound in {"fire", "police", "medical", "barangay"}
     else:
-        channel, file, phone_tone, urgent = UPDATES_CHANNEL, None, True, False
+        channel_id, file, phone_tone, urgent = channel or UPDATES_CHANNEL, None, True, False
     return messaging.AndroidConfig(
         priority="high",
         notification=messaging.AndroidNotification(
-            channel_id=channel,
+            channel_id=channel_id,
             sound=file,
             default_sound=phone_tone,
             default_vibrate_timings=True,
@@ -307,11 +317,14 @@ class PushService:
         sound: SoundCategory | None = None,
         silent: bool = False,
         tag: str | None = None,
+        channel: str | None = None,
     ) -> PushResult:
         """Send a notification to many device tokens; report invalid ones for cleanup.
 
         ``sound`` plays that category's recording (see [android_config]);
-        ``silent`` only vibrates. The data says which, for the open app.
+        ``silent`` only vibrates; ``channel`` is the channel of a push with the
+        phone's tone that has one of its own. The data says which, for the open
+        app.
         """
         if not tokens or _fcm_app is None:
             return PushResult()
@@ -326,7 +339,7 @@ class PushService:
                 tokens=tokens,
                 notification=messaging.Notification(title=title, body=body),
                 data=payload,
-                android=android_config(sound=sound, silent=silent, tag=tag),
+                android=android_config(sound=sound, silent=silent, tag=tag, channel=channel),
             )
             batch = messaging.send_each_for_multicast(message, app=_fcm_app)
             invalid: list[str] = []
