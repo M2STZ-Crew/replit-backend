@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download RepLiT for Android</title>
+<meta name="description" content="Download the latest RepLiT Android app and install it step by step.">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="icon" href="/assets/logo-mark.png">
+<!--
+  RepLiT's APK download page (12 November 2026; Figma "Admin web experience ·
+  APK download"). Served on its own at reportwhatslit-apk.vercel.app (the
+  Vercel project's root is this folder). It reads the newest release from the
+  app repository's GitHub releases each time it opens — the same release
+  "Check for updates" in the app installs — so it never needs editing for a new
+  version: the version, date, size, what's new and the download link are all
+  the release's own.
+-->
+<style>
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('/fonts/inter-v20-latin-wght.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+      U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+      U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('/fonts/inter-v20-latin-ext-wght.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+      U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+      U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
+
+  /* The design system's tokens (REPLIT (MAIN), dark and light modes). */
+  :root {
+    --ground: #131313;
+    --card: #1d1d1d;
+    --inset: #131313;
+    --line: rgba(72, 72, 71, 0.35);
+    --line-strong: #686868;
+    --text: #f3f3f3;
+    --text-2: #c9c9c9;
+    --text-3: #a1a1a1;
+    --accent: #ff9066;
+    --accent-ink: #ff9066;
+    --accent-end: #ff7943;
+    --on-accent: #581a00;
+    --info: #5b93f5;
+    --warn: #ffb020;
+    --warn-tint: rgba(255, 176, 32, 0.08);
+    --info-tint: rgba(91, 147, 245, 0.06);
+    --step: rgba(255, 144, 102, 0.12);
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --ground: #f6f5f3;
+      --card: #ffffff;
+      --inset: #eceae6;
+      --line: rgba(23, 20, 15, 0.12);
+      --line-strong: #8a847e;
+      --text: #1a1817;
+      --text-2: #45403c;
+      --text-3: #5c5752;
+      --accent-ink: #8c4f38;
+      --info: #5386df;
+      --warn: #8c6112;
+      --warn-tint: rgba(181, 125, 23, 0.12);
+      --info-tint: rgba(83, 134, 223, 0.08);
+      --step: #ffddd0;
+      color-scheme: light;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font: 300 15px/1.55 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  }
+  main {
+    width: 100%;
+    max-width: 598px;
+    margin: 0 auto;
+    padding: 56px 16px 64px;
+  }
+  h1 {
+    margin: 0 0 8px;
+    font-weight: 900;
+    font-size: clamp(24px, 6vw, 28px);
+    line-height: 1.15;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+  }
+  .lede { margin: 0 0 24px; color: var(--text-2); }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 420px) { .card { padding: 20px 16px; } }
+  h2 {
+    margin: 0 0 16px;
+    font-weight: 900;
+    font-size: 15px;
+    letter-spacing: -0.3px;
+    text-transform: uppercase;
+  }
+  .app { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+  .app-icon {
+    width: 56px; height: 56px; border-radius: 14px; flex: none;
+    display: grid; place-items: center;
+    background: #131313; border: 1px solid var(--line);
+  }
+  .app-icon img { width: 30px; height: 42px; object-fit: contain; }
+  .app-name { font-weight: 900; font-size: 17px; letter-spacing: -0.5px; text-transform: uppercase; }
+  .app-sub { font-size: 12px; color: var(--text-3); }
+  .facts { display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 0 0 20px; }
+  .facts dt { font-size: 11px; color: var(--text-3); margin-bottom: 2px; }
+  .facts dd { margin: 0; font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .skeleton { display: inline-block; width: 72px; height: 12px; border-radius: 6px; background: var(--line); }
+  .alert {
+    display: flex; gap: 12px; align-items: flex-start;
+    border: 1px solid var(--info); background: var(--info-tint);
+    border-radius: 12px; padding: 12px 14px; margin-bottom: 20px;
+    font-size: 13px; line-height: 1.45; color: var(--text-2);
+  }
+  .alert--warn { border-color: var(--warn); background: var(--warn-tint); margin: 20px 0 0; }
+  .alert svg { flex: none; margin-top: 1px; }
+  .download {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    min-height: 52px; padding: 0 28px; border-radius: 12px;
+    background: linear-gradient(var(--accent), var(--accent-end));
+    color: var(--on-accent); text-decoration: none;
+    font-weight: 900; font-size: 13px; letter-spacing: 1.2px; text-transform: uppercase;
+  }
+  @media (max-width: 480px) { .download { width: 100%; } }
+  .download:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .download[aria-disabled="true"] { opacity: 0.38; pointer-events: none; }
+  .note { margin: 12px 0 0; font-size: 12px; color: var(--text-3); }
+  .note strong { color: var(--text-2); font-weight: 600; }
+  ul.news { margin: 0; padding: 0; list-style: none; }
+  ul.news li { position: relative; padding-left: 18px; margin: 0 0 10px; color: var(--text-2); }
+  ul.news li::before {
+    content: ''; position: absolute; left: 2px; top: 0.6em;
+    width: 6px; height: 6px; border-radius: 50%; background: var(--accent-ink);
+  }
+  ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+  ol.steps li { position: relative; padding-left: 44px; margin-bottom: 18px; counter-increment: step; }
+  ol.steps li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: -2px;
+    width: 28px; height: 28px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--step); color: var(--accent-ink);
+    border: 1px solid var(--accent-ink);
+    font-weight: 700; font-size: 12px;
+  }
+  .step-title { display: block; font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 2px; }
+  .step-body { color: var(--text-2); font-size: 13px; }
+  .muted { color: var(--text-3); }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  footer { text-align: center; font-size: 12px; color: var(--text-3); }
+  footer a { color: var(--accent-ink); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Download RepLiT for Android</h1>
+  <p class="lede">Download the Android app and follow the installation steps below.</p>
+
+  <section class="card" aria-labelledby="release-title">
+    <div class="app">
+      <span class="app-icon"><img src="/assets/logo-mark.png" alt="" width="30" height="42"></span>
+      <span>
+        <span class="app-name" id="release-title">RepLiT</span><br>
+        <span class="app-sub">Android app</span>
+      </span>
+    </div>
+
+    <dl class="facts" aria-live="polite">
+      <div><dt>Version</dt><dd id="version"><span class="skeleton" aria-hidden="true"></span><span class="sr-only">Loading</span></dd></div>
+      <div><dt>Release date</dt><dd id="released"><span class="skeleton" aria-hidden="true"></span></dd></div>
+      <div><dt>File size</dt><dd id="size"><span class="skeleton" aria-hidden="true"></span></dd></div>
+    </dl>
+
+    <p class="alert" role="note">
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>RepLiT comes straight from its own release page, not Google Play. The button always gets the newest version, the same one "Check for updates" in the app installs.</span>
+    </p>
+
+    <a class="download" id="download" href="https://github.com/M2STZ-Crew/replit-android/releases/latest" aria-disabled="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 19h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="download-label">Download latest APK</span>
+    </a>
+    <p class="note" id="status" aria-live="polite">Looking up the newest version…</p>
+    <p class="note">Android only. After downloading, open the APK to begin installation.</p>
+  </section>
+
+  <section class="card" aria-labelledby="news-title">
+    <h2 id="news-title">What's new</h2>
+    <ul class="news" id="news"><li class="muted">Loading…</li></ul>
+  </section>
+
+  <section class="card" aria-labelledby="install-title">
+    <h2 id="install-title">How to install</h2>
+    <ol class="steps">
+      <li>
+        <span class="step-title">Download the APK</span>
+        <span class="step-body">Tap "Download latest APK" and wait for the file to finish downloading.</span>
+      </li>
+      <li>
+        <span class="step-title">Open the downloaded file</span>
+        <span class="step-body">Open the APK from your download notification or your Downloads folder.</span>
+      </li>
+      <li>
+        <span class="step-title">Allow installation if prompted</span>
+        <span class="step-body">If Android asks, open the settings it shows and allow installing from the browser or file manager you used. It is usually called "Install unknown apps" or "Allow from this source". The names differ by phone and Android version.</span>
+      </li>
+      <li>
+        <span class="step-title">Complete installation</span>
+        <span class="step-body">Go back to the installer and follow Android's prompts. Open RepLiT once it finishes. Already have RepLiT? It updates in place, and you stay signed in.</span>
+      </li>
+    </ol>
+    <p class="alert alert--warn" role="note">
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2L12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v5M12 18v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>If Play Protect asks to scan the app, let it. If it blocks the installation or flags the app as unsafe, stop and ask your organization's coordinator or the central hub (Barangay 76) before going on.</span>
+    </p>
+  </section>
+
+  <section class="card" aria-labelledby="help-title">
+    <h2 id="help-title">Need help installing RepLiT?</h2>
+    <p class="muted" style="margin:0">Ask your organization's coordinator, or the central hub (Barangay 76). Say which phone you have, its Android version, the RepLiT version above, and the message you saw.</p>
+  </section>
+
+  <footer>
+    <p>An iPhone build is not offered here yet.</p>
+  </footer>
+</main>
+
+<script>
+  // The newest release of the app (the same one "Check for updates" installs).
+  const REPO = 'M2STZ-Crew/replit-android';
+  const RELEASES = `https://github.com/${REPO}/releases/latest`;
+
+  const $ = (id) => document.getElementById(id);
+
+  function megabytes(bytes) {
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function longDate(iso) {
+    return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  // "RepLiT 1.12.36 (58)" -> "1.12.36 (build 58)".
+  function versionOf(release) {
+    const m = /(\d+\.\d+\.\d+)\s*\((\d+)\)/.exec(release.name || '') ||
+      /v(\d+\.\d+\.\d+)-(\d+)/.exec(release.tag_name || '');
+    return m ? `${m[1]} (build ${m[2]})` : (release.name || release.tag_name || '—');
+  }
+
+  // The release notes' "New for testers:" list, line by line.
+  function newsOf(body) {
+    const lines = (body || '').split(/\r?\n/);
+    const start = lines.findIndex((l) => /^new for testers:?/i.test(l.trim()));
+    const items = [];
+    for (const line of lines.slice(start + 1)) {
+      const text = line.trim();
+      if (!text) { if (items.length) break; else continue; }
+      if (!text.startsWith('- ')) break;
+      items.push(text.slice(2));
+    }
+    return start >= 0 ? items : [];
+  }
+
+  function unavailable(message) {
+    $('version').textContent = '—';
+    $('released').textContent = '—';
+    $('size').textContent = '—';
+    $('status').textContent = message;
+    const link = $('download');
+    link.removeAttribute('aria-disabled');
+    link.href = RELEASES;
+    $('download-label').textContent = 'Open the release page';
+    $('news').innerHTML = '';
+    const li = document.createElement('li');
+    li.className = 'muted';
+    li.textContent = 'See the release page for what changed.';
+    $('news').append(li);
+  }
+
+  async function load() {
+    try {
+      const resp = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
+        headers: { Accept: 'application/vnd.github+json' },
+      });
+      if (!resp.ok) throw new Error(String(resp.status));
+      const release = await resp.json();
+      const apk = (release.assets || []).find((a) => /\.apk$/i.test(a.name));
+      if (!apk) {
+        unavailable('The download link isn’t available yet. Try again in a few minutes.');
+        return;
+      }
+      $('version').textContent = versionOf(release);
+      $('released').textContent = longDate(release.published_at);
+      $('size').textContent = megabytes(apk.size);
+      const link = $('download');
+      link.href = apk.browser_download_url;
+      link.setAttribute('download', apk.name);
+      link.removeAttribute('aria-disabled');
+      $('status').innerHTML = '';
+      const strong = document.createElement('strong');
+      strong.textContent = apk.name;
+      $('status').append('File: ', strong);
+
+      const news = newsOf(release.body);
+      $('news').innerHTML = '';
+      for (const item of news.length ? news : ['Fixes and improvements.']) {
+        const li = document.createElement('li');
+        li.textContent = item;
+        $('news').append(li);
+      }
+    } catch (e) {
+      unavailable('The newest version could not be looked up just now. The release page has it.');
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>

@@ -41,6 +41,21 @@ actions fail.
 - `GET /organizations` carries `standing`, `standing_reason`, `standing_note`,
   `standing_changed_at` and, for a revoked one, `restorable_until`.
 
+**The APK download site** (`apk-web/`, for reportwhatslit-apk.vercel.app;
+Figma "Admin web experience · APK download")
+- One page: the app, its version, release date and size, **Download latest
+  APK**, what's new, how to install step by step (unknown apps, Play
+  Protect), and where to ask for help. It reads the newest release from the
+  app repository's GitHub releases each time it opens — the same release
+  "Check for updates" installs — so a new version needs no edit. Dark and
+  light from the design system, Inter, 375 px and up. A Vercel project whose
+  root is `apk-web/` serves it; nothing to build.
+- **The console's domain change** (to reportwhatslit-admin.vercel.app): the
+  backend always allows the console's old and new addresses
+  (`CONSOLE_ORIGINS`, whatever `CORS_ORIGINS` says), so the move needs no
+  edit on Render; and the console's `/installation` goes to the download
+  page.
+
 **UI (Admin console)**
 - Affiliates → Network: the status says Suspended or Revoked. The
   organisation's dialog has a **Standing** section with Suspend, Revoke,

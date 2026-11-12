@@ -21,6 +21,15 @@ Environment = Literal["development", "staging", "production"]
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
+# The Admin console's addresses, allowed whatever CORS_ORIGINS says, so moving
+# the console to its reportwhatslit-admin domain (12 Nov 2026: "admin domain
+# change") needs no edit on Render. The old address keeps working.
+CONSOLE_ORIGINS = (
+    "https://replit-backend-5u9u.vercel.app",
+    "https://reportwhatslit-admin.vercel.app",
+)
+
+
 class Settings(BaseSettings):
     """Strongly-typed application settings loaded from the environment / ``.env``."""
 
@@ -267,8 +276,10 @@ class Settings(BaseSettings):
     # ----- Derived helpers -----
     @property
     def cors_origins_list(self) -> list[str]:
-        """Return the parsed CORS origins, with blank entries stripped."""
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        """Return the parsed CORS origins, with blank entries stripped, and
+        the Admin console's own addresses (CONSOLE_ORIGINS) always among them."""
+        origins = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        return origins + [o for o in CONSOLE_ORIGINS if o not in origins]
 
     @property
     def is_development(self) -> bool:

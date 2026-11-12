@@ -3,6 +3,13 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "redirects": [
+    {
+      "source": "/installation",
+      "destination": "https://reportwhatslit-apk.vercel.app/",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
