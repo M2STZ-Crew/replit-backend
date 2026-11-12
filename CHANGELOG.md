@@ -6,6 +6,60 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.28 — 12 November 2026 — An affiliate's standing: suspend, revoke, delete
+
+Backend and Admin console; no app change (app v1.12.36 words the refusal).
+**Run the migration `20261112120000_affiliate_standing.sql` before this
+deploys.** Until it runs, every organisation reads as active and the three
+actions fail.
+
+### Changes
+
+**Logic**
+- **Affiliate management** (12 November: "freeze account, or soft delete, or
+  hard delete, for revoked reasons"; answered: all three, each with a reason,
+  audited). For the reviewers of affiliates — the system Admin and the
+  central hub:
+  - **Suspend** (freeze): nobody of the organisation signs in or acts; Restore
+    undoes it any time. `POST /affiliates/organizations/{id}/suspend`.
+  - **Revoke** (soft delete): the same, and it leaves the network with its
+    records kept; Restore undoes it for 30 days, after which it can apply
+    again. `.../revoke`, `.../restore`.
+  - **Delete permanently**: only an organisation with no incidents on record
+    (nothing acknowledged, responded to, routed, filed or reported by it), its
+    name typed to confirm; its accounts are deleted from Supabase Auth and the
+    organisation with them. With incidents on record it is a 409
+    `has_incidents`: revoke it instead. `.../delete`.
+  - The reason is one of misconduct, inactive, duplicate, fraudulent
+    application, the organisation's request, other (other needs a note);
+    every change is in the audit log (`affiliate.suspend`, `.revoke`,
+    `.restore`, `.delete`). The central hub and the reviewer's own
+    organisation are refused (409), so nobody locks the reviewers out.
+- **A frozen organisation's people are refused on every request**: 403
+  `organization_suspended` or `organization_revoked`, saying to ask the
+  central hub. Read through `to_jsonb`, so it is a no-op before the migration.
+- `GET /organizations` carries `standing`, `standing_reason`, `standing_note`,
+  `standing_changed_at` and, for a revoked one, `restorable_until`.
+
+**UI (Admin console)**
+- Affiliates → Network: the status says Suspended or Revoked. The
+  organisation's dialog has a **Standing** section with Suspend, Revoke,
+  Restore and Delete permanently, each asking for the reason (and a note for
+  Other, the name typed out to delete). Not offered for the central hub or
+  the hub's own organisation.
+
+### Tests
+- `tests/test_affiliate_standing.py`: suspend freezes and is audited, Other
+  needs a note, an unknown reason is refused, the hub and your own
+  organisation are untouched, revoke then restore within 30 days, not after,
+  revoked must be restored before a suspend, delete needs the name and no
+  incidents, and removes every account; the frozen sign-in check; the
+  migration's reasons.
+- Failing before this release and unchanged by it: `tests/test_smoke.py` and
+  `tests/test_national_id.py`'s photo removal, 7 in all.
+
+---
+
 ## v1.12.27 — 12 November 2026 — 50 m / 100 m, adults only, what's burning
 
 Backend and Admin console, with app v1.12.34. **Run the migration
