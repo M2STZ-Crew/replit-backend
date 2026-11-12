@@ -1,13 +1,17 @@
-"""Tell phones a new version of the app is out (backend v1.12.29).
+"""Tell phones a new version of the app is out (backend v1.12.29, v1.12.30).
 
 12 November 2026: "create an "New Update!" notification, the sound to be
 follow. still vibrates". The app's releases are published on GitHub, with a
 ``latest.json`` beside the APK: what the app's own "Check for updates" reads.
 Every ``APP_UPDATE_CHECK_MINUTES`` (10) this reads it too, and everyone on an
 Android phone that is on an older version hears of it once per version: a
-push, "New Update!", on a channel of its own ("App updates": the phone's own
-tone until the update's sound is chosen, and vibration), and a row in their
+push, "New Update!", on a channel of its own, vibrating, and a row in their
 inbox. Tapping it opens Check for updates.
+
+The push plays the update's own recording in the reader's language (v1.12.30:
+English or Tagalog, on that language's channel) on a phone with app v1.12.38
+or later, which has the recordings; an older phone hears its own tone, on
+"App updates" (``APP_UPDATES_CHANNEL``).
 
 Android only: an iPhone installs a new version by hand, from the IPA, and its
 own Check for updates says when there is one.
@@ -36,7 +40,12 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.session import Database, database
-from app.integrations.fcm import APP_UPDATES_CHANNEL, PushService
+from app.integrations.fcm import (
+    APP_UPDATE_RECORDINGS,
+    APP_UPDATE_RECORDINGS_SINCE,
+    APP_UPDATES_CHANNEL,
+    PushService,
+)
 from app.services.citizen_copy import Language, language_of
 from app.services.notification_inbox import record_inbox
 
@@ -74,15 +83,39 @@ def version_from(manifest: object) -> str | None:
     return None
 
 
+def _version_of(installed: str | None) -> tuple[int, ...] | None:
+    """The version a phone registered with: "1.12.36 (58)" reads as 1.12.36."""
+    core = (installed or "").strip().split(" ")[0]
+    if not _VERSION.match(core):
+        return None
+    return tuple(map(int, core.split(".")))
+
+
 def is_older(installed: str | None, latest: str) -> bool:
     """Whether a phone that registered as ``installed`` is before ``latest``.
 
     "1.12.36 (58)" reads as 1.12.36. A phone that never said counts as older.
     """
-    core = (installed or "").strip().split(" ")[0]
-    if not _VERSION.match(core):
-        return True
-    return tuple(map(int, core.split("."))) < tuple(map(int, latest.split(".")))
+    version = _version_of(installed)
+    return version is None or version < tuple(map(int, latest.split(".")))
+
+
+def has_recordings(installed: str | None) -> bool:
+    """Whether a phone on ``installed`` has the update's recordings and their
+    channels (app v1.12.38). A phone that never said has not.
+    """
+    version = _version_of(installed)
+    return version is not None and version >= APP_UPDATE_RECORDINGS_SINCE
+
+
+def update_channel(language: Language, recordings: bool) -> tuple[str, str | None]:
+    """The channel a phone is told on, and the recording it plays (None: the
+    phone's own tone).
+    """
+    if not recordings:
+        return APP_UPDATES_CHANNEL, None
+    channel, recording = APP_UPDATE_RECORDINGS.get(language, APP_UPDATE_RECORDINGS["en"])
+    return channel, recording
 
 
 async def latest_version(client: httpx.AsyncClient) -> str | None:
@@ -124,40 +157,46 @@ async def announce(db: Database, push: PushService, version: str) -> int:
 
     Returns how many people were told (each once, whatever their phones).
     """
-    due: dict[UUID, tuple[Language, list[str]]] = {}
+    # Each person once, in their language; each of their phones with the
+    # sound it can play.
+    due: dict[UUID, tuple[Language, list[tuple[str, bool]]]] = {}
     for row in await db.fetch(_DUE_SQL, version):
         if not is_older(row["app_version"], version):
             continue
-        _, tokens = due.setdefault(row["user_id"], (language_of(row["language"]), []))
-        tokens.append(row["fcm_token"])
+        _, phones = due.setdefault(row["user_id"], (language_of(row["language"]), []))
+        phones.append((row["fcm_token"], has_recordings(row["app_version"])))
     if not due:
         return 0
 
-    groups: dict[Language, tuple[list[UUID], list[str]]] = {}
-    for user_id, (language, tokens) in due.items():
-        users, all_tokens = groups.setdefault(language, ([], []))
+    groups: dict[Language, tuple[list[UUID], dict[bool, list[str]]]] = {}
+    for user_id, (language, phones) in due.items():
+        users, tokens = groups.setdefault(language, ([], {}))
         users.append(user_id)
-        all_tokens.extend(tokens)
+        for token, recordings in phones:
+            tokens.setdefault(recordings, []).append(token)
 
-    for language, (users, tokens) in groups.items():
+    for language, (users, by_sound) in groups.items():
         title, body = update_copy(language, version)
         await record_inbox(db, users, INBOX_TYPE, title, body, {"version": version})
-        for start in range(0, len(tokens), _MULTICAST_LIMIT):
-            result = await push.send_to_tokens(
-                tokens=tokens[start : start + _MULTICAST_LIMIT],
-                title=title,
-                body=body,
-                data={"type": INBOX_TYPE, "version": version},
-                channel=APP_UPDATES_CHANNEL,
-                # A newer version's push replaces an older one in the shade.
-                tag=INBOX_TYPE,
-            )
-            if result.invalid_tokens:
-                await db.execute(
-                    "update public.device_tokens set is_active = false "
-                    "where fcm_token = any($1::text[])",
-                    result.invalid_tokens,
+        for recordings, tokens in by_sound.items():
+            channel, recording = update_channel(language, recordings)
+            for start in range(0, len(tokens), _MULTICAST_LIMIT):
+                result = await push.send_to_tokens(
+                    tokens=tokens[start : start + _MULTICAST_LIMIT],
+                    title=title,
+                    body=body,
+                    data={"type": INBOX_TYPE, "version": version},
+                    channel=channel,
+                    recording=recording,
+                    # A newer version's push replaces an older one in the shade.
+                    tag=INBOX_TYPE,
                 )
+                if result.invalid_tokens:
+                    await db.execute(
+                        "update public.device_tokens set is_active = false "
+                        "where fcm_token = any($1::text[])",
+                        result.invalid_tokens,
+                    )
     log.info("app_update_announced", version=version, people=len(due))
     return len(due)
 
