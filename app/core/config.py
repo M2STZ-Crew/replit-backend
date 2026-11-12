@@ -21,6 +21,18 @@ Environment = Literal["development", "staging", "production"]
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
+# The Admin console's addresses, allowed whatever CORS_ORIGINS says, so its
+# domain change (12 Nov 2026: "admin domain change") needs no edit on Render.
+# It is served at reportwhatslit.vercel.app; reportwhatslit-admin and the old
+# replit-backend-5u9u address redirect there, and stay allowed in case either
+# is made the one it is served at.
+CONSOLE_ORIGINS = (
+    "https://reportwhatslit.vercel.app",
+    "https://reportwhatslit-admin.vercel.app",
+    "https://replit-backend-5u9u.vercel.app",
+)
+
+
 class Settings(BaseSettings):
     """Strongly-typed application settings loaded from the environment / ``.env``."""
 
@@ -37,7 +49,7 @@ class Settings(BaseSettings):
         description='Deployment environment: "development" | "staging" | "production".',
     )
     app_name: str = Field(default="RepLiT Backend", description="Human-readable app name.")
-    app_version: str = Field(default="1.12.27", description="Semantic version of the build.")
+    app_version: str = Field(default="1.12.28", description="Semantic version of the build.")
     host: str = Field(default="0.0.0.0", description="Uvicorn bind host.")
     port: int = Field(default=8000, ge=1, le=65535, description="Uvicorn bind port.")
 
@@ -267,8 +279,10 @@ class Settings(BaseSettings):
     # ----- Derived helpers -----
     @property
     def cors_origins_list(self) -> list[str]:
-        """Return the parsed CORS origins, with blank entries stripped."""
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        """Return the parsed CORS origins, with blank entries stripped, and
+        the Admin console's own addresses (CONSOLE_ORIGINS) always among them."""
+        origins = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        return origins + [o for o in CONSOLE_ORIGINS if o not in origins]
 
     @property
     def is_development(self) -> bool:

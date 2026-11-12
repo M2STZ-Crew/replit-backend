@@ -38,7 +38,16 @@ _ORG_COLS = (
     "(select count(*) from public.users u where u.primary_org_id = o.id) "
     "as personnel_count, "
     "(select count(*) from public.equipment e where e.organization_id = o.id) "
-    "as equipment_count"
+    "as equipment_count, "
+    # Standing (v1.12.28), through to_jsonb: 'active' on a database without
+    # migration 20261112120000.
+    "coalesce(to_jsonb(o) ->> 'standing', 'active') as standing, "
+    "to_jsonb(o) ->> 'standing_reason' as standing_reason, "
+    "to_jsonb(o) ->> 'standing_note' as standing_note, "
+    "(to_jsonb(o) ->> 'standing_changed_at')::timestamptz as standing_changed_at, "
+    "case when to_jsonb(o) ->> 'standing' = 'revoked' "
+    "     then (to_jsonb(o) ->> 'standing_changed_at')::timestamptz + interval '30 days' "
+    "end as restorable_until"
 )
 
 

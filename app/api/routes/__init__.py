@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     admin,
+    affiliate_standing,
     affiliates,
     ai,
     alarm_requests,
@@ -52,6 +53,7 @@ api_router.include_router(ai.router)
 api_router.include_router(ai.summaries_router)
 api_router.include_router(equipment.router)
 api_router.include_router(affiliates.router)
+api_router.include_router(affiliate_standing.router)
 api_router.include_router(organizations.router)
 api_router.include_router(org_accounts.router)
 api_router.include_router(team.router)

@@ -292,6 +292,18 @@ export const api = {
   organizations: () => request('/organizations'),
   orgPersonnel: (id) => request(`/organizations/${id}/personnel`),
   orgEquipment: (id) => request(`/equipment?organization_id=${id}`),
+  // An affiliate's standing (v1.12.28): suspend, revoke, restore, delete.
+  affiliateSuspend: (id, reason, note) =>
+    request(`/affiliates/organizations/${id}/suspend`, { method: 'POST', body: { reason, note: note || null } }),
+  affiliateRevoke: (id, reason, note) =>
+    request(`/affiliates/organizations/${id}/revoke`, { method: 'POST', body: { reason, note: note || null } }),
+  affiliateRestore: (id, note) =>
+    request(`/affiliates/organizations/${id}/restore`, { method: 'POST', body: { note: note || null } }),
+  affiliateDelete: (id, reason, note, confirmName) =>
+    request(`/affiliates/organizations/${id}/delete`, {
+      method: 'POST',
+      body: { reason, note: note || null, confirm_name: confirmName },
+    }),
 
   // Map-layer management (admin create/update/delete; `path` e.g. 'risk-zones').
   mapLayerCreate: (path, body) => request(`/map/${path}`, { method: 'POST', body }),

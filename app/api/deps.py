@@ -101,6 +101,18 @@ async def get_access_token(
 
 AccessTokenDep = Annotated[str, Depends(get_access_token)]
 
+# What someone of a suspended or revoked organisation is told (v1.12.28).
+ORGANIZATION_FROZEN = {
+    "suspended": (
+        "Your organization's RepLiT access is suspended. Ask the central hub "
+        "(Barangay 76) why, and when it will be restored."
+    ),
+    "revoked": (
+        "Your organization has been removed from RepLiT. Ask the central hub "
+        "(Barangay 76) if you think this is a mistake."
+    ),
+}
+
 # What a deactivated account is told — at sign-in, on a request, on the socket.
 DEACTIVATED_MESSAGE = (
     "This account has been deactivated. Ask your coordinator to reactivate it."
@@ -119,7 +131,8 @@ CURRENT_USER_SQL = """
            o.name as org_name, o.agency_type::text as org_agency_type,
            o.is_active as org_is_active,
            coalesce((to_jsonb(o) ->> 'is_central_hub')::boolean, false)
-               as org_is_central_hub
+               as org_is_central_hub,
+           coalesce(to_jsonb(o) ->> 'standing', 'active') as org_standing
     from public.users u
     left join public.organizations o on o.id = u.primary_org_id
     where u.id = $1
@@ -153,6 +166,13 @@ async def get_current_user(
     # request, not only at the next sign-in: its token may still be valid.
     if profile.pop("is_active", True) is False:
         raise UnauthorizedError(DEACTIVATED_MESSAGE)
+    # A suspended or revoked organisation is frozen: nobody of it signs in
+    # or acts (app/api/routes/affiliate_standing.py, v1.12.28).
+    standing = profile.pop("org_standing", "active")
+    if standing in ORGANIZATION_FROZEN:
+        raise ForbiddenError(
+            ORGANIZATION_FROZEN[standing], error_code=f"organization_{standing}"
+        )
     # One phone per account: a session the account has since replaced with a
     # newer sign-in is refused (app/services/one_device.py).
     await assert_newest_session(db, user_id, claims.get("session_id"))

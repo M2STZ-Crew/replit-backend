@@ -7,6 +7,7 @@ primary_org_id). Equipment is served by the existing /equipment endpoint.
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
@@ -28,6 +29,13 @@ class OrganizationSummary(BaseModel):
     personnel_count: int = 0
     equipment_count: int = 0
     created_at: datetime
+    # Standing (v1.12.28): active, suspended (frozen) or revoked (soft-deleted,
+    # restorable until restorable_until). app/api/routes/affiliate_standing.py.
+    standing: str = "active"
+    standing_reason: str | None = None
+    standing_note: str | None = None
+    standing_changed_at: datetime | None = None
+    restorable_until: datetime | None = None
 
 
 class OrganizationMember(BaseModel):
@@ -83,3 +91,43 @@ class CoordinatorEmailPreview(BaseModel):
     """The address a new Coordinator with this name would get."""
 
     email: str
+
+
+# --------------------------------------------------------------------------- #
+# An affiliate's standing (v1.12.28)
+# --------------------------------------------------------------------------- #
+StandingReason = Literal[
+    "misconduct",
+    "inactive",
+    "duplicate",
+    "fraudulent_application",
+    "organization_request",
+    "other",
+]
+
+
+class StandingChange(BaseModel):
+    """Suspend or revoke: why, from the list; a note, which "other" needs."""
+
+    reason: StandingReason
+    note: str | None = Field(default=None, max_length=1000)
+
+
+class StandingRestore(BaseModel):
+    """Restore: an optional note for the record."""
+
+    note: str | None = Field(default=None, max_length=1000)
+
+
+class OrganizationDelete(StandingChange):
+    """Delete permanently: the reason, and the organisation's name typed out."""
+
+    confirm_name: str = Field(min_length=1, max_length=200)
+
+
+class OrganizationDeleted(BaseModel):
+    """What a permanent delete removed."""
+
+    id: UUID
+    name: str
+    accounts_deleted: int

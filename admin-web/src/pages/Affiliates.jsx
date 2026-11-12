@@ -4,6 +4,7 @@ import { api } from '../api/client.js';
 import { agencyAuthority, agencyLabel } from '../auth.jsx';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import OrgDialog from '../components/OrgDialog.jsx';
+import { standingLabel } from '../components/OrgStanding.jsx';
 import { ConfirmDialog, EmptyState, Icon, PageHeader, StatePanel, StatusChip } from '../components/ui/index.js';
 import { t } from '../i18n/i18n.jsx';
 
@@ -195,7 +196,7 @@ function Network({ orgs, onOpen }) {
                 </td>
                 <td className="rpl-cell-strong">{o.personnel_count ?? 0}</td>
                 <td className="rpl-cell-strong">{o.equipment_count ?? 0}</td>
-                <td><StatusChip label={o.is_active ? t('Active') : t('Inactive')} tone={o.is_active ? 'ok' : 'neutral'} /></td>
+                <td><StatusChip label={standingLabel(o)} tone={o.standing === 'revoked' ? 'danger' : o.standing === 'suspended' ? 'warn' : o.is_active ? 'ok' : 'neutral'} /></td>
                 <td className="web-table-action-cell">
                   <button type="button" className="web-table-row-action" onClick={() => onOpen(o.id)} aria-haspopup="dialog">{t('Open')}<span className="web-sr-only"> {o.name}</span>
                   </button>
@@ -395,6 +396,18 @@ export default function Affiliates() {
           glyph={GLYPH[openOrg.agency_type] ?? 'glyph-people'}
           color={SECTOR_COLOR[openOrg.agency_type] ?? '#8a8a8a'}
           onClose={() => setOpenOrgId(null)}
+          // The hub manages every other organisation's standing; never its own.
+          canManage={!openOrg.is_central_hub && openOrg.id !== org?.id}
+          onStandingChanged={async (action) => {
+            if (action === 'delete') setOpenOrgId(null);
+            setNotice({
+              suspend: t('{org} suspended', { org: openOrg.name }),
+              revoke: t('{org} revoked', { org: openOrg.name }),
+              restore: t('{org} restored', { org: openOrg.name }),
+              delete: t('{org} deleted', { org: openOrg.name }),
+            }[action]);
+            await load();
+          }}
         />
       )}
 
