@@ -6,6 +6,52 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.29 — 12 November 2026 — "New Update!", the first fire team, the version alone
+
+Backend and the APK page; app v1.12.37 goes with it. **No migration.** Deploy
+in either order: an app before v1.12.37 shows the update push on its default
+channel, and reads the fire type as before.
+
+### Changes
+
+**Logic**
+- **"New Update!"** ("create an "New Update!" notification, the sound to be
+  follow. still vibrates"; answered: a push when a release comes out, the
+  phone's own tone for now). Every 10 minutes the service reads the app's
+  newest release (its `latest.json`, a download, not GitHub's rate-limited
+  API) and tells everyone on an Android phone on an older version, once per
+  version: a push on its own channel, `app_updates_v1` (the phone's tone and
+  vibration), and a row in their inbox (`type = app_update`), which is what
+  marks them told. A phone's version is the one it registered with; "1.12.36
+  (58)" from an older app reads as 1.12.36. It runs only where the service
+  has a public address (Render), never on a laptop or in the tests.
+  `APP_UPDATE_CHECK_MINUTES` (default 10; 0 is off).
+- **Only the first fire team says what is burning** ("the first fire
+  organization will fill out so that the second or next fire organization
+  arrived will not fill that out"). `POST /incidents/{id}/fire-type` takes a
+  fire team's answer (Fire Volunteer or BFP), the first to answer; after
+  that only that team corrects it. Police, medical and barangay get 403
+  `fire_team_only`; a later fire team 409 `fire_type_answered`, naming the
+  team that answered, checked under the Area's lock. The incident says which
+  team answered (`fire_type_org_id`, `fire_type_org_name`).
+
+**APK download page**
+- **The version alone** ("remove the build number. it is just the version of
+  app will be remain seen in any platforms"): "1.12.37", and the file named
+  for the version; older releases' names are shown without their build
+  number too.
+- **"What's new:"** is the list it shows from the release notes ("for
+  testers" wording is gone from the system); older releases' "New for
+  testers:" lists still read.
+
+### Tests
+- `tests/test_v1_12_29.py`: the release manifest read, and what is told
+  when it cannot be; who is behind (and the older apps' version labels);
+  the push's channel, words in both languages, inbox first, dead tokens
+  switched off; the fire-type rule for every agency and team; the APK page.
+
+---
+
 ## v1.12.28 — 12 November 2026 — An affiliate's standing: suspend, revoke, delete
 
 Backend and Admin console; no app change (app v1.12.36 words the refusal).
