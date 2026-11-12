@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 
 import { api } from '../api/client.js';
 import { agencyAuthority, agencyLabel } from '../auth.jsx';
+import OrgStanding, { standingLabel } from './OrgStanding.jsx';
 import Skeleton from './ui/Skeleton.jsx';
 import { t } from '../i18n/i18n.jsx';
 
@@ -76,7 +77,7 @@ function Fact({ k, children }) {
  * It behaves as a dialog: focus moves in, Tab stays inside, Escape or the
  * backdrop closes it, and focus returns to the row that opened it. It renders
  * into <body> so the console's bottom bar cannot sit on top of it. */
-export default function OrgDialog({ org, application, glyph, color, onClose }) {
+export default function OrgDialog({ org, application, glyph, color, onClose, canManage = false, onStandingChanged }) {
   const panel = useRef(null);
   // Read through a ref so a parent that passes a fresh function each render
   // does not re-run the focus effect below and steal focus back to Close.
@@ -165,7 +166,7 @@ export default function OrgDialog({ org, application, glyph, color, onClose }) {
               </span>
               <span className={`af-status${org.is_active ? ' is-on' : ''}`}>
                 <span className="af-status-dot" />
-                {org.is_active ? t('Active') : t('Inactive')}
+                {standingLabel(org)}
               </span>
             </div>
           </div>
@@ -323,6 +324,9 @@ export default function OrgDialog({ org, application, glyph, color, onClose }) {
               </>
             )}
           </section>
+
+          {/* Standing (v1.12.28) ------------------------------------------ */}
+          <OrgStanding org={org} canManage={canManage} onChanged={onStandingChanged} />
         </div>
       </div>
     </div>,
