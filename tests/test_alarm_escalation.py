@@ -663,7 +663,9 @@ async def test_the_asker_is_told_the_answer(
     assert pushed[0]["data"]["type"] == "alarm_request_answered"
     assert pushed[0]["data"]["request_id"] == str(detail.id)
     assert pushed[0]["tag"] == f"alarm-answer-{detail.id}", "a repeat never stacks"
-    assert "sound" not in pushed[0], "an answer, not a new fire: the phone's own tone"
+    # v1.12.33: "No phone tone anywhere": the asker's own sound, the fire
+    # recording (only the fire service asks BFP for an alarm).
+    assert pushed[0]["sound"] == "fire"
     assert inbox and inbox[0][2] == "alarm_request_answered"
 
 

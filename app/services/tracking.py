@@ -200,7 +200,10 @@ _UNITS_SQL = """
 with units as (
     select d.responder_id, d.vehicle_name, d.status::text as status,
            o.name as org_name,
-           coalesce(o.agency_type::text, u.agency_type::text) as agency,
+           -- The responder's own agency first (v1.12.33): Barangay 76, the
+           -- central hub, has fire and medic teams whose agency is not the
+           -- organisation's (barangay).
+           coalesce(u.agency_type::text, o.agency_type::text) as agency,
            row_number() over (order by d.dispatched_at, d.id) as unit_no
     from public.dispatch_logs d
     join public.users u on u.id = d.responder_id

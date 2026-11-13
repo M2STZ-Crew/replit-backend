@@ -26,7 +26,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.core.logging import get_logger
 from app.db.session import Database, database
-from app.integrations.fcm import PushService, sound_for_agency
+from app.integrations.fcm import PushService, sound_for_agency, token_versions
 from app.services import staff_copy
 from app.services.citizen_copy import language_of
 from app.services.incident import active_area_sql
@@ -74,13 +74,12 @@ async def _send_reminder(
     db: Database, push: PushService, row: Mapping[str, Any], *, sound: bool
 ) -> None:
     """Push one reminder to the coordinator's phones; retire dead tokens."""
-    tokens = [
-        t["fcm_token"]
-        for t in await db.fetch(
-            "select fcm_token from public.device_tokens where user_id = $1 and is_active",
-            row["user_id"],
-        )
-    ]
+    token_rows = await db.fetch(
+        "select fcm_token, app_version from public.device_tokens "
+        "where user_id = $1 and is_active",
+        row["user_id"],
+    )
+    tokens = [t["fcm_token"] for t in token_rows]
     if not tokens:
         return
     area_id = str(row["area_id"])
@@ -95,6 +94,7 @@ async def _send_reminder(
         sound=sound_for_agency(row["agency_type"]) if sound else None,
         silent=not sound,
         tag=f"incident-{area_id}",
+        versions=token_versions(token_rows),
     )
     if result.invalid_tokens:
         await db.execute(

@@ -62,7 +62,8 @@ class _StaffDb:
                 for u in self.people
             ]
         if "role = 'sub_admin'" in query:
-            return [{"id": u} for u in self.people]
+            # Routed to PNP's captains (the tests' routes), their own agency.
+            return [{"id": u, "agency_type": "police"} for u in self.people]
         return []
 
     async def execute(self, query: str, *args: Any) -> str:
@@ -186,6 +187,9 @@ async def test_a_routed_incident_reaches_each_captain_in_their_language(sent: An
         "Incident routed to your team": [f"tok-{english}"],
         "May insidenteng ipinasa sa team mo": [f"tok-{tagalog}"],
     }
+    # v1.12.33 ("No phone tone anywhere"): each captain's own agency's
+    # recording; it had the phone's tone.
+    assert {s["sound"] for s in push.sent} == {"police"}
     assert len(inbox) == 2
 
 

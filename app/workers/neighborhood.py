@@ -21,7 +21,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.session import Database, database
-from app.integrations.fcm import PushService, SoundCategory
+from app.integrations.fcm import PushService, SoundCategory, token_versions
 from app.services.citizen_copy import NEIGHBOUR_ALERT, Language, by_language, language_of
 from app.services.incident import active_area_sql
 from app.services.notification_inbox import record_inbox
@@ -84,17 +84,19 @@ async def notify_area_neighbors(
         return 0
     user_ids = [u["user_id"] for u in users]
 
-    # The first alert plays the fire recording; the reminders after it (one a
-    # minute, up to ten, until they answer) play the citizen recording and
-    # replace the last one in the shade — ten sirens would teach people to mute
-    # the app. Each in the language the resident reads the app in.
+    # The first alert and the reminders after it (one a minute, up to ten,
+    # until they answer) play the citizen recording, "01 NEARBY INCIDENT"
+    # (v1.12.33: "Nearby fire: NEARBY INCIDENT"; the first played the staff
+    # fire alarm), and each replaces the last in the shade. They stay two
+    # groups, so the reminders could sound different again. Each in the
+    # language the resident reads the app in.
     languages: dict[UUID, Language] = {
         u["user_id"]: language_of(u.get("language")) for u in users
     }
     first = {u["user_id"]: languages[u["user_id"]] for u in users if not u["alerted_before"]}
     again = {u["user_id"]: languages[u["user_id"]] for u in users if u["alerted_before"]}
     sounds: tuple[tuple[dict[UUID, Language], SoundCategory], ...] = (
-        (first, "fire"),
+        (first, "citizen"),
         (again, "citizen"),
     )
     for group, sound in sounds:
@@ -132,7 +134,7 @@ async def _push_alert(
     """Push the neighbourhood alert to these users' phones; retire dead tokens."""
     title, body = NEIGHBOUR_ALERT[language]
     token_rows = await db.fetch(
-        "select fcm_token from public.device_tokens "
+        "select fcm_token, app_version from public.device_tokens "
         "where user_id = any($1::uuid[]) and is_active",
         user_ids,
     )
@@ -146,6 +148,7 @@ async def _push_alert(
         data={"type": "neighborhood_alert", "area_id": str(area_id)},
         sound=sound,
         tag=f"nearby-{area_id}",
+        versions=token_versions(token_rows),
     )
     if result.invalid_tokens:
         await db.execute(

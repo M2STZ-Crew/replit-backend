@@ -154,7 +154,9 @@ async def test_each_neighbour_is_alerted_in_their_language(
     assert alerted == 2
     by_title = {s["title"]: s["tokens"] for s in push.sent}
     assert by_title == {"Fire alert": [f"tok-{english}"], "Alerto sa Sunog": [f"tok-{tagalog}"]}
-    assert {s["sound"] for s in push.sent} == {"fire"}, "both still ring the alarm"
+    # v1.12.33: the nearby-incident recording, the citizen one (it was the
+    # staff fire alarm).
+    assert {s["sound"] for s in push.sent} == {"citizen"}, "both hear NEARBY INCIDENT"
     assert sorted((ids[0] == english, title) for ids, title, _ in inbox) == [
         (False, "Alerto sa Sunog"),
         (True, "Fire alert"),

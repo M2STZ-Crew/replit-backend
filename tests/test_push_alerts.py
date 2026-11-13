@@ -326,7 +326,7 @@ class _NeighbourDb:
         return "OK"
 
 
-async def test_a_neighbours_first_alert_plays_fire_and_the_reminders_citizen(
+async def test_a_neighbours_alerts_play_the_nearby_incident_recording(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def no_inbox(*_: Any, **__: Any) -> None:
@@ -345,8 +345,12 @@ async def test_a_neighbours_first_alert_plays_fire_and_the_reminders_citizen(
     )
 
     assert alerted == 2
-    by_sound = {s["sound"]: s["tokens"] for s in push.sent}
-    assert by_sound == {"fire": [f"tok-{new}"], "citizen": [f"tok-{seen}"]}
+    # v1.12.33 ("Nearby fire: NEARBY INCIDENT"): the first alert plays the
+    # citizen recording, "01 NEARBY INCIDENT", as the reminders do; it played
+    # the staff fire alarm.
+    assert sorted((s["sound"], tuple(s["tokens"])) for s in push.sent) == sorted(
+        [("citizen", (f"tok-{new}",)), ("citizen", (f"tok-{seen}",))]
+    )
     assert {s["tag"] for s in push.sent} == {f"nearby-{AREA}"}, "reminders replace"
     assert {s["data"]["type"] for s in push.sent} == {"neighborhood_alert"}
 
@@ -450,9 +454,7 @@ def test_readiness_says_what_to_fix(
     assert "SECRETSECRET" not in json.dumps(checks)
 
 
-def test_a_working_push_has_no_detail(
-    client: TestClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_a_working_push_has_no_detail(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(fcm, "_fcm_state", "ready")
     monkeypatch.setattr(fcm, "_fcm_reason", None)
     checks = client.get("/health/ready").json()["checks"]
