@@ -11,7 +11,13 @@ from fastapi import APIRouter, Response, status
 from app.api.deps import CurrentUser, DatabaseDep, PushServiceDep
 from app.core.exceptions import AppError, BadRequestError
 from app.core.logging import get_logger
-from app.integrations.fcm import fcm_failure_reason, fcm_status
+from app.integrations.fcm import (
+    SoundCategory,
+    fcm_failure_reason,
+    fcm_status,
+    sound_for_agency,
+    token_versions,
+)
 from app.schemas.common import MessageResponse
 from app.schemas.device import DeviceTokenCreate, DeviceTokenResponse
 from app.services.citizen_copy import TEST_ALERT, languages_of
@@ -109,20 +115,30 @@ async def send_test_push(
             error_code=f"push_{state}",
         )
     rows = await db.fetch(
-        "select fcm_token from public.device_tokens where user_id = $1 and is_active",
+        "select fcm_token, app_version from public.device_tokens "
+        "where user_id = $1 and is_active",
         user.id,
     )
     tokens = [r["fcm_token"] for r in rows]
     if not tokens:
         raise BadRequestError("No active device tokens registered.")
+    # The person's own sound (v1.12.33: "No phone tone anywhere"): staff
+    # their agency's recording, everyone else the citizen one.
+    sound: SoundCategory = (
+        sound_for_agency(user.agency_type)
+        if user.role in ("sub_admin", "response_team")
+        else "citizen"
+    )
     title, body = TEST_ALERT[(await languages_of(db, [user.id])).get(user.id, "en")]
     result = await push.send_to_tokens(
         tokens=tokens,
         title=title,
         body=body,
         data={"type": "test"},
+        sound=sound,
         # A second test replaces the first in the shade rather than stacking.
         tag="test-alert",
+        versions=token_versions(rows),
     )
     if result.invalid_tokens:
         await db.execute(

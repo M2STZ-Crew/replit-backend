@@ -6,6 +6,84 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.33 — 13 November 2026 — Every sound anew; the National ID's own sounds; Barangay 76's teams
+
+Backend only; app v1.12.42 goes with it. **No migration.** Deploy in either
+order: a phone is told on the new channels only once it registers with app
+v1.12.42, and on the channels it has until then.
+
+### Changes
+
+**Sounds** ("check all of the sounds and apply it to the new. because we found
+some errors in sound"; the recordings in NOTIFICATION SOUNDS, by who hears them)
+- **Every sound on a channel made anew** (`SOUND_CHANNELS_V2`). A phone that
+  had the app before v1.12.23 still holds `alert_fire`, `alert_police`,
+  `alert_medical` and `alert_barangay` by resource number, and the recordings
+  added since moved the numbers: on such a phone a Medical alert played "fire
+  out" and a Police alert the Medical sound. App v1.12.42 deletes every sound
+  channel it had and makes new ones that name their file. A phone is told on
+  them once it has registered with v1.12.42 (`device_tokens.app_version`;
+  every push now passes each phone's version, `send_to_tokens(versions=)`).
+  Until then it is told on the channels it has.
+- **The National ID's own sounds** ("custom national id verified sound (id
+  verified and rejected)"): approved plays ID VERIFIED, asked to try again ID
+  NOT VERIFIED (`id_verified_v1`, `id_rejected_v1`). The inbox row names the
+  sound too, for the iPhone, which hears its inbox. An app before v1.12.42
+  has neither channel and hears these as before, with the phone's tone.
+- **No phone tone** ("No phone tone anywhere"). These pushes had none of
+  their own and played the phone's tone; now each plays its reader's own
+  sound:
+  - a responder's dispatch: their agency's recording;
+  - an incident routed to a team's captains: their agency's recording;
+  - BFP's answer to an alarm request: the fire recording;
+  - the test alert: staff hear their agency's recording, everyone else the
+    citizen one.
+
+  On app v1.12.42, a push that names no sound at all plays the citizen
+  recording.
+- **A fire near a resident plays NEARBY INCIDENT** ("Nearby fire: NEARBY
+  INCIDENT"). The first alert played the staff fire alarm; now it plays the
+  citizen recording ("01 NEARBY INCIDENT"), as its reminders already did.
+- The verified step's new recording ("02 REPORT ACKNOWLEDGED") ships in app
+  v1.12.42, on its new channel.
+
+**Barangay 76's fire and medic teams** ("barangay 76 is the central hub. they
+were going to be notified about (fire, medic, and barangay)")
+- Done in the data on 13 Nov, not in code. Six new accounts in Barangay 76
+  itself, alerted by their own agency:
+  - `barangay76fire.coordinator1`, `.coordinator2` and `.responder1`: Fire
+    Volunteer.
+  - `barangay76medic.coordinator1`, `.coordinator2` and `.responder1`:
+    Medical.
+- `barangay76.responder` is now `barangay76.responder1`.
+- A fire now alerts Barangay 76's fire team along with Hercules and BFP. A
+  medical report alerts its medic team: until now no account had the Medical
+  agency, so medical reports alerted nobody.
+- The responder tracker shows a responder's own agency before its
+  organisation's, so Barangay 76's fire responder shows as fire, not barangay.
+
+### Tests
+- `tests/test_v1_12_33.py`:
+  - Every sound has a new channel, none of them an old id.
+  - Which app versions have the new channels.
+  - Each sound's channel and file on a new phone, and an older app's.
+  - One push splits by app version.
+  - A push without versions goes as to older apps.
+  - No phone tone on a new phone; silent reminders and "New Update!" are
+    unchanged.
+  - Every push in the service passes its phones' versions (a scan of the
+    code).
+  - The National ID result's two sounds.
+  - A dispatched responder's agency sound.
+  - The test alert's sound, by role.
+  - The tracker's agency.
+- Updated, because the behaviour changed: `tests/test_push_alerts.py` and
+  `tests/test_citizen_language.py` (a neighbour's first alert),
+  `tests/test_staff_language.py` (a routed captain's sound) and
+  `tests/test_alarm_escalation.py` (BFP's answer).
+
+---
+
 ## v1.12.32 — 13 November 2026 — "New Update!" as soon as a release is out
 
 Backend only; app v1.12.41's release workflow asks for it. **No migration.**

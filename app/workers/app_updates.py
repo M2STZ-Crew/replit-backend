@@ -59,6 +59,7 @@ from app.integrations.fcm import (
     APP_UPDATE_RECORDINGS_SINCE,
     APP_UPDATES_CHANNEL,
     PushService,
+    app_version_of,
 )
 from app.services.citizen_copy import Language, language_of
 from app.services.notification_inbox import record_inbox
@@ -130,11 +131,10 @@ def version_from(manifest: object) -> str | None:
 
 
 def _version_of(installed: str | None) -> tuple[int, ...] | None:
-    """The version a phone registered with: "1.12.36 (58)" reads as 1.12.36."""
-    core = (installed or "").strip().split(" ")[0]
-    if not _VERSION.match(core):
-        return None
-    return tuple(map(int, core.split(".")))
+    """The version a phone registered with: "1.12.36 (58)" reads as 1.12.36
+    (app/integrations/fcm.py, which also picks a phone's channels by it).
+    """
+    return app_version_of(installed)
 
 
 def is_older(installed: str | None, latest: str) -> bool:

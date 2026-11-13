@@ -23,9 +23,11 @@ import asyncio
 import base64
 import binascii
 import json
+import re
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import firebase_admin
 from firebase_admin import credentials, messaging
@@ -51,6 +53,10 @@ SoundCategory = Literal[
     "on_scene",
     "fire_out",
     "rejected",
+    # v1.12.33: the National ID review's result ("custom national id verified
+    # sound (id verified and rejected)").
+    "id_verified",
+    "id_rejected",
 ]
 
 # The channels the app creates (android/app/src/main/kotlin/.../MainActivity.kt)
@@ -72,6 +78,8 @@ SoundCategory = Literal[
 # made it, so app v1.12.35 makes vibrating copies with new ids, named here.
 # An app before v1.12.35 has none of them, and shows those pushes on its
 # default channel, with the phone's tone.
+#
+# v1.12.33: these are the channels of an app before v1.12.42 (below).
 SOUND_CHANNELS: dict[SoundCategory, str] = {
     "fire": "alert_fire",
     "police": "alert_police",
@@ -84,6 +92,60 @@ SOUND_CHANNELS: dict[SoundCategory, str] = {
     "fire_out": "citizen_fire_out_v2",
     "rejected": "citizen_rejected_v2",
 }
+
+# v1.12.33 (13 November 2026: "check all of the sounds and apply it to the
+# new. because we found some errors in sound"; "No phone tone anywhere"):
+# every sound anew. A phone that had the app before v1.12.23 still holds
+# alert_fire, alert_police, alert_medical and alert_barangay by resource
+# number, and the recordings added since moved those numbers ("alert_medical"
+# played fire out, "alert_police" medical). App v1.12.42 deletes every sound
+# channel it had and makes these, each naming its file, so every phone plays
+# the supplied recordings whatever it had before. The two new ones play the
+# National ID review's result. A phone on an older app is told on the
+# channels it has (SOUND_CHANNELS); the server tells them apart by the
+# version each phone registered with (``versions`` in send_to_tokens).
+CHANNELS_V2_SINCE = (1, 12, 42)
+SOUND_CHANNELS_V2: dict[SoundCategory, str] = {
+    "fire": "alert_fire_v2",
+    "police": "alert_police_v2",
+    "medical": "alert_medical_v2",
+    "barangay": "alert_barangay_v2",
+    "citizen": "citizen_nearby_v1",
+    "verified": "citizen_verified_v4",
+    "on_route": "citizen_on_route_v3",
+    "on_scene": "citizen_on_scene_v3",
+    "fire_out": "citizen_fire_out_v3",
+    "rejected": "citizen_rejected_v3",
+    "id_verified": "id_verified_v1",
+    "id_rejected": "id_rejected_v1",
+}
+
+_APP_VERSION = re.compile(r"^\d+\.\d+\.\d+$")
+
+
+def app_version_of(installed: str | None) -> tuple[int, ...] | None:
+    """The version a phone registered with: "1.12.36 (58)" reads as 1.12.36,
+    anything else as None.
+    """
+    core = (installed or "").strip().split(" ")[0]
+    if not _APP_VERSION.match(core):
+        return None
+    return tuple(map(int, core.split(".")))
+
+
+def has_new_channels(installed: str | None) -> bool:
+    """Whether a phone on ``installed`` has SOUND_CHANNELS_V2 (app v1.12.42).
+    A phone that never said has not.
+    """
+    version = app_version_of(installed)
+    return version is not None and version >= CHANNELS_V2_SINCE
+
+
+def token_versions(rows: Iterable[Mapping[str, Any]]) -> dict[str, str | None]:
+    """Each device token's app version, from device_tokens rows that have both
+    (``fcm_token``, ``app_version``): what send_to_tokens' ``versions`` takes.
+    """
+    return {row["fcm_token"]: row.get("app_version") for row in rows}
 
 
 UPDATES_CHANNEL = "updates_v2"
@@ -121,6 +183,7 @@ _AGENCY_SOUND: dict[str, SoundCategory] = {
 def sound_for_agency(agency: str | None) -> SoundCategory:
     """The sound a staff member of ``agency`` hears for their alerts."""
     return _AGENCY_SOUND.get(agency or "", "fire")
+
 
 # Why push is or is not working, kept so a caller can say so. Without it, a
 # server with no credentials and a server whose credentials would not load both
@@ -270,6 +333,7 @@ def android_config(
     tag: str | None = None,
     channel: str | None = None,
     recording: str | None = None,
+    modern: bool = False,
 ) -> messaging.AndroidConfig:
     """How Android shows the push: which channel, and so which sound.
 
@@ -282,11 +346,17 @@ def android_config(
     and shown while the app is closed. ``tag`` makes a later push about the
     same thing replace the earlier one in the shade instead of stacking under
     it.
+
+    ``modern`` (v1.12.33): the phone has app v1.12.42's channels
+    (``SOUND_CHANNELS_V2``). An older app has no channel for the National
+    ID's sounds, so it hears those as before, on ``UPDATES_CHANNEL`` with its
+    own tone.
     """
     if silent:
         channel_id, file, phone_tone, urgent = SILENT_CHANNEL, None, False, True
-    elif sound is not None:
-        channel_id, file, phone_tone = SOUND_CHANNELS[sound], f"sound_{sound}", False
+    elif sound is not None and (modern or sound in SOUND_CHANNELS):
+        channels = SOUND_CHANNELS_V2 if modern else SOUND_CHANNELS
+        channel_id, file, phone_tone = channels[sound], f"sound_{sound}", False
         urgent = sound in {"fire", "police", "medical", "barangay"}
     else:
         channel_id, file, urgent = channel or UPDATES_CHANNEL, recording, False
@@ -334,6 +404,7 @@ class PushService:
         tag: str | None = None,
         channel: str | None = None,
         recording: str | None = None,
+        versions: Mapping[str, str | None] | None = None,
     ) -> PushResult:
         """Send a notification to many device tokens; report invalid ones for cleanup.
 
@@ -341,37 +412,57 @@ class PushService:
         ``silent`` only vibrates; ``channel`` is the channel of a push with the
         phone's tone that has one of its own, or of ``recording``, the file it
         plays. The data says which, for the open app.
+
+        ``versions`` (v1.12.33): each token's app version (``token_versions``).
+        A phone on app v1.12.42 or later is told on ``SOUND_CHANNELS_V2``, and
+        a push that names no sound or channel plays the citizen recording
+        there rather than the phone's tone ("No phone tone anywhere"); every
+        other phone, and every phone when ``versions`` is left out, on the
+        channels an older app has.
         """
         if not tokens or _fcm_app is None:
             return PushResult()
-        payload = dict(data or {})
-        if silent:
-            payload["silent"] = "true"
-        elif sound is not None:
-            payload["sound_category"] = sound
+        newer = [t for t in tokens if versions is not None and has_new_channels(versions.get(t))]
+        told_newer = set(newer)
+        older = [t for t in tokens if t not in told_newer]
+        groups = [(group, modern) for group, modern in ((newer, True), (older, False)) if group]
 
-        def _send() -> PushResult:
-            message = messaging.MulticastMessage(
-                tokens=tokens,
+        def _message(group: list[str], modern: bool) -> messaging.MulticastMessage:
+            group_sound = sound
+            if modern and group_sound is None and not silent and channel is None:
+                group_sound = "citizen"
+            payload = dict(data or {})
+            if silent:
+                payload["silent"] = "true"
+            elif group_sound is not None:
+                payload["sound_category"] = group_sound
+            return messaging.MulticastMessage(
+                tokens=group,
                 notification=messaging.Notification(title=title, body=body),
                 data=payload,
                 android=android_config(
-                    sound=sound, silent=silent, tag=tag, channel=channel, recording=recording
+                    sound=group_sound,
+                    silent=silent,
+                    tag=tag,
+                    channel=channel,
+                    recording=recording,
+                    modern=modern,
                 ),
             )
-            batch = messaging.send_each_for_multicast(message, app=_fcm_app)
-            invalid: list[str] = []
-            for token, resp in zip(tokens, batch.responses, strict=False):
-                if not resp.success and isinstance(
-                    resp.exception,
-                    (messaging.UnregisteredError, messaging.SenderIdMismatchError),
-                ):
-                    invalid.append(token)
-            return PushResult(
-                success_count=batch.success_count,
-                failure_count=batch.failure_count,
-                invalid_tokens=invalid,
-            )
+
+        def _send() -> PushResult:
+            total = PushResult()
+            for group, modern in groups:
+                batch = messaging.send_each_for_multicast(_message(group, modern), app=_fcm_app)
+                total.success_count += batch.success_count
+                total.failure_count += batch.failure_count
+                for token, resp in zip(group, batch.responses, strict=False):
+                    if not resp.success and isinstance(
+                        resp.exception,
+                        (messaging.UnregisteredError, messaging.SenderIdMismatchError),
+                    ):
+                        total.invalid_tokens.append(token)
+            return total
 
         try:
             return await asyncio.to_thread(_send)

@@ -23,7 +23,12 @@ from uuid import UUID
 
 from app.core.logging import get_logger
 from app.db.session import Database
-from app.integrations.fcm import PushService, SoundCategory, sound_for_agency
+from app.integrations.fcm import (
+    PushService,
+    SoundCategory,
+    sound_for_agency,
+    token_versions,
+)
 from app.schemas.alarm import AlarmRequestResponse, alarm_label
 from app.services import staff_copy
 from app.services.citizen_copy import (
@@ -106,10 +111,11 @@ async def notify_staff_new_incident(db: Database, area_id: UUID) -> int:
 
     sound_of = {r["id"]: sound_for_agency(r["agency_type"]) for r in staff_rows}
     token_rows = await db.fetch(
-        "select user_id, fcm_token from public.device_tokens "
+        "select user_id, fcm_token, app_version from public.device_tokens "
         "where user_id = any($1::uuid[]) and is_active",
         staff_ids,
     )
+    versions = token_versions(token_rows)
     groups: dict[tuple[Language, SoundCategory], list[str]] = {}
     for t in token_rows:
         key = (
@@ -127,6 +133,7 @@ async def notify_staff_new_incident(db: Database, area_id: UUID) -> int:
             data={"type": "incident_new", **data},
             sound=sound,
             tag=f"incident-{area_id}",
+            versions=versions,
         )
         if result.invalid_tokens:
             await db.execute(
@@ -209,7 +216,7 @@ async def notify_incident_reporters(db: Database, area_id: UUID, event_type: str
 
     rows = await db.fetch(
         """
-        select distinct dt.fcm_token, u.language
+        select distinct dt.fcm_token, dt.app_version, u.language
         from public.area_reports ar
         join public.reports r on r.id = ar.report_id
         join public.device_tokens dt on dt.user_id = r.reporter_id
@@ -236,6 +243,7 @@ async def notify_incident_reporters(db: Database, area_id: UUID, event_type: str
             sound=_REPORTER_SOUNDS.get(event_type, "citizen"),
             # One per incident in the shade: the latest news replaces the last.
             tag=f"report-{area_id}",
+            versions=token_versions(rows),
         )
         if result.invalid_tokens:
             await db.execute(
@@ -274,12 +282,18 @@ async def notify_responder_dispatched(
     )
 
     rows = await db.fetch(
-        "select fcm_token from public.device_tokens where user_id = $1 and is_active",
+        "select fcm_token, app_version from public.device_tokens "
+        "where user_id = $1 and is_active",
         responder_id,
     )
     tokens = [r["fcm_token"] for r in rows]
     if not tokens:
         return 0
+    # Their own agency's recording, as for a new fire (v1.12.33: "No phone
+    # tone anywhere"; it had the phone's tone).
+    agency = await db.fetchval(
+        "select agency_type::text from public.users where id = $1", responder_id
+    )
 
     push = PushService()
     result = await push.send_to_tokens(
@@ -287,6 +301,8 @@ async def notify_responder_dispatched(
         title=title,
         body=body,
         data={"type": "responder_dispatch", "area_id": str(area_id)},
+        sound=sound_for_agency(agency),
+        versions=token_versions(rows),
     )
     if result.invalid_tokens:
         await db.execute(
@@ -322,7 +338,7 @@ async def notify_route_recipients(
     whole_agencies = sorted({agency for agency, org in routes if org is None})
     rows = await db.fetch(
         """
-        select distinct u.id
+        select distinct u.id, u.agency_type::text as agency_type
         from public.users u
         where u.role = 'sub_admin'
           and u.agency_type = any($1::public.agency_type[])
@@ -350,18 +366,30 @@ async def notify_route_recipients(
             {"area_id": str(area_id), "event": "incident_routed"},
         )
     token_rows = await db.fetch(
-        "select user_id, fcm_token from public.device_tokens "
+        "select user_id, fcm_token, app_version from public.device_tokens "
         "where user_id = any($1::uuid[]) and is_active",
         captain_ids,
     )
+    # Each captain's own agency's recording (v1.12.33; it had the phone's tone).
+    sound_of = {r["id"]: sound_for_agency(r["agency_type"]) for r in rows}
+    groups: dict[tuple[Language, SoundCategory], list[str]] = {}
+    for t in token_rows:
+        key = (
+            languages.get(t["user_id"], DEFAULT_LANGUAGE),
+            sound_of.get(t["user_id"], "fire"),
+        )
+        groups.setdefault(key, []).append(t["fcm_token"])
+    versions = token_versions(token_rows)
     push = PushService()
-    for language, tokens in _tokens_by_language(token_rows, languages).items():
+    for (language, sound), tokens in groups.items():
         title, body = staff_copy.routed(language, designation)
         result = await push.send_to_tokens(
             tokens=tokens,
             title=title,
             body=body,
             data={"type": "incident_routed", "area_id": str(area_id)},
+            sound=sound,
+            versions=versions,
         )
         if result.invalid_tokens:
             await db.execute(
@@ -426,7 +454,7 @@ async def notify_bfp_alarm_request(
         )
         await record_inbox(db, ids, "alarm_request", title, body, dict(data))
     token_rows = await db.fetch(
-        "select user_id, fcm_token from public.device_tokens "
+        "select user_id, fcm_token, app_version from public.device_tokens "
         "where user_id = any($1::uuid[]) and is_active",
         bfp_ids,
     )
@@ -443,6 +471,7 @@ async def notify_bfp_alarm_request(
             # A fire getting bigger: the alarm, like a new one.
             sound="fire",
             tag=f"alarm-{area_id}",
+            versions=token_versions(token_rows),
         )
         if result.invalid_tokens:
             await db.execute(
@@ -457,9 +486,11 @@ async def notify_bfp_alarm_request(
 async def notify_alarm_request_answered(db: Database, request: AlarmRequestResponse) -> int:
     """Tell whoever asked for the alarm what BFP decided (inbox + push).
 
-    The phone's own tone, not the alarm: it is an answer, not a new fire. The
-    push names the Area, so a tap opens its LIVE screen, and its tag is the
-    request's, so a repeat never stacks. Best-effort; returns the devices sent to.
+    The fire recording, the asker's own: only the fire service asks BFP for
+    an alarm (v1.12.33: "No phone tone anywhere"; it had the phone's tone).
+    The push names the Area, so a tap opens its LIVE screen, and its tag is
+    the request's, so a repeat never stacks. Best-effort; returns the devices
+    sent to.
     """
     if request.status not in ("approved", "rejected"):
         return 0
@@ -481,7 +512,8 @@ async def notify_alarm_request_answered(db: Database, request: AlarmRequestRespo
     }
     await record_inbox(db, [request.requested_by], "alarm_request_answered", title, body, data)
     token_rows = await db.fetch(
-        "select fcm_token from public.device_tokens where user_id = $1 and is_active",
+        "select fcm_token, app_version from public.device_tokens "
+        "where user_id = $1 and is_active",
         request.requested_by,
     )
     tokens = [t["fcm_token"] for t in token_rows]
@@ -492,7 +524,9 @@ async def notify_alarm_request_answered(db: Database, request: AlarmRequestRespo
         title=title,
         body=body,
         data=data,
+        sound="fire",
         tag=f"alarm-answer-{request.id}",
+        versions=token_versions(token_rows),
     )
     if result.invalid_tokens:
         await db.execute(
