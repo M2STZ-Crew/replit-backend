@@ -49,7 +49,7 @@ class Settings(BaseSettings):
         description='Deployment environment: "development" | "staging" | "production".',
     )
     app_name: str = Field(default="RepLiT Backend", description="Human-readable app name.")
-    app_version: str = Field(default="1.12.31", description="Semantic version of the build.")
+    app_version: str = Field(default="1.12.32", description="Semantic version of the build.")
     host: str = Field(default="0.0.0.0", description="Uvicorn bind host.")
     port: int = Field(default=8000, ge=1, le=65535, description="Uvicorn bind port.")
 
@@ -160,9 +160,11 @@ class Settings(BaseSettings):
     )
     # "New Update!" (app/workers/app_updates.py, v1.12.29): every this many
     # minutes the service reads the app's newest release and tells anyone on
-    # an older version, once per version. 0 turns it off.
+    # an older version, once per version. 0 turns it off. 2 since v1.12.32
+    # (10 before): the release workflow asks for a check as it publishes
+    # (POST /app-updates/check), and this is for when that ask does not come.
     app_update_check_minutes: int = Field(
-        default=10, ge=0, le=1440,
+        default=2, ge=0, le=1440,
         description="Minutes between checks for a new app release; 0 is off.",
     )
 

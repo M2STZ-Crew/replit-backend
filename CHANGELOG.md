@@ -6,6 +6,53 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.32 — 13 November 2026 — "New Update!" as soon as a release is out
+
+Backend only; app v1.12.41's release workflow asks for it. **No migration.**
+Deploy this first: until it is live, the workflow's ask finds no endpoint
+and gives up with a warning, and the release still goes out.
+
+### Changes
+
+**Logic**
+- **"New Update!" goes within seconds of a release** ("the "new update"
+  push notification doesn't work on my android phone"). It was sent, but
+  only at the service's next check, 10 minutes apart: app 1.12.40 was
+  published at 12:16:56, the phone had installed it from the update banner
+  by 12:18, and the 12:26 check found it up to date, so it was never told
+  (another phone, still on 1.12.39, was told at 12:26). Now:
+  - `POST /app-updates/check` (new, public): the app's release workflow
+    asks for a check as soon as it has published. It takes nothing from the
+    caller: the release is read from GitHub, as the scheduled check reads
+    it, and each person is told once per version. It answers with the
+    version it found (`{"version": "1.12.41"}`), not how many were told.
+    Asks within 10 seconds of the last ask get that check's answer, without
+    reading GitHub again.
+  - The scheduled check runs every **2 minutes** (`APP_UPDATE_CHECK_MINUTES`,
+    10 before), for when the ask does not arrive.
+  - Checks run one at a time, so the scheduled one and an ask cannot both
+    tell the same person.
+  - Nobody told of a version is told of an older one afterwards (a check
+    that reads the release a moment late): versions compare as numbers.
+  - Each send is logged (`app_update_sent`: channel, sent, failed), so "it
+    did not arrive" has an answer in the logs.
+
+### Tests
+- `tests/test_v1_12_32.py`: the ask, with no account, tells the phones behind
+  at once, with the recording, and answers with the version alone; it takes
+  no version from the caller; a release that cannot be read answers null;
+  two checks at once tell each person once (fails without the lock); a burst
+  of asks reads GitHub once, and again after 10 seconds; a failed
+  announcement does not stop the checks; the query passes over anyone told
+  of the version or a newer one; the 2-minute default.
+- `tests/test_v1_12_29.py`: the query's "not told yet" is now "not told of
+  this version or a newer one".
+- Checked on production's own rows (read only): for 1.12.41 the query names
+  all three Android phones, each with the recording; for 1.12.39 it passes
+  over the phone already told of 1.12.40.
+
+---
+
 ## v1.12.31 — 13 November 2026 — Map settings draws its layers' icons
 
 Admin console only; the service is as in v1.12.30. **No migration.**

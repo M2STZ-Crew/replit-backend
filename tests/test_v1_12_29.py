@@ -170,12 +170,13 @@ async def test_everyone_behind_hears_of_it_once_by_push_and_inbox() -> None:
     told = await announce(db, push, "1.12.37")  # type: ignore[arg-type]
     assert told == 2
 
-    # Asked only of Android phones whose owner has not been told of it yet.
+    # Asked only of Android phones whose owner has not been told of it yet
+    # (nor, since v1.12.32, of a newer version: tests/test_v1_12_32.py).
     query, version = db.calls[0][1]
     assert version == "1.12.37"
     assert "d.platform = 'android'" in query
     assert "n.type = 'app_update'" in query
-    assert "n.data ->> 'version' = $1" in query
+    assert ">= string_to_array($1, '.')::int[]" in query
 
     by_title = {p["title"]: p for p in push.sent}
     english, filipino = by_title["New Update!"], by_title["May Bagong Update!"]
