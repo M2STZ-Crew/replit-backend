@@ -10,6 +10,7 @@ from app.api.routes import (
     affiliates,
     ai,
     alarm_requests,
+    app_updates,
     areas,
     audit,
     auth,
@@ -43,6 +44,8 @@ api_router.include_router(staff_email.router)
 api_router.include_router(verification.router)
 api_router.include_router(admin.router)
 api_router.include_router(devices.router)
+# "New Update!" now, when the app's release workflow asks (v1.12.32).
+api_router.include_router(app_updates.router)
 api_router.include_router(reports.router)
 api_router.include_router(areas.router)
 api_router.include_router(notifications.router)
