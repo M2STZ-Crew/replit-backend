@@ -192,6 +192,9 @@ select d.user_id, u.language, d.fcm_token, d.app_version
   join public.users u on u.id = d.user_id
  where d.is_active
    and d.platform = 'android'
+   -- A copy from Google Play (it registers as "1.12.44 play") is
+   -- updated by Play: telling it of a GitHub release would send it looking.
+   and coalesce(d.app_version, '') not like '% play'
    and not exists (
          select 1
            from public.notifications n

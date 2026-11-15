@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Response, status
+from fastapi import APIRouter, BackgroundTasks, Request, Response, status
 
 from app.api.deps import (
     DEACTIVATED_MESSAGE,
@@ -19,14 +19,16 @@ from app.api.deps import (
     DatabaseDep,
     EmailClientDep,
     SessionUser,
+    StorageClientDep,
     phone_gate_applies,
 )
 from app.api.routes.password_reset import schedule_reset_email
-from app.core.exceptions import BadRequestError, ExternalServiceError
+from app.core.exceptions import BadRequestError, ExternalServiceError, ForbiddenError
 from app.core.logging import get_logger
 from app.db.session import Database
 from app.integrations.supabase_auth import AuthError
 from app.schemas.auth import (
+    AccountDeleteRequest,
     AuthenticatedUser,
     ConsoleAccess,
     ConsoleOrganization,
@@ -44,7 +46,11 @@ from app.schemas.auth import (
 from app.schemas.common import MessageResponse
 from app.services.access import admin_access
 from app.services.age import ensure_adult
+from app.services.audit import record_audit
 from app.services.disposable_email import ensure_not_disposable
+from app.services.email_deliverability import ensure_deliverable
+from app.services.names import ensure_valid_name
+from app.services.national_id import photo_paths, remove_photos
 from app.services.phone_verification import PhoneNumberTakenError, normalize_ph_mobile
 
 log = get_logger(__name__)
@@ -91,8 +97,15 @@ async def signup(
     An email from a throwaway service is refused first, a 400
     ``disposable_email``: the account would lose its sign-in and password reset
     within the hour (app/services/disposable_email.py).
+
+    v1.12.34 (QA, 15 Nov): a name is letters, with spaces, periods,
+    apostrophes and hyphens (400 ``invalid_name``, app/services/names.py), and
+    an email whose domain takes no mail is a 400 ``undeliverable_email``
+    (app/services/email_deliverability.py).
     """
+    full_name = ensure_valid_name(payload.full_name)
     ensure_not_disposable(str(payload.email))
+    await ensure_deliverable(str(payload.email))
     # 18 and over (12 Nov 2026): refused before the account is made.
     ensure_adult(payload.date_of_birth)
     mobile = normalize_ph_mobile(payload.mobile) if payload.mobile else None
@@ -101,7 +114,7 @@ async def signup(
             "This number is already used by another RepLiT account. Sign in with it, "
             "or use a different number."
         )
-    metadata = {"full_name": payload.full_name} if payload.full_name else None
+    metadata = {"full_name": full_name} if full_name else None
     data = await auth.sign_up(email=str(payload.email), password=payload.password, data=metadata)
     if "access_token" not in data:
         raise BadRequestError(
@@ -242,9 +255,11 @@ async def update_my_profile(
     """Update the caller's editable profile fields (full name / mobile / DOB / gender).
 
     Omitted (null) fields are left unchanged via COALESCE. A date of birth
-    under 18 is refused (app/services/age.py).
+    under 18 is refused (app/services/age.py), and a name that is not letters
+    (v1.12.34, app/services/names.py).
     """
     ensure_adult(payload.date_of_birth)
+    full_name = ensure_valid_name(payload.full_name)
     row = await db.fetchrow(
         """
         update public.users
@@ -258,7 +273,7 @@ async def update_my_profile(
                   full_name, primary_org_id, mobile, date_of_birth, gender
         """,
         user.id,
-        payload.full_name,
+        full_name,
         payload.mobile,
         payload.date_of_birth,
         payload.gender,
@@ -365,6 +380,73 @@ async def change_my_password(
         log.warning("password_change_other_sessions_kept", user_id=str(user.id))
     log.info("user_password_changed", user_id=str(user.id), role=user.role)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/me/delete",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete my account (residents)",
+)
+async def delete_my_account(
+    payload: AccountDeleteRequest,
+    request: Request,
+    user: SessionUser,
+    auth: AuthClientDep,
+    db: DatabaseDep,
+    storage: StorageClientDep,
+) -> Response:
+    """Delete the caller's account for good (v1.12.34, Google Play's rule).
+
+    For residents, from the app's Profile and the console's /delete-account
+    page. The password is checked by signing in with it, as for a password
+    change, so a phone left unlocked cannot delete the account. A wrong one is
+    a 400, never a 401: the clients read 401 as an expired session.
+
+    What goes: the sign-in, the profile (name, email, mobile, birthday, gender,
+    last location), the phones, the inbox and alerts, the verification records
+    and any National ID photos still held. What stays, without the person: the
+    reports they sent, part of the incident record responders keep
+    (reports.user_id becomes null), and the audit line that an account deleted
+    itself.
+
+    A staff account belongs to its organisation: a 403 ``staff_account``, and
+    its administrator removes it.
+    """
+    if user.role != "general_user":
+        raise ForbiddenError(
+            "A staff account is removed by its organization's administrator.",
+            error_code="staff_account",
+        )
+    if not user.email:
+        raise BadRequestError(
+            "This account has no email to check the password against.",
+            error_code="no_email",
+        )
+    try:
+        await auth.sign_in_with_password(email=user.email, password=payload.password)
+    except AuthError as exc:
+        log.info("account_delete_wrong_password", user_id=str(user.id))
+        raise BadRequestError("The password is not right.", error_code="wrong_password") from exc
+    # The ID photos first: if they cannot go, nothing goes, and trying again is safe.
+    try:
+        await remove_photos(storage, photo_paths(user.id).values())
+    except Exception as exc:
+        log.error("account_delete_photos_failed", user_id=str(user.id))
+        raise ExternalServiceError(_DELETE_FAILED, error_code="account_delete_failed") from exc
+    # Before the account goes: after, its id names no one (the line keeps a null actor).
+    await record_audit(
+        db, request, user, action="account.delete", entity_type="user", entity_id=user.id
+    )
+    try:
+        await auth.admin_delete_user(user_id=str(user.id))
+    except AuthError as exc:
+        log.error("account_delete_failed", user_id=str(user.id))
+        raise ExternalServiceError(_DELETE_FAILED, error_code="account_delete_failed") from exc
+    log.info("account_deleted", user_id=str(user.id))
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+_DELETE_FAILED = "Your account could not be deleted just now. Nothing was removed; try again."
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, summary="Logout")

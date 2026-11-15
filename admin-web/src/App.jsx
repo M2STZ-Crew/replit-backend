@@ -10,6 +10,10 @@ import Login from './pages/Login.jsx';
 // first thing most visits show, does not wait for either.
 const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
 const Register = lazy(() => import('./pages/Register.jsx'));
+// Public pages for Google Play (v1.12.34): the privacy policy and a
+// resident's account deletion, both reachable without the app.
+const Privacy = lazy(() => import('./pages/Privacy.jsx'));
+const DeleteAccount = lazy(() => import('./pages/DeleteAccount.jsx'));
 
 function Protected({ children }) {
   const { user, loading, startupError, retry, logout } = useAuth();
@@ -27,6 +31,8 @@ export default function App() {
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/delete-account" element={<DeleteAccount />} />
         <Route
           path="/"
           element={

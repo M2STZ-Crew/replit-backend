@@ -9,3 +9,6 @@ before anything imports the settings, and a set variable beats .env.
 import os
 
 os.environ["DATABASE_URL"] = ""
+# No DNS from the tests: a sign-up's email check (v1.12.34) is asked of a
+# fake resolver where a test wants it (tests/test_v1_12_34.py).
+os.environ["EMAIL_DELIVERABILITY_CHECK"] = "false"

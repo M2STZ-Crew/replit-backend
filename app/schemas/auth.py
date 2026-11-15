@@ -189,6 +189,12 @@ class PasswordChangeRequest(BaseModel):
     new_password: str = Field(min_length=8, max_length=128)
 
 
+class AccountDeleteRequest(BaseModel):
+    """POST /auth/me/delete: the password, checked before anything goes."""
+
+    password: str = Field(min_length=1, max_length=128)
+
+
 class PersonalEmailRequest(BaseModel):
     """A staff member's own email, for their password links."""
 
