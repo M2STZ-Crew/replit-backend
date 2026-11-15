@@ -64,10 +64,12 @@ function signedInElsewhere(message) {
   window.location.assign('/');
 }
 
-async function request(path, { method = 'GET', body, auth = true } = {}) {
+// ``token``: a session other than the console's own (the delete-account page
+// signs a resident in for one request); its refusals never sign the console out.
+async function request(path, { method = 'GET', body, auth = true, token = null } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) {
-    const t = getToken();
+    const t = token ?? getToken();
     if (t) headers.Authorization = `Bearer ${t}`;
   }
   const controller = new AbortController();
@@ -103,7 +105,7 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
   }
   if (!resp.ok) {
     const own = OWN_WORDS.get(data.error);
-    if (data.error === 'signed_in_elsewhere' && auth) signedInElsewhere(own());
+    if (data.error === 'signed_in_elsewhere' && auth && !token) signedInElsewhere(own());
     throw new ApiError(own ? own() : data.message || tr('Request failed ({status}).', { status: resp.status }), resp.status, data.error ?? null);
   }
   return data;
@@ -152,6 +154,20 @@ export const api = {
   // "Forgot password?": the server emails a reset link and answers the same
   // way whether or not the address has an account.
   recover: (email) => request('/auth/recover', { method: 'POST', auth: false, body: { email } }),
+  // /delete-account (v1.12.34, Google Play): a resident signs in for this one
+  // request, and the password is checked again by the delete itself.
+  deleteMyAccount: async (email, password) => {
+    const session = await request('/auth/login', {
+      method: 'POST',
+      auth: false,
+      body: { email, password },
+    });
+    await request('/auth/me/delete', {
+      method: 'POST',
+      token: session.access_token,
+      body: { password },
+    });
+  },
   // Public affiliate registration (no account required).
   registerAffiliate: (payload) =>
     request('/affiliates/register', { method: 'POST', auth: false, body: payload }),

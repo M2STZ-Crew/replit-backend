@@ -6,6 +6,38 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.34 — 16 November 2026 — The QA run's fixes; account deletion and a privacy policy for Google Play
+
+Backend and console; app v1.12.44 goes with it. **No migration.** Deploy in
+either order: an older app simply has no Delete my account.
+
+### Changes
+- **Delete my account** (`POST /auth/me/delete`, Google Play's rule): a resident
+  gives their password (checked by signing in with it; a wrong one is a 400
+  `wrong_password`, never a 401). Their National ID photos are removed first;
+  if that fails nothing is deleted (502 `account_delete_failed`). Then the
+  sign-in goes, and with it the profile, phones, inbox and verification records
+  (`on delete cascade`). The reports they sent stay, without them
+  (`reporter_id` becomes null), as part of the incident record. An audit line
+  `account.delete` is written first. A staff account is a 403 `staff_account`:
+  its administrator removes it.
+- **Email addresses no mail can reach** (QA D-02): sign-up asks the domain's DNS
+  (MX, then A) and refuses one that takes no mail, 400 `undeliverable_email`.
+  A slow or failed lookup lets the address through. `EMAIL_DELIVERABILITY_CHECK`
+  turns it off; the tests do.
+- **Names** (QA Z-10): letters in any script, with spaces, periods, apostrophes
+  and hyphens (400 `invalid_name`), at sign-up and in Edit profile. Stored
+  tidied: composed accents, single spaces.
+- **Google Play's copy of the app** registers as `"1.12.44 play"`; the
+  "New Update!" push leaves it out (`_DUE_SQL`), since Play updates it.
+- **Console: `/privacy`** (the privacy policy; `VITE_PRIVACY_CONTACT` names who
+  to write to) and **`/delete-account`** (a resident deletes their account
+  without the app; the console's own sign-in is not touched). The affiliation
+  form links to the policy.
+- `tests/test_smoke.py` compares the version with the settings', not "0.1.0".
+
+---
+
 ## v1.12.33 — 13 November 2026 — Every sound anew; the National ID's own sounds; Barangay 76's teams
 
 Backend only; app v1.12.42 goes with it. **No migration.** Deploy in either

@@ -13,6 +13,7 @@ from collections.abc import Iterator
 import pytest
 from fastapi.testclient import TestClient
 
+from app.core.config import get_settings
 from app.main import app
 
 
@@ -29,7 +30,7 @@ def test_root_returns_service_info(client: TestClient) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["service"] == "RepLiT Backend"
-    assert body["version"] == "0.1.0"
+    assert body["version"] == get_settings().app_version
     assert body["environment"] == "development"
     assert body["docs_url"] == "/docs"
     assert body["health_url"] == "/health"
@@ -42,7 +43,7 @@ def test_health_returns_ok(client: TestClient) -> None:
     body = response.json()
     assert body["status"] == "ok"
     assert body["app_name"] == "RepLiT Backend"
-    assert body["version"] == "0.1.0"
+    assert body["version"] == get_settings().app_version
     assert body["environment"] == "development"
 
 
