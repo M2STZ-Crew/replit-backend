@@ -9,8 +9,9 @@ import Sidebar from './shell/Sidebar.jsx';
 import TopBar from './shell/TopBar.jsx';
 import { SETTINGS, consoleAccess, navFor } from './shell/nav.js';
 import { useSoundSettings } from './SoundSettings.jsx';
+import ConfirmDialog from './ui/ConfirmDialog.jsx';
 import Icon from './ui/Icon.jsx';
-import { t } from '../i18n/i18n.jsx';
+import { t, useLanguage } from '../i18n/i18n.jsx';
 
 /* The console frame (REPLIT (MAIN) 10 · A83–A85): the sidebar and the top
  * bar around the destination. 1280 px and wider keep the full 248 px sidebar;
@@ -48,12 +49,18 @@ export default function ConsoleShell({ active, onNavigate, children }) {
   const refreshQueues = useCallback(() => setQueueTick((t) => t + 1), []);
   const [organizations, setOrganizations] = useState([]);
   const [moreOpen, setMoreOpen] = useState(false);
+  // Signing out asks first (17 Nov 2026: "if the user press logout it make it
+  // having a confirmation"): a signed-out console shows and sounds nothing new.
+  const [askingSignOut, setAskingSignOut] = useState(false);
   const moreButton = useRef(null);
   const sheet = useRef(null);
+  // The nav's labels are worked out once per account; a new language works
+  // them out again, since the console is redrawn rather than rebuilt (i18n).
+  const { language } = useLanguage();
 
   const consoleInfo = useMemo(() => consoleOf(user), [user]);
   const access = consoleAccess(consoleInfo);
-  const items = useMemo(() => navFor(consoleInfo), [consoleInfo]);
+  const items = useMemo(() => navFor(consoleInfo), [consoleInfo, language]); // eslint-disable-line react-hooks/exhaustive-deps
   // Only the queues this Admin answers are read: the hub's two, and the
   // pending alarm escalations for whoever sets the level (BFP, or the system
   // Admin that sees everything).
@@ -153,7 +160,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
       agency: named?.agency_type ?? own?.agency_type ?? null,
       role: roleLine(consoleInfo),
     };
-  }, [organizations, user, consoleInfo]);
+  }, [organizations, user, consoleInfo, language]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const scope = scopeLine(consoleInfo);
 
@@ -179,7 +186,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
           counts={counts}
           org={org}
           user={person}
-          onSignOut={logout}
+          onSignOut={() => setAskingSignOut(true)}
           rail={rail}
         />
       )}
@@ -276,13 +283,29 @@ export default function ConsoleShell({ active, onNavigate, children }) {
                 <span className="rpl-user-name">{person.name}</span>
                 <span className="rpl-user-email">{person.email}</span>
               </span>
-              <button type="button" className="rpl-icon-button" onClick={logout} aria-label={t('Sign out')} title={t('Sign out')}>
+              <button
+                type="button"
+                className="rpl-icon-button"
+                onClick={() => { setMoreOpen(false); setAskingSignOut(true); }}
+                aria-label={t('Sign out')}
+                title={t('Sign out')}
+              >
                 <Icon name="logout" />
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={askingSignOut}
+        title={t('Sign out?')}
+        description={t('You’ll need your email and password to sign in again. Until then, this browser won’t show or sound new alerts.')}
+        confirmLabel={t('Sign out')}
+        destructive
+        onClose={() => setAskingSignOut(false)}
+        onConfirm={logout}
+      />
     </div>
   );
 }

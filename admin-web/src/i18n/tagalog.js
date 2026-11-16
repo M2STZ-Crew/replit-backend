@@ -1086,4 +1086,7 @@ export const TAGALOG = {
   // v1.12.36
   'Too many wrong passwords for this account. Wait {minutes} min, then try again, or use Forgot password?.': 'Sobrang dami ng maling password para sa account na ito. Maghintay ng {minutes} minuto, saka subukan ulit, o gamitin ang Forgot password?.',
   'Too many people are signing in right now. Wait a few minutes, then try again.': 'Sobrang daming nagsa-sign in ngayon. Maghintay ng ilang minuto, saka subukan ulit.',
+  // v1.12.37
+  'Sign out?': 'Mag-sign out?',
+  'You’ll need your email and password to sign in again. Until then, this browser won’t show or sound new alerts.': 'Kakailanganin mo ang email at password mo para makapag-sign in ulit. Hanggang doon, walang bagong alerto o tunog sa browser na ito.',
 };

@@ -113,11 +113,11 @@ export default function Sidebar({
 
       <nav className="rpl-nav" aria-label={t('Destinations')}>
         {GROUPS.map((group) => {
-          const groupItems = items.filter((item) => item.group === group);
+          const groupItems = items.filter((item) => item.group === group.key);
           if (groupItems.length === 0) return null;
           return (
-            <div className="rpl-nav-group" key={group} role="group" aria-label={group}>
-              {!rail && <span className="rpl-nav-group-label" aria-hidden="true">{group}</span>}
+            <div className="rpl-nav-group" key={group.key} role="group" aria-label={group.label}>
+              {!rail && <span className="rpl-nav-group-label" aria-hidden="true">{group.label}</span>}
               {rail && <span className="rpl-rail-rule" aria-hidden="true" />}
               {groupItems.map((item) => {
                 const { count, label } = counts(item);
