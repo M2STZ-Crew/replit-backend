@@ -536,7 +536,7 @@ def _refuse_staff(role: str) -> None:
 async def _check_sign_in(auth: Any, payload: EmailPasswordRequest) -> dict[str, Any]:
     """Sign in with the email and password, or a 400 ``wrong_password``."""
     try:
-        data = await auth.sign_in_with_password(
+        data: dict[str, Any] = await auth.sign_in_with_password(
             email=str(payload.email), password=payload.password
         )
     except AuthError as exc:

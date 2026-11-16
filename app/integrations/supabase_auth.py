@@ -87,6 +87,17 @@ class SupabaseAuthClient:
         )
         code = response.status_code
         log.warning("gotrue_error", status_code=code, message=str(message))
+        if code == 429:
+            # Supabase limits sign-ins and emails per IP, and every request
+            # here comes from this one server, so a busy moment trips it for
+            # everyone. Say so plainly rather than "Supabase Auth error".
+            raise AppError(
+                "Too many people are signing in right now. Wait a few minutes, "
+                "then try again.",
+                details={"gotrue_status": code},
+                error_code="too_many_requests",
+                status_code=429,
+            )
         if code == 422:
             raise BadRequestError(str(message), details={"gotrue_status": code})
         if code in (400, 401, 403):

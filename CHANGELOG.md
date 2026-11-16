@@ -6,6 +6,28 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.36 — 16 November 2026 — The QA audit's fixes
+
+Backend, console and residents' site; app v1.12.46 goes with it. No migration.
+
+### Changes
+- **Supabase's sign-in limit is a plain 429.** Every sign-in, refresh and
+  password email reaches Supabase from this one server, so its per-IP limit is
+  shared by everyone. When it trips, the answer is now 429 `too_many_requests`,
+  "Too many people are signing in right now. Wait a few minutes, then try
+  again.", not a 502 "Supabase Auth error". Other Supabase failures are still a
+  502.
+- **Touch targets on the residents' site** are at least 44 px: the language
+  buttons (a taller tap area; the pill looks the same), Show, the footer links;
+  the "I understand" box is 22 px and its whole sentence ticks it. Beside the
+  language switch on a phone narrower than 406 px, the line under RepLiT is
+  left out: it broke into three lines at 320 px.
+- **The console's chips** (English / Tagalog on Sign in) are 44 px tall on a
+  touch screen; with a mouse they stay 36 px.
+- `mypy` is clean again: `ph_time` and the sign-in check had two type errors.
+
+---
+
 ## v1.12.35 — 16 November 2026 — 30 days to change your mind; a residents' site
 
 Backend, console and a new residents' site; app v1.12.45 goes with it.
