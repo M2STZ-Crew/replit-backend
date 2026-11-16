@@ -25,10 +25,12 @@ def test_the_console_is_allowed_from_its_old_and_new_addresses() -> None:
         "https://reportwhatslit.vercel.app",
         "https://reportwhatslit-admin.vercel.app",
         "https://replit-backend-5u9u.vercel.app",
+        # The residents' site (v1.12.35): privacy policy and account pages.
+        "https://reportwhatslit-app.vercel.app",
     ]
     # Named in the environment too: not listed twice.
     both = Settings(cors_origins=",".join(CONSOLE_ORIGINS))
-    assert both.cors_origins_list == list(CONSOLE_ORIGINS)
+    assert both.cors_origins_list == [*CONSOLE_ORIGINS, "https://reportwhatslit-app.vercel.app"]
 
 
 def test_the_download_page_reads_the_newest_release() -> None:

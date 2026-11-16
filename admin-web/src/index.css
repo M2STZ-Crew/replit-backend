@@ -4910,16 +4910,3 @@ select.field {
   .al-all { min-height: 44px; margin-left: auto; }
   .ss-every-btn { min-height: 36px; }
 }
-
-/* v1.12.34: the privacy policy and the delete-account page — long text that
-   reads like a page, inside the sign-in panel. */
-.doc { color: var(--text); font-size: 14px; line-height: 1.65; }
-.doc h3 { margin: 18px 0 6px; font-size: 15px; font-weight: 700; }
-.doc p { margin: 0 0 10px; }
-.doc ul { margin: 0 0 10px; padding-left: 20px; }
-.doc li { margin: 0 0 6px; }
-.doc a { color: var(--accent, inherit); }
-.doc-tight h3 { margin-top: 8px; }
-.doc-password { display: flex; gap: 10px; align-items: center; }
-.doc-password input { flex: 1; min-width: 0; }
-.lg-submit.doc-danger { background: #c62828; border-color: #c62828; }

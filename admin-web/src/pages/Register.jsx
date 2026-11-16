@@ -364,7 +364,7 @@ export default function Register() {
             <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
             <span>{t('I agree to the Terms and Agreements and acknowledge the privacy policy on sensitive emergency data.')}</span>
           </label>
-          <a className="lg-link" href="/privacy" target="_blank" rel="noopener">{t('Read the privacy policy')}</a>
+          <a className="lg-link" href="https://reportwhatslit-app.vercel.app/privacy" target="_blank" rel="noopener">{t('Read the privacy policy')}</a>
 
           {error && <div className="lg-error" role="alert">{error}</div>}
 

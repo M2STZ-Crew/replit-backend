@@ -24,6 +24,10 @@ from app.core.logging import configure_logging, get_logger
 from app.db.session import database
 from app.integrations.fcm import init_fcm, shutdown_fcm
 from app.services.audit import maybe_record_request_audit
+from app.workers.account_deletion import (
+    shutdown_account_deletion_scheduler,
+    start_account_deletion_scheduler,
+)
 from app.workers.app_updates import (
     shutdown_app_updates_scheduler,
     start_app_updates_scheduler,
@@ -57,6 +61,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await database.connect()
     init_fcm()
     start_neighborhood_scheduler()
+    start_account_deletion_scheduler()
     start_coordinator_pings_scheduler()
     start_keep_awake_scheduler()
     start_app_updates_scheduler()
@@ -74,6 +79,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     shutdown_keep_awake_scheduler()
     shutdown_coordinator_pings_scheduler()
     shutdown_neighborhood_scheduler()
+    shutdown_account_deletion_scheduler()
     shutdown_fcm()
     await database.disconnect()
     await app.state.http_client.aclose()

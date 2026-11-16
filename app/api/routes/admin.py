@@ -123,6 +123,8 @@ async def list_pending_verifications(
         from public.user_verifications uv
         join public.users u on u.id = uv.user_id
         where uv.status = 'manual_review'
+          -- Not while the account is frozen for deletion (v1.12.35).
+          and (to_jsonb(u) ->> 'deletion_requested_at') is null
         order by uv.submitted_at asc
         """
     )
