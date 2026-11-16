@@ -11,6 +11,19 @@ the mobile app (`replit-android`) carry the same number.
 Backend, console and residents' site; app v1.12.46 goes with it. No migration.
 
 ### Changes
+- **Five wrong passwords and the account waits** (16 Nov, after the audit found
+  nothing stopped anyone from guessing at one account: "Yes, add it"). After
+  five wrong passwords for one account within 15 minutes, its password is not
+  checked again, here or at Supabase, until the first of those five is 15
+  minutes old. The answer is a 429 `too_many_attempts` that says how many
+  minutes to wait (`details.retry_after_seconds`). Signing in, the password
+  change, and deleting or restoring an account (app and residents' site) share
+  the one count. The right password, or a new one from a reset link, clears
+  it. An account's email and its verified mobile number share a count; a number
+  no account verified locks the same way, so this still says nothing about
+  which numbers are registered. The count is kept in memory (one worker), so
+  there is no migration (`app/services/password_attempts.py`). The console and
+  the residents' site say both waits in English and Tagalog.
 - **Supabase's sign-in limit is a plain 429.** Every sign-in, refresh and
   password email reaches Supabase from this one server, so its per-IP limit is
   shared by everyone. When it trips, the answer is now 429 `too_many_requests`,

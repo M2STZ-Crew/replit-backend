@@ -41,6 +41,8 @@
       restoreBtn: 'Restore my account',
       restored: 'Your account is restored. You can sign in to the app as usual.',
       wrong: 'Wrong email or password.',
+      tooMany: 'Too many wrong passwords for this account. Wait {minutes} min, then try again, or reset your password with Forgot password? in the app.',
+      busy: 'Too many people are signing in right now. Wait a few minutes, then try again.',
       staff: "This is a staff account. Your organization's administrator removes it.",
       notScheduled: 'This account is not set to be deleted. You can sign in as usual.',
       unavailable: 'Deleting or restoring an account is not available just now. Try again later.',
@@ -80,6 +82,8 @@
       restoreBtn: 'Ibalik ang account ko',
       restored: 'Naibalik na ang account mo. Puwede ka nang mag-sign in sa app gaya ng dati.',
       wrong: 'Mali ang email o password.',
+      tooMany: 'Sobrang dami ng maling password para sa account na ito. Maghintay ng {minutes} minuto, saka subukan ulit, o palitan ang password mo sa Nakalimutan ang password? sa app.',
+      busy: 'Sobrang daming nagsa-sign in ngayon. Maghintay ng ilang minuto, saka subukan ulit.',
       staff: 'Staff account ito. Ang administrator ng organisasyon mo ang nagbubura nito.',
       notScheduled: 'Hindi nakatakdang burahin ang account na ito. Puwede kang mag-sign in gaya ng dati.',
       unavailable: 'Hindi pa puwedeng magbura o magbalik ng account ngayon. Subukan ulit mamaya.',
@@ -170,6 +174,13 @@
   function problem(res) {
     var code = res.data && res.data.error;
     if (code === 'wrong_password' || res.status === 401) return t('wrong');
+    // Five wrong passwords and the account waits (v1.12.36); or Supabase is
+    // busy with everyone signing in at once.
+    if (code === 'too_many_attempts') {
+      var wait = (res.data.details && res.data.details.retry_after_seconds) || 900;
+      return t('tooMany', { minutes: Math.max(1, Math.ceil(wait / 60)) });
+    }
+    if (code === 'too_many_requests' || res.status === 429) return t('busy');
     if (code === 'staff_account') return t('staff');
     if (code === 'not_scheduled') return t('notScheduled');
     if (code === 'deletion_unavailable') return t('unavailable');
