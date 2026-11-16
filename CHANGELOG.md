@@ -6,6 +6,41 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.36 — 16 November 2026 — The QA audit's fixes
+
+Backend, console and residents' site; app v1.12.46 goes with it. No migration.
+
+### Changes
+- **Five wrong passwords and the account waits** (16 Nov, after the audit found
+  nothing stopped anyone from guessing at one account: "Yes, add it"). After
+  five wrong passwords for one account within 15 minutes, its password is not
+  checked again, here or at Supabase, until the first of those five is 15
+  minutes old. The answer is a 429 `too_many_attempts` that says how many
+  minutes to wait (`details.retry_after_seconds`). Signing in, the password
+  change, and deleting or restoring an account (app and residents' site) share
+  the one count. The right password, or a new one from a reset link, clears
+  it. An account's email and its verified mobile number share a count; a number
+  no account verified locks the same way, so this still says nothing about
+  which numbers are registered. The count is kept in memory (one worker), so
+  there is no migration (`app/services/password_attempts.py`). The console and
+  the residents' site say both waits in English and Tagalog.
+- **Supabase's sign-in limit is a plain 429.** Every sign-in, refresh and
+  password email reaches Supabase from this one server, so its per-IP limit is
+  shared by everyone. When it trips, the answer is now 429 `too_many_requests`,
+  "Too many people are signing in right now. Wait a few minutes, then try
+  again.", not a 502 "Supabase Auth error". Other Supabase failures are still a
+  502.
+- **Touch targets on the residents' site** are at least 44 px: the language
+  buttons (a taller tap area; the pill looks the same), Show, the footer links;
+  the "I understand" box is 22 px and its whole sentence ticks it. Beside the
+  language switch on a phone narrower than 406 px, the line under RepLiT is
+  left out: it broke into three lines at 320 px.
+- **The console's chips** (English / Tagalog on Sign in) are 44 px tall on a
+  touch screen; with a mouse they stay 36 px.
+- `mypy` is clean again: `ph_time` and the sign-in check had two type errors.
+
+---
+
 ## v1.12.35 — 16 November 2026 — 30 days to change your mind; a residents' site
 
 Backend, console and a new residents' site; app v1.12.45 goes with it.

@@ -86,7 +86,9 @@ a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid 
 .brand-sub { font-size: 12px; color: var(--text-3); }
 .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .lang { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; flex: none; }
-.lang button { border: 0; background: none; color: var(--text-2); font: 600 12px/1 inherit; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
+.lang button { position: relative; border: 0; background: none; color: var(--text-2); font: 600 12px/1 inherit; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
+/* A 44 px tall tap area without changing how the pill looks. */
+.lang button::after { content: ""; position: absolute; inset: -8px 0; }
 .lang button[aria-pressed="true"] { background: var(--card); color: var(--text); box-shadow: 0 0 0 1px var(--line); }
 
 h1 { margin: 0 0 8px; font-weight: 900; font-size: clamp(24px, 6vw, 30px); line-height: 1.15; letter-spacing: -1px; text-transform: uppercase; }
@@ -94,6 +96,9 @@ h1 { margin: 0 0 8px; font-weight: 900; font-size: clamp(24px, 6vw, 30px); line-
 .lede { margin: 0 0 24px; color: var(--text-2); }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; margin-bottom: 20px; }
 @media (max-width: 420px) { .card { padding: 20px 16px; } }
+/* Beside the language switch on a small phone the line under RepLiT broke
+   into three; the page says who it is for just below. */
+@media (max-width: 405px) { .top .brand-sub { display: none; } }
 h2 { margin: 0 0 12px; font-weight: 900; font-size: 15px; letter-spacing: -0.3px; text-transform: uppercase; }
 h3 { margin: 20px 0 6px; font-size: 15px; font-weight: 700; }
 p { margin: 0 0 12px; }
@@ -121,9 +126,9 @@ label.field { display: grid; gap: 6px; font-size: 12px; font-weight: 700; letter
 .input input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font: 400 15px/1 inherit; padding: 14px 0; text-transform: none; letter-spacing: 0; }
 .input input:focus { outline: none; }
 .input:focus-within { border-color: var(--accent); }
-.reveal { border: 0; background: none; color: var(--accent-ink); font: 700 12px/1 inherit; cursor: pointer; padding: 8px 4px; }
+.reveal { border: 0; background: none; color: var(--accent-ink); font: 700 12px/1 inherit; cursor: pointer; padding: 8px 4px; min-width: 44px; min-height: 44px; }
 .tick { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); cursor: pointer; }
-.tick input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+.tick input { margin-top: 1px; width: 22px; height: 22px; accent-color: var(--accent); flex: none; }
 .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 24px; border-radius: 12px; border: 0; cursor: pointer; font: 900 13px/1 inherit; letter-spacing: 1.2px; text-transform: uppercase; width: 100%; }
 .btn-primary { background: linear-gradient(var(--accent), var(--accent-end)); color: var(--on-accent); }
 .btn-danger { background: var(--danger); color: #fff; }
@@ -135,4 +140,4 @@ label.field { display: grid; gap: 6px; font-size: 12px; font-weight: 700; letter
 .message.warn { border: 1px solid var(--warn); background: var(--warn-tint); color: var(--text); }
 
 footer { margin-top: 32px; text-align: center; font-size: 12px; color: var(--text-3); }
-footer a { margin: 0 8px; }
+footer a { display: inline-block; padding: 15px 6px; margin: 0 2px; }

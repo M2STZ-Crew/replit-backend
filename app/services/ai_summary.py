@@ -70,9 +70,10 @@ def ph_time(value: str | datetime | None, *, missing: str = "-") -> str:
         return missing
     if isinstance(value, str):
         try:
-            value = datetime.fromisoformat(value)
+            parsed = datetime.fromisoformat(value)
         except ValueError:
             return value
+        value = parsed
     if value.tzinfo is None:
         value = value.replace(tzinfo=UTC)
     local = value.astimezone(PH_TIME)

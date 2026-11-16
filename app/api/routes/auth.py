@@ -52,7 +52,7 @@ from app.schemas.auth import (
     TokenResponse,
 )
 from app.schemas.common import MessageResponse
-from app.services import account_deletion
+from app.services import account_deletion, password_attempts
 from app.services.access import admin_access
 from app.services.age import ensure_adult
 from app.services.audit import record_audit
@@ -167,13 +167,19 @@ async def login(payload: LoginRequest, auth: AuthClientDep, db: DatabaseDep) -> 
     registered. Staff have no verified number and keep signing in by email.
     """
     if payload.phone is not None:
-        found = await _verified_owner_email(db, normalize_ph_mobile(payload.phone))
+        phone = normalize_ph_mobile(payload.phone)
+        found = await _verified_owner_email(db, phone)
+        # Five wrong passwords and the account waits (v1.12.36). A number no
+        # account verified is counted as itself, so it locks the same way.
+        password_attempts.check(found or phone)
         if found is None:
             log.info("login_phone_unmatched")
+            password_attempts.failed(phone)
             raise AuthError("Invalid login credentials", details={"gotrue_status": 400})
         email = found
     else:
         email = str(payload.email)
+        password_attempts.check(email)
     try:
         data = await auth.sign_in_with_password(email=email, password=payload.password)
     except AuthError as exc:
@@ -182,7 +188,9 @@ async def login(payload: LoginRequest, auth: AuthClientDep, db: DatabaseDep) -> 
         if "banned" in exc.message.lower():
             log.info("login_deactivated_account")
             raise AuthError(DEACTIVATED_MESSAGE, details=exc.details) from exc
+        password_attempts.failed(email)
         raise
+    password_attempts.succeeded(email)
     # Frozen for deletion (v1.12.35): no session; the app then offers Restore
     # (POST /auth/restore) with the same email and password.
     signed_in = (data.get("user") or {}).get("id")
@@ -384,13 +392,16 @@ async def change_my_password(
             "This account has no email to check the password against.",
             error_code="no_email",
         )
+    password_attempts.check(user.email)
     try:
         await auth.sign_in_with_password(email=user.email, password=payload.current_password)
     except AuthError as exc:
         log.info("password_change_wrong_current", user_id=str(user.id))
+        password_attempts.failed(user.email)
         raise BadRequestError(
             "The current password is not right.", error_code="wrong_password"
         ) from exc
+    password_attempts.succeeded(user.email)
     await auth.admin_update_user(
         user_id=str(user.id), attributes={"password": payload.new_password}
     )
@@ -431,11 +442,14 @@ async def delete_my_account(
             "This account has no email to check the password against.",
             error_code="no_email",
         )
+    password_attempts.check(user.email)
     try:
         await auth.sign_in_with_password(email=user.email, password=payload.password)
     except AuthError as exc:
         log.info("account_delete_wrong_password", user_id=str(user.id))
+        password_attempts.failed(user.email)
         raise BadRequestError("The password is not right.", error_code="wrong_password") from exc
+    password_attempts.succeeded(user.email)
     when = await account_deletion.schedule(db, user.id)
     await record_audit(
         db,
@@ -534,15 +548,23 @@ def _refuse_staff(role: str) -> None:
 
 
 async def _check_sign_in(auth: Any, payload: EmailPasswordRequest) -> dict[str, Any]:
-    """Sign in with the email and password, or a 400 ``wrong_password``."""
+    """Sign in with the email and password, or a 400 ``wrong_password``.
+
+    Five wrong ones for the account and it waits: a 429 ``too_many_attempts``.
+    """
+    email = str(payload.email)
+    password_attempts.check(email)
     try:
-        data = await auth.sign_in_with_password(
-            email=str(payload.email), password=payload.password
+        data: dict[str, Any] = await auth.sign_in_with_password(
+            email=email, password=payload.password
         )
     except AuthError as exc:
+        password_attempts.failed(email)
         raise BadRequestError("Wrong email or password.", error_code="wrong_password") from exc
     if not (data.get("user") or {}).get("id"):
+        password_attempts.failed(email)
         raise BadRequestError("Wrong email or password.", error_code="wrong_password")
+    password_attempts.succeeded(email)
     return data
 
 

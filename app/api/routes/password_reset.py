@@ -28,6 +28,7 @@ from app.db.session import Database
 from app.integrations.brevo_email import BrevoEmailClient
 from app.integrations.supabase_auth import AuthError, SupabaseAuthClient
 from app.schemas.common import MessageResponse
+from app.services import password_attempts
 from app.services.email_layout import EmailAction, RenderedEmail, render_email
 
 log = get_logger(__name__)
@@ -73,6 +74,9 @@ async def reset_password(payload: PasswordResetRequest, auth: AuthClientDep) -> 
         raise AppError(exc.message, status_code=422, error_code="password_rejected") from exc
     log.info("password_set_from_link")
     email = user.get("email") if isinstance(user, dict) else None
+    if email:
+        # A new password ends any wait for too many wrong ones (v1.12.36).
+        password_attempts.succeeded(str(email))
     who = f" for {email}" if email else ""
     return MessageResponse(
         message=f"Your password is set{who}. Open the RepLiT app and sign in with it."

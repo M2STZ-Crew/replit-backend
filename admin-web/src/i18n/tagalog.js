@@ -1083,4 +1083,7 @@ export const TAGALOG = {
   '{org} deleted': 'Nabura ang {org}',
   // v1.12.34
   'Read the privacy policy': 'Basahin ang privacy policy',
+  // v1.12.36
+  'Too many wrong passwords for this account. Wait {minutes} min, then try again, or use Forgot password?.': 'Sobrang dami ng maling password para sa account na ito. Maghintay ng {minutes} minuto, saka subukan ulit, o gamitin ang Forgot password?.',
+  'Too many people are signing in right now. Wait a few minutes, then try again.': 'Sobrang daming nagsa-sign in ngayon. Maghintay ng ilang minuto, saka subukan ulit.',
 };

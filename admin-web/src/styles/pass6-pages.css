@@ -597,6 +597,11 @@
   letter-spacing: 0.2px;
   cursor: pointer;
 }
+/* On a touch screen the chip is a 44 px target; the 4 px margins go, so the
+   row keeps its height. */
+@media (pointer: coarse) {
+  .rpl-chip { height: 44px; margin: 0; }
+}
 .rpl-chip.is-selected {
   border: 1.5px solid var(--accent-line);
   background: var(--accent-soft);

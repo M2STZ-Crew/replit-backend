@@ -47,6 +47,12 @@ export class ApiError extends Error {
 const OWN_WORDS = new Map([
   ['disposable_email', () => tr('Temporary email addresses can’t be used. Use an email that will last, such as Gmail or Yahoo.')],
   ['signed_in_elsewhere', () => tr('Your account was opened on another device, so it has been signed out here.')],
+  // Five wrong passwords and the account waits (v1.12.36); or Supabase is
+  // busy with everyone signing in at once.
+  ['too_many_attempts', (data) => tr('Too many wrong passwords for this account. Wait {minutes} min, then try again, or use Forgot password?.', {
+    minutes: Math.max(1, Math.ceil((data?.details?.retry_after_seconds ?? 900) / 60)),
+  })],
+  ['too_many_requests', () => tr('Too many people are signing in right now. Wait a few minutes, then try again.')],
 ]);
 
 /// One device per account (v1.12.27): the newest sign-in wins. When the API
@@ -104,7 +110,7 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
   if (!resp.ok) {
     const own = OWN_WORDS.get(data.error);
     if (data.error === 'signed_in_elsewhere' && auth) signedInElsewhere(own());
-    throw new ApiError(own ? own() : data.message || tr('Request failed ({status}).', { status: resp.status }), resp.status, data.error ?? null);
+    throw new ApiError(own ? own(data) : data.message || tr('Request failed ({status}).', { status: resp.status }), resp.status, data.error ?? null);
   }
   return data;
 }
