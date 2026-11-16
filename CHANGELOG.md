@@ -6,6 +6,29 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.37 — 17 November 2026 — Tagalog keeps the nav; Sign out asks first
+
+Console only; app v1.12.47 goes with it. No migration, no server change.
+
+### Changes
+- **In Tagalog the sidebar kept only Settings** (17 Nov: "if the user presses
+  tagalog in admin the nav bar closes"). Each nav item named its group by the
+  group's translated heading, and the sidebar matched it against the headings
+  in English, so in Tagalog nothing matched and every destination vanished.
+  Items now name their group by a key that never changes, and the headings
+  are said in the reader's language (`components/shell/nav.js`, `Sidebar.jsx`).
+- **A new language redraws the console in place.** It used to rebuild it: the
+  sidebar jumped back to the top, a half-typed password was lost and every page
+  loaded its data again. Now the sidebar keeps its place and only the language
+  is saved (`i18n/i18n.jsx`). The nav's labels are worked out again for the
+  new language (`ConsoleShell.jsx`).
+- **Sign out asks first** (17 Nov: "if the user press logout it make it
+  having a confirmation"), from the sidebar and from More on a phone: "Sign
+  out?", saying the browser shows and sounds no new alerts until you sign in
+  again. Cancel is focused first and keeps you signed in.
+
+---
+
 ## v1.12.36 — 16 November 2026 — The QA audit's fixes
 
 Backend, console and residents' site; app v1.12.46 goes with it. No migration.

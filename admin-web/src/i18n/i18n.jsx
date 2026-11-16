@@ -1,6 +1,7 @@
 import {
-  Fragment,
+  cloneElement,
   createContext,
+  isValidElement,
   useCallback,
   useContext,
   useEffect,
@@ -105,11 +106,21 @@ export function LanguageProvider({ accountLanguage, onSave, children }) {
   );
 
   const value = useMemo(() => ({ language, setLanguage }), [language, setLanguage]);
-  return (
-    <LanguageContext.Provider value={value}>
-      <Fragment key={language}>{children}</Fragment>
-    </LanguageContext.Provider>
+  // A new language redraws the console in place (v1.12.37): every t() is read
+  // again, and nothing is rebuilt, so the sidebar keeps its place, a form keeps
+  // what was typed and no page loads its data again. Until 1.12.36 a keyed
+  // Fragment rebuilt the whole console instead, and the sidebar jumped back to
+  // the top (17 Nov 2026: "if the user presses tagalog in admin the nav bar
+  // closes"). The copy is a new element, so React renders it again and, with
+  // no memoised component in the console, everything under it. A value
+  // memoised with t() inside lists `language` among its dependencies
+  // (ConsoleShell's nav).
+  const redrawn = useMemo(
+    () => (isValidElement(children) ? cloneElement(children) : children),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [children, language],
   );
+  return <LanguageContext.Provider value={value}>{redrawn}</LanguageContext.Provider>;
 }
 
 export const useLanguage = () => useContext(LanguageContext);
