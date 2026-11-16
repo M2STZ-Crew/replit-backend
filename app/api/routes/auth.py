@@ -7,7 +7,9 @@ database profile).
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
+from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Request, Response, status
 
@@ -19,19 +21,25 @@ from app.api.deps import (
     DatabaseDep,
     EmailClientDep,
     SessionUser,
-    StorageClientDep,
     phone_gate_applies,
 )
 from app.api.routes.password_reset import schedule_reset_email
-from app.core.exceptions import BadRequestError, ExternalServiceError, ForbiddenError
+from app.core.exceptions import (
+    BadRequestError,
+    ConflictError,
+    ExternalServiceError,
+    ForbiddenError,
+)
 from app.core.logging import get_logger
 from app.db.session import Database
 from app.integrations.supabase_auth import AuthError
 from app.schemas.auth import (
     AccountDeleteRequest,
+    AccountDeletionScheduled,
     AuthenticatedUser,
     ConsoleAccess,
     ConsoleOrganization,
+    EmailPasswordRequest,
     LanguageUpdateRequest,
     LocationUpdateRequest,
     LoginRequest,
@@ -44,13 +52,13 @@ from app.schemas.auth import (
     TokenResponse,
 )
 from app.schemas.common import MessageResponse
+from app.services import account_deletion
 from app.services.access import admin_access
 from app.services.age import ensure_adult
 from app.services.audit import record_audit
 from app.services.disposable_email import ensure_not_disposable
 from app.services.email_deliverability import ensure_deliverable
 from app.services.names import ensure_valid_name
-from app.services.national_id import photo_paths, remove_photos
 from app.services.phone_verification import PhoneNumberTakenError, normalize_ph_mobile
 
 log = get_logger(__name__)
@@ -175,6 +183,19 @@ async def login(payload: LoginRequest, auth: AuthClientDep, db: DatabaseDep) -> 
             log.info("login_deactivated_account")
             raise AuthError(DEACTIVATED_MESSAGE, details=exc.details) from exc
         raise
+    # Frozen for deletion (v1.12.35): no session; the app then offers Restore
+    # (POST /auth/restore) with the same email and password.
+    signed_in = (data.get("user") or {}).get("id")
+    if signed_in:
+        requested = await db.fetchval(
+            "select (to_jsonb(u) ->> 'deletion_requested_at')::timestamptz "
+            "from public.users u where u.id = $1",
+            UUID(signed_in),
+        )
+        if isinstance(requested, datetime):
+            await _sign_out(auth, data.get("access_token"), "local")
+            log.info("login_pending_deletion")
+            raise account_deletion.pending_error(requested)
     log.info("user_logged_in", method="phone" if payload.phone else "email")
     return _to_token_response(data)
 
@@ -384,39 +405,27 @@ async def change_my_password(
 
 @router.post(
     "/me/delete",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Delete my account (residents)",
+    response_model=AccountDeletionScheduled,
+    summary="Delete my account: frozen for 30 days, then deleted (residents)",
 )
 async def delete_my_account(
     payload: AccountDeleteRequest,
     request: Request,
     user: SessionUser,
+    token: AccessTokenDep,
     auth: AuthClientDep,
     db: DatabaseDep,
-    storage: StorageClientDep,
-) -> Response:
-    """Delete the caller's account for good (v1.12.34, Google Play's rule).
+) -> AccountDeletionScheduled:
+    """Freeze the caller's account; it is deleted for good after 30 days (v1.12.35).
 
-    For residents, from the app's Profile and the console's /delete-account
-    page. The password is checked by signing in with it, as for a password
-    change, so a phone left unlocked cannot delete the account. A wrong one is
-    a 400, never a 401: the clients read 401 as an expired session.
-
-    What goes: the sign-in, the profile (name, email, mobile, birthday, gender,
-    last location), the phones, the inbox and alerts, the verification records
-    and any National ID photos still held. What stays, without the person: the
-    reports they sent, part of the incident record responders keep
-    (reports.user_id becomes null), and the audit line that an account deleted
-    itself.
-
-    A staff account belongs to its organisation: a 403 ``staff_account``, and
-    its administrator removes it.
+    From the app's Profile (Google Play's account deletion; 16 Nov 2026: "make
+    the account is in freeze for 30 days before actual deleting it"). The
+    password is checked by signing in with it, as for a password change: a wrong
+    one is a 400, never a 401. Then the account is frozen (app/services/
+    account_deletion.py) and every session of it is signed out. Restore within
+    the 30 days: POST /auth/restore. A staff account is a 403 ``staff_account``.
     """
-    if user.role != "general_user":
-        raise ForbiddenError(
-            "A staff account is removed by its organization's administrator.",
-            error_code="staff_account",
-        )
+    _refuse_staff(user.role)
     if not user.email:
         raise BadRequestError(
             "This account has no email to check the password against.",
@@ -427,26 +436,134 @@ async def delete_my_account(
     except AuthError as exc:
         log.info("account_delete_wrong_password", user_id=str(user.id))
         raise BadRequestError("The password is not right.", error_code="wrong_password") from exc
-    # The ID photos first: if they cannot go, nothing goes, and trying again is safe.
-    try:
-        await remove_photos(storage, photo_paths(user.id).values())
-    except Exception as exc:
-        log.error("account_delete_photos_failed", user_id=str(user.id))
-        raise ExternalServiceError(_DELETE_FAILED, error_code="account_delete_failed") from exc
-    # Before the account goes: after, its id names no one (the line keeps a null actor).
+    when = await account_deletion.schedule(db, user.id)
     await record_audit(
-        db, request, user, action="account.delete", entity_type="user", entity_id=user.id
+        db,
+        request,
+        user,
+        action="account.delete_requested",
+        entity_type="user",
+        entity_id=user.id,
+        metadata={"via": "app", "delete_after": when.isoformat()},
     )
+    await _sign_out(auth, token, "global")
+    log.info("account_delete_requested", user_id=str(user.id))
+    return _scheduled(when)
+
+
+@router.post(
+    "/delete",
+    response_model=AccountDeletionScheduled,
+    summary="Delete an account with its email and password (the residents' site)",
+)
+async def delete_account(
+    payload: EmailPasswordRequest, request: Request, auth: AuthClientDep, db: DatabaseDep
+) -> AccountDeletionScheduled:
+    """The same freeze as /auth/me/delete, without the app (v1.12.35).
+
+    reportwhatslit-app.vercel.app/delete-account: Google Play asks that an
+    account can be deleted without the app. A wrong email or password is a 400
+    ``wrong_password``; a staff account a 403 ``staff_account``.
+    """
+    data = await _check_sign_in(auth, payload)
+    user_id = UUID(data["user"]["id"])
+    role = await db.fetchval("select role::text from public.users where id = $1", user_id)
+    if role != "general_user":
+        await _sign_out(auth, data.get("access_token"), "local")
+        _refuse_staff(str(role))
+    when = await account_deletion.schedule(db, user_id)
+    await record_audit(
+        db,
+        request,
+        AuthenticatedUser(id=user_id, role="general_user", email=str(payload.email)),
+        action="account.delete_requested",
+        entity_type="user",
+        entity_id=user_id,
+        metadata={"via": "web", "delete_after": when.isoformat()},
+    )
+    await _sign_out(auth, data.get("access_token"), "global")
+    log.info("account_delete_requested", user_id=str(user_id), via="web")
+    return _scheduled(when)
+
+
+@router.post(
+    "/restore",
+    response_model=MessageResponse,
+    summary="Restore an account within 30 days of asking to delete it",
+)
+async def restore_account(
+    payload: EmailPasswordRequest, request: Request, auth: AuthClientDep, db: DatabaseDep
+) -> MessageResponse:
+    """Unfreeze an account asked to be deleted, within its 30 days (v1.12.35).
+
+    From the app (offered when a frozen account signs in) and the residents'
+    site. A wrong email or password is a 400 ``wrong_password``; an account
+    that is not frozen a 409 ``not_scheduled``. After the 30 days the account
+    is gone, and signing in fails as for any unknown account.
+    """
+    data = await _check_sign_in(auth, payload)
+    user_id = UUID(data["user"]["id"])
     try:
-        await auth.admin_delete_user(user_id=str(user.id))
+        restored = await account_deletion.restore(db, user_id)
+    finally:
+        await _sign_out(auth, data.get("access_token"), "local")
+    if not restored:
+        raise ConflictError(
+            "This account is not set to be deleted. You can sign in as usual.",
+            error_code="not_scheduled",
+        )
+    await record_audit(
+        db,
+        request,
+        AuthenticatedUser(id=user_id, role="general_user", email=str(payload.email)),
+        action="account.restore",
+        entity_type="user",
+        entity_id=user_id,
+    )
+    log.info("account_restored", user_id=str(user_id))
+    return MessageResponse(message="Your account is restored. You can sign in as usual.")
+
+
+def _refuse_staff(role: str) -> None:
+    """A staff account belongs to its organisation: its administrator removes it."""
+    if role != "general_user":
+        raise ForbiddenError(
+            "A staff account is removed by its organization's administrator.",
+            error_code="staff_account",
+        )
+
+
+async def _check_sign_in(auth: Any, payload: EmailPasswordRequest) -> dict[str, Any]:
+    """Sign in with the email and password, or a 400 ``wrong_password``."""
+    try:
+        data = await auth.sign_in_with_password(
+            email=str(payload.email), password=payload.password
+        )
     except AuthError as exc:
-        log.error("account_delete_failed", user_id=str(user.id))
-        raise ExternalServiceError(_DELETE_FAILED, error_code="account_delete_failed") from exc
-    log.info("account_deleted", user_id=str(user.id))
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+        raise BadRequestError("Wrong email or password.", error_code="wrong_password") from exc
+    if not (data.get("user") or {}).get("id"):
+        raise BadRequestError("Wrong email or password.", error_code="wrong_password")
+    return data
 
 
-_DELETE_FAILED = "Your account could not be deleted just now. Nothing was removed; try again."
+async def _sign_out(auth: Any, token: str | None, scope: str) -> None:
+    """Best effort: a session that cannot be revoked simply runs out within the hour."""
+    if not token:
+        return
+    try:
+        await auth.sign_out(access_token=token, scope=scope)
+    except (AuthError, ExternalServiceError):
+        log.warning("sign_out_failed", scope=scope)
+
+
+def _scheduled(when: datetime) -> AccountDeletionScheduled:
+    return AccountDeletionScheduled(
+        delete_after=when,
+        message=(
+            f"Your account is frozen and will be deleted on {account_deletion.day_of(when)}. "
+            "To keep it, sign in before then and choose Restore my account."
+        ),
+    )
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, summary="Logout")

@@ -64,6 +64,8 @@ class _Db:
         self.updates: list[tuple[Any, ...]] = []
 
     async def fetchval(self, query: str, *args: Any) -> Any:
+        if "deletion_requested_at" in query:  # the freeze check (v1.12.35): not frozen
+            return None
         assert "phone_verified" in query, "only a verified number may identify an account"
         self.lookups.append(args[0])
         return self.verified.get(args[0])

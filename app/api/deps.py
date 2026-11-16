@@ -127,6 +127,9 @@ CURRENT_USER_SQL = """
     select u.id, u.email, u.phone, u.role, u.agency_type, u.verified_percent, u.badge,
            u.full_name, u.primary_org_id, u.mobile, u.date_of_birth, u.gender,
            u.phone_verified, u.is_active, u.language, u.personal_email,
+           -- Read through to_jsonb, like the organisation's newer columns: a
+           -- database without the column yet (migration 20261116090000) reads null.
+           (to_jsonb(u) ->> 'deletion_requested_at')::timestamptz as deletion_requested_at,
            (u.personal_email_verified_at is not null) as personal_email_verified,
            o.name as org_name, o.agency_type::text as org_agency_type,
            o.is_active as org_is_active,
@@ -166,6 +169,14 @@ async def get_current_user(
     # request, not only at the next sign-in: its token may still be valid.
     if profile.pop("is_active", True) is False:
         raise UnauthorizedError(DEACTIVATED_MESSAGE)
+    # Asked to be deleted (v1.12.35): frozen until restored, or deleted after
+    # 30 days. A token issued before the request may still be valid for up to
+    # an hour; every request says so, and the app signs out and offers Restore.
+    requested = profile.pop("deletion_requested_at", None)
+    if requested is not None:
+        from app.services.account_deletion import pending_error
+
+        raise pending_error(requested)
     # A suspended or revoked organisation is frozen: nobody of it signs in
     # or acts (app/api/routes/affiliate_standing.py, v1.12.28).
     standing = profile.pop("org_standing", "active")

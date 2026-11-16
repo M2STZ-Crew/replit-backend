@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
@@ -193,6 +193,20 @@ class AccountDeleteRequest(BaseModel):
     """POST /auth/me/delete: the password, checked before anything goes."""
 
     password: str = Field(min_length=1, max_length=128)
+
+
+class EmailPasswordRequest(BaseModel):
+    """POST /auth/delete and /auth/restore, from the residents' site (v1.12.35)."""
+
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=128)
+
+
+class AccountDeletionScheduled(BaseModel):
+    """An account frozen for deletion: when it goes, and what to tell its owner."""
+
+    delete_after: datetime
+    message: str
 
 
 class PersonalEmailRequest(BaseModel):

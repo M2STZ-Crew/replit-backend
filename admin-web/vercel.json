@@ -8,6 +8,16 @@
       "source": "/installation",
       "destination": "https://reportwhatslit-apk.vercel.app/",
       "permanent": false
+    },
+    {
+      "source": "/privacy",
+      "destination": "https://reportwhatslit-app.vercel.app/privacy",
+      "permanent": false
+    },
+    {
+      "source": "/delete-account",
+      "destination": "https://reportwhatslit-app.vercel.app/delete-account",
+      "permanent": false
     }
   ],
   "rewrites": [

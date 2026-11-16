@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delete or restore your RepLiT account</title>
+<meta name="description" content="Delete your RepLiT account, or restore it within 30 days.">
+<link rel="icon" href="/assets/logo-mark.png">
+<link rel="stylesheet" href="/assets/site.css">
+<!--
+  A resident's account deletion without the app (Google Play's rule), and its
+  restore (v1.12.35): POST /auth/delete freezes the account for 30 days, then
+  the server deletes it; POST /auth/restore brings it back within them.
+-->
+</head>
+<body>
+<main>
+  <div class="top">
+    <a class="brand" href="/">
+      <span class="brand-icon"><img src="/assets/logo-mark.png" alt="" width="22" height="31"></span>
+      <span><span class="brand-name">RepLiT</span><br><span class="brand-sub" data-i18n="brandSub">For residents of Barangay 76</span></span>
+    </a>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="en" aria-pressed="true">English</button>
+      <button type="button" data-lang="tl" aria-pressed="false">Tagalog</button>
+    </div>
+  </div>
+
+  <span class="kicker" data-i18n="kicker">For residents</span>
+  <h1 data-i18n="title">Delete your RepLiT account</h1>
+  <p class="lede" data-i18n="lede">Your account is frozen for 30 days first. In those 30 days you can still restore it; after them it is deleted for good.</p>
+
+  <section class="card" aria-labelledby="what-title">
+    <h2 id="what-title" data-i18n="whatHappens">What happens</h2>
+    <ul class="timeline">
+      <li><strong data-i18n="step1Title">Right away</strong><span data-i18n="step1">You are signed out on every phone, and RepLiT stops sending you alerts.</span></li>
+      <li><strong data-i18n="step2Title">For 30 days</strong><span data-i18n="step2">Your account is kept, frozen. To keep it, sign in to the app and choose Restore my account, or use Restore your account below.</span></li>
+      <li><strong data-i18n="step3Title">After 30 days</strong><span data-i18n="step3">Your sign-in and profile (name, email, mobile number, birthday, gender, language and last location), your alerts and any National ID photos are deleted for good.</span></li>
+      <li><strong data-i18n="step4Title">What stays</strong><span data-i18n="step4">The reports you sent stay in the barangay's incident records, without your name.</span></li>
+    </ul>
+    <p class="muted" data-i18n="staffNote">Staff accounts (coordinators and responders) are removed by their organization's administrator.</p>
+  </section>
+
+  <section class="card" aria-labelledby="delete-title">
+    <h2 id="delete-title" data-i18n="deleteHeading">Delete my account</h2>
+    <form id="delete-form" novalidate>
+      <label class="field"><span data-i18n="email">Email</span>
+        <span class="input"><input type="email" name="email" autocomplete="email" placeholder="you@email.com" required></span>
+      </label>
+      <label class="field"><span data-i18n="password">Password</span>
+        <span class="input"><input type="password" name="password" autocomplete="current-password" required><button type="button" class="reveal" data-i18n="show">Show</button></span>
+      </label>
+      <label class="tick"><input type="checkbox" name="sure"><span data-i18n="tick">I understand that my account is frozen now and deleted for good after 30 days unless I restore it.</span></label>
+      <p class="message" role="status" aria-live="polite" hidden></p>
+      <button type="submit" class="btn btn-danger" data-i18n="deleteBtn">Delete my account</button>
+    </form>
+  </section>
+
+  <section class="card" id="restore" aria-labelledby="restore-title">
+    <h2 id="restore-title" data-i18n="restoreHeading">Changed your mind? Restore your account</h2>
+    <p class="muted" data-i18n="restoreLede">Within 30 days of asking to delete it, your account comes back exactly as it was.</p>
+    <form id="restore-form" novalidate>
+      <label class="field"><span data-i18n="email">Email</span>
+        <span class="input"><input type="email" name="email" autocomplete="email" placeholder="you@email.com" required></span>
+      </label>
+      <label class="field"><span data-i18n="password">Password</span>
+        <span class="input"><input type="password" name="password" autocomplete="current-password" required><button type="button" class="reveal" data-i18n="show">Show</button></span>
+      </label>
+      <p class="message" role="status" aria-live="polite" hidden></p>
+      <button type="submit" class="btn btn-primary" data-i18n="restoreBtn">Restore my account</button>
+    </form>
+  </section>
+
+  <footer>
+    <a href="/" data-i18n="home">RepLiT for residents</a>
+    <a href="/privacy" data-i18n="privacyLink">Privacy policy</a>
+  </footer>
+</main>
+<script src="/assets/account.js"></script>
+</body>
+</html>

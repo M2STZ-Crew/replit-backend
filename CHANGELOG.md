@@ -6,6 +6,37 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.35 — 16 November 2026 — 30 days to change your mind; a residents' site
+
+Backend, console and a new residents' site; app v1.12.45 goes with it.
+**Migration:** `20261116090000_account_deletion_grace.sql` (one nullable column
+and its index). The backend reads the column through `to_jsonb`, so sign-in and
+every request work before it is applied; only Delete and Restore answer 503
+`deletion_unavailable` until it is.
+
+### Changes
+- **Frozen for 30 days, then deleted** (16 Nov: "make the account is in freeze
+  for 30 days before actual deleting it? (they can still recover it within 30
+  days)"). `POST /auth/me/delete` now stamps `users.deletion_requested_at`,
+  turns the account's phones off and signs it out everywhere
+  (`scope=global`); it answers when the account goes (`delete_after`). While
+  frozen, sign-in and every request are a 403 `account_pending_deletion` with
+  that day. `POST /auth/restore` (email and password) unfreezes it within the
+  30 days. An hourly job (`app/workers/account_deletion.py`) then deletes it for
+  good: ID photos first, then the sign-in, and with it everything that cascades.
+  Reports stay without the person. `ACCOUNT_DELETION_GRACE_DAYS` (30).
+- **`POST /auth/delete`** (email and password): the same freeze without the app,
+  for the residents' site. Staff accounts are a 403 `staff_account`.
+- **A frozen account's National ID** leaves the console's review queue.
+- **The residents' site** (`residents-web/`, to be served at
+  reportwhatslit-app.vercel.app): its home, the privacy policy and
+  delete-or-restore an account, in English and Tagalog on the account page. The
+  console no longer serves `/privacy` and `/delete-account`: it forwards them
+  there, so a resident is never on the admins' site. The server allows the
+  site's address (`RESIDENT_SITE_ORIGINS`).
+
+---
+
 ## v1.12.34 — 16 November 2026 — The QA run's fixes; account deletion and a privacy policy for Google Play
 
 Backend and console; app v1.12.44 goes with it. **No migration.** Deploy in

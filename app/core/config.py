@@ -32,6 +32,11 @@ CONSOLE_ORIGINS = (
     "https://replit-backend-5u9u.vercel.app",
 )
 
+# The residents' site (v1.12.35): the privacy policy, and deleting or
+# restoring an account without the app. Not the console's address, so
+# residents are never sent to the admins' site.
+RESIDENT_SITE_ORIGINS = ("https://reportwhatslit-app.vercel.app",)
+
 
 class Settings(BaseSettings):
     """Strongly-typed application settings loaded from the environment / ``.env``."""
@@ -49,10 +54,18 @@ class Settings(BaseSettings):
         description='Deployment environment: "development" | "staging" | "production".',
     )
     app_name: str = Field(default="RepLiT Backend", description="Human-readable app name.")
-    app_version: str = Field(default="1.12.34", description="Semantic version of the build.")
+    app_version: str = Field(default="1.12.35", description="Semantic version of the build.")
     host: str = Field(default="0.0.0.0", description="Uvicorn bind host.")
     port: int = Field(default=8000, ge=1, le=65535, description="Uvicorn bind port.")
 
+    account_deletion_grace_days: int = Field(
+        default=30,
+        ge=1,
+        description=(
+            "Days an account is frozen after its owner asks to delete it, "
+            "before it is deleted for good (v1.12.35)."
+        ),
+    )
     email_deliverability_check: bool = Field(
         default=True,
         description="Refuse at sign-up an email whose domain takes no mail (DNS MX, then A).",
@@ -296,7 +309,8 @@ class Settings(BaseSettings):
         """Return the parsed CORS origins, with blank entries stripped, and
         the Admin console's own addresses (CONSOLE_ORIGINS) always among them."""
         origins = [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
-        return origins + [o for o in CONSOLE_ORIGINS if o not in origins]
+        always = CONSOLE_ORIGINS + RESIDENT_SITE_ORIGINS
+        return origins + [o for o in always if o not in origins]
 
     @property
     def is_development(self) -> bool:

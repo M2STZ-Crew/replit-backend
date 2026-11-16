@@ -2,7 +2,8 @@
 
 - A name is letters, with spaces, periods, apostrophes and hyphens (Z-10).
 - An email whose domain takes no mail is refused at sign-up (D-02).
-- A resident can delete their account, password first (Play: account deletion).
+- A resident can delete their account, password first (Play: account deletion);
+  since v1.12.35 it is frozen for 30 days first (tests/test_v1_12_35.py).
 - A copy of the app from Google Play is not told of GitHub releases.
 """
 
@@ -223,55 +224,14 @@ def _wire(
     return user.id, storage, db
 
 
-def test_a_resident_deletes_their_account_photos_first(client: TestClient) -> None:
-    auth = _Auth()
-    user_id, storage, db = _wire(auth)
-    response = client.post("/auth/me/delete", json={"password": PASSWORD})
-    assert response.status_code == 204
-    assert auth.calls == [("sign_in", "m@x.ph"), ("delete", str(user_id))]
-    assert sorted(storage.removed) == sorted(
-        f"national-ids/{user_id}/{name}" for name in ("national_id", "selfie", "national_id_qr")
-    )
-    audit = [args for query, args in db.executed if "insert into public.audit_logs" in query]
-    assert len(audit) == 1 and "account.delete" in audit[0]
 
 
-def test_a_wrong_password_deletes_nothing_and_is_not_a_401(client: TestClient) -> None:
-    auth = _Auth()
-    _, storage, db = _wire(auth)
-    response = client.post("/auth/me/delete", json={"password": "guess"})
-    assert response.status_code == 400
-    assert response.json()["error"] == "wrong_password"
-    assert [c for c, _ in auth.calls] == ["sign_in"]
-    assert storage.removed == [] and db.executed == []
 
 
-@pytest.mark.parametrize("role", ["sub_admin", "response_team", "admin"])
-def test_a_staff_account_is_its_organizations(client: TestClient, role: str) -> None:
-    auth = _Auth()
-    _wire(auth, role=role)
-    response = client.post("/auth/me/delete", json={"password": PASSWORD})
-    assert response.status_code == 403
-    assert response.json()["error"] == "staff_account"
-    assert auth.calls == []
 
 
-def test_photos_that_cannot_go_keep_the_account(client: TestClient) -> None:
-    auth = _Auth()
-    _, _, db = _wire(auth, storage=_Storage(fails=True))
-    response = client.post("/auth/me/delete", json={"password": PASSWORD})
-    assert response.status_code == 502
-    assert response.json()["error"] == "account_delete_failed"
-    assert [c for c, _ in auth.calls] == ["sign_in"]
-    assert db.executed == []
 
 
-def test_an_account_that_cannot_go_says_so(client: TestClient) -> None:
-    auth = _Auth(delete_fails=True)
-    _wire(auth)
-    response = client.post("/auth/me/delete", json={"password": PASSWORD})
-    assert response.status_code == 502
-    assert response.json()["error"] == "account_delete_failed"
 
 
 def test_sign_up_refuses_an_emoji_name_before_making_anything(client: TestClient) -> None:
