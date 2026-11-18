@@ -14,10 +14,13 @@ import './styles/pass6-existing.css';
 import './styles/pass6-incidents.css';
 import './styles/pass6-map.css';
 import './styles/pass6-access.css';
+import { installNoEmoji } from './lib/noEmoji.js';
 import { initTheme } from './theme.js';
 
 // Before the first paint, so a reload never flashes the other ground.
 initTheme();
+// No emoji in any text box, on any page (v1.12.38).
+installNoEmoji();
 
 /* English or Tagalog: the signed-in account's choice, saved back to it when an
  * Admin switches (Settings, or the sign-in page just before signing in). */

@@ -1,0 +1,18 @@
+barangay,road,latitude,longitude,type,position,diameter_mm,colour,surveyed_on_site,street_photo,osm_link
+Barangay 183,East Palm Drive,14.5207791,121.0161941,pillar,,,,,,https://www.openstreetmap.org/node/12000028358
+Barangay 76,Bayshore Avenue,14.5400301,120.9823372,,,,,,,https://www.openstreetmap.org/node/7040828287
+Barangay 76,Coral Way,14.5311954,120.9843834,pillar,sidewalk,150,red,,,https://www.openstreetmap.org/node/3694811853
+Barangay 76,Coral Way,14.5316324,120.9858179,pillar,sidewalk,150,,,,https://www.openstreetmap.org/node/3694811854
+Barangay 76,Coral Way,14.5318348,120.9877042,pillar,green,,,,,https://www.openstreetmap.org/node/14220892426
+Barangay 76,J. W. Diokno Boulevard,14.5360306,120.9843944,pillar,sidewalk,,red,,https://www.mapillary.com/app/?pKey=877314569666652,https://www.openstreetmap.org/node/4714817923
+Barangay 76,J. W. Diokno Boulevard,14.5345195,120.9845309,pillar,sidewalk,,,,,https://www.openstreetmap.org/node/4714817924
+Barangay 76,J. W. Diokno Boulevard,14.5332625,120.9842304,pillar,sidewalk,,,,,https://www.openstreetmap.org/node/4714817926
+Barangay 76,J. W. Diokno Boulevard,14.5372307,120.9838837,pillar,sidewalk,,,,,https://www.openstreetmap.org/node/4714817927
+Barangay 76,J. W. Diokno Boulevard,14.5399169,120.9834948,pillar,sidewalk,,,,,https://www.openstreetmap.org/node/4714817929
+Barangay 76,Pacific Drive,14.5385429,120.9837578,pillar,sidewalk,,,,,https://www.openstreetmap.org/node/4714817930
+Barangay 76,Seaside Boulevard,14.5353906,120.9798738,pillar,sidewalk,,,yes,,https://www.openstreetmap.org/node/1745104230
+Barangay 76,Seaside Boulevard,14.5426168,120.9857534,pillar,sidewalk,,,,,https://www.openstreetmap.org/node/4714817919
+Barangay 76,Seaside Boulevard,14.542402,120.9847562,pillar,sidewalk,,,,,https://www.openstreetmap.org/node/4714817920
+Barangay 76,Seaside Boulevard,14.5418457,120.9835848,pillar,sidewalk,,,,,https://www.openstreetmap.org/node/4714817921
+Barangay 76,Sunrise Drive,14.532587,120.9860171,pillar,sidewalk,150,,,,https://www.openstreetmap.org/node/3693627411
+Metropolitan Park,Seaside Boulevard,14.5428216,120.9876956,pillar,sidewalk,,red,,https://www.mapillary.com/app/?pKey=3090559054514571,https://www.openstreetmap.org/node/4714817918

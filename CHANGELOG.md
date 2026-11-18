@@ -39,6 +39,17 @@ Backend and console; app v1.12.49 goes with it. No migration.
   details of the incident"). `GET /areas/{id}` now says what is burning and
   which team said (never the person); the console's incident drawer shows it
   as a fact and on the timeline.
+- **No emoji in any text box** (18 Nov: "make in any characters typing in
+  every typebox in the app and web cannot be typed by any emoji"). One
+  listener on the console (`admin-web/src/lib/noEmoji.js`, installed in
+  `main.jsx`) and one on the residents' site (`account.js`) drop emoji from
+  every input and textarea as they are typed or pasted, before React reads
+  them; the cursor stays put. The same ranges as the app.
+- **Evacuation sites and hydrants: where they came from.** 22 Pasay covered
+  courts and multi-purpose halls (OpenStreetMap, approved 18 Nov: "the marked
+  22 yes") were added to production's evacuation sites; 17 OpenStreetMap
+  hydrants are listed for review. `docs/data-sources.md` cites both (APA 7,
+  ODbL), with the review lists in `docs/evacuation-sites/` and `docs/hydrants/`.
 
 ---
 

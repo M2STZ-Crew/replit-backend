@@ -101,6 +101,51 @@
     else if (/^(fil|tl)\b/i.test(navigator.language || '')) lang = 'tl';
   } catch (e) { /* no storage: English */ }
 
+  // No emoji in any text box (v1.12.38, 18 Nov 2026: "make in any characters
+  // typing in every typebox in the app and web cannot be typed by any
+  // emoji"): dropped as they are typed or pasted, the cursor kept where it
+  // was. The same ranges as the app and the console (admin-web/src/lib/noEmoji.js).
+  function isEmojiCodePoint(c) {
+    return (c >= 0x1f000 && c <= 0x1faff) ||
+      (c >= 0x2600 && c <= 0x27bf) ||
+      (c >= 0x2194 && c <= 0x2199) || c === 0x21a9 || c === 0x21aa ||
+      c === 0x231a || c === 0x231b || c === 0x2328 || c === 0x23cf ||
+      (c >= 0x23e9 && c <= 0x23f3) || (c >= 0x23f8 && c <= 0x23fa) ||
+      c === 0x24c2 || c === 0x25aa || c === 0x25ab || c === 0x25b6 || c === 0x25c0 ||
+      (c >= 0x25fb && c <= 0x25fe) || c === 0x2934 || c === 0x2935 ||
+      (c >= 0x2b05 && c <= 0x2b07) || c === 0x2b1b || c === 0x2b1c || c === 0x2b50 || c === 0x2b55 ||
+      c === 0x203c || c === 0x2049 || c === 0x2139 ||
+      c === 0x3030 || c === 0x303d || c === 0x3297 || c === 0x3299 ||
+      c === 0x200d || c === 0xfe0e || c === 0xfe0f || c === 0x20e3 ||
+      (c >= 0xe0020 && c <= 0xe007f);
+  }
+
+  document.addEventListener('input', function (event) {
+    var field = event.target;
+    if (!field || (field.tagName !== 'INPUT' && field.tagName !== 'TEXTAREA')) return;
+    if (field.tagName === 'INPUT' && !/^(|text|search|email|url|tel|password)$/.test(field.type)) return;
+    var text = field.value;
+    var out = '';
+    var landing = [];
+    var i = 0;
+    var found = false;
+    for (var ch of text) {
+      for (var k = 0; k < ch.length; k++) landing[i + k] = out.length;
+      if (isEmojiCodePoint(ch.codePointAt(0))) found = true;
+      else out += ch;
+      i += ch.length;
+    }
+    if (!found) return;
+    landing[text.length] = out.length;
+    var start = null;
+    var end = null;
+    try { start = field.selectionStart; end = field.selectionEnd; } catch (e) { /* email */ }
+    field.value = out;
+    if (start != null) {
+      try { field.setSelectionRange(landing[start], landing[end]); } catch (e) { /* email */ }
+    }
+  }, true);
+
   function t(key, vars) {
     var s = (TEXT[lang] && TEXT[lang][key]) || TEXT.en[key] || key;
     if (vars) Object.keys(vars).forEach(function (k) { s = s.replace('{' + k + '}', vars[k]); });
