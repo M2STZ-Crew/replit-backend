@@ -60,6 +60,7 @@ from app.schemas.incident import (
     ResponderLocationItem,
     SelfDispatchRequest,
 )
+from app.services import fire_broadcast
 from app.services.access import ACKNOWLEDGE, acting_agency, admin_access
 from app.services.audit import record_audit
 from app.services.fire_type import (
@@ -375,6 +376,11 @@ async def finish_incident_change(
         await notify_incident_reporters(db, incident_id, event_type)
     except Exception:
         log.error("reporter_notify_failed", incident_id=str(incident_id), exc_info=True)
+    # Verified (v1.12.38): every resident hears of it, after this answers.
+    if event_type == "incident_verified":
+        fire_broadcast.spawn(
+            fire_broadcast.notify_residents_of_verified_fire(db, incident_id)
+        )
     return detail
 
 

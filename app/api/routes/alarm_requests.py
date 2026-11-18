@@ -56,6 +56,7 @@ from app.realtime.manager import manager
 from app.schemas.alarm import (
     INITIAL_ALARM_LEVEL,
     AlarmLevel,
+    AlarmRaise,
     AlarmRequestCreate,
     AlarmRequestResponse,
     AlarmReviewRequest,
@@ -390,6 +391,144 @@ async def list_alarm_requests(
         *params,
     )
     return [AlarmRequestResponse.model_validate(dict(r)) for r in rows]
+
+
+@router.post(
+    "/raise",
+    response_model=AlarmRequestResponse,
+    summary="Raise an Area's alarm level directly — BFP only",
+)
+async def raise_alarm(
+    payload: AlarmRaise,
+    request: Request,
+    user: StaffUser,
+    db: DatabaseDep,
+) -> AlarmRequestResponse:
+    """BFP raises the alarm itself (v1.12.38, 18 Nov 2026: "bfp coordinator can
+    raise an alarm without the request of fv"; "BFP raises it directly").
+
+    Only BFP sets the level, as before; a Fire Volunteer request is no longer
+    needed for it. Recorded as a request BFP made and answered at once, so the
+    history and the reports read it like any other. Waiting requests for this
+    Area that the new level meets are answered with it, and their askers told.
+    """
+    if not _may_decide(user):
+        raise ForbiddenError(
+            "Only BFP sets the alarm level: a BFP Coordinator on the mobile app, or "
+            "the BFP Admin here (Section 6)."
+        )
+    await assert_admin_routed(db, payload.area_id, user, "raise its alarm")
+    level = payload.alarm_level
+    if level == INITIAL_ALARM_LEVEL:
+        raise ConflictError(
+            f"{alarm_label(level)} is set automatically when a fire is verified. "
+            "Choose 1st alarm or higher."
+        )
+    async with db.acquire() as conn, conn.transaction():
+        area = await conn.fetchrow(
+            "select status::text as status, alarm_level::text as alarm_level, designation "
+            "from public.areas where id = $1 for update",
+            payload.area_id,
+        )
+        if area is None:
+            raise NotFoundError("Incident (area) not found.")
+        if area["status"] in OFF_FEED_STATUSES:
+            raise ConflictError(
+                f"{_area_name(area['designation'])} has ended, so its alarm level stays "
+                "as it is."
+            )
+        if _rank(level) <= _rank(area["alarm_level"]):
+            raise ConflictError(
+                f"{_area_name(area['designation'])} is already at "
+                f"{alarm_label(area['alarm_level'])}. Choose a higher level."
+            )
+        # The enforce_alarm_authority trigger validates BFP authority and stamps the time.
+        try:
+            await conn.execute(
+                """
+                update public.areas
+                   set alarm_level = $2::public.alarm_level, alarm_level_set_by = $3
+                 where id = $1
+                """,
+                payload.area_id,
+                level,
+                user.id,
+            )
+        except asyncpg.InsufficientPrivilegeError as exc:
+            log.warning("alarm_raise_refused_by_db", by=str(user.id), error=str(exc))
+            raise ForbiddenError(
+                "The database does not let an Admin account set the alarm level yet. "
+                "A BFP Coordinator can set it from the mobile app."
+            ) from exc
+        new_id = await conn.fetchval(
+            """
+            insert into public.alarm_requests
+                (area_id, requested_by, requested_alarm_level, justification,
+                 status, reviewed_by, reviewed_at, executed_at, review_notes)
+            values ($1, $2, $3::public.alarm_level, $4, 'approved', $2, now(), now(), $5)
+            returning id
+            """,
+            payload.area_id,
+            user.id,
+            level,
+            payload.notes,
+            "Raised by BFP.",
+        )
+        # Waiting asks the new level meets are answered with it.
+        waiting = await conn.fetch(
+            "select id, requested_alarm_level::text as lvl from public.alarm_requests "
+            "where area_id = $1 and status = 'pending'",
+            payload.area_id,
+        )
+        met = [r["id"] for r in waiting if _rank(r["lvl"]) <= _rank(level)]
+        if met:
+            await conn.execute(
+                """
+                update public.alarm_requests
+                   set status = 'approved', reviewed_by = $2, reviewed_at = now(),
+                       executed_at = now(), review_notes = $3
+                 where id = any($1::uuid[]) and status = 'pending'
+                """,
+                met,
+                user.id,
+                f"BFP raised it to {alarm_label(level)}.",
+            )
+        await record_audit(
+            conn,
+            request,
+            user,
+            action="alarm.raise",
+            entity_type="alarm_request",
+            entity_id=new_id,
+            area_id=payload.area_id,
+            before_state={"alarm_level": area["alarm_level"]},
+            after_state={"alarm_level": level},
+            metadata={"notes": payload.notes, "answered": [str(i) for i in met]},
+        )
+    await manager.broadcast(
+        f"incident:{payload.area_id}",
+        {
+            "type": "alarm_raised",
+            "area_id": str(payload.area_id),
+            "alarm_level": level,
+            "set_by": str(user.id),
+        },
+    )
+    await publish_area_change(db, payload.area_id)
+    for answered_id in met:
+        answered = await _detail(db, answered_id)
+        await _announce(answered, "approved")
+        await _tell_asker(db, answered)
+    detail = await _detail(db, new_id)
+    await _announce(detail, "approved")
+    log.info(
+        "alarm_raised_by_bfp",
+        area_id=str(payload.area_id),
+        level=level,
+        by=str(user.id),
+        answered=len(met),
+    )
+    return detail
 
 
 @router.post(

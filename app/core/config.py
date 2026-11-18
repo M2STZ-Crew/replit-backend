@@ -54,7 +54,7 @@ class Settings(BaseSettings):
         description='Deployment environment: "development" | "staging" | "production".',
     )
     app_name: str = Field(default="RepLiT Backend", description="Human-readable app name.")
-    app_version: str = Field(default="1.12.37", description="Semantic version of the build.")
+    app_version: str = Field(default="1.12.38", description="Semantic version of the build.")
     host: str = Field(default="0.0.0.0", description="Uvicorn bind host.")
     port: int = Field(default=8000, ge=1, le=65535, description="Uvicorn bind port.")
 
@@ -251,6 +251,24 @@ class Settings(BaseSettings):
     require_citizen_phone_verification: bool = Field(
         default=True,
         description="Refuse citizen API access until the account's phone is verified.",
+    )
+    # Confirm before use (v1.12.38, 18 Nov 2026: "an illegitimate email can still
+    # sign up, because of the Later button"): a resident's account is refused
+    # until the emailed link is opened, and one never confirmed goes after a day.
+    require_citizen_email_verification: bool = Field(
+        default=True,
+        description="Refuse citizen API access until the account's email is confirmed.",
+    )
+    unconfirmed_account_hours: int = Field(
+        default=24,
+        ge=1,
+        description="A resident account whose email is still unconfirmed this long after "
+        "sign-up is deleted.",
+    )
+    unconfirmed_purge_since: str = Field(
+        default="2026-11-19T00:00:00+08:00",
+        description="Only accounts made from this moment on are deleted for an unconfirmed "
+        "email: older ones signed up when Later was allowed, and are kept.",
     )
 
     # ----- Live responder tracking -----

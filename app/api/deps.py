@@ -15,7 +15,12 @@ from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.config import get_settings
-from app.core.exceptions import ForbiddenError, PhoneNotVerifiedError, UnauthorizedError
+from app.core.exceptions import (
+    EmailNotVerifiedError,
+    ForbiddenError,
+    PhoneNotVerifiedError,
+    UnauthorizedError,
+)
 from app.core.security import decode_access_token
 from app.db.session import Database, database
 from app.integrations.brevo_email import BrevoEmailClient
@@ -131,6 +136,12 @@ CURRENT_USER_SQL = """
            -- database without the column yet (migration 20261116090000) reads null.
            (to_jsonb(u) ->> 'deletion_requested_at')::timestamptz as deletion_requested_at,
            (u.personal_email_verified_at is not null) as personal_email_verified,
+           exists (
+               select 1 from public.user_verifications v
+                where v.user_id = u.id
+                  and v.type::text = 'email'
+                  and v.status::text = 'verified'
+           ) as email_verified,
            o.name as org_name, o.agency_type::text as org_agency_type,
            o.is_active as org_is_active,
            coalesce((to_jsonb(o) ->> 'is_central_hub')::boolean, false)
@@ -212,6 +223,20 @@ def phone_gate_applies(user: AuthenticatedUser) -> bool:
     )
 
 
+def email_gate_applies(user: AuthenticatedUser) -> bool:
+    """True when this resident must confirm their email before using the app
+    (v1.12.38: "Later" let an address nobody owns keep a working account).
+
+    Residents only, as with the phone: staff accounts are made by an Admin.
+    Shared by the HTTP dependency and the WebSocket handshake.
+    """
+    return (
+        get_settings().require_citizen_email_verification
+        and user.role == "general_user"
+        and not user.email_verified
+    )
+
+
 async def get_verified_user(
     user: Annotated[AuthenticatedUser, Depends(get_current_user)],
 ) -> AuthenticatedUser:
@@ -223,6 +248,11 @@ async def get_verified_user(
     recompute_user_verification trigger) — nothing a client sends, stores or
     edits in its token can change it.
     """
+    if email_gate_applies(user):
+        raise EmailNotVerifiedError(
+            "Confirm your email before using your RepLiT account: open the link we "
+            "emailed you, or ask for a new one.",
+        )
     if phone_gate_applies(user):
         raise PhoneNotVerifiedError(
             "Verify your mobile number before using your RepLiT account. We will "

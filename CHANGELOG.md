@@ -6,6 +6,42 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.38 — 18 November 2026 — Confirm your email; every resident hears of a fire; BFP raises the alarm
+
+Backend and console; app v1.12.49 goes with it. No migration.
+
+### Changes
+- **Confirm before use** (18 Nov: "an illegitimate email can still signup
+  (the account was created because of the 'later' button)"). A resident is
+  refused everywhere (403 `email_not_verified`) until the emailed link is
+  opened, but for sign-in, `/auth/me` (now `email_verification_required`), the
+  verification status, and asking for a new link (`POST
+  /verification/email/request` is reachable before confirming). The live
+  socket refuses them too. Staff are not gated. An account made from 19 Nov
+  2026 on that is still unconfirmed 24 hours after sign-up is deleted by the
+  hourly job (`purge_unconfirmed`); older accounts are kept.
+  `REQUIRE_CITIZEN_EMAIL_VERIFICATION`, `UNCONFIRMED_ACCOUNT_HOURS` (24),
+  `UNCONFIRMED_PURGE_SINCE`.
+- **Every resident hears of a verified fire** (18 Nov: "even outside of 100m
+  everyone get notified (but in the 100m can only corroborate)"; "Everyone,
+  once verified"). When staff verify a fire, every resident with RepLiT gets
+  one alert in their language, "Fire verified · Responders verified a fire on
+  {street}…", which opens its details (`fire_verified`). The residents within
+  100 m still get "Do you see it too?" instead, and only they can corroborate;
+  the fire's reporters and frozen accounts are left out. Sent after the verify
+  answers, in batches of 500 (`app/services/fire_broadcast.py`).
+- **BFP raises the alarm directly** (18 Nov: "bfp coordinator can raise an
+  alarm without the request of fv"). `POST /alarm-requests/raise`: a BFP
+  Coordinator (or the BFP Admin) sets a higher level with no request to
+  answer; it is recorded as a request BFP made and answered at once, and
+  waiting Fire Volunteer requests it meets are answered with it.
+- **The fire type for everyone** (18 Nov: "make all of the user aware in the
+  details of the incident"). `GET /areas/{id}` now says what is burning and
+  which team said (never the person); the console's incident drawer shows it
+  as a fact and on the timeline.
+
+---
+
 ## v1.12.37 — 17 November 2026 — Tagalog keeps the nav; Sign out asks first
 
 Console only; app v1.12.47 goes with it. No migration, no server change.

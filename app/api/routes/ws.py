@@ -24,7 +24,7 @@ from uuid import UUID
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from pydantic import ValidationError
 
-from app.api.deps import phone_gate_applies
+from app.api.deps import email_gate_applies, phone_gate_applies
 from app.api.routes.incidents import after_responder_fix
 from app.core.logging import get_logger
 from app.core.security import decode_access_token
@@ -254,6 +254,12 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     if user is None:
         log.info("ws_auth_rejected")
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+    if email_gate_applies(user):
+        log.info("ws_email_not_verified", user_id=str(user.id))
+        await websocket.close(
+            code=status.WS_1008_POLICY_VIOLATION, reason="email_not_verified"
+        )
         return
     if phone_gate_applies(user):
         log.info("ws_phone_not_verified", user_id=str(user.id))

@@ -21,6 +21,7 @@ from app.api.deps import (
     DatabaseDep,
     EmailClientDep,
     SessionUser,
+    email_gate_applies,
     phone_gate_applies,
 )
 from app.api.routes.password_reset import schedule_reset_email
@@ -250,6 +251,7 @@ async def me(user: SessionUser) -> MeResponse:
         {
             **user.model_dump(),
             "phone_verification_required": phone_gate_applies(user),
+            "email_verification_required": email_gate_applies(user),
             "console": _console_of(user),
         }
     )
