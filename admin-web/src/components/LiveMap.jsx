@@ -51,7 +51,7 @@ export default function LiveMap({ incidents = [], layerPoints = {}, enabled, onS
     >
       <BaseTiles />
 
-      {/* The layers' points nearby, from street level in (v1.12.38). */}
+      {/* The layers' points nearby, from street level in (v1.12.39). */}
       <ZoomGate active={Object.keys(LAYER_COLORS).some((key) => enabled.has(key) && (layerPoints[key] || []).length > 0)}>
         {(near) => Object.entries(LAYER_COLORS).flatMap(([key, color]) =>
           enabled.has(key)

@@ -188,7 +188,7 @@
 .rpl-water-panel { right: 16px; }
 .rpl-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 
-/* "Zoom in to see the places you turned on" (v1.12.38): layer points are drawn
+/* "Zoom in to see the places you turned on" (v1.12.39): layer points are drawn
    from street level in (map/ZoomGate.jsx). Above the map's panes, and never in
    the way of a drag. */
 .lm-zoom-hint {

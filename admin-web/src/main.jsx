@@ -19,7 +19,7 @@ import { initTheme } from './theme.js';
 
 // Before the first paint, so a reload never flashes the other ground.
 initTheme();
-// No emoji in any text box, on any page (v1.12.38).
+// No emoji in any text box, on any page (v1.12.39).
 installNoEmoji();
 
 /* English or Tagalog: the signed-in account's choice, saved back to it when an

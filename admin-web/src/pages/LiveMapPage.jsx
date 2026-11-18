@@ -185,7 +185,7 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
               interactive={false}
             />
           ))}
-        {/* The layers' points nearby, from street level in (v1.12.38). */}
+        {/* The layers' points nearby, from street level in (v1.12.39). */}
         <ZoomGate active={SOURCES.some((s) => on.has(s.layer) && (points[s.key] ?? []).length > 0)}>
         {(near) => SOURCES.filter((s) => on.has(s.layer)).flatMap((s) => (points[s.key] ?? [])
           .filter((r) => r[s.lat] != null && r[s.lng] != null && near(r[s.lat], r[s.lng]))

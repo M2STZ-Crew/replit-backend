@@ -4,7 +4,7 @@ import { useMap, useMapEvents } from 'react-leaflet';
 import { t } from '../i18n/i18n.jsx';
 
 /* The zoom from which a map draws its layers' points: shelters, hydrants,
- * cisterns, bodies of water (v1.12.38, 18 Nov 2026: Metro Manila's layers went
+ * cisterns, bodies of water (v1.12.39, 18 Nov 2026: Metro Manila's layers went
  * from about 40 points to about 3,100, and "Only nearby, when zoomed in"). The
  * same as the app's (lib/widgets/map_layer_gate.dart). Incidents are drawn at
  * every zoom. */

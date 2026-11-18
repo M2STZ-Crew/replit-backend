@@ -101,7 +101,7 @@
     else if (/^(fil|tl)\b/i.test(navigator.language || '')) lang = 'tl';
   } catch (e) { /* no storage: English */ }
 
-  // No emoji in any text box (v1.12.38, 18 Nov 2026: "make in any characters
+  // No emoji in any text box (v1.12.39, 18 Nov 2026: "make in any characters
   // typing in every typebox in the app and web cannot be typed by any
   // emoji"): dropped as they are typed or pasted, the cursor kept where it
   // was. The same ranges as the app and the console (admin-web/src/lib/noEmoji.js).

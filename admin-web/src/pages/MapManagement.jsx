@@ -400,7 +400,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
       <div className="mm-map">
         <MapContainer
           center={PASAY}
-          // At street level, so the editor opens on the points nearby (v1.12.38).
+          // At street level, so the editor opens on the points nearby (v1.12.39).
           zoom={LAYER_MIN_ZOOM}
           style={{ height: '100%', width: '100%', background: 'var(--map-ground)' }}
           zoomControl={false}
@@ -459,7 +459,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
             );
           })}
 
-          {/* editable GIS layers, the ones nearby, from street level in (v1.12.38) */}
+          {/* editable GIS layers, the ones nearby, from street level in (v1.12.39) */}
           <ZoomGate
             active={EDIT_LAYERS.some((l) => enabled.has(l.key) && (data[l.key] || []).length > 0)}
             className={panelOpen ? 'mm-zoom-hint is-beside-panel' : 'mm-zoom-hint'}

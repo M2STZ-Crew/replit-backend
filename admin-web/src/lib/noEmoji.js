@@ -1,4 +1,4 @@
-/* No emoji in any text box (v1.12.38, 18 Nov 2026: "make in any characters
+/* No emoji in any text box (v1.12.39, 18 Nov 2026: "make in any characters
  * typing in every typebox in the app and web cannot be typed by any emoji").
  *
  * One listener for the whole console: every <input> and <textarea>, whatever
