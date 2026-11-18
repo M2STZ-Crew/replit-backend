@@ -1,0 +1,195 @@
+# Data sources: evacuation sites, fire hydrants, cisterns and bodies of water
+
+Where RepLiT's map layers came from, how to cite them, and what their licence
+asks of us. Retrieved 18 November 2026. Pasay City came first (the two
+sections below); [Metro Manila](#metro-manila) followed the same day.
+
+## Evacuation sites: Pasay City's covered courts
+
+**Loaded 18 November 2026:** 22 sites, the rows marked `yes` in
+[`evacuation-sites/pasay-covered-courts-review.csv`](evacuation-sites/pasay-covered-courts-review.csv).
+These are roofed sports halls (most are barangay covered courts), a covered
+basketball court, and barangay multi-purpose halls. Each row keeps its
+OpenStreetMap link.
+
+**Citation (APA 7)**
+
+> OpenStreetMap contributors. (2026). *Pasay City, Philippines: sports halls,
+> covered courts and multi-purpose halls* [Data set]. OpenStreetMap Foundation.
+> Retrieved November 18, 2026, from https://www.openstreetmap.org, via the
+> Overpass API (https://overpass-api.de).
+
+**Addresses.** Each site's barangay and street come from Nominatim reverse
+geocoding: OpenStreetMap Foundation, *Nominatim*,
+https://nominatim.openstreetmap.org, retrieved November 18, 2026.
+
+**Licence.** © OpenStreetMap contributors. Available under the Open Database
+License (ODbL) 1.0, https://www.openstreetmap.org/copyright.
+
+**Query used** (Overpass QL, Pasay City's boundary, admin_level 6)
+
+```
+area["boundary"="administrative"]["admin_level"="6"]["name"~"Pasay"]->.pasay;
+(
+  nwr(area.pasay)["leisure"="sports_hall"];
+  nwr(area.pasay)["leisure"="pitch"]["sport"="basketball"]["covered"="yes"];
+  nwr(area.pasay)["amenity"="community_centre"]["name"~"multi-?purpose|barangay",i];
+);
+out center tags;
+```
+
+## Fire hydrants
+
+**Loaded 18 November 2026** ("Yes, load them"): all 17 in
+[`hydrants/pasay-hydrants-osm.csv`](hydrants/pasay-hydrants-osm.csv).
+Each keeps its OpenStreetMap reference in `source`, for example
+`openstreetmap:node/1745104230`. Its `code` stays empty for BFP's own hydrant
+code, and its status is `unknown` until BFP checks it.
+All are pillar hydrants on sidewalks, 16 of them in Barangay 76. Each row gives
+its OpenStreetMap link. Where a mapper recorded it, a row also says the hydrant
+was surveyed on site or links a street-level photo.
+
+**Citation (APA 7)**
+
+> OpenStreetMap contributors. (2026). *Pasay City, Philippines: fire hydrants
+> (emergency=fire_hydrant)* [Data set]. OpenStreetMap Foundation. Retrieved
+> November 18, 2026, from https://www.openstreetmap.org, via the Overpass API
+> (https://overpass-api.de).
+
+**Street-level photos.** Mapillary, https://www.mapillary.com, CC BY-SA 4.0.
+
+**Licence.** © OpenStreetMap contributors, ODbL 1.0, as above.
+
+**Why not Mapbox or Google Maps.** Neither publishes hydrant locations, so
+neither has hydrants to find. Their terms also do not allow copying places or
+positions from their maps into another database.
+
+**The authoritative source** is the hydrant inventory kept by BFP Pasay and by
+Maynilad, the water concessionaire for Pasay City. RepLiT keeps each hydrant's
+reported status apart from what BFP finds on the ground (`ground_truth_status`),
+so BFP can mark each one as checked.
+
+## Metro Manila
+
+**Loaded 18 November 2026** ("now, let's get all of the data within
+metropolitan manila only"): every fire hydrant, covered court, fire water tank
+and covered reservoir, and river, creek, pond and lake that OpenStreetMap has
+in Metro Manila (the National Capital Region, ISO 3166-2 `PH-00`: its 16
+cities and Pateros). The lists are in [`metro-manila/`](metro-manila/), one row
+per place, each with its city and its OpenStreetMap link.
+
+| Layer | In the list | Loaded | Already there |
+|---|---:|---:|---:|
+| Fire hydrants | 1,281 | 1,254 | 27 |
+| Evacuation sites (covered courts) | 1,357 | 1,305 | 52 |
+| Cisterns (fire water tanks, covered reservoirs) | 11 | 11 | 0 |
+| Bodies of water | 466 | 448 | 18 |
+
+"Already there" means the same place loaded before (Pasay's 17 hydrants and
+22 courts are in these lists), or a place within a few metres of one already
+loaded: 10 m for a hydrant or a cistern, 30 m for a court, 50 m for a body of
+water. Loading the lists again adds nothing.
+
+**What each layer holds**
+
+- **Fire hydrants**: every `emergency=fire_hydrant`, mostly pillar hydrants
+  (899) and underground ones (235). As with Pasay's, each keeps its
+  OpenStreetMap reference in `source`, its `code` stays empty for BFP's own,
+  and its status is `unknown` until BFP checks it.
+- **Evacuation sites**: roofed sports halls (1,116), barangay multi-purpose
+  halls (100), covered basketball courts (85) and other places named a covered
+  court (56). Gyms, malls and game parks are left out. Each site's city says
+  whether it is outside Pasay. These are places a city could open as a
+  shelter, not its list of designated evacuation centres; each city's disaster
+  office keeps that list.
+- **Cisterns**: firefighting water tanks (3) and covered reservoirs (8), as
+  asked ("Only fire tanks + reservoirs"). Water towers and other storage tanks
+  are left out. Each one's description gives its kind and OpenStreetMap
+  reference.
+- **Bodies of water**: rivers (185), ponds (161), streams (92), and
+  reservoirs, canals, lakes and lagoons, as asked ("Rivers, creeks, ponds,
+  lakes"). Drains, wastewater, swimming pools and fountains are left out, and
+  so is an unnamed one unless it is a lake, pond, reservoir or lagoon. A named
+  river or creek mapped in many pieces is kept once in each city it runs
+  through (twice where it is also mapped as an area). Each one's description
+  gives its city and OpenStreetMap reference.
+
+**City and street.** A place's city is the OpenStreetMap city or municipal
+boundary (`admin_level` 6) it falls inside. Its street is its own OpenStreetMap
+address, where a mapper added one.
+
+**On the map.** About 3,100 places are too many to draw at once on an older
+phone, so the app and the console draw a layer's points from street level in
+(zoom 14), only those on or near the screen, and below that say "Zoom in to
+see the places you turned on" ("Only nearby, when zoomed in"). The app still
+downloads them all for use offline.
+
+**Citations (APA 7)**
+
+> OpenStreetMap contributors. (2026). *Metro Manila, Philippines: fire
+> hydrants (emergency=fire_hydrant)* [Data set]. OpenStreetMap Foundation.
+> Retrieved November 18, 2026, from https://www.openstreetmap.org, via the
+> Overpass API (https://overpass-api.de).
+
+> OpenStreetMap contributors. (2026). *Metro Manila, Philippines: sports
+> halls, covered courts and multi-purpose halls* [Data set]. OpenStreetMap
+> Foundation. Retrieved November 18, 2026, from https://www.openstreetmap.org,
+> via the Overpass API (https://overpass-api.de).
+
+> OpenStreetMap contributors. (2026). *Metro Manila, Philippines: firefighting
+> water tanks and covered reservoirs* [Data set]. OpenStreetMap Foundation.
+> Retrieved November 18, 2026, from https://www.openstreetmap.org, via the
+> Overpass API (https://overpass-api.de).
+
+> OpenStreetMap contributors. (2026). *Metro Manila, Philippines: rivers,
+> streams, canals, ponds and lakes* [Data set]. OpenStreetMap Foundation.
+> Retrieved November 18, 2026, from https://www.openstreetmap.org, via the
+> Overpass API (https://overpass-api.de).
+
+> OpenStreetMap contributors. (2026). *Metro Manila, Philippines: city and
+> municipal boundaries (admin_level 6)* [Data set]. OpenStreetMap Foundation.
+> Retrieved November 18, 2026, from https://www.openstreetmap.org, via the
+> Overpass API (https://overpass-api.de).
+
+**Licence.** © OpenStreetMap contributors, ODbL 1.0, as above.
+
+**Queries used** (Overpass QL). Each layer was its own query: the area line,
+the layer's statements in `( … );`, then `out center tags;` (`out geom;` for
+the boundaries).
+
+```
+area["ISO3166-2"="PH-00"]->.ncr;
+
+// Fire hydrants
+nwr(area.ncr)["emergency"="fire_hydrant"];
+
+// Covered courts
+nwr(area.ncr)["leisure"="sports_hall"];
+nwr(area.ncr)["leisure"="pitch"]["covered"="yes"];
+nwr(area.ncr)["amenity"="community_centre"]["name"~"multi-?purpose|barangay|covered",i];
+nwr(area.ncr)["name"~"covered court",i];
+
+// Cisterns (of these, fire water tanks, suction points and covered reservoirs are kept)
+nwr(area.ncr)["emergency"~"^(water_tank|suction_point|fire_water_pond)$"];
+nwr(area.ncr)["man_made"="reservoir_covered"];
+nwr(area.ncr)["man_made"="storage_tank"]["content"="water"];
+nwr(area.ncr)["man_made"="water_tower"];
+
+// Bodies of water
+nwr(area.ncr)["natural"="water"];
+nwr(area.ncr)["waterway"~"^(river|canal|stream|drain)$"]["name"];
+
+// City and municipal boundaries
+rel(area.ncr)["boundary"="administrative"]["admin_level"="6"];
+```
+
+## What the licence asks of RepLiT
+
+- **Attribution where the data is shown.** For example: "Map layers ©
+  OpenStreetMap contributors (ODbL)".
+- **Share-alike.** If the layers are ever published as a database, for
+  example as a download, they must be offered under the ODbL too. Showing them
+  on RepLiT's map does not trigger this.
+- **The lists in `docs/`** (`evacuation-sites/`, `hydrants/`, `metro-manila/`)
+  are extracts of OpenStreetMap, so they are © OpenStreetMap contributors and
+  available under the ODbL 1.0 too.

@@ -1,0 +1,1282 @@
+city,latitude,longitude,street,type,colour,osm_link
+Quezon City,14.6613863,121.0356527,,pillar,yellow,https://www.openstreetmap.org/node/35961097
+Quezon City,14.6116085,121.0652838,,pillar,,https://www.openstreetmap.org/node/1499601265
+Quezon City,14.6123647,121.0610997,,underground,,https://www.openstreetmap.org/node/1501006183
+Pasig City,14.5884299,121.0618557,,pillar,,https://www.openstreetmap.org/node/1735964844
+Pasay City,14.5353906,120.9798738,,pillar,,https://www.openstreetmap.org/node/1745104230
+Quezon City,14.6241694,121.0353162,,pillar,yellow,https://www.openstreetmap.org/node/2078355839
+Quezon City,14.6383052,121.014966,,,,https://www.openstreetmap.org/node/2379707789
+Quezon City,14.6561841,121.0705188,,pillar,,https://www.openstreetmap.org/node/2672498051
+Quezon City,14.6528056,121.0623611,,pillar,,https://www.openstreetmap.org/node/2672504335
+Quezon City,14.6575216,121.0688645,,pillar,,https://www.openstreetmap.org/node/2672504785
+Quezon City,14.6459977,121.0621841,,pillar,,https://www.openstreetmap.org/node/2672529877
+Quezon City,14.6491164,121.0643268,,pillar,,https://www.openstreetmap.org/node/2672529878
+Quezon City,14.6574714,121.0622469,,pillar,,https://www.openstreetmap.org/node/2672531531
+Quezon City,14.6489444,121.0747778,,pillar,,https://www.openstreetmap.org/node/2672531915
+Quezon City,14.6545846,121.074915,,pillar,,https://www.openstreetmap.org/node/2672533740
+Quezon City,14.6557621,121.0748878,,pillar,,https://www.openstreetmap.org/node/2672533751
+Quezon City,14.6537825,121.068737,,pillar,,https://www.openstreetmap.org/node/2672533899
+Quezon City,14.6550365,121.0617109,,pillar,,https://www.openstreetmap.org/node/2672540469
+Quezon City,14.6573056,121.0623056,,pillar,,https://www.openstreetmap.org/node/2672542478
+Quezon City,14.6502338,121.0714488,,pillar,,https://www.openstreetmap.org/node/2672562946
+Quezon City,14.6522167,121.0677333,,pillar,,https://www.openstreetmap.org/node/2672562957
+Quezon City,14.6526389,121.0730278,,pillar,,https://www.openstreetmap.org/node/2672567660
+Muntinlupa City,14.4195004,121.0438111,,pillar,,https://www.openstreetmap.org/node/2924630949
+Muntinlupa City,14.4203424,121.0429276,,pillar,,https://www.openstreetmap.org/node/2924630950
+Muntinlupa City,14.4213751,121.0412805,,pillar,,https://www.openstreetmap.org/node/2924630951
+Muntinlupa City,14.4217737,121.0399991,,pillar,,https://www.openstreetmap.org/node/2924630952
+Muntinlupa City,14.422742,121.0389577,,pillar,,https://www.openstreetmap.org/node/2924630953
+Muntinlupa City,14.4238886,121.0340899,,pillar,,https://www.openstreetmap.org/node/2924630959
+Quezon City,14.6561549,121.0657532,,pillar,,https://www.openstreetmap.org/node/2947191972
+Pasig City,14.5845166,121.0629927,,pillar,,https://www.openstreetmap.org/node/2948824518
+Taguig City,14.551684,121.051054,,pillar,yellow,https://www.openstreetmap.org/node/3055284933
+Manila,14.5811328,121.0108447,,pillar,,https://www.openstreetmap.org/node/3076775208
+Quezon City,14.6361069,121.0766993,,pillar,,https://www.openstreetmap.org/node/3229352271
+Taguig City,14.5497353,121.0503752,,wall,,https://www.openstreetmap.org/node/3233829997
+Taguig City,14.5505529,121.049263,,wall,,https://www.openstreetmap.org/node/3233830012
+Taguig City,14.5516282,121.0498643,,pillar,yellow,https://www.openstreetmap.org/node/3233845578
+Taguig City,14.5516173,121.0495669,,wall,,https://www.openstreetmap.org/node/3233856240
+Taguig City,14.5495742,121.0453262,,pillar,yellow,https://www.openstreetmap.org/node/3233871011
+Makati City,14.5484754,121.0254531,,pillar,,https://www.openstreetmap.org/node/3267513893
+Makati City,14.5491694,121.0262803,,pillar,,https://www.openstreetmap.org/node/3267513894
+Taguig City,14.5621476,121.0574321,,pillar,yellow,https://www.openstreetmap.org/node/3525064668
+Taguig City,14.5509519,121.0465241,,pillar,,https://www.openstreetmap.org/node/3543040448
+Taguig City,14.5475131,121.0524044,,pillar,,https://www.openstreetmap.org/node/3543041676
+Taguig City,14.5477227,121.0522369,,pillar,,https://www.openstreetmap.org/node/3543041677
+Pasay City,14.532587,120.9860171,,pillar,,https://www.openstreetmap.org/node/3693627411
+Pasay City,14.5311954,120.9843834,,pillar,red,https://www.openstreetmap.org/node/3694811853
+Pasay City,14.5316324,120.9858179,,pillar,,https://www.openstreetmap.org/node/3694811854
+Muntinlupa City,14.4143471,121.0256901,,,,https://www.openstreetmap.org/node/3745061558
+Marikina City,14.6263087,121.1021286,,pillar,,https://www.openstreetmap.org/node/3798207077
+Manila,14.6131012,120.9824887,,underground,,https://www.openstreetmap.org/node/4162384189
+Manila,14.592626,120.989726,,underground,,https://www.openstreetmap.org/node/4170994585
+Manila,14.59283,120.98645,,underground,,https://www.openstreetmap.org/node/4170994586
+Manila,14.59417,120.99151,,underground,,https://www.openstreetmap.org/node/4170994587
+Manila,14.594582,120.984584,,underground,,https://www.openstreetmap.org/node/4170994588
+Manila,14.5962272,120.9846613,,underground,,https://www.openstreetmap.org/node/4170994991
+Manila,14.596432,120.991347,,underground,,https://www.openstreetmap.org/node/4170994992
+Manila,14.59841,120.98653,,underground,,https://www.openstreetmap.org/node/4170994996
+Manila,14.5990637,120.9904961,,underground,,https://www.openstreetmap.org/node/4170994999
+Manila,14.6007,120.9905795,,underground,,https://www.openstreetmap.org/node/4170995001
+Manila,14.600714,120.986994,,underground,,https://www.openstreetmap.org/node/4170995003
+Manila,14.6011828,120.9890503,,underground,,https://www.openstreetmap.org/node/4170995005
+Manila,14.60124,120.99419,,underground,,https://www.openstreetmap.org/node/4170995006
+Manila,14.6017847,120.9882548,,underground,,https://www.openstreetmap.org/node/4170995008
+Manila,14.6025,120.98672,,underground,,https://www.openstreetmap.org/node/4170995009
+Manila,14.6036979,120.9833748,,underground,,https://www.openstreetmap.org/node/4170995010
+San Juan City,14.5938846,121.036824,,pillar,,https://www.openstreetmap.org/node/4172407290
+San Juan City,14.6020651,121.0514271,,,,https://www.openstreetmap.org/node/4193080958
+Pasig City,14.5766242,121.0657536,,pillar,,https://www.openstreetmap.org/node/4195109803
+Pasig City,14.5745775,121.062378,,pillar,yellow,https://www.openstreetmap.org/node/4195238300
+Manila,14.5896108,121.0167968,,underground,,https://www.openstreetmap.org/node/4203954190
+Manila,14.5983063,121.0149622,,underground,,https://www.openstreetmap.org/node/4203968190
+Manila,14.5990434,121.0119259,,underground,,https://www.openstreetmap.org/node/4204980389
+Manila,14.6006943,121.0085839,,underground,,https://www.openstreetmap.org/node/4204983393
+Manila,14.601643,121.0167017,,underground,,https://www.openstreetmap.org/node/4204990689
+Manila,14.6002686,121.0128459,,underground,,https://www.openstreetmap.org/node/4204995689
+Manila,14.6003153,121.0140073,,underground,,https://www.openstreetmap.org/node/4205004889
+Manila,14.6037622,121.0036594,,underground,,https://www.openstreetmap.org/node/4205038789
+Manila,14.6190521,120.9712341,,underground,,https://www.openstreetmap.org/node/4214737042
+Manila,14.6271521,120.9683025,,underground,,https://www.openstreetmap.org/node/4214738099
+Manila,14.6219719,120.9734765,,underground,,https://www.openstreetmap.org/node/4214739989
+Manila,14.59751,120.96937,,underground,,https://www.openstreetmap.org/node/4214760816
+Manila,14.59783,120.96792,,underground,,https://www.openstreetmap.org/node/4214760818
+Manila,14.5988,120.97838,,underground,,https://www.openstreetmap.org/node/4214760819
+Manila,14.59882,120.97512,,underground,,https://www.openstreetmap.org/node/4214760820
+Manila,14.5994536,120.9729633,,underground,,https://www.openstreetmap.org/node/4214760821
+Manila,14.6002508,120.9791735,,underground,,https://www.openstreetmap.org/node/4214760822
+Manila,14.60105,120.9772,,underground,,https://www.openstreetmap.org/node/4214760825
+Manila,14.60113,120.97954,,underground,,https://www.openstreetmap.org/node/4214760826
+Manila,14.60143,120.97079,,underground,,https://www.openstreetmap.org/node/4214760827
+Manila,14.60214,120.96722,,underground,,https://www.openstreetmap.org/node/4214760828
+Manila,14.6026199,120.9741631,,underground,,https://www.openstreetmap.org/node/4214760829
+Manila,14.60318,120.97167,,underground,,https://www.openstreetmap.org/node/4214760830
+Manila,14.6035473,120.9684398,,underground,,https://www.openstreetmap.org/node/4214760831
+Manila,14.60392,120.97635,,underground,,https://www.openstreetmap.org/node/4214760832
+Manila,14.60407,120.97947,,underground,,https://www.openstreetmap.org/node/4214760833
+Manila,14.60575,120.97483,,underground,,https://www.openstreetmap.org/node/4214760834
+Manila,14.56006,120.98922,,pillar,,https://www.openstreetmap.org/node/4214767297
+Manila,14.56138,120.99228,,pillar,,https://www.openstreetmap.org/node/4214767298
+Manila,14.56553,120.98656,,pillar,,https://www.openstreetmap.org/node/4214767299
+Manila,14.56809,120.98971,,underground,,https://www.openstreetmap.org/node/4214767300
+Manila,14.56954,120.98499,,pillar,,https://www.openstreetmap.org/node/4214767301
+Manila,14.57279,120.98552,,underground,,https://www.openstreetmap.org/node/4214767302
+Manila,14.57469,120.9815,,,,https://www.openstreetmap.org/node/4214767303
+Manila,14.57725,120.98146,,pillar,,https://www.openstreetmap.org/node/4214767304
+Manila,14.57906,120.97851,,underground,,https://www.openstreetmap.org/node/4214767305
+Manila,14.58005,120.98028,,pillar,,https://www.openstreetmap.org/node/4214767306
+Manila,14.58303,120.97513,,,,https://www.openstreetmap.org/node/4214767308
+Manila,14.58481,120.97424,,,,https://www.openstreetmap.org/node/4214767309
+Manila,14.58565,120.97188,,underground,,https://www.openstreetmap.org/node/4214767310
+Manila,14.587,120.9784,,underground,,https://www.openstreetmap.org/node/4214767311
+Manila,14.5874758,120.9758653,,underground,,https://www.openstreetmap.org/node/4214767312
+Manila,14.58774,120.96977,,underground,,https://www.openstreetmap.org/node/4214767313
+Manila,14.5880274,120.9740194,,underground,,https://www.openstreetmap.org/node/4214767314
+Manila,14.59058,120.97309,,,,https://www.openstreetmap.org/node/4214767315
+Manila,14.5914,120.97532,,pillar,,https://www.openstreetmap.org/node/4214767316
+Manila,14.5918578,120.9719574,,underground,,https://www.openstreetmap.org/node/4214767317
+Manila,14.5920775,120.9737399,,,,https://www.openstreetmap.org/node/4214767318
+Manila,14.5921335,120.9725295,,,,https://www.openstreetmap.org/node/4214767319
+Manila,14.5936324,120.9744074,,,,https://www.openstreetmap.org/node/4214767320
+Manila,14.5945,120.9654,,underground,,https://www.openstreetmap.org/node/4214767321
+Manila,14.5999323,120.9650211,,pillar,,https://www.openstreetmap.org/node/4214767695
+Manila,14.60363,120.9663,,underground,,https://www.openstreetmap.org/node/4214767696
+Manila,14.60437,120.96758,,underground,,https://www.openstreetmap.org/node/4214767697
+Manila,14.6056,120.96432,,underground,,https://www.openstreetmap.org/node/4214767698
+Manila,14.6058535,120.97016,,underground,,https://www.openstreetmap.org/node/4214767699
+Manila,14.60693,120.96643,,underground,,https://www.openstreetmap.org/node/4214767700
+Manila,14.60821,120.96362,,underground,,https://www.openstreetmap.org/node/4214767701
+Manila,14.60822,120.97556,,underground,,https://www.openstreetmap.org/node/4214767702
+Manila,14.60877,120.96624,,underground,,https://www.openstreetmap.org/node/4214767703
+Manila,14.60964,120.96483,,underground,,https://www.openstreetmap.org/node/4214767704
+Manila,14.6108,120.96706,,underground,,https://www.openstreetmap.org/node/4214767705
+Manila,14.6126579,120.96598,,underground,,https://www.openstreetmap.org/node/4214767706
+Manila,14.6128439,120.9728498,,underground,,https://www.openstreetmap.org/node/4214767707
+Manila,14.61482,120.97192,,underground,,https://www.openstreetmap.org/node/4214767708
+Manila,14.61488,120.96828,,pillar,,https://www.openstreetmap.org/node/4214767709
+Manila,14.61625,120.96879,,pillar,,https://www.openstreetmap.org/node/4214767710
+Manila,14.61693,120.9771,,underground,,https://www.openstreetmap.org/node/4214767711
+Manila,14.61709,120.97105,,,,https://www.openstreetmap.org/node/4214767712
+Manila,14.58538,121.002271,,underground,,https://www.openstreetmap.org/node/4214768099
+Manila,14.58904,121.001983,,underground,,https://www.openstreetmap.org/node/4214768100
+Manila,14.58905,121.00579,,underground,,https://www.openstreetmap.org/node/4214768101
+Manila,14.58947,121.00287,,underground,,https://www.openstreetmap.org/node/4214768102
+Manila,14.59018,121.00316,,underground,,https://www.openstreetmap.org/node/4214768103
+Manila,14.59099,121.01245,,underground,,https://www.openstreetmap.org/node/4214768104
+Manila,14.59104,121.00835,,underground,,https://www.openstreetmap.org/node/4214768105
+Manila,14.59146,121.00318,,,,https://www.openstreetmap.org/node/4214768106
+Manila,14.59184,121.00971,,,,https://www.openstreetmap.org/node/4214768107
+Manila,14.5926014,121.0081996,,underground,,https://www.openstreetmap.org/node/4214768109
+Manila,14.59278,121.01326,,underground,,https://www.openstreetmap.org/node/4214768110
+Manila,14.59282,121.00347,,underground,,https://www.openstreetmap.org/node/4214768111
+Manila,14.60379,120.98247,,underground,,https://www.openstreetmap.org/node/4214768851
+Manila,14.6063,120.98253,,underground,,https://www.openstreetmap.org/node/4214768852
+Manila,14.60758,120.9825,,underground,,https://www.openstreetmap.org/node/4214768853
+Manila,14.607638,120.9847739,,underground,,https://www.openstreetmap.org/node/4214768854
+Manila,14.60852,120.98492,,underground,,https://www.openstreetmap.org/node/4214768855
+Manila,14.6118055,120.9785107,,underground,,https://www.openstreetmap.org/node/4214768856
+Manila,14.61466,120.9864,,underground,,https://www.openstreetmap.org/node/4214768858
+Manila,14.6155,120.98292,,underground,,https://www.openstreetmap.org/node/4214768859
+Manila,14.6165979,120.9781305,,underground,,https://www.openstreetmap.org/node/4214768860
+Manila,14.61824,120.98479,,underground,,https://www.openstreetmap.org/node/4214768861
+Manila,14.62053,120.98436,,underground,,https://www.openstreetmap.org/node/4214768862
+Manila,14.62085,120.97983,,underground,,https://www.openstreetmap.org/node/4214768863
+Manila,14.6225681,120.9820766,,underground,,https://www.openstreetmap.org/node/4214768864
+Manila,14.62251,120.98303,,underground,,https://www.openstreetmap.org/node/4214768865
+Manila,14.6254,120.98261,,underground,,https://www.openstreetmap.org/node/4214768866
+Manila,14.62545,120.98502,,underground,,https://www.openstreetmap.org/node/4214768867
+Manila,14.62571,120.97868,,underground,,https://www.openstreetmap.org/node/4214768868
+Manila,14.62666,120.98501,,underground,,https://www.openstreetmap.org/node/4214768869
+Manila,14.62772,120.9835,,underground,,https://www.openstreetmap.org/node/4214768870
+Manila,14.59851,121.01614,,underground,,https://www.openstreetmap.org/node/4214769191
+Manila,14.5993342,121.0169899,,underground,,https://www.openstreetmap.org/node/4214769192
+Manila,14.599967,121.0082227,,underground,,https://www.openstreetmap.org/node/4214769193
+Manila,14.60066,121.01677,,underground,,https://www.openstreetmap.org/node/4214769194
+Manila,14.60096,121.01154,,underground,,https://www.openstreetmap.org/node/4214769195
+Manila,14.6009045,121.0016343,,underground,,https://www.openstreetmap.org/node/4214769196
+Manila,14.6016989,121.0161738,,underground,,https://www.openstreetmap.org/node/4214769197
+Manila,14.60191,121.00005,,underground,,https://www.openstreetmap.org/node/4214769198
+Manila,14.604537,121.0094885,,underground,,https://www.openstreetmap.org/node/4214769199
+Manila,14.60302,121.01226,,underground,,https://www.openstreetmap.org/node/4214769200
+Manila,14.6041757,121.0099834,,underground,,https://www.openstreetmap.org/node/4214769201
+Manila,14.60662,121.01392,,underground,,https://www.openstreetmap.org/node/4214769202
+Manila,14.6207683,120.972808,,underground,,https://www.openstreetmap.org/node/4214769203
+Manila,14.62119,120.97603,,underground,,https://www.openstreetmap.org/node/4214769204
+Manila,14.6226918,120.9601249,,pillar,,https://www.openstreetmap.org/node/4214769205
+Manila,14.62406,120.97336,,underground,,https://www.openstreetmap.org/node/4214769206
+Manila,14.62439,120.97018,,,,https://www.openstreetmap.org/node/4214769207
+Manila,14.62463,120.97768,,underground,,https://www.openstreetmap.org/node/4214769208
+Manila,14.62493,120.96727,,underground,,https://www.openstreetmap.org/node/4214769209
+Manila,14.62525,120.97595,,underground,,https://www.openstreetmap.org/node/4214769210
+Manila,14.62531,120.97314,,underground,,https://www.openstreetmap.org/node/4214769211
+Manila,14.6256,120.98029,,underground,,https://www.openstreetmap.org/node/4214769212
+Manila,14.6266,120.97519,,underground,,https://www.openstreetmap.org/node/4214769213
+Manila,14.6272539,120.970418,,underground,,https://www.openstreetmap.org/node/4214769214
+Manila,14.6275627,120.973497,,underground,,https://www.openstreetmap.org/node/4214769215
+Manila,14.628897,120.9649893,,underground,,https://www.openstreetmap.org/node/4214769216
+Manila,14.62981,120.97406,,underground,,https://www.openstreetmap.org/node/4214769217
+Manila,14.63058,120.97364,,underground,,https://www.openstreetmap.org/node/4214769218
+Manila,14.6315,120.96832,,underground,,https://www.openstreetmap.org/node/4214769219
+Manila,14.63222,120.96366,,underground,,https://www.openstreetmap.org/node/4214769220
+Manila,14.6326283,120.9747701,,underground,,https://www.openstreetmap.org/node/4214769221
+Manila,14.63283,120.96885,,underground,,https://www.openstreetmap.org/node/4214769222
+Manila,14.63308,120.97169,,underground,,https://www.openstreetmap.org/node/4214769223
+Manila,14.63632,120.98142,,underground,,https://www.openstreetmap.org/node/4214769224
+Caloocan City,14.63635,120.97964,,underground,,https://www.openstreetmap.org/node/4214769225
+Manila,14.56706,121.00308,,pillar,,https://www.openstreetmap.org/node/4214769547
+Manila,14.56889,121.00356,,underground,,https://www.openstreetmap.org/node/4214769548
+Manila,14.57031,121.00506,,pillar,,https://www.openstreetmap.org/node/4214769549
+Manila,14.57082,121.00552,,pillar,,https://www.openstreetmap.org/node/4214769550
+Manila,14.57162,121.00634,,pillar,,https://www.openstreetmap.org/node/4214769551
+Manila,14.57349,121.0032,,pillar,,https://www.openstreetmap.org/node/4214769552
+Manila,14.57378,121.00607,,,,https://www.openstreetmap.org/node/4214769553
+Manila,14.57418,121.00405,,pillar,,https://www.openstreetmap.org/node/4214769554
+Manila,14.5742,121.00873,,pillar,,https://www.openstreetmap.org/node/4214769555
+Manila,14.5745,121.00012,,pillar,,https://www.openstreetmap.org/node/4214769556
+Manila,14.57515,121.00232,,pillar,,https://www.openstreetmap.org/node/4214769557
+Manila,14.57595,121.00582,,pillar,,https://www.openstreetmap.org/node/4214769558
+Manila,14.5766,121.01117,,pillar,,https://www.openstreetmap.org/node/4214769559
+Manila,14.5855018,120.9937554,,underground,,https://www.openstreetmap.org/node/4214769604
+Manila,14.58819,120.98405,,underground,,https://www.openstreetmap.org/node/4214769605
+Manila,14.59031,120.98194,,underground,,https://www.openstreetmap.org/node/4214769607
+Manila,14.59032,120.98397,,underground,,https://www.openstreetmap.org/node/4214769608
+Manila,14.59187,120.982,,underground,,https://www.openstreetmap.org/node/4214769609
+Manila,14.5943295,120.9795977,,underground,,https://www.openstreetmap.org/node/4214769610
+Manila,14.60023,120.9908,,underground,,https://www.openstreetmap.org/node/4214770007
+Manila,14.6042,121.00605,,underground,,https://www.openstreetmap.org/node/4214770009
+Manila,14.60498,120.98692,,underground,,https://www.openstreetmap.org/node/4214770010
+Manila,14.60684,121.00318,,underground,,https://www.openstreetmap.org/node/4214770011
+Manila,14.6075456,120.9933192,,underground,,https://www.openstreetmap.org/node/4214770012
+Manila,14.61039,120.99341,,underground,,https://www.openstreetmap.org/node/4214770013
+Manila,14.61057,120.99217,,underground,,https://www.openstreetmap.org/node/4214770014
+Manila,14.61234,120.99353,,underground,,https://www.openstreetmap.org/node/4214770015
+Manila,14.6128,121.00053,,underground,,https://www.openstreetmap.org/node/4214770016
+Manila,14.61301,121.005,,underground,,https://www.openstreetmap.org/node/4214770017
+Manila,14.6144661,120.9978592,,underground,,https://www.openstreetmap.org/node/4214770018
+Manila,14.61564,120.99912,,underground,,https://www.openstreetmap.org/node/4214770019
+Quezon City,14.61714,121.00446,,underground,,https://www.openstreetmap.org/node/4214770020
+Manila,14.61812,120.98901,,underground,,https://www.openstreetmap.org/node/4214770021
+Manila,14.61815,120.99099,,underground,,https://www.openstreetmap.org/node/4214770022
+Manila,14.61815,120.99554,,underground,,https://www.openstreetmap.org/node/4214770023
+Manila,14.61969,120.99056,,underground,,https://www.openstreetmap.org/node/4214770024
+Manila,14.62038,120.99583,,underground,,https://www.openstreetmap.org/node/4214770025
+Manila,14.62319,120.99221,,underground,,https://www.openstreetmap.org/node/4214770026
+Manila,14.62366,120.98921,,underground,,https://www.openstreetmap.org/node/4214770027
+Manila,14.5911,121.02007,,underground,,https://www.openstreetmap.org/node/4214770040
+Manila,14.59237,121.01873,,underground,,https://www.openstreetmap.org/node/4214770041
+Manila,14.5928467,121.0237633,,underground,,https://www.openstreetmap.org/node/4214770042
+Manila,14.59359,121.0221,,underground,,https://www.openstreetmap.org/node/4214770043
+Manila,14.5938452,121.0190823,,underground,,https://www.openstreetmap.org/node/4214770044
+Manila,14.59424,121.01683,,underground,,https://www.openstreetmap.org/node/4214770045
+Manila,14.5945276,121.0196495,,underground,,https://www.openstreetmap.org/node/4214770046
+Manila,14.59474,121.02429,,underground,,https://www.openstreetmap.org/node/4214770047
+Manila,14.59492,121.02142,,underground,,https://www.openstreetmap.org/node/4214770048
+Manila,14.59566,121.02167,,underground,,https://www.openstreetmap.org/node/4214770049
+Manila,14.5957,121.01866,,underground,,https://www.openstreetmap.org/node/4214770050
+Manila,14.5958,121.01568,,,,https://www.openstreetmap.org/node/4214770051
+Manila,14.59662,121.01642,,underground,,https://www.openstreetmap.org/node/4214770052
+Manila,14.5969766,121.0183706,,underground,,https://www.openstreetmap.org/node/4214770053
+Manila,14.59948,121.01416,,,,https://www.openstreetmap.org/node/4214770055
+Manila,14.5997906,121.0157531,,underground,,https://www.openstreetmap.org/node/4214770056
+Manila,14.59241,120.98717,,underground,,https://www.openstreetmap.org/node/4214772050
+Manila,14.59262,120.99141,,underground,,https://www.openstreetmap.org/node/4214772052
+Manila,14.593,120.99276,,underground,,https://www.openstreetmap.org/node/4214772053
+Manila,14.59327,121.00015,,,,https://www.openstreetmap.org/node/4214772054
+Manila,14.59501,120.99372,,underground,,https://www.openstreetmap.org/node/4214772056
+Manila,14.5952422,120.989692,,underground,,https://www.openstreetmap.org/node/4214772057
+Manila,14.59781,120.99619,,underground,,https://www.openstreetmap.org/node/4214772058
+Manila,14.5982169,120.9929986,,pillar,,https://www.openstreetmap.org/node/4214772059
+Manila,14.5987579,120.9947947,,underground,,https://www.openstreetmap.org/node/4214772060
+Manila,14.5994319,120.9979344,,underground,,https://www.openstreetmap.org/node/4214772061
+Quezon City,14.6100252,121.0655567,,pillar,,https://www.openstreetmap.org/node/4216576473
+Manila,14.5816937,120.9900713,,underground,,https://www.openstreetmap.org/node/4220605853
+Manila,14.5796274,120.9882152,,underground,,https://www.openstreetmap.org/node/4220608873
+Manila,14.578872,120.9869277,,,,https://www.openstreetmap.org/node/4220718406
+Mandaluyong City,14.5920851,121.0378071,,pillar,,https://www.openstreetmap.org/node/4221298075
+Mandaluyong City,14.5921446,121.0392839,,pillar,,https://www.openstreetmap.org/node/4221304673
+Manila,14.6005645,121.0110489,,underground,,https://www.openstreetmap.org/node/4228026648
+Manila,14.5969708,121.0015257,,underground,,https://www.openstreetmap.org/node/4228032003
+Manila,14.6000693,121.01061,,underground,,https://www.openstreetmap.org/node/4228035259
+Manila,14.6016728,121.0148683,,underground,,https://www.openstreetmap.org/node/4230469927
+Manila,14.6037285,121.0132053,,underground,,https://www.openstreetmap.org/node/4230470812
+Manila,14.6047018,121.0152278,,underground,,https://www.openstreetmap.org/node/4230472584
+Manila,14.6027499,121.0051239,,underground,,https://www.openstreetmap.org/node/4230477373
+Manila,14.6069171,121.0126125,,underground,,https://www.openstreetmap.org/node/4230477808
+Manila,14.6015923,121.0026026,,underground,,https://www.openstreetmap.org/node/4230479808
+Manila,14.6013873,121.0004917,,underground,,https://www.openstreetmap.org/node/4230482189
+Manila,14.6019609,121.0119715,,underground,,https://www.openstreetmap.org/node/4230485224
+Makati City,14.5511314,121.0240225,,pillar,yellow,https://www.openstreetmap.org/node/4231111000
+Mandaluyong City,14.5738325,121.0353819,,pillar,,https://www.openstreetmap.org/node/4234966302
+San Juan City,14.5975009,121.0399701,,pillar,,https://www.openstreetmap.org/node/4246230485
+San Juan City,14.599149,121.0464554,,pillar,yellow,https://www.openstreetmap.org/node/4252211514
+San Juan City,14.6051782,121.0382043,,pillar,,https://www.openstreetmap.org/node/4252973693
+San Juan City,14.6043483,121.0422003,,pillar,,https://www.openstreetmap.org/node/4252973694
+Taguig City,14.5494395,121.0460501,,pillar,,https://www.openstreetmap.org/node/4255742894
+Taguig City,14.5488223,121.0445219,,pillar,,https://www.openstreetmap.org/node/4255742895
+Taguig City,14.5500723,121.048696,,pillar,yellow,https://www.openstreetmap.org/node/4255742896
+San Juan City,14.5917246,121.0346802,,pillar,,https://www.openstreetmap.org/node/4255742897
+Pasig City,14.5737374,121.0625875,,pillar,,https://www.openstreetmap.org/node/4256262529
+Mandaluyong City,14.5846344,121.0498065,,pillar,,https://www.openstreetmap.org/node/4256266064
+Quezon City,14.6619714,121.041115,,pillar,,https://www.openstreetmap.org/node/4275072676
+Pasig City,14.5766513,121.0639989,,pillar,yellow,https://www.openstreetmap.org/node/4291931094
+Pasig City,14.5761256,121.0649264,,pillar,yellow,https://www.openstreetmap.org/node/4303575100
+Quezon City,14.6615199,121.0312445,,pillar,,https://www.openstreetmap.org/node/4303751270
+Quezon City,14.655684,121.0343291,,pillar,,https://www.openstreetmap.org/node/4303756600
+Mandaluyong City,14.5895123,121.0400221,,pillar,,https://www.openstreetmap.org/node/4305299836
+Mandaluyong City,14.5867253,121.0431703,,pillar,,https://www.openstreetmap.org/node/4310522423
+Quezon City,14.660591,121.0295494,,pillar,,https://www.openstreetmap.org/node/4324626293
+Quezon City,14.6589795,121.0359411,,pillar,,https://www.openstreetmap.org/node/4324628079
+Quezon City,14.6524189,121.0711898,,pillar,,https://www.openstreetmap.org/node/4324757102
+Mandaluyong City,14.587209,121.0439683,,,,https://www.openstreetmap.org/node/4343678781
+San Juan City,14.5958101,121.0341995,,pillar,,https://www.openstreetmap.org/node/4343680239
+San Juan City,14.5991376,121.0348565,,,,https://www.openstreetmap.org/node/4343682129
+Quezon City,14.6164735,121.0516409,,pillar,yellow,https://www.openstreetmap.org/node/4343725023
+Quezon City,14.6171247,121.0546312,,pillar,,https://www.openstreetmap.org/node/4343725209
+Quezon City,14.6460312,121.0516491,,,,https://www.openstreetmap.org/node/4343725210
+Pasig City,14.5762392,121.0638361,,pillar,,https://www.openstreetmap.org/node/4375483239
+San Juan City,14.5943298,121.0406967,,pillar,yellow,https://www.openstreetmap.org/node/4378049424
+San Juan City,14.5940178,121.0399394,,pillar,yellow,https://www.openstreetmap.org/node/4378049489
+San Juan City,14.6039027,121.0328444,,pillar,,https://www.openstreetmap.org/node/4378952095
+Taguig City,14.5535079,121.0445021,,pillar,,https://www.openstreetmap.org/node/4402588643
+Taguig City,14.5532394,121.0455072,,pillar,yellow,https://www.openstreetmap.org/node/4402621817
+Manila,14.579556,120.9882205,Agoncillo Street,,,https://www.openstreetmap.org/node/4427362592
+Manila,14.5788741,120.9869113,Taft Avenue,,,https://www.openstreetmap.org/node/4427396889
+Manila,14.5773265,121.0116425,,pillar,yellow,https://www.openstreetmap.org/node/4454628213
+Valenzuela City,14.7203683,120.9750358,,pillar,,https://www.openstreetmap.org/node/4470129143
+Pasig City,14.5707156,121.0554104,,pillar,,https://www.openstreetmap.org/node/4500132921
+Mandaluyong City,14.5710082,121.0521878,,pillar,yellow,https://www.openstreetmap.org/node/4500132938
+Manila,14.6014793,121.0138193,,,,https://www.openstreetmap.org/node/4593872239
+Manila,14.5754833,120.9930211,,,,https://www.openstreetmap.org/node/4664696589
+Manila,14.5756587,120.993089,,,,https://www.openstreetmap.org/node/4664701589
+Mandaluyong City,14.5832019,121.044791,,pillar,yellow,https://www.openstreetmap.org/node/4681312597
+Mandaluyong City,14.5809604,121.0443498,,pillar,yellow,https://www.openstreetmap.org/node/4681313143
+Mandaluyong City,14.5787332,121.0442881,,pillar,yellow,https://www.openstreetmap.org/node/4681313204
+Pasay City,14.5428216,120.9876956,,pillar,red,https://www.openstreetmap.org/node/4714817918
+Pasay City,14.5426168,120.9857534,,pillar,,https://www.openstreetmap.org/node/4714817919
+Pasay City,14.542402,120.9847562,,pillar,,https://www.openstreetmap.org/node/4714817920
+Pasay City,14.5418457,120.9835848,,pillar,,https://www.openstreetmap.org/node/4714817921
+Pasay City,14.5360306,120.9843944,,pillar,red,https://www.openstreetmap.org/node/4714817923
+Pasay City,14.5345195,120.9845309,,pillar,,https://www.openstreetmap.org/node/4714817924
+Pasay City,14.5332625,120.9842304,,pillar,,https://www.openstreetmap.org/node/4714817926
+Pasay City,14.5372307,120.9838837,,pillar,,https://www.openstreetmap.org/node/4714817927
+Pasay City,14.5399169,120.9834948,,pillar,,https://www.openstreetmap.org/node/4714817929
+Pasay City,14.5385429,120.9837578,,pillar,,https://www.openstreetmap.org/node/4714817930
+Muntinlupa City,14.4317049,121.0356462,,pillar,,https://www.openstreetmap.org/node/4735339650
+San Juan City,14.5994458,121.0368893,,pillar,,https://www.openstreetmap.org/node/4752564821
+Makati City,14.5631035,121.035081,,pillar,,https://www.openstreetmap.org/node/4774275923
+Makati City,14.5630856,121.0360091,,,,https://www.openstreetmap.org/node/4774932486
+Makati City,14.5658657,121.0365652,,,,https://www.openstreetmap.org/node/4774933092
+Muntinlupa City,14.4311814,121.0371186,,pillar,,https://www.openstreetmap.org/node/4785334740
+San Juan City,14.6046275,121.0294109,,pillar,yellow,https://www.openstreetmap.org/node/4792499783
+Quezon City,14.6362662,121.0740996,,pillar,yellow,https://www.openstreetmap.org/node/4795922991
+San Juan City,14.6061719,121.0307234,,pillar,,https://www.openstreetmap.org/node/4796049785
+Manila,14.6037689,120.9891119,,underground,,https://www.openstreetmap.org/node/4797980665
+Manila,14.6041457,120.9877754,,,,https://www.openstreetmap.org/node/4812604923
+Quezon City,14.6403939,121.048656,,,,https://www.openstreetmap.org/node/4861175763
+Quezon City,14.639611,121.040238,,pillar,,https://www.openstreetmap.org/node/4879643697
+San Juan City,14.6118826,121.0303691,,pillar,,https://www.openstreetmap.org/node/4883007435
+San Juan City,14.6119495,121.0300468,,pillar,,https://www.openstreetmap.org/node/4883007436
+San Juan City,14.611653,121.0291611,,pillar,,https://www.openstreetmap.org/node/4883007437
+San Juan City,14.6098947,121.0293054,,pillar,,https://www.openstreetmap.org/node/4883007438
+San Juan City,14.6108326,121.0314526,,pillar,,https://www.openstreetmap.org/node/4883007439
+San Juan City,14.6113124,121.0311382,,pillar,,https://www.openstreetmap.org/node/4883007440
+San Juan City,14.5926603,121.0330975,,pillar,,https://www.openstreetmap.org/node/4883018887
+San Juan City,14.5934976,121.0328391,,pillar,,https://www.openstreetmap.org/node/4883018888
+San Juan City,14.5958486,121.0397097,,pillar,,https://www.openstreetmap.org/node/4883018889
+San Juan City,14.6078801,121.0326485,,pillar,,https://www.openstreetmap.org/node/4883020023
+San Juan City,14.6088857,121.0333574,,pillar,yellow,https://www.openstreetmap.org/node/4883020024
+San Juan City,14.605914,121.0372393,,pillar,,https://www.openstreetmap.org/node/4883020025
+San Juan City,14.6059396,121.0364329,,pillar,,https://www.openstreetmap.org/node/4883020026
+San Juan City,14.5998208,121.0299006,,pillar,,https://www.openstreetmap.org/node/4883020091
+San Juan City,14.6018574,121.0307591,,pillar,,https://www.openstreetmap.org/node/4883020093
+San Juan City,14.6017669,121.0313822,,pillar,,https://www.openstreetmap.org/node/4883020094
+San Juan City,14.5996618,121.0330241,,pillar,,https://www.openstreetmap.org/node/4883021625
+San Juan City,14.6042207,121.0207175,,pillar,,https://www.openstreetmap.org/node/4883029921
+San Juan City,14.6032042,121.0208059,,pillar,,https://www.openstreetmap.org/node/4883029922
+San Juan City,14.602845,121.0212001,,pillar,,https://www.openstreetmap.org/node/4883029923
+San Juan City,14.6026838,121.0201302,,pillar,,https://www.openstreetmap.org/node/4883029924
+San Juan City,14.6029454,121.0313619,,pillar,,https://www.openstreetmap.org/node/4883030559
+San Juan City,14.6032111,121.030076,,pillar,,https://www.openstreetmap.org/node/4883030560
+San Juan City,14.6001611,121.0280964,,pillar,,https://www.openstreetmap.org/node/4883032113
+San Juan City,14.6017658,121.0225373,,pillar,,https://www.openstreetmap.org/node/4883032114
+San Juan City,14.5978491,121.0260124,,pillar,,https://www.openstreetmap.org/node/4883032116
+San Juan City,14.5986697,121.0264923,,pillar,,https://www.openstreetmap.org/node/4883032117
+San Juan City,14.5966011,121.0269566,,pillar,,https://www.openstreetmap.org/node/4883032118
+San Juan City,14.6021063,121.0218406,,pillar,,https://www.openstreetmap.org/node/4883032119
+San Juan City,14.6040365,121.0242961,,pillar,,https://www.openstreetmap.org/node/4883032120
+San Juan City,14.6028662,121.025814,,pillar,,https://www.openstreetmap.org/node/4883032221
+San Juan City,14.6021599,121.0304831,,pillar,,https://www.openstreetmap.org/node/4883118337
+San Juan City,14.6049018,121.0208977,,pillar,,https://www.openstreetmap.org/node/4883141319
+San Juan City,14.6068259,121.0280497,,pillar,,https://www.openstreetmap.org/node/4883169946
+San Juan City,14.6079298,121.0290848,,pillar,,https://www.openstreetmap.org/node/4883169947
+San Juan City,14.6093542,121.0294793,,pillar,,https://www.openstreetmap.org/node/4883169948
+San Juan City,14.6065344,121.0314611,,pillar,,https://www.openstreetmap.org/node/4883169950
+San Juan City,14.6059049,121.0301265,,pillar,,https://www.openstreetmap.org/node/4883169951
+San Juan City,14.6049547,121.0287743,,pillar,,https://www.openstreetmap.org/node/4883169952
+San Juan City,14.6134507,121.0236482,,pillar,,https://www.openstreetmap.org/node/4883171025
+San Juan City,14.6130909,121.0247519,,pillar,,https://www.openstreetmap.org/node/4883171026
+San Juan City,14.61276,121.023561,,pillar,,https://www.openstreetmap.org/node/4883171027
+San Juan City,14.6117543,121.0244756,,pillar,,https://www.openstreetmap.org/node/4883171028
+San Juan City,14.6112157,121.0239593,,pillar,,https://www.openstreetmap.org/node/4883171029
+San Juan City,14.6114441,121.0229253,,pillar,,https://www.openstreetmap.org/node/4883171030
+San Juan City,14.6096383,121.0229179,,pillar,,https://www.openstreetmap.org/node/4883171031
+San Juan City,14.6108096,121.0264507,,pillar,,https://www.openstreetmap.org/node/4883171033
+San Juan City,14.6116082,121.0262104,,pillar,,https://www.openstreetmap.org/node/4883171034
+San Juan City,14.608206,121.0409477,,pillar,,https://www.openstreetmap.org/node/4883185587
+San Juan City,14.6084144,121.0439093,,pillar,,https://www.openstreetmap.org/node/4883185588
+San Juan City,14.6060324,121.0435824,,pillar,,https://www.openstreetmap.org/node/4883185589
+San Juan City,14.6046107,121.0454593,,pillar,,https://www.openstreetmap.org/node/4883185590
+San Juan City,14.6049828,121.0474478,,pillar,,https://www.openstreetmap.org/node/4883185591
+San Juan City,14.6070634,121.0482862,,pillar,,https://www.openstreetmap.org/node/4883185592
+San Juan City,14.6046644,121.0491797,,pillar,,https://www.openstreetmap.org/node/4883185593
+San Juan City,14.6031639,121.0497574,,pillar,,https://www.openstreetmap.org/node/4883185594
+San Juan City,14.603872,121.0519036,,pillar,,https://www.openstreetmap.org/node/4883185595
+San Juan City,14.6043421,121.0525454,,pillar,,https://www.openstreetmap.org/node/4883185596
+San Juan City,14.605315,121.0561833,,pillar,,https://www.openstreetmap.org/node/4883185598
+San Juan City,14.6043002,121.0558671,,pillar,,https://www.openstreetmap.org/node/4883185599
+San Juan City,14.6019397,121.0577365,,pillar,,https://www.openstreetmap.org/node/4883185600
+San Juan City,14.6009533,121.0557271,,pillar,,https://www.openstreetmap.org/node/4883185601
+San Juan City,14.6018199,121.0542452,,pillar,,https://www.openstreetmap.org/node/4883185602
+San Juan City,14.6021477,121.0528579,,pillar,,https://www.openstreetmap.org/node/4883185603
+San Juan City,14.6013094,121.0526462,,pillar,,https://www.openstreetmap.org/node/4883185604
+San Juan City,14.6008909,121.047811,,pillar,,https://www.openstreetmap.org/node/4883185605
+San Juan City,14.5972257,121.0425408,,pillar,yellow,https://www.openstreetmap.org/node/4883185606
+San Juan City,14.5972546,121.0439399,,pillar,yellow,https://www.openstreetmap.org/node/4883185607
+San Juan City,14.5964113,121.0453545,,pillar,,https://www.openstreetmap.org/node/4883185608
+San Juan City,14.6047217,121.0216343,,pillar,,https://www.openstreetmap.org/node/4883190004
+San Juan City,14.6052734,121.022173,,pillar,,https://www.openstreetmap.org/node/4883190005
+San Juan City,14.605326,121.0212719,,pillar,,https://www.openstreetmap.org/node/4883190006
+San Juan City,14.603131,121.0219949,,pillar,,https://www.openstreetmap.org/node/4883190007
+San Juan City,14.6001983,121.0473152,,pillar,,https://www.openstreetmap.org/node/4883202838
+San Juan City,14.5981425,121.0325583,,pillar,,https://www.openstreetmap.org/node/4885193885
+San Juan City,14.5967296,121.0319313,,pillar,,https://www.openstreetmap.org/node/4885193886
+San Juan City,14.5976804,121.0291715,,pillar,,https://www.openstreetmap.org/node/4885193887
+San Juan City,14.5982835,121.029896,,pillar,,https://www.openstreetmap.org/node/4885193888
+San Juan City,14.5967557,121.0292512,,pillar,,https://www.openstreetmap.org/node/4885193889
+San Juan City,14.5966971,121.0282318,,pillar,,https://www.openstreetmap.org/node/4885193890
+San Juan City,14.5960505,121.0277772,,pillar,,https://www.openstreetmap.org/node/4885193891
+San Juan City,14.5940771,121.0340527,,pillar,,https://www.openstreetmap.org/node/4885193892
+San Juan City,14.5943424,121.0315728,,pillar,,https://www.openstreetmap.org/node/4885193893
+San Juan City,14.594865,121.0307002,,pillar,,https://www.openstreetmap.org/node/4885193894
+San Juan City,14.5958615,121.0305461,,pillar,,https://www.openstreetmap.org/node/4885193895
+San Juan City,14.5967377,121.0370175,,pillar,,https://www.openstreetmap.org/node/4885193896
+San Juan City,14.5980642,121.036538,,pillar,,https://www.openstreetmap.org/node/4885193897
+San Juan City,14.5973189,121.0354178,,pillar,,https://www.openstreetmap.org/node/4885193898
+San Juan City,14.5980923,121.0354782,,pillar,,https://www.openstreetmap.org/node/4885193899
+San Juan City,14.5979675,121.0341725,,pillar,,https://www.openstreetmap.org/node/4885193900
+San Juan City,14.6001163,121.0350114,,pillar,,https://www.openstreetmap.org/node/4885193901
+San Juan City,14.6003093,121.0308321,,pillar,,https://www.openstreetmap.org/node/4885193902
+San Juan City,14.6040093,121.0278443,,pillar,,https://www.openstreetmap.org/node/4885193903
+San Juan City,14.6065086,121.0263614,,pillar,,https://www.openstreetmap.org/node/4885193904
+San Juan City,14.6057528,121.0239877,,pillar,,https://www.openstreetmap.org/node/4885193905
+San Juan City,14.6051624,121.0238259,,wall,,https://www.openstreetmap.org/node/4885193906
+San Juan City,14.6034114,121.03254,,pillar,,https://www.openstreetmap.org/node/4885193908
+San Juan City,14.6027972,121.0283508,,pillar,,https://www.openstreetmap.org/node/4885193909
+San Juan City,14.6030295,121.0275441,,pillar,,https://www.openstreetmap.org/node/4885193910
+San Juan City,14.603516,121.0260234,,pillar,,https://www.openstreetmap.org/node/4885193911
+San Juan City,14.6030379,121.0243706,,pillar,,https://www.openstreetmap.org/node/4885193912
+San Juan City,14.6025728,121.0226726,,pillar,,https://www.openstreetmap.org/node/4885193913
+San Juan City,14.603458,121.0231393,,pillar,,https://www.openstreetmap.org/node/4885193914
+San Juan City,14.6050496,121.0228341,,pillar,,https://www.openstreetmap.org/node/4885193915
+San Juan City,14.6100876,121.027406,,pillar,,https://www.openstreetmap.org/node/4885193916
+San Juan City,14.6077162,121.0269625,,pillar,,https://www.openstreetmap.org/node/4885193917
+San Juan City,14.6094382,121.0259472,,pillar,,https://www.openstreetmap.org/node/4885193918
+San Juan City,14.6095722,121.0246611,,pillar,,https://www.openstreetmap.org/node/4885193919
+San Juan City,14.6065687,121.0245796,,pillar,yellow,https://www.openstreetmap.org/node/4885193920
+San Juan City,14.607649,121.0246656,,pillar,,https://www.openstreetmap.org/node/4885197321
+San Juan City,14.60925,121.0239339,,pillar,,https://www.openstreetmap.org/node/4885197322
+San Juan City,14.6083932,121.0234441,,pillar,,https://www.openstreetmap.org/node/4885197323
+San Juan City,14.6081461,121.0227394,,pillar,,https://www.openstreetmap.org/node/4885197324
+San Juan City,14.6071866,121.0235673,,pillar,,https://www.openstreetmap.org/node/4885197325
+San Juan City,14.6087807,121.0341594,,pillar,yellow,https://www.openstreetmap.org/node/4885197326
+San Juan City,14.6028207,121.0334983,,pillar,,https://www.openstreetmap.org/node/4885197328
+San Juan City,14.6041247,121.0367513,,pillar,,https://www.openstreetmap.org/node/4885197330
+San Juan City,14.6035624,121.0378253,,pillar,,https://www.openstreetmap.org/node/4885197331
+San Juan City,14.602358,121.0377234,,pillar,,https://www.openstreetmap.org/node/4885197332
+San Juan City,14.6018447,121.0381391,,pillar,,https://www.openstreetmap.org/node/4885197333
+San Juan City,14.6019505,121.0403466,,pillar,,https://www.openstreetmap.org/node/4885197334
+San Juan City,14.6002997,121.0413799,,pillar,,https://www.openstreetmap.org/node/4885197335
+San Juan City,14.5994737,121.0380023,,pillar,yellow,https://www.openstreetmap.org/node/4885197337
+San Juan City,14.5976185,121.0376805,,pillar,,https://www.openstreetmap.org/node/4885197338
+San Juan City,14.5983037,121.0391966,,pillar,,https://www.openstreetmap.org/node/4885197339
+San Juan City,14.604136,121.0505243,,pillar,,https://www.openstreetmap.org/node/4885197340
+San Juan City,14.6054921,121.0500093,,pillar,,https://www.openstreetmap.org/node/4885197341
+San Juan City,14.6048926,121.0506248,,pillar,,https://www.openstreetmap.org/node/4885197342
+San Juan City,14.6061527,121.0503003,,pillar,,https://www.openstreetmap.org/node/4885197343
+San Juan City,14.6066407,121.0511747,,pillar,,https://www.openstreetmap.org/node/4885197344
+San Juan City,14.6064175,121.0496646,,pillar,,https://www.openstreetmap.org/node/4885197345
+San Juan City,14.6059425,121.0492972,,pillar,,https://www.openstreetmap.org/node/4885197346
+San Juan City,14.6068827,121.0489371,,pillar,,https://www.openstreetmap.org/node/4885197347
+San Juan City,14.6052261,121.0517621,,pillar,,https://www.openstreetmap.org/node/4885197348
+San Juan City,14.6047615,121.0502923,,pillar,,https://www.openstreetmap.org/node/4885197349
+San Juan City,14.606106,121.049788,,pillar,,https://www.openstreetmap.org/node/4885197350
+San Juan City,14.6071442,121.0500159,,pillar,,https://www.openstreetmap.org/node/4885197351
+San Juan City,14.6078242,121.0488506,,pillar,,https://www.openstreetmap.org/node/4885197352
+San Juan City,14.608198,121.0493253,,pillar,,https://www.openstreetmap.org/node/4885197353
+San Juan City,14.608612,121.0485904,,pillar,,https://www.openstreetmap.org/node/4885197354
+San Juan City,14.607819,121.0472506,,pillar,,https://www.openstreetmap.org/node/4885197355
+San Juan City,14.6024191,121.0352232,,pillar,yellow,https://www.openstreetmap.org/node/4898664411
+San Juan City,14.6012234,121.0365349,,pillar,,https://www.openstreetmap.org/node/4900823939
+Mandaluyong City,14.5885994,121.0401204,,pillar,,https://www.openstreetmap.org/node/4903350669
+Pasig City,14.578244,121.064881,,pillar,,https://www.openstreetmap.org/node/4903387993
+San Juan City,14.6079757,121.0361283,,pillar,,https://www.openstreetmap.org/node/4911962518
+Mandaluyong City,14.587633,121.0464773,,pillar,,https://www.openstreetmap.org/node/4918720061
+San Juan City,14.6071973,121.0321602,,,,https://www.openstreetmap.org/node/4920040268
+Pasig City,14.5791943,121.106489,,pillar,yellow,https://www.openstreetmap.org/node/5153063924
+Pasig City,14.5873123,121.101445,,pillar,,https://www.openstreetmap.org/node/5153824522
+Pasig City,14.584216,121.1017427,,pillar,yellow,https://www.openstreetmap.org/node/5153831121
+Quezon City,14.6497505,121.0736827,,pillar,,https://www.openstreetmap.org/node/5219701745
+Quezon City,14.652391,121.0728076,,pillar,yellow,https://www.openstreetmap.org/node/5219701746
+Quezon City,14.6513592,121.0654281,,pillar,,https://www.openstreetmap.org/node/5219701747
+Quezon City,14.6582185,121.0727727,,pillar,,https://www.openstreetmap.org/node/5219701748
+Pasig City,14.5846977,121.1009054,,pillar,yellow,https://www.openstreetmap.org/node/5281260524
+Quezon City,14.6067127,121.0380969,,,,https://www.openstreetmap.org/node/5285001126
+Quezon City,14.6680126,121.0782578,,pillar,,https://www.openstreetmap.org/node/5330828121
+Pasig City,14.6141882,121.0845992,,,,https://www.openstreetmap.org/node/5362396021
+Quezon City,14.6289045,121.0606473,,pillar,,https://www.openstreetmap.org/node/5432826725
+Quezon City,14.6201253,121.0593454,,pillar,,https://www.openstreetmap.org/node/5432826726
+Quezon City,14.6281735,121.0651672,,pillar,yellow,https://www.openstreetmap.org/node/5432827122
+Quezon City,14.6722004,121.0825877,,pillar,,https://www.openstreetmap.org/node/5447011621
+Quezon City,14.6245778,121.0415668,,,,https://www.openstreetmap.org/node/5458143223
+Pasig City,14.5909644,121.0859523,,pillar,yellow,https://www.openstreetmap.org/node/5479771922
+Manila,14.6003093,121.009022,,,,https://www.openstreetmap.org/node/5479823236
+Quezon City,14.6661736,121.045377,,underground,,https://www.openstreetmap.org/node/5512933631
+Quezon City,14.671553,121.080163,,pillar,,https://www.openstreetmap.org/node/5627958532
+Quezon City,14.6254887,121.0481473,,pillar,,https://www.openstreetmap.org/node/5638516423
+Quezon City,14.6443299,121.0634835,,,,https://www.openstreetmap.org/node/5648706660
+Quezon City,14.6333356,121.044306,,pillar,,https://www.openstreetmap.org/node/5761602600
+Quezon City,14.6670197,121.0790564,,pillar,,https://www.openstreetmap.org/node/5767004254
+Quezon City,14.6670867,121.0795137,,pillar,,https://www.openstreetmap.org/node/5767004953
+Quezon City,14.6487456,121.0659145,,pillar,,https://www.openstreetmap.org/node/5941602368
+Mandaluyong City,14.5911176,121.0335539,,pillar,,https://www.openstreetmap.org/node/5963272843
+Pasig City,14.588578,121.089122,,pillar,,https://www.openstreetmap.org/node/6094118087
+Marikina City,14.6367171,121.097192,,,,https://www.openstreetmap.org/node/6114615290
+Marikina City,14.6326198,121.0817296,,,,https://www.openstreetmap.org/node/6114615291
+Pasig City,14.5838446,121.0877443,,pillar,,https://www.openstreetmap.org/node/6114615299
+Quezon City,14.6152544,121.0369613,,,,https://www.openstreetmap.org/node/6114644385
+Taguig City,14.5418014,121.0805095,,pillar,yellow,https://www.openstreetmap.org/node/6120714276
+Taguig City,14.540365,121.0798731,,,,https://www.openstreetmap.org/node/6120983585
+Taguig City,14.5440387,121.0798289,,,,https://www.openstreetmap.org/node/6135413119
+Taguig City,14.5450225,121.0782382,,,,https://www.openstreetmap.org/node/6135413126
+Taguig City,14.5407275,121.076684,,pillar,yellow,https://www.openstreetmap.org/node/6135413129
+Pasig City,14.5861265,121.0848456,,,,https://www.openstreetmap.org/node/6149641585
+Manila,14.5866458,121.020631,,pillar,,https://www.openstreetmap.org/node/6150801526
+Pasig City,14.58184,121.0815216,,pillar,,https://www.openstreetmap.org/node/6162635985
+Taguig City,14.524583,121.073227,,,,https://www.openstreetmap.org/node/6163150504
+Taguig City,14.52467,121.07168,,,,https://www.openstreetmap.org/node/6163150510
+Taguig City,14.532112,121.080115,,,,https://www.openstreetmap.org/node/6166579270
+Taguig City,14.5278506,121.0819026,,pillar,,https://www.openstreetmap.org/node/6166580751
+Pasig City,14.5756472,121.098778,,pillar,yellow,https://www.openstreetmap.org/node/6174659785
+Malabon City,14.6677389,120.9477295,,,,https://www.openstreetmap.org/node/6199691885
+Parañaque City,14.4831827,121.0439582,,wall,gold,https://www.openstreetmap.org/node/6221315962
+Parañaque City,14.4835975,121.0433319,,wall,gold,https://www.openstreetmap.org/node/6221315964
+Parañaque City,14.4844565,121.0446133,,pillar,red,https://www.openstreetmap.org/node/6221316893
+Parañaque City,14.4840755,121.0425702,,wall,gold,https://www.openstreetmap.org/node/6222475256
+Pasig City,14.5790995,121.0785407,,pillar,,https://www.openstreetmap.org/node/6251257785
+Pasig City,14.584368,121.0710754,,pillar,,https://www.openstreetmap.org/node/6251257886
+San Juan City,14.6077431,121.0292698,,pillar,,https://www.openstreetmap.org/node/6309918587
+San Juan City,14.6050941,121.0211397,,pillar,,https://www.openstreetmap.org/node/6309918596
+Quezon City,14.6079588,121.0395208,,pillar,,https://www.openstreetmap.org/node/6310663695
+San Juan City,14.6038991,121.0520531,,pillar,,https://www.openstreetmap.org/node/6320178124
+Mandaluyong City,14.5915777,121.0316898,,pillar,,https://www.openstreetmap.org/node/6322810056
+Quezon City,14.6429386,121.059914,,pillar,,https://www.openstreetmap.org/node/6328416669
+Quezon City,14.6369886,121.050425,,pillar,,https://www.openstreetmap.org/node/6328480673
+Quezon City,14.6413738,121.0545724,,pillar,,https://www.openstreetmap.org/node/6328480694
+Pasig City,14.5810339,121.0759928,,pillar,,https://www.openstreetmap.org/node/6330307086
+Mandaluyong City,14.5858418,121.0312231,,pillar,,https://www.openstreetmap.org/node/6332734521
+Pasig City,14.5883878,121.0621569,,pillar,,https://www.openstreetmap.org/node/6332901972
+Taguig City,14.4780739,121.0494825,,pillar,,https://www.openstreetmap.org/node/6335055358
+Taguig City,14.4740289,121.0507739,,pillar,yellow,https://www.openstreetmap.org/node/6335055381
+Taguig City,14.4772212,121.0476874,,pillar,yellow,https://www.openstreetmap.org/node/6335055888
+Taguig City,14.479864,121.0469366,,pillar,yellow,https://www.openstreetmap.org/node/6335055895
+Taguig City,14.4798322,121.0488392,,pillar,yellow,https://www.openstreetmap.org/node/6335055924
+Makati City,14.5681341,121.0063899,,pillar,yellow,https://www.openstreetmap.org/node/6336919078
+Manila,14.5744902,121.010651,,pillar,yellow,https://www.openstreetmap.org/node/6336919488
+Manila,14.5661209,121.0023732,,underground,,https://www.openstreetmap.org/node/6337001387
+Taguig City,14.4807597,121.061052,,pillar,yellow;black,https://www.openstreetmap.org/node/6337144445
+Taguig City,14.4672415,121.0564249,,pillar,black;yellow,https://www.openstreetmap.org/node/6337145208
+Taguig City,14.4798001,121.0593037,,pillar,black;yellow,https://www.openstreetmap.org/node/6337145231
+Taguig City,14.4801162,121.0542498,,pillar,black;yellow,https://www.openstreetmap.org/node/6337145238
+Taguig City,14.4829068,121.052084,,,black;yellow,https://www.openstreetmap.org/node/6337145242
+Quezon City,14.6625437,121.0890478,,pillar,,https://www.openstreetmap.org/node/6340795997
+Quezon City,14.6174715,121.0712323,,pillar,,https://www.openstreetmap.org/node/6340833538
+Quezon City,14.6561584,121.0706137,,pillar,,https://www.openstreetmap.org/node/6342185508
+Pasig City,14.5825823,121.0770122,,pillar,yellow,https://www.openstreetmap.org/node/6344304378
+Taguig City,14.486071,121.0485873,,pillar,black;yellow,https://www.openstreetmap.org/node/6346732545
+Taguig City,14.4847249,121.0478537,,pillar,black;yellow,https://www.openstreetmap.org/node/6346732555
+Taguig City,14.4858708,121.0468003,,pillar,black;yellow,https://www.openstreetmap.org/node/6346732582
+Taguig City,14.472096,121.0473923,,pillar,yellow,https://www.openstreetmap.org/node/6349150207
+Pasig City,14.5536239,121.0702194,,pillar,,https://www.openstreetmap.org/node/6355782485
+Taguig City,14.4953718,121.0506959,,pillar,yellow,https://www.openstreetmap.org/node/6364087174
+Taguig City,14.5014711,121.0522168,,pillar,black;yellow,https://www.openstreetmap.org/node/6364087450
+Taguig City,14.4922058,121.0540994,,pillar,black;yellow,https://www.openstreetmap.org/node/6366495407
+Taguig City,14.4935213,121.0517608,,pillar,black;yellow,https://www.openstreetmap.org/node/6366495437
+Mandaluyong City,14.5911351,121.0287766,,pillar,,https://www.openstreetmap.org/node/6375463056
+Mandaluyong City,14.5791524,121.0495493,,pillar,,https://www.openstreetmap.org/node/6377320263
+Taguig City,14.4969481,121.0621164,,pillar,black;yellow,https://www.openstreetmap.org/node/6380993956
+Taguig City,14.4866421,121.0607395,,pillar,black;yellow,https://www.openstreetmap.org/node/6380993981
+Taguig City,14.5047441,121.0528844,,pillar,,https://www.openstreetmap.org/node/6382645710
+Taguig City,14.5039648,121.0533542,,pillar,,https://www.openstreetmap.org/node/6382645715
+Taguig City,14.5034107,121.0540271,,pillar,,https://www.openstreetmap.org/node/6382645720
+Taguig City,14.5014246,121.0544956,,pillar,,https://www.openstreetmap.org/node/6382645724
+Taguig City,14.503316,121.05544,,pillar,,https://www.openstreetmap.org/node/6382645740
+Taguig City,14.5032192,121.0565762,,pillar,,https://www.openstreetmap.org/node/6382645742
+Taguig City,14.5051189,121.0583122,,pillar,,https://www.openstreetmap.org/node/6382645757
+Taguig City,14.5061359,121.0578574,,pillar,,https://www.openstreetmap.org/node/6382645763
+Taguig City,14.5078737,121.0586058,,pillar,,https://www.openstreetmap.org/node/6382645770
+Taguig City,14.5060166,121.0547804,,pillar,,https://www.openstreetmap.org/node/6382645781
+Taguig City,14.5011913,121.0639695,,pillar,black;yellow,https://www.openstreetmap.org/node/6390071648
+Taguig City,14.4999822,121.0635838,,pillar,black;yellow,https://www.openstreetmap.org/node/6390071650
+Taguig City,14.4980916,121.0591914,,pillar,,https://www.openstreetmap.org/node/6390071658
+Taguig City,14.5112564,121.0620628,,pillar,,https://www.openstreetmap.org/node/6390072289
+Taguig City,14.5064867,121.0656993,,pillar,yellow,https://www.openstreetmap.org/node/6390072294
+Taguig City,14.5146865,121.0717507,,pillar,,https://www.openstreetmap.org/node/6395481539
+Taguig City,14.5126441,121.0704353,,pillar,,https://www.openstreetmap.org/node/6395481544
+Taguig City,14.5087224,121.0669555,,pillar,,https://www.openstreetmap.org/node/6395481555
+Taguig City,14.5310283,121.0720911,,pillar,black;yellow,https://www.openstreetmap.org/node/6420119497
+Taguig City,14.5219533,121.0751125,,pillar,black;yellow,https://www.openstreetmap.org/node/6420195673
+Taguig City,14.5171466,121.0754349,,pillar,black;yellow,https://www.openstreetmap.org/node/6420281810
+Taguig City,14.5202238,121.0724026,,pillar,black;yellow,https://www.openstreetmap.org/node/6420281819
+Taguig City,14.5159081,121.0709682,,pillar,black;yellow,https://www.openstreetmap.org/node/6420281829
+Quezon City,14.6335601,121.058996,,pillar,,https://www.openstreetmap.org/node/6422401788
+Quezon City,14.6293442,121.0624931,,pillar,,https://www.openstreetmap.org/node/6422402085
+Quezon City,14.6308962,121.0466417,,pillar,,https://www.openstreetmap.org/node/6422402485
+Taguig City,14.53828,121.0818506,,pillar,yellow,https://www.openstreetmap.org/node/6422676341
+Taguig City,14.5149963,121.0576865,,,,https://www.openstreetmap.org/node/6425879523
+Taguig City,14.516405,121.0578259,,pillar,yellow,https://www.openstreetmap.org/node/6425879534
+Taguig City,14.5220284,121.0556465,,pillar,,https://www.openstreetmap.org/node/6425879572
+Taguig City,14.5167958,121.0562723,,pillar,,https://www.openstreetmap.org/node/6425879578
+Taguig City,14.5135979,121.0551743,,pillar,,https://www.openstreetmap.org/node/6425879788
+Taguig City,14.5304631,121.0388046,,pillar,black;yellow,https://www.openstreetmap.org/node/6427726767
+Taguig City,14.5299842,121.0355675,,pillar,black;yellow,https://www.openstreetmap.org/node/6427726772
+Taguig City,14.5246518,121.0410078,,pillar,black;yellow,https://www.openstreetmap.org/node/6427726887
+Taguig City,14.5283577,121.0426688,,pillar,yellow;black,https://www.openstreetmap.org/node/6427726912
+Taguig City,14.5127371,121.033778,,pillar,,https://www.openstreetmap.org/node/6428700258
+Taguig City,14.513713,121.0353665,,pillar,,https://www.openstreetmap.org/node/6428700260
+Taguig City,14.5142905,121.0365422,,pillar,,https://www.openstreetmap.org/node/6428700262
+Taguig City,14.5148647,121.0375112,,pillar,,https://www.openstreetmap.org/node/6428700264
+Taguig City,14.5160493,121.0454514,,pillar,yellow,https://www.openstreetmap.org/node/6428700283
+Taguig City,14.514668,121.0432625,,pillar,,https://www.openstreetmap.org/node/6428701589
+Taguig City,14.5160302,121.0503862,,pillar,,https://www.openstreetmap.org/node/6428701604
+Taguig City,14.5140432,121.0461333,,pillar,yellow,https://www.openstreetmap.org/node/6428701607
+Taguig City,14.5141659,121.0445531,,pillar,,https://www.openstreetmap.org/node/6428701610
+Taguig City,14.5117395,121.0424342,,pillar,,https://www.openstreetmap.org/node/6428701617
+Taguig City,14.5128859,121.0405209,,pillar,,https://www.openstreetmap.org/node/6428701624
+Taguig City,14.5142256,121.0399845,,pillar,,https://www.openstreetmap.org/node/6428701633
+Taguig City,14.5114605,121.0380115,,pillar,,https://www.openstreetmap.org/node/6428701655
+Taguig City,14.5084304,121.0365349,,,,https://www.openstreetmap.org/node/6428701660
+Taguig City,14.5077916,121.0379439,,pillar,,https://www.openstreetmap.org/node/6428701672
+Taguig City,14.5077838,121.0379195,,pillar,,https://www.openstreetmap.org/node/6428701674
+Taguig City,14.5086087,121.0428911,,pillar,,https://www.openstreetmap.org/node/6428701985
+Makati City,14.5672917,121.0429309,,pillar,,https://www.openstreetmap.org/node/6444360099
+Taguig City,14.536253,121.092589,,,,https://www.openstreetmap.org/node/6447272020
+Taguig City,14.5361838,121.0923826,,pillar,black;yellow,https://www.openstreetmap.org/node/6447272023
+Taguig City,14.5357579,121.0916737,,pillar,black;yellow,https://www.openstreetmap.org/node/6447272026
+Taguig City,14.5356288,121.091572,,pillar,black;yellow,https://www.openstreetmap.org/node/6447272033
+Taguig City,14.5528131,121.0439316,,pillar,,https://www.openstreetmap.org/node/6448798600
+San Juan City,14.5972075,121.0350779,,pillar,,https://www.openstreetmap.org/node/6448801389
+Quezon City,14.6009838,121.0725067,,pillar,,https://www.openstreetmap.org/node/6448916496
+Quezon City,14.5959464,121.0726159,,pillar,,https://www.openstreetmap.org/node/6448916818
+Taguig City,14.513939,121.0609927,,pillar,black;yellow,https://www.openstreetmap.org/node/6448950030
+Taguig City,14.5162497,121.061093,,pillar,black;yellow,https://www.openstreetmap.org/node/6448950037
+Mandaluyong City,14.5829677,121.0386398,,,,https://www.openstreetmap.org/node/6449049794
+Manila,14.5796666,121.0157356,,,,https://www.openstreetmap.org/node/6449051421
+Makati City,14.5698315,121.0184839,,pillar,,https://www.openstreetmap.org/node/6449057051
+Makati City,14.5667895,121.0128027,,pillar,,https://www.openstreetmap.org/node/6449058589
+Makati City,14.5526914,121.0161369,,pillar,yellow,https://www.openstreetmap.org/node/6449103988
+Makati City,14.5539833,121.0158043,,pillar,,https://www.openstreetmap.org/node/6449110014
+Taguig City,14.5194649,121.0553472,,pillar,black;yellow,https://www.openstreetmap.org/node/6449465597
+Taguig City,14.5252292,121.0556403,,pillar,black;yellow,https://www.openstreetmap.org/node/6449465619
+Taguig City,14.5263147,121.0567171,,pillar,black;yellow,https://www.openstreetmap.org/node/6449465623
+Taguig City,14.5261285,121.057792,,pillar,black;yellow,https://www.openstreetmap.org/node/6449465642
+Taguig City,14.5265474,121.058686,,pillar,black;yellow,https://www.openstreetmap.org/node/6449465646
+Taguig City,14.5252057,121.0599344,,pillar,,https://www.openstreetmap.org/node/6449465670
+Taguig City,14.524201,121.0578759,,pillar,yellow,https://www.openstreetmap.org/node/6449466015
+Taguig City,14.5289777,121.0564746,,pillar,,https://www.openstreetmap.org/node/6449466081
+Taguig City,14.5259693,121.0553902,,pillar,yellow,https://www.openstreetmap.org/node/6449466285
+Mandaluyong City,14.5766284,121.0506311,,pillar,,https://www.openstreetmap.org/node/6451377868
+Mandaluyong City,14.5773597,121.0546529,,pillar,,https://www.openstreetmap.org/node/6451383007
+Taguig City,14.527018,121.0717143,,pillar,,https://www.openstreetmap.org/node/6490334399
+Taguig City,14.5261605,121.0694923,,pillar,,https://www.openstreetmap.org/node/6490334402
+Taguig City,14.5246873,121.0716441,,pillar,,https://www.openstreetmap.org/node/6490334414
+Taguig City,14.5246847,121.0765409,,pillar,yellow,https://www.openstreetmap.org/node/6490334451
+Pasig City,14.5658995,121.0615002,,pillar,,https://www.openstreetmap.org/node/6497169607
+Pasig City,14.5665657,121.0573881,,,,https://www.openstreetmap.org/node/6497169623
+Pasig City,14.5669923,121.0552655,,,,https://www.openstreetmap.org/node/6497169633
+Pasig City,14.567191,121.0560194,,,,https://www.openstreetmap.org/node/6497169634
+Pasig City,14.5626152,121.0636768,,pillar,yellow,https://www.openstreetmap.org/node/6497169683
+Pasig City,14.5721364,121.0666094,,pillar,yellow,https://www.openstreetmap.org/node/6499272639
+Pasig City,14.5782733,121.0649469,,pillar,,https://www.openstreetmap.org/node/6499272653
+Pasig City,14.5766682,121.0670765,,,,https://www.openstreetmap.org/node/6499272659
+Pasig City,14.5766299,121.0682605,,,,https://www.openstreetmap.org/node/6499272663
+Pasig City,14.5774915,121.0681812,,,,https://www.openstreetmap.org/node/6499272664
+Pasig City,14.5768768,121.0676527,,,,https://www.openstreetmap.org/node/6499272670
+Pasig City,14.5753031,121.0656169,,,,https://www.openstreetmap.org/node/6499272684
+Pasig City,14.5740467,121.0645734,,,,https://www.openstreetmap.org/node/6499272890
+Pasig City,14.5676763,121.0577243,,pillar,yellow,https://www.openstreetmap.org/node/6501419992
+Pasig City,14.5691061,121.0601749,,pillar,,https://www.openstreetmap.org/node/6501419994
+Pasig City,14.5675031,121.0659068,,,,https://www.openstreetmap.org/node/6501420000
+Pasig City,14.5695175,121.0660865,,,,https://www.openstreetmap.org/node/6501420001
+Pasig City,14.5715112,121.0641607,,,,https://www.openstreetmap.org/node/6501420004
+Pasig City,14.5754324,121.0592597,,pillar,,https://www.openstreetmap.org/node/6501420015
+Pasig City,14.579643,121.0803316,,pillar,yellow,https://www.openstreetmap.org/node/6501474005
+Pasig City,14.5816683,121.0817712,,pillar,,https://www.openstreetmap.org/node/6501474013
+Pasig City,14.5797801,121.0792427,,pillar,,https://www.openstreetmap.org/node/6501474036
+Pasig City,14.5802286,121.080022,,pillar,,https://www.openstreetmap.org/node/6501474040
+Pasig City,14.5805451,121.0799743,,pillar,,https://www.openstreetmap.org/node/6501474044
+Pasig City,14.590389,121.078686,,pillar,,https://www.openstreetmap.org/node/6501474060
+Pasig City,14.590218,121.0769574,,pillar,,https://www.openstreetmap.org/node/6501474061
+Pasig City,14.5901748,121.0755546,,pillar,,https://www.openstreetmap.org/node/6501474062
+Pasig City,14.5899403,121.0731093,,pillar,,https://www.openstreetmap.org/node/6501474063
+Pasig City,14.5899774,121.0726534,,pillar,,https://www.openstreetmap.org/node/6501474064
+Pasig City,14.5880604,121.0682251,,pillar,,https://www.openstreetmap.org/node/6501474068
+Pasig City,14.5852766,121.0683333,,pillar,,https://www.openstreetmap.org/node/6501474069
+Pasig City,14.580112,121.066743,,pillar,,https://www.openstreetmap.org/node/6501474074
+Pasig City,14.5770674,121.0694088,,pillar,,https://www.openstreetmap.org/node/6501474077
+Pasig City,14.5546945,121.0860741,,,,https://www.openstreetmap.org/node/6501530423
+Pasig City,14.554967,121.0814464,,underground,,https://www.openstreetmap.org/node/6501530430
+Pasig City,14.5555908,121.0760366,,pillar,yellow,https://www.openstreetmap.org/node/6501530436
+Pasig City,14.5560688,121.0766273,,underground,,https://www.openstreetmap.org/node/6501530441
+Pasig City,14.5559266,121.0664971,,,,https://www.openstreetmap.org/node/6501544231
+Pasig City,14.5535931,121.0701893,,pillar,,https://www.openstreetmap.org/node/6501544256
+Pasig City,14.5538502,121.0681564,,pillar,,https://www.openstreetmap.org/node/6501544257
+Pasig City,14.549377,121.0797224,,underground,,https://www.openstreetmap.org/node/6501680733
+Pasig City,14.5545612,121.0736625,,underground,,https://www.openstreetmap.org/node/6501680766
+Pasig City,14.5532164,121.0757359,,underground,,https://www.openstreetmap.org/node/6501680778
+Pasig City,14.5645135,121.0711283,,,,https://www.openstreetmap.org/node/6501837944
+Pasig City,14.5657818,121.0708697,,,,https://www.openstreetmap.org/node/6501837983
+Pasig City,14.5656051,121.072283,,pillar,,https://www.openstreetmap.org/node/6501838393
+Pasig City,14.5664133,121.072555,,pillar,,https://www.openstreetmap.org/node/6501838395
+Pasig City,14.5667486,121.0712643,,,,https://www.openstreetmap.org/node/6501838403
+Pasig City,14.557446,121.0750548,,pillar,yellow,https://www.openstreetmap.org/node/6501884873
+Pasig City,14.5583709,121.0729373,,pillar,yellow,https://www.openstreetmap.org/node/6501898316
+Pasig City,14.5573957,121.073939,,underground,,https://www.openstreetmap.org/node/6501898322
+Pasig City,14.5612255,121.0740234,,pillar,yellow,https://www.openstreetmap.org/node/6501984018
+Manila,14.5921066,121.0110683,,underground,,https://www.openstreetmap.org/node/6503288682
+Pasig City,14.5631682,121.0773243,,,,https://www.openstreetmap.org/node/6503415187
+Pasig City,14.563057,121.077284,,,,https://www.openstreetmap.org/node/6503606149
+Pasig City,14.5622282,121.0778972,,,,https://www.openstreetmap.org/node/6503606153
+Pasig City,14.5643925,121.0810337,,,,https://www.openstreetmap.org/node/6503618495
+Pasig City,14.5590701,121.0727936,,underground,,https://www.openstreetmap.org/node/6503784915
+Pasig City,14.5593688,121.0724262,,underground,,https://www.openstreetmap.org/node/6503784918
+Pasig City,14.5594516,121.0751362,,underground,,https://www.openstreetmap.org/node/6503784924
+Pasig City,14.5615406,121.0765617,,pillar,yellow,https://www.openstreetmap.org/node/6503784959
+Pasig City,14.5644878,121.0743168,,,,https://www.openstreetmap.org/node/6503784964
+Pasig City,14.5623868,121.0801765,,underground,,https://www.openstreetmap.org/node/6505804687
+Pasig City,14.5667117,121.0807736,,,,https://www.openstreetmap.org/node/6506020258
+Pasig City,14.5668879,121.0809184,,,,https://www.openstreetmap.org/node/6506020259
+Pasig City,14.5672992,121.0809324,,,,https://www.openstreetmap.org/node/6506020261
+Pasig City,14.5684488,121.0801757,,,,https://www.openstreetmap.org/node/6506020263
+Pasig City,14.5661365,121.0799635,,underground,,https://www.openstreetmap.org/node/6506020266
+Pasig City,14.5578878,121.0765824,,underground,,https://www.openstreetmap.org/node/6507616319
+Pasig City,14.5574101,121.0798719,,pillar,yellow,https://www.openstreetmap.org/node/6507616357
+Quezon City,14.6374966,121.0480759,,,,https://www.openstreetmap.org/node/6512362585
+Pasig City,14.5517553,121.0864138,,pillar,yellow,https://www.openstreetmap.org/node/6522427074
+Pasig City,14.5528403,121.0818707,,pillar,yellow,https://www.openstreetmap.org/node/6522427082
+Pasig City,14.5488277,121.0883446,,pillar,,https://www.openstreetmap.org/node/6522427083
+Pasig City,14.5501735,121.082657,,pillar,yellow,https://www.openstreetmap.org/node/6522427084
+Pasig City,14.5653435,121.0855557,,,,https://www.openstreetmap.org/node/6522443095
+Pasig City,14.5718336,121.0877685,,,,https://www.openstreetmap.org/node/6522443112
+Pasig City,14.5674574,121.0893807,,pillar,yellow,https://www.openstreetmap.org/node/6522443120
+Pasig City,14.5663501,121.0842703,,,,https://www.openstreetmap.org/node/6522443127
+Pasig City,14.5637779,121.0849819,,pillar,yellow,https://www.openstreetmap.org/node/6522549756
+Pasig City,14.5624561,121.0922768,,,,https://www.openstreetmap.org/node/6522549764
+Pasig City,14.5629514,121.0922885,,,,https://www.openstreetmap.org/node/6522549765
+Pasig City,14.5628836,121.0927602,,,,https://www.openstreetmap.org/node/6522549766
+Pasig City,14.5620555,121.0960814,,,,https://www.openstreetmap.org/node/6522549769
+Pasig City,14.5626149,121.089645,,pillar,,https://www.openstreetmap.org/node/6522549770
+Pasig City,14.5627054,121.0839225,,,,https://www.openstreetmap.org/node/6522549771
+Pasig City,14.5608029,121.0879621,,pillar,,https://www.openstreetmap.org/node/6522549773
+Pasig City,14.5592741,121.0852691,,pillar,yellow,https://www.openstreetmap.org/node/6522549774
+Pasig City,14.5890345,121.0972777,,,,https://www.openstreetmap.org/node/6522578600
+Pasig City,14.5869861,121.0968459,,pillar,yellow,https://www.openstreetmap.org/node/6522578603
+Pasig City,14.5719167,121.0803481,,pillar,yellow,https://www.openstreetmap.org/node/6522689707
+Pasig City,14.5733819,121.0800654,,,,https://www.openstreetmap.org/node/6522689713
+Pasig City,14.5737143,121.0800575,,,,https://www.openstreetmap.org/node/6522689714
+Pasig City,14.5682321,121.0787721,,,,https://www.openstreetmap.org/node/6522689750
+Pasig City,14.5692614,121.0765907,,pillar,yellow,https://www.openstreetmap.org/node/6522689761
+Pasig City,14.568684,121.076576,,pillar,yellow,https://www.openstreetmap.org/node/6522689762
+Pasig City,14.5668339,121.076161,,pillar,yellow,https://www.openstreetmap.org/node/6522689765
+Pasig City,14.5720495,121.0777207,,pillar,,https://www.openstreetmap.org/node/6522689771
+Manila,14.5872568,121.0212239,,pillar,yellow,https://www.openstreetmap.org/node/6523052926
+Pasig City,14.5779789,121.0823458,,pillar,yellow,https://www.openstreetmap.org/node/6524089841
+Pasig City,14.5772806,121.0830712,,,,https://www.openstreetmap.org/node/6524089843
+Pasig City,14.610912,121.0859191,,pillar,yellow,https://www.openstreetmap.org/node/6524138834
+Pasig City,14.6122968,121.0845775,,pillar,yellow,https://www.openstreetmap.org/node/6524138838
+Pasig City,14.613695,121.0832214,,pillar,yellow,https://www.openstreetmap.org/node/6524138844
+Pasig City,14.6148215,121.0820314,,,,https://www.openstreetmap.org/node/6524138850
+Pasig City,14.6173243,121.0814083,,pillar,yellow,https://www.openstreetmap.org/node/6524138858
+Pasig City,14.6169895,121.0863247,,pillar,yellow,https://www.openstreetmap.org/node/6524138861
+Pasig City,14.6148385,121.0808236,,underground,,https://www.openstreetmap.org/node/6524138870
+Pasig City,14.6147502,121.0803078,,underground,,https://www.openstreetmap.org/node/6524138871
+Pasig City,14.6118555,121.0834038,,,,https://www.openstreetmap.org/node/6524138875
+Pasig City,14.6120646,121.082823,,,,https://www.openstreetmap.org/node/6524138877
+Pasig City,14.6123821,121.0826092,,,,https://www.openstreetmap.org/node/6524138878
+Pasig City,14.6123565,121.0816911,,,,https://www.openstreetmap.org/node/6524138882
+Pasig City,14.6108761,121.0874486,,,,https://www.openstreetmap.org/node/6524138884
+Pasig City,14.6212081,121.0830999,,pillar,yellow,https://www.openstreetmap.org/node/6524158687
+Mandaluyong City,14.5822246,121.0208818,,pillar,yellow,https://www.openstreetmap.org/node/6524230803
+Mandaluyong City,14.5806314,121.0208268,,pillar,,https://www.openstreetmap.org/node/6524230809
+Mandaluyong City,14.5779041,121.0220674,,pillar,,https://www.openstreetmap.org/node/6524230813
+Mandaluyong City,14.5889366,121.0272092,,pillar,,https://www.openstreetmap.org/node/6525878414
+Manila,14.5913941,121.0198143,,pillar,,https://www.openstreetmap.org/node/6527234542
+Pasig City,14.5766444,121.0601583,,pillar,,https://www.openstreetmap.org/node/6528177228
+Pasig City,14.5794109,121.0583948,,pillar,,https://www.openstreetmap.org/node/6528177232
+Pasig City,14.5784889,121.0582501,,pillar,,https://www.openstreetmap.org/node/6528177270
+Pasig City,14.5807056,121.0617348,,pillar,,https://www.openstreetmap.org/node/6528177276
+Pasig City,14.5783989,121.0621174,,pillar,,https://www.openstreetmap.org/node/6528177282
+Mandaluyong City,14.5837437,121.0276436,,pillar,,https://www.openstreetmap.org/node/6531492394
+Mandaluyong City,14.5806762,121.0303192,,pillar,,https://www.openstreetmap.org/node/6531497161
+Mandaluyong City,14.5772811,121.0302561,,pillar,,https://www.openstreetmap.org/node/6533481082
+Mandaluyong City,14.5795009,121.0357634,,pillar,,https://www.openstreetmap.org/node/6534474462
+Mandaluyong City,14.5750477,121.0367659,,pillar,,https://www.openstreetmap.org/node/6534482771
+Mandaluyong City,14.5757505,121.0363045,,pillar,,https://www.openstreetmap.org/node/6534482781
+Mandaluyong City,14.5758368,121.041166,,pillar,,https://www.openstreetmap.org/node/6534579868
+Mandaluyong City,14.5801726,121.0192725,,pillar,,https://www.openstreetmap.org/node/6534613121
+Mandaluyong City,14.5805707,121.0200039,,pillar,,https://www.openstreetmap.org/node/6534613124
+Mandaluyong City,14.5813881,121.0190311,,pillar,,https://www.openstreetmap.org/node/6534613132
+Mandaluyong City,14.578765,121.0209432,,pillar,,https://www.openstreetmap.org/node/6534666055
+Mandaluyong City,14.5884959,121.0375679,,pillar,,https://www.openstreetmap.org/node/6534692514
+Mandaluyong City,14.5753491,121.0279099,,pillar,,https://www.openstreetmap.org/node/6534707471
+Mandaluyong City,14.5711765,121.0331375,,pillar,yellow,https://www.openstreetmap.org/node/6534711521
+Mandaluyong City,14.5842318,121.0251754,,pillar,,https://www.openstreetmap.org/node/6534718247
+Mandaluyong City,14.5819421,121.0251662,,pillar,,https://www.openstreetmap.org/node/6534718263
+Mandaluyong City,14.5845871,121.0311346,,pillar,,https://www.openstreetmap.org/node/6536260825
+Mandaluyong City,14.5889431,121.0448889,,pillar,,https://www.openstreetmap.org/node/6536470736
+Mandaluyong City,14.5826812,121.0486613,,pillar,,https://www.openstreetmap.org/node/6536607147
+Mandaluyong City,14.5703815,121.0383249,,pillar,yellow,https://www.openstreetmap.org/node/6536873931
+Mandaluyong City,14.5741368,121.0385054,,pillar,,https://www.openstreetmap.org/node/6536873955
+Pasig City,14.5908739,121.0919511,,pillar,yellow,https://www.openstreetmap.org/node/6541304616
+Pasig City,14.5943819,121.0906567,,,,https://www.openstreetmap.org/node/6541304619
+Pasig City,14.5915208,121.0899724,,,,https://www.openstreetmap.org/node/6541304620
+Pasig City,14.5886066,121.0851659,,,,https://www.openstreetmap.org/node/6541304629
+Pasig City,14.588546,121.0867922,,pillar,yellow,https://www.openstreetmap.org/node/6541304632
+Pasig City,14.5992742,121.1000803,,pillar,yellow,https://www.openstreetmap.org/node/6541380978
+Pasig City,14.6063482,121.0978391,,,,https://www.openstreetmap.org/node/6541412689
+Pasig City,14.6128546,121.0940048,,pillar,,https://www.openstreetmap.org/node/6541717595
+Pasig City,14.612139,121.096995,,,,https://www.openstreetmap.org/node/6541717615
+Pasig City,14.6127809,121.0992949,,,,https://www.openstreetmap.org/node/6541717620
+Pasig City,14.6138632,121.0981552,,pillar,,https://www.openstreetmap.org/node/6541717622
+Pasig City,14.6162341,121.0971872,,pillar,,https://www.openstreetmap.org/node/6541717629
+Pasig City,14.6120188,121.1019219,,pillar,,https://www.openstreetmap.org/node/6541717647
+Pasig City,14.6098827,121.1019792,,,,https://www.openstreetmap.org/node/6541717649
+Pasig City,14.6094397,121.1031899,,,,https://www.openstreetmap.org/node/6541717652
+Pasig City,14.5596688,121.0912127,,,,https://www.openstreetmap.org/node/6542375607
+Pasig City,14.5547302,121.0931585,,pillar,yellow,https://www.openstreetmap.org/node/6542375612
+Pasig City,14.5573614,121.0874426,,pillar,,https://www.openstreetmap.org/node/6542375618
+Pasig City,14.5584346,121.0890587,,,,https://www.openstreetmap.org/node/6542375619
+Pasig City,14.5585042,121.0868195,,,,https://www.openstreetmap.org/node/6542375624
+Pasig City,14.5528435,121.0903835,,pillar,yellow,https://www.openstreetmap.org/node/6542375631
+Pasig City,14.5563709,121.0881401,,,,https://www.openstreetmap.org/node/6542375632
+Pasig City,14.5544135,121.0888683,,pillar,yellow,https://www.openstreetmap.org/node/6542375634
+Pasig City,14.5585582,121.0971975,,,,https://www.openstreetmap.org/node/6542375642
+Pasig City,14.5548089,121.0975304,,,,https://www.openstreetmap.org/node/6542375643
+Pasig City,14.5525086,121.0997382,,pillar,,https://www.openstreetmap.org/node/6542375644
+Pasig City,14.5499621,121.102184,,pillar,yellow,https://www.openstreetmap.org/node/6542375646
+Pasig City,14.5580278,121.0946339,,,,https://www.openstreetmap.org/node/6542375647
+Pasig City,14.5569239,121.0953914,,pillar,yellow,https://www.openstreetmap.org/node/6542375648
+Pasig City,14.5569871,121.0918377,,pillar,,https://www.openstreetmap.org/node/6542375650
+Mandaluyong City,14.5824841,121.0427485,,pillar,,https://www.openstreetmap.org/node/6543749858
+Mandaluyong City,14.5740113,121.0402487,,pillar,,https://www.openstreetmap.org/node/6546436628
+Mandaluyong City,14.5726484,121.0387819,,pillar,,https://www.openstreetmap.org/node/6546436638
+Manila,14.5855932,121.0104273,,pillar,,https://www.openstreetmap.org/node/6548587784
+Manila,14.587516,121.0171375,,pillar,yellow,https://www.openstreetmap.org/node/6548632004
+Manila,14.5875401,121.0160311,,pillar,,https://www.openstreetmap.org/node/6548632010
+Makati City,14.5650228,121.0407852,,pillar,,https://www.openstreetmap.org/node/6552178926
+Makati City,14.56613,121.0406866,,pillar,,https://www.openstreetmap.org/node/6552178931
+Makati City,14.5668393,121.039315,,pillar,,https://www.openstreetmap.org/node/6552178944
+Manila,14.5842084,121.0181567,,pillar,,https://www.openstreetmap.org/node/6552433799
+Manila,14.5832603,121.0153739,,pillar,,https://www.openstreetmap.org/node/6552433822
+Manila,14.5826801,121.0167418,,pillar,,https://www.openstreetmap.org/node/6552433826
+Manila,14.5805756,121.0136754,,pillar,,https://www.openstreetmap.org/node/6554476251
+Manila,14.5779674,121.0137532,,pillar,,https://www.openstreetmap.org/node/6554537769
+Manila,14.5789019,121.0146081,,pillar,,https://www.openstreetmap.org/node/6554799308
+Makati City,14.5768648,121.015046,,pillar,,https://www.openstreetmap.org/node/6554799332
+Makati City,14.5714913,121.0144687,,pillar,,https://www.openstreetmap.org/node/6556672322
+Makati City,14.5724255,121.0141388,,pillar,yellow,https://www.openstreetmap.org/node/6556682428
+Makati City,14.5741641,121.0129787,,pillar,,https://www.openstreetmap.org/node/6556824469
+Makati City,14.5701076,121.0146393,,pillar,yellow,https://www.openstreetmap.org/node/6559226484
+Makati City,14.5679841,121.0135379,,pillar,,https://www.openstreetmap.org/node/6559799668
+Quezon City,14.611794,121.0507134,,pillar,,https://www.openstreetmap.org/node/6567017966
+Makati City,14.5711188,121.011297,,pillar,,https://www.openstreetmap.org/node/6567123619
+Makati City,14.5691582,121.007169,,pillar,,https://www.openstreetmap.org/node/6568964424
+Makati City,14.5685202,121.0086429,,pillar,,https://www.openstreetmap.org/node/6568964455
+Makati City,14.5699103,121.0085477,,pillar,,https://www.openstreetmap.org/node/6568964472
+Makati City,14.5678212,121.0204647,,pillar,,https://www.openstreetmap.org/node/6569296383
+Makati City,14.5687597,121.0170536,,pillar,,https://www.openstreetmap.org/node/6569577772
+Makati City,14.566335,121.0170134,,pillar,,https://www.openstreetmap.org/node/6571725395
+Makati City,14.5668263,121.0294086,,pillar,,https://www.openstreetmap.org/node/6576469915
+Makati City,14.5653181,121.0286877,,pillar,,https://www.openstreetmap.org/node/6576469919
+Makati City,14.5588494,121.0158074,,pillar,yellow,https://www.openstreetmap.org/node/6577863288
+Makati City,14.5724985,121.0260344,,pillar,,https://www.openstreetmap.org/node/6577920807
+Makati City,14.5710169,121.0255737,,pillar,,https://www.openstreetmap.org/node/6578103163
+Makati City,14.5695352,121.0297479,,pillar,,https://www.openstreetmap.org/node/6578195735
+Makati City,14.5646269,121.0156629,,pillar,,https://www.openstreetmap.org/node/6579313003
+Makati City,14.5519515,121.0266553,,pillar,yellow,https://www.openstreetmap.org/node/6580256520
+Makati City,14.5675944,121.0324747,,pillar,yellow,https://www.openstreetmap.org/node/6580983450
+Makati City,14.5668445,121.0345202,,pillar,yellow,https://www.openstreetmap.org/node/6581201165
+Makati City,14.5621334,121.0059359,,pillar,,https://www.openstreetmap.org/node/6583366540
+Makati City,14.5626435,121.010275,,pillar,,https://www.openstreetmap.org/node/6583714274
+Makati City,14.56483,121.0086127,,pillar,yellow,https://www.openstreetmap.org/node/6583748192
+Manila,14.5703935,121.0073796,,pillar,,https://www.openstreetmap.org/node/6585753900
+Manila,14.5687415,121.0057307,,pillar,,https://www.openstreetmap.org/node/6585841103
+Mandaluyong City,14.5837853,121.0286538,,pillar,yellow,https://www.openstreetmap.org/node/6587830019
+Pasig City,14.5661687,121.0701022,,pillar,,https://www.openstreetmap.org/node/6593099985
+Pasig City,14.584406,121.06604,,pillar,,https://www.openstreetmap.org/node/6593100986
+Taguig City,14.5458175,121.0489443,,pillar,,https://www.openstreetmap.org/node/6593100987
+Manila,14.5703718,121.0073375,,pillar,,https://www.openstreetmap.org/node/6596874188
+Taguig City,14.5544879,121.0468924,,pillar,,https://www.openstreetmap.org/node/6596890186
+Taguig City,14.5535245,121.0481924,,pillar,,https://www.openstreetmap.org/node/6596895785
+Makati City,14.5752377,121.0165093,,pillar,,https://www.openstreetmap.org/node/6596895786
+Pasig City,14.5768616,121.0629433,,pillar,,https://www.openstreetmap.org/node/6600832797
+Marikina City,14.6542928,121.1137767,,pillar,,https://www.openstreetmap.org/node/6600833603
+Marikina City,14.6343081,121.0867508,,pillar,,https://www.openstreetmap.org/node/6600833604
+Quezon City,14.6361423,121.0379771,,pillar,,https://www.openstreetmap.org/node/6600833606
+Taguig City,14.5587423,121.0542848,,pillar,,https://www.openstreetmap.org/node/6600833694
+Taguig City,14.5526307,121.0519575,,pillar,,https://www.openstreetmap.org/node/6600833695
+Quezon City,14.6336586,121.0285654,,pillar,,https://www.openstreetmap.org/node/6600833696
+Taguig City,14.5545219,121.0479899,,pillar,,https://www.openstreetmap.org/node/6600847705
+Taguig City,14.5514195,121.0571041,,pillar,,https://www.openstreetmap.org/node/6601707387
+Quezon City,14.631993,121.028178,,pillar,,https://www.openstreetmap.org/node/6601716686
+Taguig City,14.5540143,121.0461743,,pillar,,https://www.openstreetmap.org/node/6601716687
+Taguig City,14.5584204,121.0564605,,pillar,,https://www.openstreetmap.org/node/6601723985
+Quezon City,14.6309819,121.0500498,,pillar,,https://www.openstreetmap.org/node/6601739785
+Taguig City,14.557223,121.0588279,,pillar,,https://www.openstreetmap.org/node/6639348185
+Taguig City,14.557436,121.0537726,,pillar,,https://www.openstreetmap.org/node/6641041086
+Quezon City,14.6351622,121.03314,,pillar,,https://www.openstreetmap.org/node/6641095399
+Taguig City,14.5571265,121.0534864,,pillar,yellow,https://www.openstreetmap.org/node/6641095491
+Taguig City,14.5541558,121.0492337,,pillar,,https://www.openstreetmap.org/node/6735712485
+Makati City,14.555404,121.0104402,,pillar,,https://www.openstreetmap.org/node/6735715885
+Marikina City,14.6495077,121.1058454,,pillar,yellow,https://www.openstreetmap.org/node/6735715886
+Pasig City,14.5752856,121.0615365,,pillar,,https://www.openstreetmap.org/node/6735715887
+Marikina City,14.6406821,121.1170114,,pillar,,https://www.openstreetmap.org/node/6735725685
+Taguig City,14.5543531,121.0450742,,pillar,,https://www.openstreetmap.org/node/6735725686
+Quezon City,14.6379472,121.0317485,,pillar,,https://www.openstreetmap.org/node/6735739589
+Quezon City,14.643026,121.0168234,,underground,,https://www.openstreetmap.org/node/6741791701
+Malabon City,14.6672223,120.9480135,,,,https://www.openstreetmap.org/node/6825807885
+Taguig City,14.5504849,121.0531951,,pillar,yellow,https://www.openstreetmap.org/node/6838750186
+Marikina City,14.6505539,121.0961215,,pillar,yellow,https://www.openstreetmap.org/node/6864996942
+Manila,14.5768591,120.9906106,,,,https://www.openstreetmap.org/node/6903056285
+Manila,14.5771057,120.9903848,,,,https://www.openstreetmap.org/node/6903056385
+Makati City,14.5453435,121.0101993,,underground,,https://www.openstreetmap.org/node/6924143801
+Makati City,14.5585631,121.0077357,,pillar,,https://www.openstreetmap.org/node/6929037689
+Makati City,14.5572664,121.0093805,,pillar,,https://www.openstreetmap.org/node/6929371004
+Marikina City,14.6513563,121.096696,,,,https://www.openstreetmap.org/node/6971033073
+Marikina City,14.6499848,121.0978923,,pillar,yellow,https://www.openstreetmap.org/node/6971033074
+Mandaluyong City,14.5741858,121.0426627,,pillar,,https://www.openstreetmap.org/node/6975534785
+Mandaluyong City,14.5732551,121.0459955,,pillar,yellow,https://www.openstreetmap.org/node/6975534885
+Makati City,14.5668188,121.023728,,pillar,,https://www.openstreetmap.org/node/6975535288
+Makati City,14.5509152,121.0291709,,pillar,yellow,https://www.openstreetmap.org/node/6975535291
+Makati City,14.55834,121.0224817,,pillar,yellow,https://www.openstreetmap.org/node/6975535292
+Makati City,14.5686052,121.0280585,,pillar,yellow,https://www.openstreetmap.org/node/6975535586
+Makati City,14.5614744,121.0222537,,pillar,yellow,https://www.openstreetmap.org/node/6975535587
+Makati City,14.5609431,121.0222491,,pillar,yellow,https://www.openstreetmap.org/node/6975535588
+Makati City,14.5658108,121.023306,,pillar,,https://www.openstreetmap.org/node/6975535590
+Makati City,14.5605472,121.0227748,,pillar,yellow,https://www.openstreetmap.org/node/6975535785
+Taguig City,14.5479748,121.0475544,,pillar,,https://www.openstreetmap.org/node/6976286558
+Taguig City,14.553648,121.0475712,,pillar,,https://www.openstreetmap.org/node/6978607547
+Quezon City,14.6609104,121.0819538,,pillar,,https://www.openstreetmap.org/node/6984037679
+Taguig City,14.5528608,121.0570115,,pillar,yellow,https://www.openstreetmap.org/node/6986505974
+Taguig City,14.5529367,121.046334,,pillar,yellow,https://www.openstreetmap.org/node/6986715328
+Taguig City,14.5512632,121.0456352,,pillar,yellow,https://www.openstreetmap.org/node/6986715346
+Taguig City,14.552816,121.0452926,,pillar,yellow,https://www.openstreetmap.org/node/6991241174
+Taguig City,14.5539243,121.0467252,,pillar,,https://www.openstreetmap.org/node/6991250012
+Taguig City,14.5559436,121.0582313,,pillar,yellow,https://www.openstreetmap.org/node/6991734243
+Taguig City,14.5582919,121.0558726,,pillar,yellow,https://www.openstreetmap.org/node/6992005126
+Makati City,14.5527738,121.0257361,,pillar,yellow,https://www.openstreetmap.org/node/6998128278
+Pasig City,14.5778743,121.0752277,,pillar,,https://www.openstreetmap.org/node/7003977645
+Makati City,14.556154,121.0252565,,pillar,yellow,https://www.openstreetmap.org/node/7007213050
+Makati City,14.5548819,121.0226756,,pillar,yellow,https://www.openstreetmap.org/node/7007461198
+Makati City,14.5548092,121.0218615,,pillar,yellow,https://www.openstreetmap.org/node/7007461208
+Makati City,14.5480215,121.0145317,,pillar,yellow,https://www.openstreetmap.org/node/7007588073
+Makati City,14.5611157,121.0189017,,pillar,yellow,https://www.openstreetmap.org/node/7012880529
+Makati City,14.5580602,121.0167365,,pillar,yellow,https://www.openstreetmap.org/node/7013106142
+Makati City,14.5583399,121.0163911,,pillar,yellow,https://www.openstreetmap.org/node/7013106143
+Makati City,14.5561267,121.0173061,,pillar,yellow,https://www.openstreetmap.org/node/7013372277
+Makati City,14.5542283,121.0199645,,pillar,yellow,https://www.openstreetmap.org/node/7013402396
+Makati City,14.552841,121.018381,,pillar,yellow,https://www.openstreetmap.org/node/7013402407
+Makati City,14.5566953,121.0189258,,pillar,yellow,https://www.openstreetmap.org/node/7013402419
+Makati City,14.5553868,121.0152321,,pillar,yellow,https://www.openstreetmap.org/node/7015936220
+Pasay City,14.5400301,120.9823372,,,,https://www.openstreetmap.org/node/7040828287
+Manila,14.5725304,120.9943941,,,,https://www.openstreetmap.org/node/7082741487
+Pasig City,14.5890625,121.0775452,,pillar,yellow,https://www.openstreetmap.org/node/7087880726
+Quezon City,14.6064006,121.079058,,pillar,yellow,https://www.openstreetmap.org/node/7087923205
+Manila,14.5761398,121.0102158,,pillar,yellow,https://www.openstreetmap.org/node/7111148574
+Taguig City,14.5417006,121.0843392,,pillar,yellow,https://www.openstreetmap.org/node/7187286284
+Taguig City,14.5407273,121.0886163,,pillar,yellow,https://www.openstreetmap.org/node/7187287098
+Pasig City,14.559722,121.0750249,,pillar,yellow,https://www.openstreetmap.org/node/7190026767
+Pasig City,14.56772,121.0693795,,pillar,yellow,https://www.openstreetmap.org/node/7192253810
+Taguig City,14.5444546,121.0602492,,pillar,yellow,https://www.openstreetmap.org/node/7192804014
+Taguig City,14.5485459,121.0638421,,pillar,yellow,https://www.openstreetmap.org/node/7194651855
+Taguig City,14.5484281,121.0595277,,pillar,yellow,https://www.openstreetmap.org/node/7194693093
+Taguig City,14.5567235,121.0644818,,pillar,yellow,https://www.openstreetmap.org/node/7194821463
+Taguig City,14.5212971,121.0573478,,pipe,yellow,https://www.openstreetmap.org/node/7200196208
+Taguig City,14.4894715,121.0609654,,pillar,yellow,https://www.openstreetmap.org/node/7205379963
+Taguig City,14.4934421,121.0617265,,pillar,yellow,https://www.openstreetmap.org/node/7205398853
+Taguig City,14.5658314,121.0488948,,pillar,yellow,https://www.openstreetmap.org/node/7217921840
+Parañaque City,14.4894328,121.0191498,,underground,,https://www.openstreetmap.org/node/7224756180
+Parañaque City,14.4849759,121.0298122,,underground,,https://www.openstreetmap.org/node/7227200898
+Parañaque City,14.4867184,121.0274425,,underground,,https://www.openstreetmap.org/node/7227200913
+Quezon City,14.6362447,121.0296198,,pillar,yellow,https://www.openstreetmap.org/node/7234355881
+Makati City,14.5622599,121.0494943,,pillar,yellow,https://www.openstreetmap.org/node/7257236157
+Makati City,14.5600221,121.0201336,,pillar,yellow,https://www.openstreetmap.org/node/7273671690
+Quezon City,14.6167837,121.0694278,,pillar,yellow,https://www.openstreetmap.org/node/7314367978
+Quezon City,14.6100891,121.0366961,,pillar,yellow,https://www.openstreetmap.org/node/7388825776
+Mandaluyong City,14.5887646,121.0355428,,pillar,yellow,https://www.openstreetmap.org/node/7391430746
+Mandaluyong City,14.5735239,121.0300181,,pillar,yellow,https://www.openstreetmap.org/node/7393797402
+Quezon City,14.6156077,121.0580623,,pillar,yellow,https://www.openstreetmap.org/node/7400262925
+Mandaluyong City,14.5712083,121.0414423,,pillar,yellow,https://www.openstreetmap.org/node/7418270255
+Marikina City,14.6362626,121.0944086,,pillar,yellow,https://www.openstreetmap.org/node/7450922393
+Marikina City,14.6358565,121.0962901,,pillar,yellow,https://www.openstreetmap.org/node/7451181012
+Marikina City,14.6504458,121.1026815,,pillar,yellow,https://www.openstreetmap.org/node/7451372151
+Marikina City,14.6576413,121.1038469,,pillar,yellow,https://www.openstreetmap.org/node/7455811344
+Marikina City,14.6220115,121.0986167,,pillar,yellow,https://www.openstreetmap.org/node/7457105362
+Taguig City,14.4790898,121.0508019,,pillar,yellow,https://www.openstreetmap.org/node/7488182174
+Quezon City,14.6309603,121.0255264,,pillar,yellow,https://www.openstreetmap.org/node/7505809555
+Quezon City,14.6314161,121.0548145,,pillar,yellow,https://www.openstreetmap.org/node/7509184585
+Quezon City,14.6310301,121.0705389,,pillar,yellow,https://www.openstreetmap.org/node/7509599831
+Marikina City,14.6325446,121.0997364,,pillar,yellow,https://www.openstreetmap.org/node/7814583880
+Quezon City,14.613909,121.0466103,,pillar,yellow,https://www.openstreetmap.org/node/8363103403
+Quezon City,14.6255495,121.0531904,,pillar,yellow,https://www.openstreetmap.org/node/8363923166
+Quezon City,14.6367311,121.0602909,,pillar,yellow,https://www.openstreetmap.org/node/8366278424
+Quezon City,14.6458931,121.0546421,,pillar,yellow,https://www.openstreetmap.org/node/8366928606
+Quezon City,14.6381253,121.0516964,,pillar,yellow,https://www.openstreetmap.org/node/8367118405
+Quezon City,14.6288429,121.0410178,,pillar,yellow,https://www.openstreetmap.org/node/8370321704
+Quezon City,14.6293055,121.0452638,,pillar,yellow,https://www.openstreetmap.org/node/8370321715
+Quezon City,14.6191871,121.0313143,,pillar,yellow,https://www.openstreetmap.org/node/8370899083
+Quezon City,14.6187627,121.0357051,,pillar,yellow,https://www.openstreetmap.org/node/8370899110
+Pasig City,14.5726679,121.0600092,,pillar,yellow,https://www.openstreetmap.org/node/8410331924
+Taguig City,14.5127582,121.0698757,,pillar,yellow,https://www.openstreetmap.org/node/8452288818
+Quezon City,14.6106429,121.0438898,,pillar,yellow,https://www.openstreetmap.org/node/8584736475
+Pasig City,14.572291,121.0669408,,pillar,yellow,https://www.openstreetmap.org/node/8588848060
+Taguig City,14.5460742,121.0833457,,pillar,yellow,https://www.openstreetmap.org/node/8604410350
+Pasig City,14.549156,121.0815286,,pillar,yellow,https://www.openstreetmap.org/node/8604410368
+Pasig City,14.6032317,121.1023814,,pillar,yellow,https://www.openstreetmap.org/node/8606336940
+Pateros,14.5471427,121.0704879,,pillar,yellow,https://www.openstreetmap.org/node/8609303229
+Pateros,14.5395168,121.0676629,,wall,,https://www.openstreetmap.org/node/8609480008
+Taguig City,14.4891306,121.0471071,,pillar,yellow,https://www.openstreetmap.org/node/8613867539
+Quezon City,14.5989163,121.0712939,,pillar,yellow,https://www.openstreetmap.org/node/8620239340
+Quezon City,14.6109833,121.0709401,,pillar,yellow,https://www.openstreetmap.org/node/8620948730
+Pasig City,14.6152128,121.0818019,,pillar,yellow,https://www.openstreetmap.org/node/8621292460
+Pasig City,14.6187614,121.0819403,,pillar,yellow,https://www.openstreetmap.org/node/8621292463
+Pasig City,14.6120445,121.0874972,,pillar,yellow,https://www.openstreetmap.org/node/8625183273
+Quezon City,14.5996664,121.0886002,,pillar,red,https://www.openstreetmap.org/node/8627397164
+Taguig City,14.533641,121.0368633,,pillar,yellow,https://www.openstreetmap.org/node/8627721799
+Quezon City,14.6187831,121.0640927,,pillar,yellow,https://www.openstreetmap.org/node/8634771584
+Quezon City,14.6235414,121.0619409,,pillar,yellow,https://www.openstreetmap.org/node/8634936985
+Quezon City,14.6596073,121.0828409,,pillar,,https://www.openstreetmap.org/node/8663725996
+Quezon City,14.6525666,121.0355068,,wall,,https://www.openstreetmap.org/node/8677668941
+Quezon City,14.6528232,121.0355666,,wall,,https://www.openstreetmap.org/node/8677668943
+Quezon City,14.6343621,121.0371192,,pillar,yellow,https://www.openstreetmap.org/node/8686736400
+Taguig City,14.536888,121.0419264,,pillar,red,https://www.openstreetmap.org/node/8687017451
+Taguig City,14.53674,121.0449976,,pillar,red,https://www.openstreetmap.org/node/8687019027
+Quezon City,14.6232384,121.0539052,,pillar,yellow,https://www.openstreetmap.org/node/8708128350
+Quezon City,14.6247875,121.0571408,,pillar,yellow,https://www.openstreetmap.org/node/8708159093
+Taguig City,14.5612559,121.0538703,,pillar,yellow,https://www.openstreetmap.org/node/8713615231
+Taguig City,14.5608457,121.0540125,,pillar,,https://www.openstreetmap.org/node/8713635384
+Taguig City,14.554924,121.0526834,,pillar,yellow,https://www.openstreetmap.org/node/8713660495
+Taguig City,14.5486634,121.0451049,,pillar,yellow,https://www.openstreetmap.org/node/8713664893
+Taguig City,14.548148,121.0456252,,pillar,yellow,https://www.openstreetmap.org/node/8713665360
+Taguig City,14.5486141,121.0458197,,pillar,yellow,https://www.openstreetmap.org/node/8713704773
+Taguig City,14.5476106,121.0459082,,pillar,yellow,https://www.openstreetmap.org/node/8713709932
+Quezon City,14.6348659,121.0706984,,,,https://www.openstreetmap.org/node/8735448390
+San Juan City,14.6026088,121.0500653,,pipe,yellow,https://www.openstreetmap.org/node/8754651531
+Taguig City,14.5486378,121.0486169,,pillar,yellow,https://www.openstreetmap.org/node/8754925641
+Manila,14.5789759,121.0019716,,pillar,yellow,https://www.openstreetmap.org/node/8759392949
+Makati City,14.5709189,121.0200597,,pillar,yellow,https://www.openstreetmap.org/node/8760387684
+Makati City,14.5718158,121.0192651,,pillar,yellow,https://www.openstreetmap.org/node/8760478177
+Manila,14.6161822,120.9933195,,pillar,yellow,https://www.openstreetmap.org/node/8763766156
+Mandaluyong City,14.5818029,121.0443178,,,,https://www.openstreetmap.org/node/8862177219
+Pateros,14.5469252,121.0760775,,pillar,yellow,https://www.openstreetmap.org/node/8918679623
+Makati City,14.5727951,121.0162483,,pillar,yellow,https://www.openstreetmap.org/node/9121332501
+Pasig City,14.5844641,121.0704041,,pillar,yellow,https://www.openstreetmap.org/node/9125470912
+Makati City,14.560248,121.0067915,,pillar,yellow,https://www.openstreetmap.org/node/9128301671
+Taguig City,14.5581452,121.0430496,,pillar,yellow,https://www.openstreetmap.org/node/9128682268
+Taguig City,14.5563504,121.060816,,pillar,yellow,https://www.openstreetmap.org/node/9128936370
+Taguig City,14.560346,121.061229,,pillar,yellow,https://www.openstreetmap.org/node/9128938996
+Taguig City,14.5592563,121.0627045,,pillar,yellow,https://www.openstreetmap.org/node/9128938997
+Quezon City,14.6222917,121.032418,,pillar,yellow,https://www.openstreetmap.org/node/9363471274
+Quezon City,14.665206,121.0807978,,pillar,,https://www.openstreetmap.org/node/9366386262
+Pasig City,14.5575565,121.0968661,,pillar,yellow,https://www.openstreetmap.org/node/9544018958
+Taguig City,14.5081985,121.0391115,,pillar,yellow,https://www.openstreetmap.org/node/9632404890
+Manila,14.6322699,120.9514389,,underground,,https://www.openstreetmap.org/node/9739970254
+Manila,14.6322855,120.9436208,,underground,,https://www.openstreetmap.org/node/9739983888
+Manila,14.6303287,120.946008,,underground,,https://www.openstreetmap.org/node/9740007997
+Manila,14.6333442,120.9572056,,underground,,https://www.openstreetmap.org/node/9740008137
+Manila,14.6246186,120.9729247,,underground,,https://www.openstreetmap.org/node/9740073325
+Manila,14.6308477,120.9553334,,underground,,https://www.openstreetmap.org/node/9740506644
+Manila,14.6322855,120.9496417,,underground,,https://www.openstreetmap.org/node/9740516444
+Manila,14.6308737,120.956712,,underground,,https://www.openstreetmap.org/node/9740519749
+Pateros,14.5498641,121.073036,,pillar,yellow,https://www.openstreetmap.org/node/9763021765
+Quezon City,14.6094328,121.0487439,,pillar,yellow,https://www.openstreetmap.org/node/9768418438
+Mandaluyong City,14.5700045,121.0318467,,pillar,yellow,https://www.openstreetmap.org/node/9768723656
+Quezon City,14.6157203,121.0454629,,pillar,yellow,https://www.openstreetmap.org/node/9771012948
+Mandaluyong City,14.5828826,121.0248904,,pillar,yellow,https://www.openstreetmap.org/node/9771713498
+Taguig City,14.4761895,121.0483948,,,,https://www.openstreetmap.org/node/9774207435
+Pasig City,14.5639767,121.0637159,,pillar,yellow,https://www.openstreetmap.org/node/9784485585
+Pasig City,14.5562922,121.0739902,,pillar,yellow,https://www.openstreetmap.org/node/9789454677
+Taguig City,14.5379592,121.0976545,,pillar,yellow,https://www.openstreetmap.org/node/9796185095
+Taguig City,14.5401418,121.0963169,,pillar,yellow,https://www.openstreetmap.org/node/9796187367
+Pateros,14.5475636,121.0738484,,pillar,yellow,https://www.openstreetmap.org/node/9797739140
+Pasig City,14.5432374,121.1030971,,pillar,,https://www.openstreetmap.org/node/9818820038
+Pasig City,14.543307,121.10314,,pillar,,https://www.openstreetmap.org/node/9818824591
+Pasig City,14.5399468,121.1015927,,pillar,,https://www.openstreetmap.org/node/9818833124
+Pasig City,14.5400734,121.1015341,,pillar,,https://www.openstreetmap.org/node/9818833125
+Pasig City,14.5604772,121.0930131,,pillar,,https://www.openstreetmap.org/node/9818883317
+Pasig City,14.5600698,121.087603,,pillar,,https://www.openstreetmap.org/node/9818907239
+Manila,14.5856692,121.0060029,,pillar,yellow,https://www.openstreetmap.org/node/9819409492
+Pasig City,14.5699916,121.0817679,,pillar,,https://www.openstreetmap.org/node/9819580332
+Manila,14.5755299,121.007789,,pillar,yellow,https://www.openstreetmap.org/node/9821572944
+Manila,14.5794617,121.0065806,,pillar,yellow,https://www.openstreetmap.org/node/9821713066
+Marikina City,14.6343552,121.0867334,,pillar,yellow,https://www.openstreetmap.org/node/9824216031
+Taguig City,14.5460791,121.0648609,,pillar,yellow,https://www.openstreetmap.org/node/9829636877
+Pateros,14.5451788,121.0660724,,pillar,yellow,https://www.openstreetmap.org/node/9829636890
+Taguig City,14.5354265,121.0677337,,pillar,yellow,https://www.openstreetmap.org/node/9832144350
+Makati City,14.5665988,121.0416287,,pillar,yellow,https://www.openstreetmap.org/node/9832231324
+Taguig City,14.5664587,121.0495541,,pillar,yellow,https://www.openstreetmap.org/node/9832279832
+Taguig City,14.5573612,121.0657015,,pillar,yellow,https://www.openstreetmap.org/node/9834884964
+Pateros,14.5425243,121.0646488,,pillar,yellow,https://www.openstreetmap.org/node/9840268484
+Taguig City,14.5321402,121.0815132,,pillar,yellow,https://www.openstreetmap.org/node/9847597369
+Pasig City,14.5812141,121.0870546,,pillar,yellow,https://www.openstreetmap.org/node/9852306557
+Pasig City,14.5752054,121.0907614,,pillar,yellow,https://www.openstreetmap.org/node/9859410558
+Las Piñas City,14.3991224,121.0043209,,pillar,,https://www.openstreetmap.org/node/9878556859
+Las Piñas City,14.3993347,121.0070261,,pillar,,https://www.openstreetmap.org/node/9878556860
+Las Piñas City,14.3990215,121.0031337,,pillar,,https://www.openstreetmap.org/node/9878556863
+Las Piñas City,14.3982302,121.0074787,,pillar,,https://www.openstreetmap.org/node/9878556864
+Las Piñas City,14.3992635,121.0057539,,pillar,,https://www.openstreetmap.org/node/9878556865
+Pasig City,14.5811106,121.0597672,,wall,,https://www.openstreetmap.org/node/9980698972
+Quezon City,14.6261503,121.0302112,,pillar,yellow,https://www.openstreetmap.org/node/9989852314
+Quezon City,14.6830229,121.0385365,,pillar,yellow,https://www.openstreetmap.org/node/10048484054
+Quezon City,14.6951339,121.0515737,,pillar,yellow,https://www.openstreetmap.org/node/10076094634
+Quezon City,14.6769414,121.050883,,pillar,yellow,https://www.openstreetmap.org/node/10081010186
+Quezon City,14.662168,121.054846,,pillar,yellow,https://www.openstreetmap.org/node/10082989066
+Quezon City,14.673543,121.0570333,,pillar,yellow,https://www.openstreetmap.org/node/10083165382
+Quezon City,14.6875858,121.0600119,,pillar,yellow,https://www.openstreetmap.org/node/10091442417
+Quezon City,14.6143862,121.0691462,,pillar,yellow,https://www.openstreetmap.org/node/10153857329
+Quezon City,14.6273487,121.0623723,,pillar,yellow,https://www.openstreetmap.org/node/10161054634
+Quezon City,14.6306434,121.0552557,,pillar,yellow,https://www.openstreetmap.org/node/10164949752
+Quezon City,14.6539613,121.0525939,,pillar,yellow,https://www.openstreetmap.org/node/10172865899
+Marikina City,14.6613558,121.1184066,,pillar,yellow,https://www.openstreetmap.org/node/10246189504
+Marikina City,14.666022,121.1070612,,pillar,yellow,https://www.openstreetmap.org/node/10248132209
+Marikina City,14.6620895,121.1056517,,pillar,yellow,https://www.openstreetmap.org/node/10248178451
+Taguig City,14.4970091,121.0504109,,pillar,yellow,https://www.openstreetmap.org/node/10598362470
+Taguig City,14.5467384,121.0477671,,,,https://www.openstreetmap.org/node/10699316107
+Pasig City,14.5748544,121.0628329,,pillar,,https://www.openstreetmap.org/node/10701889150
+Malabon City,14.6626795,120.9839978,,underground,,https://www.openstreetmap.org/node/10717587635
+Malabon City,14.6664442,120.983384,,underground,,https://www.openstreetmap.org/node/10717587636
+Malabon City,14.6684713,120.9833621,,underground,,https://www.openstreetmap.org/node/10717587637
+Malabon City,14.6681297,120.9798051,,underground,,https://www.openstreetmap.org/node/10717587638
+Malabon City,14.6614337,120.9805878,,underground,,https://www.openstreetmap.org/node/10717587639
+Malabon City,14.6653836,120.9792771,,underground,,https://www.openstreetmap.org/node/10717587640
+Malabon City,14.6668671,120.979146,,pillar,yellow,https://www.openstreetmap.org/node/10717587641
+Malabon City,14.6686009,120.9761059,,underground,,https://www.openstreetmap.org/node/10717587642
+Malabon City,14.6713772,120.9776031,,underground,,https://www.openstreetmap.org/node/10717587643
+Malabon City,14.6615177,120.9853661,,underground,,https://www.openstreetmap.org/node/10717587644
+Malabon City,14.6681718,120.9885805,,underground,,https://www.openstreetmap.org/node/10717587645
+Malabon City,14.668971,120.9913614,,underground,,https://www.openstreetmap.org/node/10717587646
+Malabon City,14.6725192,120.9955433,,underground,,https://www.openstreetmap.org/node/10717587647
+Taguig City,14.5534748,121.0492029,,pillar,,https://www.openstreetmap.org/node/10732022758
+Marikina City,14.6451425,121.1119757,,pillar,yellow,https://www.openstreetmap.org/node/10774573931
+Quezon City,14.6574599,121.0688912,,,yellow,https://www.openstreetmap.org/node/10855569663
+Taguig City,14.5288015,121.0860588,,pillar,yellow,https://www.openstreetmap.org/node/11043334068
+Pasig City,14.6151668,121.0962734,,pillar,yellow,https://www.openstreetmap.org/node/11140261990
+Pasig City,14.5896012,121.0605439,,pillar,yellow,https://www.openstreetmap.org/node/11152142771
+Marikina City,14.6425187,121.1099492,,pillar,yellow,https://www.openstreetmap.org/node/11332670816
+Quezon City,14.665031,121.0531194,,pillar,yellow,https://www.openstreetmap.org/node/11442429562
+Pasig City,14.5757367,121.0633754,,pillar,yellow,https://www.openstreetmap.org/node/11451274860
+Mandaluyong City,14.5716963,121.0534184,,wall,,https://www.openstreetmap.org/node/11455407378
+Pasig City,14.5732612,121.0775702,,pillar,yellow,https://www.openstreetmap.org/node/11524795176
+Pasig City,14.5729757,121.0772691,,pillar,yellow,https://www.openstreetmap.org/node/11524795185
+Pasig City,14.5726772,121.0772262,,pillar,yellow,https://www.openstreetmap.org/node/11524795186
+Makati City,14.5760247,121.0132184,,pillar,yellow,https://www.openstreetmap.org/node/11548430616
+Manila,14.5956644,121.021479,,wall,,https://www.openstreetmap.org/node/11637790634
+Manila,14.5782101,121.0066708,,pillar,yellow,https://www.openstreetmap.org/node/11652852560
+Mandaluyong City,14.5696146,121.0351597,,pillar,yellow,https://www.openstreetmap.org/node/11695193090
+Mandaluyong City,14.5699662,121.0363086,,pillar,yellow,https://www.openstreetmap.org/node/11696478090
+Manila,14.5653491,120.9931691,,wall,,https://www.openstreetmap.org/node/11733783710
+Manila,14.585272,121.0120821,,pillar,yellow,https://www.openstreetmap.org/node/11751849445
+Manila,14.58577,121.0092086,,pillar,yellow,https://www.openstreetmap.org/node/11752145552
+Makati City,14.5628487,121.0362475,,pillar,yellow,https://www.openstreetmap.org/node/11803926337
+Makati City,14.5671976,121.0391061,,pillar,red,https://www.openstreetmap.org/node/11804234006
+Makati City,14.557231,121.0188435,,pillar,yellow,https://www.openstreetmap.org/node/11809140605
+Makati City,14.5505769,121.0267835,,pillar,yellow,https://www.openstreetmap.org/node/11822110697
+Makati City,14.564598,121.0046109,,pillar,yellow,https://www.openstreetmap.org/node/11842971985
+Makati City,14.5622794,121.0128828,,pillar,yellow,https://www.openstreetmap.org/node/11843053171
+Taguig City,14.5468305,121.0466512,,pillar,yellow,https://www.openstreetmap.org/node/11865696769
+Taguig City,14.5493589,121.0530156,,pillar,yellow,https://www.openstreetmap.org/node/11873107463
+Taguig City,14.5493833,121.0491135,,pillar,yellow,https://www.openstreetmap.org/node/11876406257
+Taguig City,14.5593191,121.056502,,pillar,yellow,https://www.openstreetmap.org/node/11882775257
+Taguig City,14.5668299,121.0522209,,pillar,yellow,https://www.openstreetmap.org/node/11887870858
+Makati City,14.561056,121.0469797,,pillar,yellow,https://www.openstreetmap.org/node/11888739382
+Taguig City,14.5572521,121.0428116,,pillar,yellow,https://www.openstreetmap.org/node/11892940837
+Pasig City,14.556535,121.071887,,pillar,yellow,https://www.openstreetmap.org/node/11908778272
+Pasig City,14.5719977,121.0993824,,pillar,yellow,https://www.openstreetmap.org/node/11919209337
+Pasig City,14.5852346,121.0852262,,pillar,yellow,https://www.openstreetmap.org/node/11929516260
+Pasig City,14.5431066,121.1000588,,pillar,yellow,https://www.openstreetmap.org/node/11939153887
+Pasig City,14.5846557,121.0879899,,pillar,yellow,https://www.openstreetmap.org/node/11944601828
+Pasig City,14.5923506,121.1044628,,pillar,yellow,https://www.openstreetmap.org/node/11953193990
+Pasig City,14.5797436,121.1012676,,pillar,yellow,https://www.openstreetmap.org/node/11953523692
+Pasig City,14.6029297,121.1009572,,pillar,yellow,https://www.openstreetmap.org/node/11955328860
+Pasig City,14.6024398,121.0993928,,pillar,yellow,https://www.openstreetmap.org/node/11955344577
+Pasig City,14.6041665,121.1027667,,pillar,yellow,https://www.openstreetmap.org/node/11956749458
+Quezon City,14.6053812,121.0813683,,pillar,yellow,https://www.openstreetmap.org/node/11958181217
+Quezon City,14.603722,121.0864957,,pillar,yellow,https://www.openstreetmap.org/node/11958261245
+Quezon City,14.6099117,121.0764794,,pillar,yellow,https://www.openstreetmap.org/node/11959690001
+Quezon City,14.6118873,121.075964,,pillar,yellow,https://www.openstreetmap.org/node/11959752347
+Marikina City,14.6220718,121.0907965,,pillar,yellow,https://www.openstreetmap.org/node/11961847616
+Pasig City,14.6134984,121.08432,,pillar,yellow,https://www.openstreetmap.org/node/11968089897
+Taguig City,14.5164418,121.030676,,pillar,yellow,https://www.openstreetmap.org/node/11969909126
+Pasig City,14.6094497,121.0955331,,pillar,yellow,https://www.openstreetmap.org/node/11971063020
+Pasig City,14.6070452,121.0952084,,pillar,yellow,https://www.openstreetmap.org/node/11971077860
+Taguig City,14.5103817,121.0483879,,pillar,yellow,https://www.openstreetmap.org/node/11976026277
+Marikina City,14.6246386,121.0956568,,pillar,yellow,https://www.openstreetmap.org/node/11987050689
+Marikina City,14.6310472,121.0962201,,pillar,yellow,https://www.openstreetmap.org/node/11989301212
+Marikina City,14.6299757,121.0967273,,pillar,yellow,https://www.openstreetmap.org/node/11989301218
+Taguig City,14.5362516,121.0767707,,pillar,yellow,https://www.openstreetmap.org/node/11999459133
+Pasay City,14.5207791,121.0161941,,pillar,,https://www.openstreetmap.org/node/12000028358
+Marikina City,14.6573759,121.1084238,,pillar,yellow,https://www.openstreetmap.org/node/12005739006
+Marikina City,14.6391137,121.1102653,,pillar,yellow,https://www.openstreetmap.org/node/12008761255
+Marikina City,14.6415288,121.112722,,pillar,yellow,https://www.openstreetmap.org/node/12009164536
+Marikina City,14.657261,121.1184227,,pillar,yellow,https://www.openstreetmap.org/node/12011729681
+Marikina City,14.63576,121.1299962,,pillar,yellow,https://www.openstreetmap.org/node/12013433849
+Marikina City,14.6470876,121.1225101,,pillar,yellow,https://www.openstreetmap.org/node/12014218587
+Marikina City,14.6491311,121.1211457,,pillar,yellow,https://www.openstreetmap.org/node/12014607139
+Marikina City,14.6556297,121.1222033,,pillar,yellow,https://www.openstreetmap.org/node/12016546047
+Marikina City,14.6534409,121.1297559,,pillar,yellow,https://www.openstreetmap.org/node/12024323265
+Marikina City,14.6579215,121.1236298,,pillar,yellow,https://www.openstreetmap.org/node/12024328918
+Marikina City,14.6591704,121.1171592,,pillar,yellow,https://www.openstreetmap.org/node/12025103219
+Marikina City,14.6623733,121.1261827,,pillar,yellow,https://www.openstreetmap.org/node/12025290349
+Marikina City,14.6655389,121.1261625,,pillar,yellow,https://www.openstreetmap.org/node/12027194928
+Marikina City,14.6627172,121.1072201,,pillar,yellow,https://www.openstreetmap.org/node/12027845823
+Marikina City,14.6662368,121.1010408,,pillar,yellow,https://www.openstreetmap.org/node/12030206173
+Marikina City,14.6407794,121.1191928,,pillar,,https://www.openstreetmap.org/node/12058172546
+Quezon City,14.6765924,121.0385106,,pillar,yellow,https://www.openstreetmap.org/node/12065681911
+Quezon City,14.6594914,121.0684206,,pillar,yellow,https://www.openstreetmap.org/node/12072599353
+Quezon City,14.6474138,121.0689417,,pillar,yellow,https://www.openstreetmap.org/node/12074418212
+Quezon City,14.6355814,121.0729744,,pillar,yellow,https://www.openstreetmap.org/node/12075071048
+Quezon City,14.6414236,121.0744214,,pillar,yellow,https://www.openstreetmap.org/node/12075087288
+Quezon City,14.6417245,121.051474,,pillar,yellow,https://www.openstreetmap.org/node/12077747520
+Quezon City,14.6364475,121.0545201,,pillar,yellow,https://www.openstreetmap.org/node/12077750835
+Quezon City,14.6338929,121.0564828,,pillar,yellow,https://www.openstreetmap.org/node/12077823585
+Quezon City,14.632449,121.0520189,,pillar,yellow,https://www.openstreetmap.org/node/12077845988
+Quezon City,14.6352165,121.0566866,,pillar,yellow,https://www.openstreetmap.org/node/12077916050
+Quezon City,14.6293879,121.0670836,,pillar,yellow,https://www.openstreetmap.org/node/12078082143
+Quezon City,14.6294158,121.0543325,,pillar,yellow,https://www.openstreetmap.org/node/12078985468
+Quezon City,14.6292127,121.0511677,,pillar,yellow,https://www.openstreetmap.org/node/12079083251
+Quezon City,14.6274476,121.0476683,,pillar,yellow,https://www.openstreetmap.org/node/12079122273
+Quezon City,14.628805,121.049858,,pillar,yellow,https://www.openstreetmap.org/node/12079122286
+Quezon City,14.6328681,121.0490061,,pillar,yellow,https://www.openstreetmap.org/node/12079365072
+Quezon City,14.6363976,121.0336049,,pillar,yellow,https://www.openstreetmap.org/node/12079442923
+Quezon City,14.632157,121.0349594,,pillar,yellow,https://www.openstreetmap.org/node/12079556268
+Quezon City,14.6290927,121.0342151,,pillar,yellow,https://www.openstreetmap.org/node/12079562867
+Marikina City,14.6442472,121.1208717,,pillar,,https://www.openstreetmap.org/node/12081949493
+Quezon City,14.6195692,121.0168344,,pillar,yellow,https://www.openstreetmap.org/node/12082013575
+Quezon City,14.6207981,121.0212976,,pillar,yellow,https://www.openstreetmap.org/node/12082028819
+Quezon City,14.6167227,121.0271287,,pillar,yellow,https://www.openstreetmap.org/node/12082061808
+Quezon City,14.6678163,121.0565454,,pillar,yellow,https://www.openstreetmap.org/node/12086530712
+Manila,14.5762073,121.0088592,,pillar,yellow,https://www.openstreetmap.org/node/12092824705
+Marikina City,14.6430584,121.1160981,,pillar,yellow,https://www.openstreetmap.org/node/12143818460
+Quezon City,14.6267803,121.0450048,,pillar,,https://www.openstreetmap.org/node/12181370007
+Mandaluyong City,14.57787,121.0568476,,pillar,yellow,https://www.openstreetmap.org/node/12233693919
+Quezon City,14.6590413,121.0222947,,pillar,yellow,https://www.openstreetmap.org/node/12329944591
+Marikina City,14.6389298,121.1258575,,pillar,yellow,https://www.openstreetmap.org/node/12642518446
+Taguig City,14.5402678,121.055169,,,,https://www.openstreetmap.org/node/12755499823
+Taguig City,14.5363887,121.0521064,,,,https://www.openstreetmap.org/node/12755507707
+Taguig City,14.5378483,121.0525808,,,,https://www.openstreetmap.org/node/12755514452
+Taguig City,14.5374517,121.0522597,,,,https://www.openstreetmap.org/node/12755516921
+Quezon City,14.66241,121.0331147,,pillar,yellow,https://www.openstreetmap.org/node/12765556114
+Mandaluyong City,14.5792212,121.0534523,,pillar,,https://www.openstreetmap.org/node/12925237549
+Quezon City,14.6424038,121.0391518,,pillar,yellow,https://www.openstreetmap.org/node/12961329617
+Taguig City,14.5589091,121.0596028,,pillar,yellow,https://www.openstreetmap.org/node/12972319555
+Mandaluyong City,14.5725905,121.0301388,,pillar,yellow,https://www.openstreetmap.org/node/12981505581
+Pasig City,14.5646559,121.0694055,,pillar,yellow,https://www.openstreetmap.org/node/13025840190
+Quezon City,14.6608677,121.0725526,,pillar,yellow,https://www.openstreetmap.org/node/13132139358
+Taguig City,14.5577372,121.060104,,pillar,yelow,https://www.openstreetmap.org/node/13169084030
+Quezon City,14.6463968,121.040374,,pillar,yellow,https://www.openstreetmap.org/node/13187898397
+Quezon City,14.6416225,121.0734345,,pillar,,https://www.openstreetmap.org/node/13197930763
+Pasig City,14.5623268,121.0975917,,pillar,yellow,https://www.openstreetmap.org/node/13546574650
+Las Piñas City,14.4474968,120.9862596,,,,https://www.openstreetmap.org/node/13623948602
+Taguig City,14.4859757,121.0493261,,pillar,yellow,https://www.openstreetmap.org/node/13731410898
+Quezon City,14.6646079,121.0829146,,pillar,yellow,https://www.openstreetmap.org/node/13792436767
+Marikina City,14.6328147,121.1021557,,pillar,,https://www.openstreetmap.org/node/13808938167
+Pasay City,14.5318348,120.9877042,,pillar,,https://www.openstreetmap.org/node/14220892426

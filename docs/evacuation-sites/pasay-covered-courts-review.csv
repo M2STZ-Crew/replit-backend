@@ -1,0 +1,35 @@
+include,proposed_name,kind,osm_name,barangay,road,latitude,longitude,osm_link
+yes,Barangay 132 Zone 13 Multipurpose Hall,Barangay multi-purpose hall,Barangay 132 Zone 13 Multipurpose Hall,Barangay 134,M. dela Cruz Street,14.546562,121.007375,https://www.openstreetmap.org/way/289987416
+yes,Barangay 178 Sports Center,Roofed sports hall (likely covered court),Barangay 178 Sports Center,Barangay 186,Aurora Boulevard,14.530684,121.004573,https://www.openstreetmap.org/way/265560454
+yes,Barangay 184 Multipurpose Hall,Barangay multi-purpose hall,Barangay 184 Multipurpose Hall,Barangay 184,R. Higgins Street,14.528728,121.010808,https://www.openstreetmap.org/way/1285675759
+yes,Barangay 198 Multipurpose Hall,Barangay multi-purpose hall,Barangay 198 Multipurpose Hall,Barangay 198,Airlane Road,14.510052,121.003608,https://www.openstreetmap.org/node/11933426775
+yes,"Covered court, Adela Hidalgo Village, Stanford Street",Roofed sports hall (likely covered court),,Adela Hidalgo Village,Stanford Street,14.55154,121.003231,https://www.openstreetmap.org/way/694022002
+yes,"Covered court, Barangay 134, M. dela Cruz Street",Roofed sports hall (likely covered court),,Barangay 134,M. dela Cruz Street,14.546353,121.007581,https://www.openstreetmap.org/way/289987417
+yes,"Covered court, Barangay 161, Dominguez Street",Roofed sports hall (likely covered court),,Barangay 161,Dominguez Street,14.535986,121.007965,https://www.openstreetmap.org/way/265560522
+yes,"Covered court, Barangay 177, Lawaan Street",Roofed sports hall (likely covered court),,Barangay 177,Lawaan Street,14.531852,121.009992,https://www.openstreetmap.org/way/314208397
+yes,"Covered court, Barangay 18, Sinciego Street",Roofed sports hall (likely covered court),,Barangay 18,Sinciego Street,14.557372,120.992338,https://www.openstreetmap.org/way/506426341
+yes,"Covered court, Barangay 180, Onyx Street",Roofed sports hall (likely covered court),,Barangay 180,Onyx Street,14.530785,121.012222,https://www.openstreetmap.org/way/265352530
+yes,"Covered court, Barangay 181, Mulawin Road",Roofed sports hall (likely covered court),,Barangay 181,Mulawin Road,14.530428,121.011065,https://www.openstreetmap.org/way/655516482
+yes,"Covered court, Barangay 186, Saint Joan Street",Roofed sports hall (likely covered court),,Barangay 186,Saint Joan Street,14.532196,121.005324,https://www.openstreetmap.org/way/290281583
+yes,"Covered court, Barangay 189, Constellation Drive",Roofed sports hall (likely covered court),,Barangay 189,Constellation Drive,14.533566,121.000431,https://www.openstreetmap.org/way/1119496405
+yes,"Covered court, Barangay 190, BAC 1-11 Drive",Roofed sports hall (likely covered court),,Barangay 190,BAC 1-11 Drive,14.530655,120.999866,https://www.openstreetmap.org/way/1119496408
+yes,"Covered court, Barangay 198, NAIA Road",Covered basketball court,,Barangay 198,NAIA Road,14.513861,121.005926,https://www.openstreetmap.org/way/572088784
+yes,"Covered court, Barangay 54, Tramo Street",Roofed sports hall (likely covered court),,Barangay 54,Tramo Street,14.552002,121.000683,https://www.openstreetmap.org/way/289987419
+yes,"Covered court, Barangay 70, Figueroa Street",Roofed sports hall (likely covered court),,Barangay 70,Figueroa Street,14.544006,120.996,https://www.openstreetmap.org/way/756112321
+yes,"Covered court, Barangay 77, Park Avenue",Roofed sports hall (likely covered court),,Barangay 77,Park Avenue,14.535543,120.998385,https://www.openstreetmap.org/way/1456283229
+yes,"Covered court, Magallanes, Victoria Street",Roofed sports hall (likely covered court),,Magallanes,Victoria Street,14.533686,121.012584,https://www.openstreetmap.org/way/314209436
+yes,"Covered court, Pilhomes, Ilang-ilang Street",Roofed sports hall (likely covered court),,Pilhomes,Ilang-ilang Street,14.51537,121.002579,https://www.openstreetmap.org/way/572095814
+yes,Duay Calixto Multi-purpose Hall,Barangay multi-purpose hall,Duay Calixto Multi-purpose Hall,Barangay 186,Post Office Road,14.530993,121.00469,https://www.openstreetmap.org/way/1014969066
+yes,Multi-Purpose Hall,Barangay multi-purpose hall,Multi-Purpose Hall,Barangay 2,R. Layug Street,14.557572,120.989951,https://www.openstreetmap.org/node/5698332951
+maybe,Met Park Sports Center,Sports complex,Met Park Sports Center,Metropolitan Park,Metrobank Avenue,14.537857,120.991452,https://www.openstreetmap.org/way/5742209
+maybe,Pasay City Sports Complex,Sports complex,Pasay City Sports Complex,Metropolitan Park,Derham Street,14.545272,120.99346,https://www.openstreetmap.org/way/24063373
+check,"Basketball court, roof unknown, Barangay 128, Pasay Boulevard","Basketball court, roof unknown",,Barangay 128,Pasay Boulevard,14.548686,121.007063,https://www.openstreetmap.org/way/570460175
+check,"Basketball court, roof unknown, Barangay 183, C-5 Road Extension","Basketball court, roof unknown",,Barangay 183,C-5 Road Extension,14.509595,121.028764,https://www.openstreetmap.org/way/119549495
+check,"Basketball court, roof unknown, Barangay 183, C-5 Road Extension","Basketball court, roof unknown",,Barangay 183,C-5 Road Extension,14.509291,121.02542,https://www.openstreetmap.org/way/801435565
+check,"Basketball court, roof unknown, Barangay 183, De Leon Street","Basketball court, roof unknown",,Barangay 183,De Leon Street,14.518548,121.025928,https://www.openstreetmap.org/way/306236782
+check,"Basketball court, roof unknown, Barangay 183, Paredes Street","Basketball court, roof unknown",,Barangay 183,Paredes Street,14.515187,121.018415,https://www.openstreetmap.org/way/132908111
+check,"Basketball court, roof unknown, Barangay 36, Donada Street","Basketball court, roof unknown",,Barangay 36,Donada Street,14.556052,120.995829,https://www.openstreetmap.org/way/102252543
+check,"Basketball court, roof unknown, Barangay 43, Tramo Street","Basketball court, roof unknown",,Barangay 43,Tramo Street,14.560308,120.9986,https://www.openstreetmap.org/way/138385055
+check,"Basketball court, roof unknown, Barangay 76, F. B. Harrison Street","Basketball court, roof unknown",,Barangay 76,F. B. Harrison Street,14.543759,120.993694,https://www.openstreetmap.org/way/292824654
+check,"Basketball court, roof unknown, Barangay 76, J. W. Diokno Boulevard","Basketball court, roof unknown",,Barangay 76,J. W. Diokno Boulevard,14.548022,120.983046,https://www.openstreetmap.org/way/245068613
+check,"Basketball court, roof unknown, Barangay 76, Pedro Bukaneg Street","Basketball court, roof unknown",,Barangay 76,Pedro Bukaneg Street,14.55758,120.984461,https://www.openstreetmap.org/way/652749988

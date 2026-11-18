@@ -4,6 +4,7 @@ import { CircleMarker, MapContainer, Tooltip } from 'react-leaflet';
 import { statusOf } from '../lib/status.js';
 import { TILE_ATTRIBUTION } from '../map/tiles.js';
 import BaseTiles, { useConsoleTheme } from '../map/BaseTiles.jsx';
+import ZoomGate from '../map/ZoomGate.jsx';
 import { t } from '../i18n/i18n.jsx';
 
 const PASAY = [14.5378, 121.0014];
@@ -50,20 +51,23 @@ export default function LiveMap({ incidents = [], layerPoints = {}, enabled, onS
     >
       <BaseTiles />
 
-      {Object.entries(LAYER_COLORS).flatMap(([key, color]) =>
-        enabled.has(key)
-          ? (layerPoints[key] || []).map((p, i) => (
-              <CircleMarker
-                key={`${key}-${i}`}
-                center={[p.lat, p.lng]}
-                radius={p.outside ? 8 : 6}
-                pathOptions={p.outside ? outsidePasayStyle(theme) : dot(color, 1)}
-              >
-                {p.label && <Tooltip>{p.outside ? t('{label} (outside Pasay)', { label: p.label }) : p.label}</Tooltip>}
-              </CircleMarker>
-            ))
-          : [],
-      )}
+      {/* The layers' points nearby, from street level in (v1.12.39). */}
+      <ZoomGate active={Object.keys(LAYER_COLORS).some((key) => enabled.has(key) && (layerPoints[key] || []).length > 0)}>
+        {(near) => Object.entries(LAYER_COLORS).flatMap(([key, color]) =>
+          enabled.has(key)
+            ? (layerPoints[key] || []).filter((p) => near(p.lat, p.lng)).map((p, i) => (
+                <CircleMarker
+                  key={`${key}-${i}`}
+                  center={[p.lat, p.lng]}
+                  radius={p.outside ? 8 : 6}
+                  pathOptions={p.outside ? outsidePasayStyle(theme) : dot(color, 1)}
+                >
+                  {p.label && <Tooltip>{p.outside ? t('{label} (outside Pasay)', { label: p.label }) : p.label}</Tooltip>}
+                </CircleMarker>
+              ))
+            : [],
+        )}
+      </ZoomGate>
 
       {enabled.has('incidents') &&
         incidents.map((inc) => {

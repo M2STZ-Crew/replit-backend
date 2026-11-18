@@ -12,6 +12,7 @@ import {
 } from 'react-leaflet';
 
 import BaseTiles, { useConsoleTheme } from '../map/BaseTiles.jsx';
+import ZoomGate, { LAYER_MIN_ZOOM } from '../map/ZoomGate.jsx';
 
 import { api } from '../api/client.js';
 import { outsidePasayStyle } from '../components/LiveMap.jsx';
@@ -399,7 +400,8 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
       <div className="mm-map">
         <MapContainer
           center={PASAY}
-          zoom={13}
+          // At street level, so the editor opens on the points nearby (v1.12.39).
+          zoom={LAYER_MIN_ZOOM}
           style={{ height: '100%', width: '100%', background: 'var(--map-ground)' }}
           zoomControl={false}
           attributionControl={false}
@@ -436,27 +438,43 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
               );
             })}
 
-          {/* editable GIS layers */}
-          {EDIT_LAYERS.filter((l) => enabled.has(l.key)).flatMap((l) =>
+          {/* A risk zone is its icon inside its circle (24 Oct 2026). The circle
+              is the zone, so it shows at every zoom, as on the app; the icon
+              comes with the other places below. The zone being edited is drawn
+              by the form preview instead. */}
+          {enabled.has('risk') && (data.risk || []).map((r) => {
+            const p = pointOf('risk', r);
+            if (p.lat == null || p.lng == null) return null;
+            if (form?.layer === 'risk' && form.id === r.id) return null;
+            return (
+              <Circle
+                key={`halo-${r.id}`}
+                center={[p.lat, p.lng]}
+                radius={riskRadius(r)}
+                pathOptions={RISK_CIRCLE_STYLE}
+                // While a marker is being placed, a click inside a zone
+                // places it rather than opening that zone.
+                eventHandlers={form ? undefined : { click: () => openEdit('risk', r) }}
+              />
+            );
+          })}
+
+          {/* editable GIS layers, the ones nearby, from street level in (v1.12.39) */}
+          <ZoomGate
+            active={EDIT_LAYERS.some((l) => enabled.has(l.key) && (data[l.key] || []).length > 0)}
+            className={panelOpen ? 'mm-zoom-hint is-beside-panel' : 'mm-zoom-hint'}
+          >
+          {(near) => EDIT_LAYERS.filter((l) => enabled.has(l.key)).flatMap((l) =>
             (data[l.key] || []).map((r) => {
               const p = pointOf(l.key, r);
-              if (p.lat == null || p.lng == null) return null;
+              if (p.lat == null || p.lng == null || !near(p.lat, p.lng)) return null;
               const { title, sub } = entryText(l.key, r);
               const color = COLORS[l.key];
               // The zone being edited is drawn by the form preview instead.
               if (l.key === 'risk' && form?.layer === 'risk' && form.id === r.id) return null;
               if (l.key === 'risk') {
-                // A risk zone is its icon inside its circle (24 Oct 2026).
+                // The zone's icon; its circle is drawn above, at every zoom.
                 return [
-                  <Circle
-                    key={`halo-${r.id}`}
-                    center={[p.lat, p.lng]}
-                    radius={riskRadius(r)}
-                    pathOptions={RISK_CIRCLE_STYLE}
-                    // While a marker is being placed, a click inside a zone
-                    // places it rather than opening that zone.
-                    eventHandlers={form ? undefined : { click: () => openEdit('risk', r) }}
-                  />,
                   <Marker
                     key={`m-${r.id}`}
                     position={[p.lat, p.lng]}
@@ -490,6 +508,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
               ];
             }),
           )}
+          </ZoomGate>
 
           {/* form preview: the risk zone's circle as it will be saved */}
           {formPoint?.radius && (
