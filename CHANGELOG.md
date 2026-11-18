@@ -6,9 +6,10 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
-## v1.12.38 — 18 November 2026 — Confirm your email; every resident hears of a fire; BFP raises the alarm
+## v1.12.38 — 18 November 2026 — Confirm your email; every resident hears of a fire; BFP raises the alarm; all of Metro Manila on the map
 
-Backend and console; app v1.12.49 goes with it. No migration.
+Backend and console; app v1.12.49 goes with it. No migration. Production's
+map layers were loaded on 18 Nov, with approval, and need no deploy.
 
 ### Changes
 - **Confirm before use** (18 Nov: "an illegitimate email can still signup
@@ -51,6 +52,24 @@ Backend and console; app v1.12.49 goes with it. No migration.
   hydrants (approved: "Yes, load them") to its hydrants, each with its
   `openstreetmap:node/…` source and an unknown status until BFP checks it. `docs/data-sources.md` cites both (APA 7,
   ODbL), with the review lists in `docs/evacuation-sites/` and `docs/hydrants/`.
+- **All of Metro Manila's hydrants, covered courts, cisterns and bodies of
+  water** (18 Nov: "now, let's get all of the data within metropolitan manila
+  only"; "Only fire tanks + reservoirs"; "Rivers, creeks, ponds, lakes").
+  From OpenStreetMap, production gained 1,254 hydrants (now 1,274), 1,305
+  evacuation sites, all outside Pasay (now 1,328), 11 cisterns (fire water
+  tanks and covered reservoirs) and 448 bodies of water, across the 16 cities
+  and Pateros. A place already there, or within a few metres of one, was
+  skipped. Each keeps its OpenStreetMap reference, and its city comes from the
+  city boundary it falls inside. `docs/data-sources.md` cites each layer (APA
+  7, ODbL) with the queries; the lists are in `docs/metro-manila/`.
+- **The console's maps draw a layer's places from street level in** ("Only
+  nearby, when zoomed in"). On the Live map and in Map settings, shelters,
+  hydrants, cisterns, bodies of water and the risk zones' icons are drawn from
+  zoom 14 in, and only those on or near the screen; further out, "Zoom in to
+  see the places you turned on" (`admin-web/src/map/ZoomGate.jsx`). A risk
+  zone's circle, incidents and units are drawn at every zoom, as on the app.
+  Map settings opens at zoom 14, so its editor starts on the places nearby,
+  and its note sits clear of the editor panel.
 
 ---
 

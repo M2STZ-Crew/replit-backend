@@ -20,6 +20,7 @@ import { useLiveUnits } from '../live/useLiveUnits.js';
 import { PERM, can, governsAll } from '../lib/access.js';
 import { AGENCY_LABEL, statusOf } from '../lib/status.js';
 import BaseTiles from '../map/BaseTiles.jsx';
+import ZoomGate from '../map/ZoomGate.jsx';
 import { groupOnScreen } from '../map/unitGroups.js';
 import { t } from '../i18n/i18n.jsx';
 
@@ -171,25 +172,31 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
       >
         <BaseTiles />
         <ZoomControl position="bottomright" />
-        {SOURCES.filter((s) => on.has(s.layer)).flatMap((s) => (points[s.key] ?? [])
-          .filter((r) => r[s.lat] != null && r[s.lng] != null)
-          .flatMap((r) => [
-            // A risk zone is its icon inside the circle the Admin set.
-            s.key === 'risk' && (
-              <Circle
-                key={`zone-${r.id}`}
-                center={[r[s.lat], r[s.lng]]}
-                radius={riskRadius(r)}
-                pathOptions={RISK_CIRCLE_STYLE}
-                interactive={false}
-              />
-            ),
+        {/* A risk zone is its icon inside the circle the Admin set. The circle
+            is the zone, so it shows at every zoom, as on the app. */}
+        {on.has('risk') && (points.risk ?? [])
+          .filter((r) => r.centroid_lat != null && r.centroid_lng != null)
+          .map((r) => (
+            <Circle
+              key={`zone-${r.id}`}
+              center={[r.centroid_lat, r.centroid_lng]}
+              radius={riskRadius(r)}
+              pathOptions={RISK_CIRCLE_STYLE}
+              interactive={false}
+            />
+          ))}
+        {/* The layers' points nearby, from street level in (v1.12.38). */}
+        <ZoomGate active={SOURCES.some((s) => on.has(s.layer) && (points[s.key] ?? []).length > 0)}>
+        {(near) => SOURCES.filter((s) => on.has(s.layer)).flatMap((s) => (points[s.key] ?? [])
+          .filter((r) => r[s.lat] != null && r[s.lng] != null && near(r[s.lat], r[s.lng]))
+          .map((r) => (
             <Marker key={`${s.key}-${r.id}`} position={[r[s.lat], r[s.lng]]} icon={markerIcon(s.key)}>
               <Tooltip direction="top" offset={[0, -18]}>
                 {`${MARKER_KINDS[s.key].label} · ${s.name(r)}${s.key === 'risk' ? ` · ${Math.round(riskRadius(r))} m` : ''}`}
               </Tooltip>
-            </Marker>,
-          ].filter(Boolean)))}
+            </Marker>
+          )))}
+        </ZoomGate>
         {on.has('incidents') && incidents
           .filter((i) => i.centroid_lat != null && i.centroid_lng != null)
           .flatMap((i) => [

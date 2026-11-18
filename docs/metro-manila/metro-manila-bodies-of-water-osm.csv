@@ -1,0 +1,467 @@
+city,name,type,latitude,longitude,osm_link
+Pasay City,Baliwag Creek,stream,14.5020061,121.0160904,https://www.openstreetmap.org/way/4083332
+Manila,Estero de Paco,river,14.5883257,120.9923008,https://www.openstreetmap.org/way/4304724
+Manila,Pasig River,river,14.5904911,120.9916802,https://www.openstreetmap.org/way/4443915
+Parañaque City,Inland Channel,canal,14.5274302,120.9932627,https://www.openstreetmap.org/way/4914313
+Manila,Estero de Tripa de Gallina,river,14.5807135,121.0047678,https://www.openstreetmap.org/way/4940654
+Quezon City,Evangelista Creek,river,14.6261639,121.0629699,https://www.openstreetmap.org/way/4987042
+Marikina City,Tumana Creek,river,14.6527499,121.0968496,https://www.openstreetmap.org/way/4989996
+Manila,Estero de Pandacan,river,14.5871199,121.0047368,https://www.openstreetmap.org/way/5055435
+Quezon City,Culiat Creek,river,14.6650843,121.0344364,https://www.openstreetmap.org/way/5172405
+Quezon City,Mariblo Creek,river,14.6409533,121.023629,https://www.openstreetmap.org/way/5450344
+Quezon City,Tanque Creek,river,14.6387892,121.0229511,https://www.openstreetmap.org/way/5451044
+Quezon City,Lagarian Creek,river,14.6258078,121.0220111,https://www.openstreetmap.org/way/5545095
+Quezon City,Talayan Creek,stream,14.6332361,121.0099263,https://www.openstreetmap.org/way/8104187
+Manila,Estero de Aviles,stream,14.5986692,120.9968351,https://www.openstreetmap.org/way/12805235
+Quezon City,Tandang Sora Creek,river,14.6720546,121.0519601,https://www.openstreetmap.org/way/13346385
+Pasig City,Parian Creek,river,14.5644696,121.0859398,https://www.openstreetmap.org/way/13415601
+Pasig City,Sapang Malapit,river,14.575441,121.0906379,https://www.openstreetmap.org/way/13422432
+Pasig City,Sapang Buli,river,14.5672057,121.0892016,https://www.openstreetmap.org/way/13422487
+Quezon City,Libis Creek,stream,14.6017546,121.0741413,https://www.openstreetmap.org/way/16852040
+Pasig City,Hakbangan Creek,river,14.6124322,121.1023333,https://www.openstreetmap.org/way/16855743
+Quezon City,Duyan-duyan Creek,river,14.6375692,121.0714227,https://www.openstreetmap.org/way/18338423
+Manila,Estero Fort of San Antonio de Abad,river,14.5642641,120.9896601,https://www.openstreetmap.org/way/22480448
+Valenzuela City,Polo River,river,14.7211411,120.9384136,https://www.openstreetmap.org/way/22716712
+Manila,Estero de Sampaloc,river,14.5994305,120.9993087,https://www.openstreetmap.org/way/22730074
+Manila,Estero de la Reina,canal,14.613633,120.9711748,https://www.openstreetmap.org/way/22730187
+Malabon City,Tullahan River,river,14.6627267,120.9544475,https://www.openstreetmap.org/way/22747987
+Manila,Estero de Binondo,river,14.5993188,120.972999,https://www.openstreetmap.org/way/22751040
+Quezon City,Luzon Creek,stream,14.6706139,121.0715723,https://www.openstreetmap.org/way/22952856
+Quezon City,Valencia Creek,river,14.6113687,121.0426983,https://www.openstreetmap.org/way/22993702
+Makati City,Balisampan Creek,stream,14.5606399,121.0417039,https://www.openstreetmap.org/way/23033511
+Quezon City,Katipunan Creek,river,14.6504829,121.0858473,https://www.openstreetmap.org/way/23090413
+Quezon City,Pansol Creek,river,14.6568384,121.0818081,https://www.openstreetmap.org/way/23090421
+Quezon City,Pingkian Creek,river,14.6809359,121.0565001,https://www.openstreetmap.org/way/23172016
+Quezon City,Iglesia Ni Cristo Creek,river,14.6663436,121.0552152,https://www.openstreetmap.org/way/23172309
+Quezon City,Gripo Creek,river,14.6857481,121.0382788,https://www.openstreetmap.org/way/23172338
+Quezon City,Pasong Tamo Creek,stream,14.6811152,121.0499761,https://www.openstreetmap.org/way/23172461
+Quezon City,Centerville Creek,river,14.6760424,121.0539254,https://www.openstreetmap.org/way/23172566
+Quezon City,Ilang-ilang Creek,river,14.6953488,121.0736265,https://www.openstreetmap.org/way/23250457
+Quezon City,Paltok Creek,river,14.7011648,121.0648926,https://www.openstreetmap.org/way/23250480
+Quezon City,Lumban Creek,river,14.6684321,121.092333,https://www.openstreetmap.org/way/23350413
+Las Piñas City,Almanza Creek,river,14.4288181,121.0156311,https://www.openstreetmap.org/way/23371123
+Parañaque City,Galcim Creek,stream,14.4586597,121.0155491,https://www.openstreetmap.org/way/23371145
+Pasig City,Pasig River (Napindan Channel),river,14.5569933,121.0685566,https://www.openstreetmap.org/way/23395486
+Pasig City,Marikina River,river,14.5591559,121.0695702,https://www.openstreetmap.org/way/23395494
+Quezon City,Kalamyong Creek,river,14.7075459,121.0899891,https://www.openstreetmap.org/way/23539457
+Caloocan City,Pasong Malapad Creek,stream,14.7429044,121.052516,https://www.openstreetmap.org/way/23649484
+Quezon City,Tullahan River,river,14.7199816,121.0460509,https://www.openstreetmap.org/way/23649517
+Quezon City,Villa Verde Creek,stream,14.7262721,121.0524491,https://www.openstreetmap.org/way/23649518
+Quezon City,Jordan Plains Creek,stream,14.7244819,121.0424398,https://www.openstreetmap.org/way/23649519
+Muntinlupa City,Pasong Diablo River,river,14.4288247,121.0445212,https://www.openstreetmap.org/way/23650800
+Parañaque City,Ibayo Creek,stream,14.5047904,120.9986795,https://www.openstreetmap.org/way/24059822
+Quezon City,Bona Creek,river,14.6998406,121.1084439,https://www.openstreetmap.org/way/24158853
+Pasay City,Maricaban Creek,stream,14.5323925,121.0056812,https://www.openstreetmap.org/way/27130831
+Makati City,Maricaban Creek,stream,14.5379089,121.0382637,https://www.openstreetmap.org/way/27131214
+Pasay City,Estero de Tripa de Gallina,river,14.5539324,121.0008501,https://www.openstreetmap.org/way/27131493
+Pateros,Santo Rosario Creek,stream,14.5509556,121.0673204,https://www.openstreetmap.org/way/27258676
+Taguig City,Ibayo-Tipas Creek,river,14.5288427,121.0769043,https://www.openstreetmap.org/way/27258779
+Taguig City,Tipas River,river,14.5326389,121.0909427,https://www.openstreetmap.org/way/27258815
+Pasig City,Sucol Creek,river,14.5448323,121.0924876,https://www.openstreetmap.org/way/27258848
+Manila,Estero de Quiapo,river,14.5963206,120.9856556,https://www.openstreetmap.org/way/27275946
+Manila,Estero de Uli-Uli,stream,14.597597,120.9963483,https://www.openstreetmap.org/way/27276016
+Manila,Perlita Creek,stream,14.5960816,121.0061156,https://www.openstreetmap.org/way/27276489
+Manila,Estero de Balete,river,14.5867757,120.9849701,https://www.openstreetmap.org/way/27323169
+Manila,Estero de Concordia,river,14.5865113,120.9957608,https://www.openstreetmap.org/way/27323219
+Quezon City,San Francisco River,river,14.6335078,121.0143521,https://www.openstreetmap.org/way/27440809
+Manila,CCP Fountain,water,14.5586828,120.9863972,https://www.openstreetmap.org/way/27630160
+Caloocan City,Estero de Maypajo,river,14.6394998,120.965256,https://www.openstreetmap.org/way/27632579
+Makati City,Calatagan Creek,stream,14.5613088,121.0257231,https://www.openstreetmap.org/way/27663262
+Makati City,Estero de Santa Clara,river,14.5737254,121.0151994,https://www.openstreetmap.org/way/27767999
+Taguig City,Pateros River,river,14.5351784,121.0641748,https://www.openstreetmap.org/way/28143075
+Taguig City,Taguig River,river,14.5320177,121.0652005,https://www.openstreetmap.org/way/28143078
+Taguig City,Pagadling Creek,river,14.536,121.077779,https://www.openstreetmap.org/way/28143488
+San Juan City,Ermitaño Creek,river,14.6006454,121.0402955,https://www.openstreetmap.org/way/28186792
+Las Piñas City,Tartar Creek,river,14.4495303,120.98948,https://www.openstreetmap.org/way/28295476
+Las Piñas City,Naga Creek,stream,14.4538681,120.9841365,https://www.openstreetmap.org/way/28295493
+Las Piñas City,Dahlig Creek,river,14.4706891,120.976242,https://www.openstreetmap.org/way/28295511
+Makati City,San Jose Creek (Guadalupe Nuevo Creek),stream,14.5625414,121.049559,https://www.openstreetmap.org/way/28595266
+Quezon City,Buaya Creek,stream,14.6150429,121.0769349,https://www.openstreetmap.org/way/28663927
+Quezon City,Balingasa Creek,river,14.6528125,121.003922,https://www.openstreetmap.org/way/28723101
+Mandaluyong City,Unnamed pond,pond,14.5932417,121.0457066,https://www.openstreetmap.org/way/28757066
+Mandaluyong City,Buayang Bato Creek,stream,14.5734309,121.0511794,https://www.openstreetmap.org/way/28993822
+Taguig City,Maysapang Creek,river,14.5325189,121.0602823,https://www.openstreetmap.org/way/29084739
+Taguig City,Pinagsama Creek,river,14.5242385,121.0564716,https://www.openstreetmap.org/way/29101065
+Manila,Estero de San Miguel,canal,14.5966712,120.9885637,https://www.openstreetmap.org/way/29170743
+Quezon City,U.P. Lagoon,lake,14.6549116,121.0674202,https://www.openstreetmap.org/way/29251440
+Quezon City,Salapan Creek,river,14.6097813,121.0341315,https://www.openstreetmap.org/way/29490364
+Quezon City,Unnamed pond,pond,14.6566804,121.0370562,https://www.openstreetmap.org/way/29973751
+Quezon City,Unnamed pond,pond,14.6574456,121.036672,https://www.openstreetmap.org/way/29973789
+Malabon City,Unnamed pond,pond,14.6659132,120.9543939,https://www.openstreetmap.org/way/30680254
+Makati City,Unnamed pond,pond,14.5514085,121.0410177,https://www.openstreetmap.org/way/30756191
+Parañaque City,Paete Creek,stream,14.4814612,121.0383958,https://www.openstreetmap.org/way/31235349
+Caloocan City,Camarin Creek,river,14.749535,121.0615179,https://www.openstreetmap.org/way/31600583
+Mandaluyong City,Unnamed pond,pond,14.5924355,121.0479238,https://www.openstreetmap.org/way/31858855
+Mandaluyong City,Unnamed pond,pond,14.5913976,121.0503253,https://www.openstreetmap.org/way/31858943
+Mandaluyong City,Unnamed pond,pond,14.5965944,121.0471132,https://www.openstreetmap.org/way/31858967
+Mandaluyong City,Unnamed pond,pond,14.5965082,121.0478836,https://www.openstreetmap.org/way/31858969
+Pateros,Pateros River,river,14.5406267,121.0629178,https://www.openstreetmap.org/way/32486307
+Mandaluyong City,Maytunas Creek,river,14.5899847,121.0354628,https://www.openstreetmap.org/way/32527744
+Muntinlupa City,Alabang Creek,river,14.4212645,121.0440729,https://www.openstreetmap.org/way/32981006
+Muntinlupa City,Bayanan Creek,river,14.390001,121.0267162,https://www.openstreetmap.org/way/32981566
+Muntinlupa City,Bayanan River,river,14.4085006,121.044604,https://www.openstreetmap.org/way/32981792
+Muntinlupa City,Pasong Diablo,river,14.4231649,121.0429103,https://www.openstreetmap.org/way/32982124
+Muntinlupa City,Mangangate River,river,14.4246875,121.0519694,https://www.openstreetmap.org/way/32982202
+Muntinlupa City,Buli River,river,14.4453202,121.0490017,https://www.openstreetmap.org/way/32982473
+Las Piñas City,Marulas Creek,river,14.4756543,120.9903833,https://www.openstreetmap.org/way/33050507
+Las Piñas City,Las Piñas River,river,14.4746579,120.9796402,https://www.openstreetmap.org/way/34050424
+Manila,Estero de San Lazaro,stream,14.61023,120.980326,https://www.openstreetmap.org/way/34317131
+Muntinlupa City,Magdaong River,river,14.3902773,121.032786,https://www.openstreetmap.org/way/35006307
+Parañaque City,Parañaque River,river,14.5285753,120.999072,https://www.openstreetmap.org/way/35063722
+Parañaque City,Cut-cut Creek,river,14.5117317,120.9986639,https://www.openstreetmap.org/way/35063760
+Parañaque City,Baliwag Creek,stream,14.5050275,121.0257398,https://www.openstreetmap.org/way/35065232
+Manila,Estero del Provisor,river,14.5875764,120.9889515,https://www.openstreetmap.org/way/35066846
+Manila,San Juan River,river,14.5893058,121.0178411,https://www.openstreetmap.org/way/35067375
+Makati City,Pasig River,river,14.5793283,121.017826,https://www.openstreetmap.org/way/35067519
+Mandaluyong City,Pasig River,river,14.5816469,121.018298,https://www.openstreetmap.org/way/35067526
+Taguig City,Maricaban Creek,river,14.5340139,121.0306556,https://www.openstreetmap.org/way/35091550
+Taguig City,San Jose Creek (Guadalupe Nuevo Creek),stream,14.5617417,121.0519298,https://www.openstreetmap.org/way/35129007
+Taguig City,Pasig River,river,14.5674883,121.052239,https://www.openstreetmap.org/way/35129631
+Pasig City,Pateros River,river,14.5549257,121.0654508,https://www.openstreetmap.org/way/35129970
+San Juan City,Salapan Creek,river,14.6127242,121.0302987,https://www.openstreetmap.org/way/35153258
+Quezon City,San Juan River,river,14.6082427,121.0221581,https://www.openstreetmap.org/way/35153279
+San Juan City,San Juan River,river,14.6063835,121.0214279,https://www.openstreetmap.org/way/35153282
+Caloocan City,Maypajo River,river,14.6334963,120.9719015,https://www.openstreetmap.org/way/35153483
+Manila,Maypajo River,river,14.6344906,120.9736969,https://www.openstreetmap.org/way/35153487
+Manila,Estero de Vitas,river,14.6188162,120.9698756,https://www.openstreetmap.org/way/35153592
+Marikina City,Marikina River,river,14.6286074,121.0858963,https://www.openstreetmap.org/way/35270936
+Quezon City,Marikina River,river,14.5990405,121.082442,https://www.openstreetmap.org/way/35354656
+Manila,Estero de Santa Clara,river,14.5773945,121.0138557,https://www.openstreetmap.org/way/35355014
+Makati City,Estero de Sta. Clara,river,14.5750766,121.0136725,https://www.openstreetmap.org/way/35355146
+Parañaque City,Don Galo River,river,14.4958312,120.998316,https://www.openstreetmap.org/way/35542505
+Parañaque City,Moonwalk-Merville Creek,river,14.4950413,121.0155496,https://www.openstreetmap.org/way/35799395
+Parañaque City,Irasan-Tabon Creek,stream,14.4955524,120.9934013,https://www.openstreetmap.org/way/35801159
+Parañaque City,Baloc-Baloc Creek,river,14.4838875,121.0081456,https://www.openstreetmap.org/way/35801324
+Parañaque City,Villanueva Creek,river,14.4906661,120.996611,https://www.openstreetmap.org/way/35801461
+Pasay City,Cut-cut Creek,river,14.5094434,121.0023439,https://www.openstreetmap.org/way/35802565
+Parañaque City,Sapang Buaya,river,14.4760026,121.0015845,https://www.openstreetmap.org/way/35939515
+Muntinlupa City,Jamboree Lake,pond,14.3857617,121.0356414,https://www.openstreetmap.org/way/36491191
+Quezon City,Parks and Wildlife Lagoon,water,14.650939,121.0425335,https://www.openstreetmap.org/way/37400786
+Pasig City,Sapang Buli Creek,river,14.5943005,121.1037825,https://www.openstreetmap.org/way/37553097
+Quezon City,Aranan Creek,stream,14.646271,121.0304298,https://www.openstreetmap.org/way/40134227
+Quezon City,Dario Creek,river,14.6560462,121.0154089,https://www.openstreetmap.org/way/41301918
+Valenzuela City,Tullahan River,river,14.6919001,121.0231084,https://www.openstreetmap.org/way/41499263
+Caloocan City,Tullahan River,river,14.6909925,121.0173451,https://www.openstreetmap.org/way/41499350
+Quezon City,Santo Cristo Creek,river,14.657519,121.01888,https://www.openstreetmap.org/way/41522840
+Quezon City,Ruby Creek,river,14.7107917,121.0702113,https://www.openstreetmap.org/way/42006100
+Quezon City,Don Jose Creek,stream,14.6240782,121.0625458,https://www.openstreetmap.org/way/46647930
+Malabon City,Tanza River,river,14.6802704,120.9383277,https://www.openstreetmap.org/way/47924326
+Navotas City,Navotas-Malabon River,river,14.6620477,120.9472938,https://www.openstreetmap.org/way/47925520
+Navotas City,Tangos River,river,14.6742887,120.9362603,https://www.openstreetmap.org/way/47925531
+Las Piñas City,Talon Creek,river,14.4190835,121.0089147,https://www.openstreetmap.org/way/48347791
+Caloocan City,Bagong Silang River,river,14.7710383,121.0400513,https://www.openstreetmap.org/way/48787350
+Mandaluyong City,Ermitaño Creek,river,14.5938226,121.043301,https://www.openstreetmap.org/way/49251142
+Quezon City,Iglesia Ni Jesus Cristo Creek,river,14.6684627,121.0508429,https://www.openstreetmap.org/way/49257290
+Parañaque City,Libjo Creek,stream,14.4974029,121.0064739,https://www.openstreetmap.org/way/50550957
+Parañaque City,Pagsisihan Creek,stream,14.4717307,121.0180816,https://www.openstreetmap.org/way/51319731
+Manila,The Wilhelmsfeld Fountain,water,14.5807649,120.9776264,https://www.openstreetmap.org/way/54030057
+Marikina City,Tañong Creek,stream,14.6329736,121.081827,https://www.openstreetmap.org/way/54030438
+Manila,Estero Fort of San Antonio Abad,river,14.5632787,120.9868283,https://www.openstreetmap.org/way/56241827
+Navotas City,Tullahan River,river,14.6509396,120.9503897,https://www.openstreetmap.org/way/56651749
+Quezon City,Immaculate Conception Creek,stream,14.6232013,121.0397143,https://www.openstreetmap.org/way/75383951
+Pasig City,Ilugin River,river,14.5540546,121.0951677,https://www.openstreetmap.org/way/81606462
+Pasig City,Pasig River,river,14.5403596,121.0982307,https://www.openstreetmap.org/way/81610881
+Pasig City,Sapa de San Agustin,river,14.5546469,121.0871318,https://www.openstreetmap.org/way/91905502
+Quezon City,Unnamed pond,pond,14.6570449,121.0543102,https://www.openstreetmap.org/way/96332931
+Quezon City,Quezon Lagoon,pond,14.6476689,121.0493316,https://www.openstreetmap.org/way/96954598
+Malabon City,Batasan River,river,14.6948121,120.9291858,https://www.openstreetmap.org/way/99722946
+Navotas City,Navotas River,river,14.6476198,120.9566851,https://www.openstreetmap.org/way/99727528
+Quezon City,Taniman Creek,river,14.6753874,121.0981853,https://www.openstreetmap.org/way/102259897
+Makati City,Unnamed pond,pond,14.5550294,121.041193,https://www.openstreetmap.org/way/102777986
+Pasig City,Manggahan Floodway,river,14.5986304,121.0902464,https://www.openstreetmap.org/way/104081082
+Las Piñas City,Masaligsig Creek,river,14.4512941,121.0120551,https://www.openstreetmap.org/way/106488751
+Parañaque City,San Dionisio Creek,river,14.4917521,120.9931765,https://www.openstreetmap.org/way/106735378
+Las Piñas City,Balihatar Creek,river,14.4839723,120.9880533,https://www.openstreetmap.org/way/106735379
+Pateros,Panday Paltok River,river,14.5434566,121.0745189,https://www.openstreetmap.org/way/106738584
+Quezon City,Unnamed reservoir,reservoir,14.6140541,121.0408743,https://www.openstreetmap.org/way/108541178
+Manila,Estero de Magdalena,stream,14.6043979,120.9758473,https://www.openstreetmap.org/way/111561555
+San Juan City,Maytunas Creek,river,14.5944995,121.0301343,https://www.openstreetmap.org/way/112651128
+Pateros,Santa Ana Creek,stream,14.5477609,121.0720079,https://www.openstreetmap.org/way/113583309
+Parañaque City,Unnamed pond,pond,14.501836,120.9862071,https://www.openstreetmap.org/way/114501654
+Parañaque City,Unnamed pond,pond,14.5018051,120.9869389,https://www.openstreetmap.org/way/114501655
+Parañaque City,Unnamed pond,pond,14.5018204,120.986575,https://www.openstreetmap.org/way/114501656
+Taguig City,Daang Paa Creek,river,14.5443721,121.0821166,https://www.openstreetmap.org/way/118152567
+Pateros,Panday Pira River,river,14.5473249,121.0762904,https://www.openstreetmap.org/way/118152568
+Valenzuela City,Linguhan Creek,river,14.7174486,120.9701168,https://www.openstreetmap.org/way/120674855
+Valenzuela City,Veinte Reales Creek,river,14.7087036,120.9719533,https://www.openstreetmap.org/way/120675094
+Pasig City,Koi Pond,pond,14.5896548,121.0679173,https://www.openstreetmap.org/way/130570078
+Parañaque City,Masaligsig Creek,river,14.4573714,121.01072,https://www.openstreetmap.org/way/131974462
+Mandaluyong City,San Juan River,river,14.5917622,121.0244034,https://www.openstreetmap.org/way/133342133
+Taguig City,Panday Paltok River,river,14.543376,121.0782646,https://www.openstreetmap.org/way/134197467
+Malabon City,Unnamed pond,pond,14.6676192,120.9567902,https://www.openstreetmap.org/way/138067494
+Las Piñas City,Tuntong Creek,stream,14.4642854,120.9924551,https://www.openstreetmap.org/way/142868693
+Las Piñas City,Kay Kanti River,river,14.4735718,120.9732003,https://www.openstreetmap.org/way/149968524
+Caloocan City,Maligaya Creek,stream,14.6429335,120.9860653,https://www.openstreetmap.org/way/152981757
+Las Piñas City,Pamplona Creek,stream,14.4495967,120.9738447,https://www.openstreetmap.org/way/156573315
+Parañaque City,Elon-Elon Creek,river,14.4846423,121.0050096,https://www.openstreetmap.org/way/158183241
+Quezon City,Fishing Lagoon,pond,14.7114196,121.0753542,https://www.openstreetmap.org/way/159638433
+Manila,Estero de Valencia,river,14.6012187,121.0030715,https://www.openstreetmap.org/way/160192403
+Valenzuela City,Ilang-ilang Creek,canal,14.6955242,120.9703437,https://www.openstreetmap.org/way/172917570
+Valenzuela City,Karuhatan Creek,stream,14.6950844,120.9746787,https://www.openstreetmap.org/way/172917571
+Valenzuela City,Marulas Creek,river,14.6768854,120.9762445,https://www.openstreetmap.org/way/175024295
+Manila,Estero de San Sebastian,stream,14.5978648,120.986865,https://www.openstreetmap.org/way/179240579
+Quezon City,Unnamed pond,pond,14.60647,121.0600596,https://www.openstreetmap.org/way/184362394
+Valenzuela City,Santulan River,river,14.6946564,120.9569872,https://www.openstreetmap.org/way/198756055
+Malabon City,Tugatog Creek,stream,14.6601711,120.9695768,https://www.openstreetmap.org/way/217824522
+Malabon City,Catmon River,river,14.6650555,120.9580033,https://www.openstreetmap.org/way/217824523
+Pasay City,Dilain Creek,river,14.5335268,121.0053004,https://www.openstreetmap.org/way/224042469
+Makati City,Estero de Tripa de Gallina,river,14.551468,121.0038006,https://www.openstreetmap.org/way/225358495
+Taguig City,Rembo Creek,stream,14.5521379,121.0637912,https://www.openstreetmap.org/way/226831901
+Pasig City,Sapang Pa-hilaga,river,14.5730007,121.0942288,https://www.openstreetmap.org/way/229298529
+Valenzuela City,Coloong River,river,14.7252377,120.9409175,https://www.openstreetmap.org/way/232518617
+Malabon City,Kaylanan River,river,14.6962702,120.9303278,https://www.openstreetmap.org/way/236682870
+Valenzuela City,Unnamed pond,pond,14.7228218,120.9478636,https://www.openstreetmap.org/way/236997905
+Malabon City,Dampalit River,river,14.6785825,120.9447556,https://www.openstreetmap.org/way/237473847
+Malabon City,Pinagkabalian River,river,14.6810186,120.9493904,https://www.openstreetmap.org/way/237473848
+Malabon City,Canal #4,river,14.6716729,120.9505396,https://www.openstreetmap.org/way/237473903
+Caloocan City,Casili Creek,river,14.6371981,120.9749812,https://www.openstreetmap.org/way/237474032
+Las Piñas City,Kantarilla Creek,stream,14.4673644,120.970123,https://www.openstreetmap.org/way/237475737
+Valenzuela City,Unnamed pond,pond,14.7232723,120.9425732,https://www.openstreetmap.org/way/237757038
+Valenzuela City,Unnamed pond,pond,14.724408,120.9424471,https://www.openstreetmap.org/way/237757039
+Valenzuela City,Lingahan River,river,14.7231686,120.9511387,https://www.openstreetmap.org/way/237764262
+Taguig City,Sapang Ususan,stream,14.5223885,121.0573813,https://www.openstreetmap.org/way/237788134
+Valenzuela City,Cabatuhan Creek,river,14.6873297,121.0082094,https://www.openstreetmap.org/way/237789659
+Caloocan City,Libis Creek,stream,14.6796225,120.9991063,https://www.openstreetmap.org/way/237789725
+Pasig City,Pineda Creek,stream,14.5691652,121.0574773,https://www.openstreetmap.org/way/237792075
+Pasig City,Buli Creek,river,14.5753024,121.1012237,https://www.openstreetmap.org/way/238270877
+Taguig City,Mauling Creek,stream,14.4845568,121.0583777,https://www.openstreetmap.org/way/238275502
+Valenzuela City,Maysan Creek,stream,14.6936854,120.9798693,https://www.openstreetmap.org/way/238279013
+Makati City,San Jose Creek,stream,14.5608605,121.0488919,https://www.openstreetmap.org/way/238684228
+Taguig City,Commando Creek,stream,14.5236363,121.052408,https://www.openstreetmap.org/way/238684497
+Manila,Maligaya Creek,stream,14.635337,120.9816436,https://www.openstreetmap.org/way/242295001
+Las Piñas City,Manarigo Creek,river,14.4445014,120.9993075,https://www.openstreetmap.org/way/242844385
+Las Piñas City,Pasong Baka Creek,river,14.4196201,120.9939945,https://www.openstreetmap.org/way/242869137
+Las Piñas City,Paliwas Creek,river,14.4793886,120.98435,https://www.openstreetmap.org/way/243481554
+Las Piñas City,Unnamed pond,pond,14.4760379,120.9737403,https://www.openstreetmap.org/way/245827989
+Manila,Estero de Sunog Apog,river,14.6329148,120.9704694,https://www.openstreetmap.org/way/250480480
+Caloocan City,Tugatog Creek,stream,14.6619746,120.9735489,https://www.openstreetmap.org/way/253741162
+Mandaluyong City,Unnamed pond,pond,14.5813964,121.0435884,https://www.openstreetmap.org/way/254453302
+Quezon City,Pond A,pond,14.6425771,121.0709005,https://www.openstreetmap.org/way/261671419
+Pasig City,Pinagkatdan Creek,stream,14.5459354,121.1054525,https://www.openstreetmap.org/way/277022313
+Quezon City,Unnamed reservoir,reservoir,14.6352913,120.9976604,https://www.openstreetmap.org/way/277771093
+Pasay City,Unnamed reservoir,reservoir,14.5233307,121.005804,https://www.openstreetmap.org/way/306086834
+Manila,Chinese Garden Pond,pond,14.5831453,120.9775712,https://www.openstreetmap.org/way/314226129
+Manila,Unnamed pond,pond,14.5824756,120.9770709,https://www.openstreetmap.org/way/314226130
+Manila,Unnamed pond,pond,14.582315,120.9769373,https://www.openstreetmap.org/way/314226131
+Caloocan City,Navotas River,river,14.6429345,120.9610273,https://www.openstreetmap.org/way/319661645
+Malabon City,Unnamed pond,pond,14.6631417,120.9554007,https://www.openstreetmap.org/way/319667553
+Caloocan City,New Land Quadra Creek,stream,14.6855929,121.0161518,https://www.openstreetmap.org/way/319768669
+Manila,PUP Lagoon,pond,14.597642,121.0102569,https://www.openstreetmap.org/way/330772179
+Parañaque City,Unnamed pond,pond,14.5024925,120.9842196,https://www.openstreetmap.org/way/332866087
+Parañaque City,Unnamed pond,pond,14.5018625,120.9830118,https://www.openstreetmap.org/way/332866088
+Parañaque City,Unnamed pond,pond,14.4913808,120.9786877,https://www.openstreetmap.org/way/333767110
+Parañaque City,Unnamed pond,pond,14.4916443,120.978397,https://www.openstreetmap.org/way/333767111
+Parañaque City,Unnamed pond,pond,14.4916182,120.9780713,https://www.openstreetmap.org/way/333767112
+Parañaque City,Unnamed pond,pond,14.4913171,120.9778083,https://www.openstreetmap.org/way/333767113
+Parañaque City,Unnamed pond,pond,14.4907735,120.9779687,https://www.openstreetmap.org/way/333767114
+Parañaque City,Unnamed pond,pond,14.4909415,120.9777228,https://www.openstreetmap.org/way/333767115
+Parañaque City,Unnamed pond,pond,14.4911696,120.9774734,https://www.openstreetmap.org/way/333767116
+Parañaque City,Unnamed pond,pond,14.4907574,120.9773287,https://www.openstreetmap.org/way/333767117
+Parañaque City,Unnamed pond,pond,14.4906245,120.9782077,https://www.openstreetmap.org/way/333767118
+Parañaque City,Unnamed pond,pond,14.4905272,120.9774774,https://www.openstreetmap.org/way/333767119
+Las Piñas City,Unnamed pond,pond,14.484502,120.9735953,https://www.openstreetmap.org/way/333767123
+Parañaque City,Unnamed pond,pond,14.501303,120.9868115,https://www.openstreetmap.org/way/333770071
+Parañaque City,Unnamed pond,pond,14.5004908,120.9864063,https://www.openstreetmap.org/way/333770073
+Parañaque City,Unnamed pond,pond,14.5008653,120.9869411,https://www.openstreetmap.org/way/333770076
+Parañaque City,Unnamed pond,pond,14.5011541,120.9862919,https://www.openstreetmap.org/way/333770079
+Parañaque City,Unnamed pond,pond,14.5011201,120.9857879,https://www.openstreetmap.org/way/333770081
+Manila,Carriedo Fountain,water,14.5999017,120.9803328,https://www.openstreetmap.org/way/386772202
+Manila,Estero de Maytubig,stream,14.5651182,120.9918057,https://www.openstreetmap.org/way/395935824
+Manila,Unnamed reservoir,reservoir,14.6300569,120.96862,https://www.openstreetmap.org/way/409324630
+Quezon City,Mendez Creek,stream,14.6641436,121.0133551,https://www.openstreetmap.org/way/419819442
+Mandaluyong City,Unnamed pond,pond,14.5940416,121.0444353,https://www.openstreetmap.org/way/449476295
+Taguig City,Unnamed reservoir,reservoir,14.5501221,121.0524274,https://www.openstreetmap.org/way/451045107
+Las Piñas City,Unnamed pond,pond,14.4763817,120.9770989,https://www.openstreetmap.org/way/456482274
+Las Piñas City,Unnamed pond,pond,14.4730267,120.9717673,https://www.openstreetmap.org/way/456482281
+Quezon City,Orchard,pond,14.6108404,121.0410864,https://www.openstreetmap.org/way/487283633
+Valenzuela City,Unnamed pond,pond,14.7208215,120.9500123,https://www.openstreetmap.org/way/517155529
+Valenzuela City,Unnamed pond,pond,14.7190696,120.949476,https://www.openstreetmap.org/way/517155541
+Valenzuela City,Unnamed pond,pond,14.719385,120.9487694,https://www.openstreetmap.org/way/517155542
+Valenzuela City,Unnamed pond,pond,14.7188241,120.9489344,https://www.openstreetmap.org/way/517155543
+Quezon City,Unnamed pond,pond,14.6583519,121.0371783,https://www.openstreetmap.org/way/524831042
+Valenzuela City,Kalabingkoho River,river,14.7168002,120.9606118,https://www.openstreetmap.org/way/526758211
+Valenzuela City,Unnamed pond,pond,14.7239083,120.9478323,https://www.openstreetmap.org/way/526758218
+Valenzuela City,Unnamed pond,pond,14.7248519,120.9499752,https://www.openstreetmap.org/way/526766400
+Valenzuela City,Unnamed pond,pond,14.7263431,120.9487126,https://www.openstreetmap.org/way/526766403
+Valenzuela City,Unnamed pond,pond,14.7250833,120.9466561,https://www.openstreetmap.org/way/526766406
+Valenzuela City,Unnamed pond,pond,14.7261635,120.9455485,https://www.openstreetmap.org/way/526766411
+Valenzuela City,Unnamed pond,pond,14.71901,120.9480119,https://www.openstreetmap.org/way/526766412
+Valenzuela City,Unnamed pond,pond,14.73092,120.9447862,https://www.openstreetmap.org/way/539948601
+Valenzuela City,Unnamed pond,pond,14.7290226,120.9438066,https://www.openstreetmap.org/way/540003838
+Valenzuela City,Unnamed pond,pond,14.7326583,120.9406597,https://www.openstreetmap.org/way/540003846
+Valenzuela City,Unnamed pond,pond,14.7321393,120.9420178,https://www.openstreetmap.org/way/540003848
+Valenzuela City,Unnamed pond,pond,14.7319559,120.9416893,https://www.openstreetmap.org/way/540003850
+Valenzuela City,Unnamed pond,pond,14.7314197,120.9424145,https://www.openstreetmap.org/way/540003858
+Valenzuela City,Unnamed pond,pond,14.7315481,120.9412393,https://www.openstreetmap.org/way/540003860
+Valenzuela City,Unnamed pond,pond,14.7314772,120.9408703,https://www.openstreetmap.org/way/540003863
+Valenzuela City,Unnamed pond,pond,14.7306566,120.9432101,https://www.openstreetmap.org/way/540003866
+Manila,Unnamed pond,pond,14.5846752,120.9795877,https://www.openstreetmap.org/way/541686694
+Quezon City,Kamias Creek,river,14.628591,121.047027,https://www.openstreetmap.org/way/547798608
+Navotas City,Unnamed pond,pond,14.6793431,120.9324225,https://www.openstreetmap.org/way/549869606
+Navotas City,Unnamed pond,pond,14.6855629,120.931341,https://www.openstreetmap.org/way/549869607
+Navotas City,Unnamed pond,pond,14.6861034,120.9270739,https://www.openstreetmap.org/way/549869904
+Muntinlupa City,Unnamed pond,pond,14.3727856,121.030738,https://www.openstreetmap.org/way/551835255
+Valenzuela City,Unnamed pond,pond,14.7287864,120.9511604,https://www.openstreetmap.org/way/552132747
+Valenzuela City,Unnamed pond,pond,14.7322558,120.9497319,https://www.openstreetmap.org/way/552132751
+Makati City,Pablo Romo,pond,14.5631665,121.0376145,https://www.openstreetmap.org/way/553411546
+Parañaque City,San Isidro,river,14.4735526,121.0024566,https://www.openstreetmap.org/way/554268007
+Malabon City,Letre Creek,river,14.6594778,120.9627667,https://www.openstreetmap.org/way/554895252
+Malabon City,Pinagsabugan Creek,river,14.6584939,120.9577336,https://www.openstreetmap.org/way/554895407
+Valenzuela City,Dulong Tangke Creek,river,14.6856093,120.9644901,https://www.openstreetmap.org/way/556765861
+Pasig City,Boating Lagoon,pond,14.5743757,121.0978483,https://www.openstreetmap.org/way/558701036
+Pasig City,Mahabang Ilog Creek,river,14.5711248,121.0944983,https://www.openstreetmap.org/way/558728450
+Quezon City,Balong Bato Creek,stream,14.6609077,121.0045659,https://www.openstreetmap.org/way/560083817
+Quezon City,Unnamed pond,pond,14.6564294,121.0364718,https://www.openstreetmap.org/way/560464017
+Quezon City,Unnamed pond,pond,14.6559959,121.0305548,https://www.openstreetmap.org/way/560464268
+Quezon City,Unnamed pond,pond,14.6559488,121.0307643,https://www.openstreetmap.org/way/560464269
+Quezon City,Unnamed pond,pond,14.6558668,121.0308311,https://www.openstreetmap.org/way/560464270
+Quezon City,Unnamed pond,pond,14.6560892,121.0298028,https://www.openstreetmap.org/way/560464271
+Quezon City,Unnamed pond,pond,14.6561594,121.0289579,https://www.openstreetmap.org/way/560465219
+Quezon City,Unnamed pond,pond,14.6554698,121.0322365,https://www.openstreetmap.org/way/560465220
+Manila,Unnamed pond,pond,14.5973159,121.0129363,https://www.openstreetmap.org/way/562610324
+Taguig City,Ruisseau - déchet,stream,14.5148356,121.0390848,https://www.openstreetmap.org/way/563744951
+Valenzuela City,Mabolo Creek,river,14.7119126,120.9497737,https://www.openstreetmap.org/way/563799908
+Parañaque City,Balihatar Creek,river,14.4835529,120.9886259,https://www.openstreetmap.org/way/564173769
+Parañaque City,Don Galo Creek,stream,14.5051105,121.0236431,https://www.openstreetmap.org/way/564723736
+Parañaque City,Las Piñas River,river,14.4881429,120.99225,https://www.openstreetmap.org/way/570870646
+Parañaque City,Kay Boboy Creek,river,14.4860662,120.9903974,https://www.openstreetmap.org/way/570870647
+Malabon City,Santulan River,river,14.6840488,120.9613994,https://www.openstreetmap.org/way/573804531
+Valenzuela City,Isla-Pasolo Creek,river,14.7031062,120.9539981,https://www.openstreetmap.org/way/575535338
+Valenzuela City,Meycauayan River,river,14.7513385,120.9916524,https://www.openstreetmap.org/way/578357899
+Valenzuela City,Unnamed pond,pond,14.7224397,120.9453215,https://www.openstreetmap.org/way/583735964
+Valenzuela City,Unnamed pond,pond,14.7233758,120.9395778,https://www.openstreetmap.org/way/585574769
+Valenzuela City,Unnamed pond,pond,14.7106281,120.9467461,https://www.openstreetmap.org/way/585574782
+Valenzuela City,Unnamed pond,pond,14.7258173,120.94322,https://www.openstreetmap.org/way/588883243
+Valenzuela City,Unnamed pond,pond,14.727455,120.9417615,https://www.openstreetmap.org/way/588885441
+Valenzuela City,Unnamed pond,pond,14.7276444,120.9416355,https://www.openstreetmap.org/way/588885442
+Valenzuela City,Unnamed pond,pond,14.7272427,120.9410086,https://www.openstreetmap.org/way/588885443
+Valenzuela City,Unnamed pond,pond,14.7300556,120.9393942,https://www.openstreetmap.org/way/588885444
+Valenzuela City,Unnamed pond,pond,14.7333721,120.9375539,https://www.openstreetmap.org/way/588885449
+Valenzuela City,Unnamed pond,pond,14.7345848,120.9386387,https://www.openstreetmap.org/way/588885452
+Valenzuela City,Unnamed pond,pond,14.7356501,120.9367247,https://www.openstreetmap.org/way/588885457
+Valenzuela City,Unnamed pond,pond,14.7340573,120.9385629,https://www.openstreetmap.org/way/588894632
+Quezon City,Pasong Malapad Creek,stream,14.7421939,121.0569413,https://www.openstreetmap.org/way/591932908
+Valenzuela City,Unnamed pond,pond,14.726997,120.9350825,https://www.openstreetmap.org/way/591998627
+Valenzuela City,Unnamed pond,pond,14.7265042,120.935388,https://www.openstreetmap.org/way/591998628
+Valenzuela City,Unnamed pond,pond,14.7259905,120.9357529,https://www.openstreetmap.org/way/591998629
+Valenzuela City,Unnamed pond,pond,14.719877,120.9388359,https://www.openstreetmap.org/way/594471001
+Valenzuela City,Unnamed pond,pond,14.721026,120.9378188,https://www.openstreetmap.org/way/594471005
+Valenzuela City,Unnamed pond,pond,14.7215641,120.9388517,https://www.openstreetmap.org/way/594471008
+Valenzuela City,Unnamed pond,pond,14.7223927,120.9371828,https://www.openstreetmap.org/way/594471012
+Valenzuela City,Unnamed pond,pond,14.7228126,120.9381369,https://www.openstreetmap.org/way/594471015
+Valenzuela City,Unnamed pond,pond,14.7230146,120.9371497,https://www.openstreetmap.org/way/594471018
+Valenzuela City,Unnamed pond,pond,14.7237387,120.9369541,https://www.openstreetmap.org/way/594471021
+Valenzuela City,Unnamed pond,pond,14.7246077,120.9365442,https://www.openstreetmap.org/way/594471026
+Valenzuela City,Unnamed pond,pond,14.7253277,120.9362974,https://www.openstreetmap.org/way/594471030
+Valenzuela City,Unnamed pond,pond,14.7348621,120.940041,https://www.openstreetmap.org/way/602377334
+Valenzuela City,Unnamed pond,pond,14.7350741,120.9405864,https://www.openstreetmap.org/way/602377338
+Quezon City,Unnamed pond,pond,14.6503016,121.0404215,https://www.openstreetmap.org/way/602456929
+Valenzuela City,Unnamed pond,pond,14.6910531,120.9695805,https://www.openstreetmap.org/way/605312648
+Quezon City,Unnamed pond,pond,14.6386066,121.0758928,https://www.openstreetmap.org/way/608204755
+Muntinlupa City,Putatan Creek,river,14.4005957,121.0505273,https://www.openstreetmap.org/way/682344468
+Mandaluyong City,Unnamed pond,pond,14.589447,121.0519627,https://www.openstreetmap.org/way/693127193
+Mandaluyong City,Unnamed pond,pond,14.5969215,121.0491523,https://www.openstreetmap.org/way/693127202
+Mandaluyong City,Unnamed pond,pond,14.5968777,121.0484966,https://www.openstreetmap.org/way/693127203
+Manila,Estero de Tanque,river,14.5862951,120.9906682,https://www.openstreetmap.org/way/693141376
+Parañaque City,Marulas Creek,stream,14.4734724,120.9972011,https://www.openstreetmap.org/way/772074359
+Quezon City,Unnamed pond,pond,14.626974,120.9950774,https://www.openstreetmap.org/way/794383720
+Quezon City,Unnamed pond,pond,14.6106453,121.0470721,https://www.openstreetmap.org/way/795501821
+Manila,Estero de Calubcob,river,14.6145125,120.9944844,https://www.openstreetmap.org/way/800899651
+Manila,Pandacan Creek,river,14.5908929,121.0075522,https://www.openstreetmap.org/way/801449567
+Taguig City,Unnamed pond,pond,14.5510308,121.0546522,https://www.openstreetmap.org/way/846377975
+Taguig City,Sapang Malaki,river,14.5272066,121.0647706,https://www.openstreetmap.org/way/878539176
+Caloocan City,Torcillo Creek,stream,14.6424233,120.9695626,https://www.openstreetmap.org/way/878640394
+Caloocan City,Tuna Creek,stream,14.6416771,120.9696714,https://www.openstreetmap.org/way/878645262
+Caloocan City,Talilong Creek,stream,14.6396242,120.970273,https://www.openstreetmap.org/way/878645263
+Caloocan City,Tawilis Creek,stream,14.6433249,120.9703041,https://www.openstreetmap.org/way/878645264
+Caloocan City,Dagat-Dagatan Ext. Canal,stream,14.6384302,120.9691183,https://www.openstreetmap.org/way/878645848
+Mandaluyong City,Wack-wack Creek,stream,14.5832437,121.0570071,https://www.openstreetmap.org/way/878775820
+Manila,Estero de Alix,stream,14.6039726,120.9919632,https://www.openstreetmap.org/way/878893337
+Manila,Estero de Calubcub,stream,14.6123695,120.99453,https://www.openstreetmap.org/way/878907920
+Malabon City,Canal #3,stream,14.6724442,120.9486948,https://www.openstreetmap.org/way/878931049
+Malabon City,Acacia Creek,stream,14.6744221,120.9680815,https://www.openstreetmap.org/way/878942168
+Valenzuela City,Elysian Creek,stream,14.6737705,120.9802807,https://www.openstreetmap.org/way/878942169
+Taguig City,Daang Kalabaw Creek,stream,14.4806601,121.0613216,https://www.openstreetmap.org/way/880670132
+Taguig City,Daang Manunuso Creek,river,14.5463553,121.0889577,https://www.openstreetmap.org/way/880677925
+Taguig City,Old Conga Creek,river,14.5112127,121.0631858,https://www.openstreetmap.org/way/880736991
+Manila,Estero de Tutuban,stream,14.6119575,120.9756833,https://www.openstreetmap.org/way/883636463
+Pasig City,Kalawaan Creek,river,14.5499512,121.0890876,https://www.openstreetmap.org/way/886153555
+Pasig City,Kalkawaan Creek,river,14.5482475,121.0889918,https://www.openstreetmap.org/way/886163883
+Taguig City,Sucol Creek,stream,14.5431448,121.0840982,https://www.openstreetmap.org/way/886170678
+Pasig City,Marapa Creek,river,14.5562421,121.0947059,https://www.openstreetmap.org/way/886819919
+Quezon City,Waling-Waling Creek,stream,14.6294569,121.0177864,https://www.openstreetmap.org/way/886888818
+Quezon City,Campupot Creek,stream,14.6271542,121.0195245,https://www.openstreetmap.org/way/886890868
+Quezon City,de Gloria Creek,stream,14.677612,121.1002767,https://www.openstreetmap.org/way/895238443
+Las Piñas City,Unnamed pond,pond,14.4732348,120.9723854,https://www.openstreetmap.org/way/897238105
+Quezon City,Unnamed reservoir,reservoir,14.6973632,121.0438123,https://www.openstreetmap.org/way/957545779
+Quezon City,Unnamed reservoir,reservoir,14.6982732,121.0447052,https://www.openstreetmap.org/way/957545780
+Taguig City,Creek Below Houses,stream,14.513384,121.0374389,https://www.openstreetmap.org/way/970654536
+Taguig City,Creek Below Roads and Houses,stream,14.5112351,121.0400599,https://www.openstreetmap.org/way/970654537
+Las Piñas City,Unnamed pond,pond,14.4053941,121.0089869,https://www.openstreetmap.org/way/975535698
+Las Piñas City,Unnamed pond,pond,14.3873019,121.0077774,https://www.openstreetmap.org/way/1019450706
+Pasig City,Daang Manunuso Creek,river,14.5454246,121.0900634,https://www.openstreetmap.org/way/1067027349
+Taguig City,Ibayo-Tipaz Creek,river,14.5338776,121.0807584,https://www.openstreetmap.org/way/1073277206
+Manila,Unnamed reservoir,reservoir,14.5837117,121.005922,https://www.openstreetmap.org/way/1086608261
+Manila,Unnamed pond,pond,14.5962106,121.014425,https://www.openstreetmap.org/way/1110475735
+Quezon City,Koi Pond,pond,14.7116304,121.0757347,https://www.openstreetmap.org/way/1117183713
+Quezon City,Neptune Pond,pond,14.7112691,121.0755567,https://www.openstreetmap.org/way/1117183715
+Marikina City,Iwahig Creek,river,14.6581774,121.0987075,https://www.openstreetmap.org/way/1159902632
+Manila,Rizal Park Musical Dancing Fountain,water,14.5828165,120.9788626,https://www.openstreetmap.org/way/1193157079
+Quezon City,Victoria Executive Mansions,lake,14.6145627,121.0289413,https://www.openstreetmap.org/way/1216147463
+Caloocan City,MBA Creek,stream,14.761924,121.0280949,https://www.openstreetmap.org/way/1225650862
+Malabon City,canal no. 4,canal,14.6699651,120.9503964,https://www.openstreetmap.org/way/1317732660
+Quezon City,Unnamed pond,pond,14.6425771,121.0709005,https://www.openstreetmap.org/way/1336787579
+Navotas City,Unnamed pond,pond,14.6825014,120.9331409,https://www.openstreetmap.org/way/1338973836
+Manila,Unnamed pond,pond,14.5792458,120.9735074,https://www.openstreetmap.org/way/1339961359
+Quezon City,Unnamed pond,pond,14.653756,121.0062349,https://www.openstreetmap.org/way/1351145878
+Taguig City,Xyris Creek,stream,14.5438375,121.0550903,https://www.openstreetmap.org/way/1411351930
+Taguig City,Pioneer Creek,stream,14.5436213,121.0552329,https://www.openstreetmap.org/way/1411351938
+Quezon City,Unnamed pond,pond,14.6590907,121.0622394,https://www.openstreetmap.org/way/1451541204
+Manila,Unnamed pond,pond,14.5843234,120.9791132,https://www.openstreetmap.org/way/1452030628
+Pasay City,Unnamed pond,pond,14.5360398,120.9801954,https://www.openstreetmap.org/way/1471557219
+Quezon City,Unnamed lake,lake,14.7298786,121.0729717,https://www.openstreetmap.org/way/1472773987
+Valenzuela City,Action Center Creek,stream,14.6966389,120.9574252,https://www.openstreetmap.org/way/1474102856
+Valenzuela City,Malinta Bukid Creek,stream,14.6934671,120.9587319,https://www.openstreetmap.org/way/1474102862
+Valenzuela City,Felo 1 Creek,stream,14.6986754,120.9565965,https://www.openstreetmap.org/way/1474102865
+Valenzuela City,G. Lazaro Creek,stream,14.7065028,120.9525487,https://www.openstreetmap.org/way/1474102868
+Valenzuela City,Mendoza Creek,stream,14.7023492,120.9505355,https://www.openstreetmap.org/way/1474102870
+Valenzuela City,Feliciano Creek,stream,14.705651,120.9480607,https://www.openstreetmap.org/way/1474102871
+Valenzuela City,Polo Creek,stream,14.7087702,120.9471684,https://www.openstreetmap.org/way/1474102874
+Valenzuela City,Sebastian Creek,stream,14.7095933,120.9458403,https://www.openstreetmap.org/way/1474102875
+Valenzuela City,Valeriano Creek,river,14.7124339,120.944443,https://www.openstreetmap.org/way/1474102878
+Quezon City,FEU Diliman Lagoon,pond,14.682796,121.0616744,https://www.openstreetmap.org/way/1486348510
+Quezon City,Unnamed reservoir,reservoir,14.7335539,121.0747348,https://www.openstreetmap.org/way/1488706463
+Mandaluyong City,Unnamed pond,pond,14.594186,121.0520493,https://www.openstreetmap.org/way/1491161794
+Mandaluyong City,Unnamed pond,pond,14.593348,121.0515385,https://www.openstreetmap.org/way/1491161798
+Mandaluyong City,Unnamed pond,pond,14.5922781,121.0512251,https://www.openstreetmap.org/way/1491161799
+Mandaluyong City,Unnamed pond,pond,14.5947863,121.0523847,https://www.openstreetmap.org/way/1491161807
+Mandaluyong City,Unnamed pond,pond,14.5952404,121.0525785,https://www.openstreetmap.org/way/1491161808
+Makati City,Unnamed pond,pond,14.5672867,121.0462439,https://www.openstreetmap.org/way/1491174739
+Makati City,Unnamed pond,pond,14.5674197,121.0461077,https://www.openstreetmap.org/way/1491174749
+Quezon City,Unnamed pond,pond,14.6541619,121.039032,https://www.openstreetmap.org/way/1491456521
+Quezon City,Unnamed pond,pond,14.6570826,121.0373049,https://www.openstreetmap.org/way/1491456540
+Quezon City,Unnamed pond,pond,14.658723,121.0372325,https://www.openstreetmap.org/way/1491456542
+Pasig City,Daang Paa Creek,river,14.5503676,121.0800543,https://www.openstreetmap.org/way/1526671269
+Pasig City,Panday Pira River,river,14.5468842,121.079594,https://www.openstreetmap.org/way/1526671270
+Quezon City,Ruisseau,stream,14.6704424,121.0618505,https://www.openstreetmap.org/way/1545465882
+Quezon City,Plan d'eau,water,14.6705272,121.0609192,https://www.openstreetmap.org/way/1545468500
+Manila,Swiming pool,water,14.5977628,120.99268,https://www.openstreetmap.org/way/1559836203
+Taguig City,Taguig Aquafarm,fishpond,14.496578,121.105293,https://www.openstreetmap.org/way/1563346817
+Navotas City,Maypajo River,water,14.6389876,120.966183,https://www.openstreetmap.org/relation/1717020
+San Juan City,Ermitaño Creek,river,14.6112443,121.0287552,https://www.openstreetmap.org/relation/1781630
+Quezon City,La Mesa Reservoir,reservoir,14.7241308,121.0887417,https://www.openstreetmap.org/relation/2505038
+Malabon City,Unnamed pond,pond,14.6981465,120.9280266,https://www.openstreetmap.org/relation/2541331
+Malabon City,Unnamed pond,pond,14.6908386,120.9350468,https://www.openstreetmap.org/relation/2541332
+Navotas City,Unnamed pond,pond,14.6792814,120.9295075,https://www.openstreetmap.org/relation/2541333
+Malabon City,Unnamed pond,pond,14.6959053,120.934528,https://www.openstreetmap.org/relation/2541335
+Malabon City,Unnamed pond,pond,14.6945998,120.9304313,https://www.openstreetmap.org/relation/2541336
+Navotas City,Unnamed pond,pond,14.6923427,120.922557,https://www.openstreetmap.org/relation/2541337
+Manila,Estero de Aviles,river,14.597984,120.9978761,https://www.openstreetmap.org/relation/2918754
+Caloocan City,Unnamed pond,pond,14.6709559,121.0031125,https://www.openstreetmap.org/relation/4445756
+Taguig City,Unnamed pond,pond,14.5337265,121.0514762,https://www.openstreetmap.org/relation/10436733
+Taguig City,Napindan Channel,river,14.5419438,121.087689,https://www.openstreetmap.org/relation/12548411
+Manila,Baseco Lagoon,lagoon,14.5889885,120.9550401,https://www.openstreetmap.org/relation/14234064
+Las Piñas City,Unnamed pond,pond,14.4671672,120.9712728,https://www.openstreetmap.org/relation/15037095
+Malabon City,Unnamed pond,pond,14.6816685,120.9401782,https://www.openstreetmap.org/relation/16264856
+Muntinlupa City,Unnamed pond,pond,14.3861251,121.0163891,https://www.openstreetmap.org/relation/18053906
+Taguig City,The Lagoon,pond,14.5645917,121.0570917,https://www.openstreetmap.org/relation/20063347

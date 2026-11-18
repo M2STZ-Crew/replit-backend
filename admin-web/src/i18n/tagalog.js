@@ -1112,4 +1112,5 @@ export const TAGALOG = {
   'SUV': 'SUV',
   'E-bike': 'E-bike',
   'E-car': 'E-car',
+  'Zoom in to see the places you turned on': 'Mag-zoom in para makita ang mga lugar na binuksan mo',
 };

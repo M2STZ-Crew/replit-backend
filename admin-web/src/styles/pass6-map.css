@@ -187,3 +187,32 @@
 }
 .rpl-water-panel { right: 16px; }
 .rpl-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* "Zoom in to see the places you turned on" (v1.12.38): layer points are drawn
+   from street level in (map/ZoomGate.jsx). Above the map's panes, and never in
+   the way of a drag. */
+.lm-zoom-hint {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  pointer-events: none;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+/* Map settings: below its taller layer bar, and centred in the map left of the
+   open editor panel (340px wide, 16px in from the edge). */
+.lm-zoom-hint.mm-zoom-hint { top: 72px; }
+.lm-zoom-hint.mm-zoom-hint.is-beside-panel { left: calc((100% - 356px) / 2); }
+@media (max-width: 700px) {
+  /* There the editor is a sheet along the bottom. */
+  .lm-zoom-hint.mm-zoom-hint.is-beside-panel { left: 50%; }
+}
