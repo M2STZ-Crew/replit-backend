@@ -39,7 +39,11 @@ out center tags;
 
 ## Fire hydrants
 
-**17 found, not loaded yet:** see [`hydrants/pasay-hydrants-osm.csv`](hydrants/pasay-hydrants-osm.csv).
+**Loaded 18 November 2026** ("Yes, load them"): all 17 in
+[`hydrants/pasay-hydrants-osm.csv`](hydrants/pasay-hydrants-osm.csv).
+Each keeps its OpenStreetMap reference in `source`, for example
+`openstreetmap:node/1745104230`. Its `code` stays empty for BFP's own hydrant
+code, and its status is `unknown` until BFP checks it.
 All are pillar hydrants on sidewalks, 16 of them in Barangay 76. Each row gives
 its OpenStreetMap link. Where a mapper recorded it, a row also says the hydrant
 was surveyed on site or links a street-level photo.

@@ -47,8 +47,9 @@ Backend and console; app v1.12.49 goes with it. No migration.
   them; the cursor stays put. The same ranges as the app.
 - **Evacuation sites and hydrants: where they came from.** 22 Pasay covered
   courts and multi-purpose halls (OpenStreetMap, approved 18 Nov: "the marked
-  22 yes") were added to production's evacuation sites; 17 OpenStreetMap
-  hydrants are listed for review. `docs/data-sources.md` cites both (APA 7,
+  22 yes") were added to production's evacuation sites, and 17 OpenStreetMap
+  hydrants (approved: "Yes, load them") to its hydrants, each with its
+  `openstreetmap:node/…` source and an unknown status until BFP checks it. `docs/data-sources.md` cites both (APA 7,
   ODbL), with the review lists in `docs/evacuation-sites/` and `docs/hydrants/`.
 
 ---
