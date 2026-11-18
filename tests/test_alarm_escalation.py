@@ -41,6 +41,7 @@ from app.main import app
 from app.realtime import events
 from app.schemas.alarm import (
     INITIAL_ALARM_LEVEL,
+    AlarmRaise,
     AlarmRequestCreate,
     AlarmRequestResponse,
     AlarmReviewRequest,
@@ -171,6 +172,14 @@ class _Db:
         if q.startswith("update public.areas set alarm_level"):
             self.areas[args[0]]["alarm_level"] = args[1]
             return "UPDATE 1"
+        if "update public.alarm_requests set status = 'approved'" in q and "any($1" in q:
+            for rid in args[0]:
+                if self.requests[rid]["status"] == "pending":
+                    self.requests[rid].update(
+                        status="approved", reviewed_by=args[1], review_notes=args[2],
+                        reviewed_at=datetime.now(UTC), executed_at=datetime.now(UTC),
+                    )
+            return f"UPDATE {len(args[0])}"
         if "update public.alarm_requests set status = 'approved'" in q:
             self.requests[args[0]].update(
                 status="approved", reviewed_by=args[1], review_notes=args[2],
@@ -225,6 +234,9 @@ class _Db:
             return [{"id": r["id"], "level": r["level"]} for r in self.requests.values()
                     if r["area_id"] == args[0] and r["requested_by"] == args[1]
                     and r["status"] == "pending"]
+        if "as lvl from public.alarm_requests where area_id = $1 and status = 'pending'" in q:
+            return [{"id": r["id"], "lvl": r["level"]} for r in self.requests.values()
+                    if r["area_id"] == args[0] and r["status"] == "pending"]
         if "from public.alarm_requests a left join public.areas ar" in q:
             rows = [self._detail(rid) for rid in self.requests]
             return [r for r in rows if r is not None]
@@ -241,6 +253,11 @@ class _Db:
                 "reviewed_at": None, "review_notes": None, "executed_at": None,
                 "created_at": now, "updated_at": now,
             }
+            if "'approved'" in q:
+                self.requests[rid].update(
+                    status="approved", reviewed_by=args[1], review_notes=args[4],
+                    reviewed_at=now, executed_at=now,
+                )
             return rid
         if q.startswith("delete from public.alarm_requests"):
             r = self.requests.get(args[0])
@@ -792,3 +809,63 @@ def test_the_middleware_no_longer_records_them_twice() -> None:
         ("DELETE", f"/alarm-requests/{rid}"),
     ]:
         assert match_audit_rule(method, path) is None
+
+
+# --------------------------------------------------------------------------- #
+# v1.12.38, 18 Nov 2026: "bfp coordinator can raise an alarm without the
+# request of fv" (BFP raises it directly).
+# --------------------------------------------------------------------------- #
+async def _raise(
+    db: _Db, user: AuthenticatedUser, level: str, notes: str | None = None
+) -> AlarmRequestResponse:
+    return await ar.raise_alarm(
+        AlarmRaise(area_id=db.area, alarm_level=level, notes=notes),  # type: ignore[arg-type]
+        None,  # type: ignore[arg-type]
+        user,
+        db,  # type: ignore[arg-type]
+    )
+
+
+async def test_bfp_raises_the_alarm_with_no_request(told: _Told) -> None:
+    db = _Db()
+    bfp = db.add(_bfp_coordinator())
+    got = await _raise(db, bfp, "second_alarm", "Spreading to the next house")
+    assert db.areas[db.area]["alarm_level"] == "second_alarm"
+    assert got.status == "approved"
+    assert got.requested_by == bfp.id and got.reviewed_by == bfp.id
+    assert got.justification == "Spreading to the next house"
+    assert db.audit[-1]["action"] == "alarm.raise"
+    assert (f"incident:{db.area}", {"type": "alarm_raised", "area_id": str(db.area),
+            "alarm_level": "second_alarm", "set_by": str(bfp.id)}) in told.sockets
+    assert told.bfp == [], "nobody is asked: BFP set it"
+    assert ("approved", str(got.id)) in told.events
+
+
+async def test_waiting_requests_the_raise_meets_are_answered(told: _Told) -> None:
+    db = _Db()
+    low = db.seed(db.add(_fv_coordinator()), "first_alarm")
+    high = db.seed(db.add(_fv_coordinator()), "third_alarm")
+    await _raise(db, db.add(_bfp_coordinator()), "second_alarm")
+    assert db.requests[low]["status"] == "approved"
+    assert db.requests[low]["review_notes"] == "BFP raised it to 2nd alarm."
+    assert db.requests[high]["status"] == "pending", "a higher ask still waits"
+    assert [a.id for a in told.answers] == [low]
+
+
+async def test_only_bfp_raises_the_alarm(told: _Told) -> None:
+    db = _Db()
+    for user in (_fv_coordinator(), _police_coordinator()):
+        with pytest.raises(ForbiddenError):
+            await _raise(db, db.add(user), "first_alarm")
+    assert db.areas[db.area]["alarm_level"] is None
+
+
+async def test_a_raise_must_raise_and_the_fire_must_be_live(told: _Told) -> None:
+    db = _Db()
+    db.areas[db.area]["alarm_level"] = "second_alarm"
+    with pytest.raises(ConflictError):
+        await _raise(db, db.add(_bfp_coordinator()), "first_alarm")
+    db.areas[db.area]["status"] = "fire_out"
+    with pytest.raises(ConflictError):
+        await _raise(db, db.add(_bfp_coordinator()), "third_alarm")
+    assert db.areas[db.area]["alarm_level"] == "second_alarm"

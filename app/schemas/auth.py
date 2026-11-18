@@ -57,6 +57,21 @@ class AuthenticatedUser(BaseModel):
     personal_email_verified: bool = Field(
         default=False, description="A link sent to personal_email has been opened."
     )
+    email_verified: bool = Field(
+        default=True,
+        description=(
+            "The account's email is confirmed (its emailed link was opened). Read from "
+            "the database on every request; true when not known, so an account built "
+            "here for an audit line is never gated."
+        ),
+    )
+    email_verification_required: bool = Field(
+        default=False,
+        description=(
+            "Set on GET /auth/me (v1.12.38): true when this resident must confirm their "
+            "email before using the app. The app shows Confirm your email on it."
+        ),
+    )
     phone_verification_required: bool = Field(
         default=False,
         description=(

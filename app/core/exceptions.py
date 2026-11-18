@@ -89,6 +89,16 @@ class PhoneNotVerifiedError(ForbiddenError):
     error_code = "phone_not_verified"
 
 
+class EmailNotVerifiedError(ForbiddenError):
+    """A resident account has not confirmed its email yet (HTTP 403, v1.12.38).
+
+    Its own code, like ``phone_not_verified``: the app shows "Confirm your
+    email" rather than a generic refusal.
+    """
+
+    error_code = "email_not_verified"
+
+
 class NotFoundError(AppError):
     """The requested resource does not exist (HTTP 404)."""
 

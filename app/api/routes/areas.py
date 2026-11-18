@@ -78,12 +78,23 @@ async def get_area(area_id: UUID, user: CurrentUser, db: DatabaseDep) -> AreaDet
     """Return one area with confidence components and its member reports."""
     area = await db.fetchrow(
         """
-        select id, designation, status::text as status, centroid_lat, centroid_lng,
-               report_count, confidence_score, confidence_band::text as confidence_band,
-               alarm_level::text as alarm_level, reported_at, updated_at,
-               n_score, s_score, v_score, parent_area_id, version
-        from public.areas
-        where id = $1
+        select a.id, a.designation, a.status::text as status, a.centroid_lat,
+               a.centroid_lng, a.report_count, a.confidence_score,
+               a.confidence_band::text as confidence_band,
+               a.alarm_level::text as alarm_level, a.reported_at, a.updated_at,
+               a.n_score, a.s_score, a.v_score, a.parent_area_id, a.version,
+               -- What is burning, and which team said (v1.12.38: "make all of
+               -- the user aware in the details of the incident"); never the
+               -- person. Through to_jsonb, as the staff detail reads them.
+               to_jsonb(a) ->> 'fire_type' as fire_type,
+               to_jsonb(a) ->> 'fire_subtype' as fire_subtype,
+               (to_jsonb(a) ->> 'fire_type_set_at')::timestamptz as fire_type_set_at,
+               (select fo.name from public.users fu
+                  join public.organizations fo on fo.id = fu.primary_org_id
+                 where fu.id = (to_jsonb(a) ->> 'fire_type_set_by')::uuid)
+                   as fire_type_org_name
+        from public.areas a
+        where a.id = $1
         """,
         area_id,
     )

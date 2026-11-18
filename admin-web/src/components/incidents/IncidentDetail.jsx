@@ -62,11 +62,48 @@ function timelineOf(d, evidence) {
   push(d.en_route_at, t('A unit set off'), t('The Area went En route'), 'live');
   push(d.arrived_at, t('Arrived on scene'), t('The first unit reached the Area'), 'live');
   push(d.alarm_level_set_at, t('Alarm set to {alarmLabel}', { alarmLabel: alarmLabel(d.alarm_level) }), t('Set by BFP'), 'live');
+  push(d.fire_type_set_at, t('Fire type: {label}', { label: fireTypeOf(d) }), d.fire_type_org_name || t('The fire team on scene'), 'live');
   push(d.resolved_at, t('Fire out'), d.resolved_by_name ? t('Marked by {resolved_by_name}', { resolved_by_name: d.resolved_by_name }) : t('Marked on scene'), 'ok');
   push(d.closed_at, t('Closed'), t('Post-incident report filed'), 'neutral');
   push(d.rejected_at, t('Rejected'), d.rejection_reason || (d.rejected_by_name ? t('By {rejected_by_name}', { rejected_by_name: d.rejected_by_name }) : ''), 'neutral');
   push(d.merged_at, t('Merged'), d.merged_by_name ? t('By {merged_by_name}', { merged_by_name: d.merged_by_name }) : t('Into another Area'), 'neutral');
   return items.sort((a, b) => new Date(b.at) - new Date(a.at));
+}
+
+/* What is burning, as the first fire team on scene said (v1.12.37, 18 Nov
+ * 2026: "make all of the user aware in the details of the incident"). The
+ * values are the server's (app/services/fire_type.py). */
+const FIRE_TYPE = {
+  get structural() { return t('Structural'); },
+  get electrical() { return t('Electrical'); },
+  get vehicular() { return t('Vehicular'); },
+  get rubbish() { return t('Rubbish'); },
+  get grass() { return t('Grass'); },
+  get chemical() { return t('Chemical'); },
+};
+const FIRE_SUBTYPE = {
+  get residential() { return t('Residential'); },
+  get commercial() { return t('Commercial'); },
+  get industrial() { return t('Industrial'); },
+  get high_tension_wire() { return t('High-tension wire'); },
+  get transformer() { return t('Transformer'); },
+  get entrance_wire() { return t('Entrance wire'); },
+  get meter() { return t('Meter'); },
+  get motorcycle() { return t('Motorcycle'); },
+  get tricycle() { return t('Tricycle'); },
+  get sedan() { return t('Sedan'); },
+  get suv() { return t('SUV'); },
+  get truck() { return t('Truck'); },
+  get e_bike() { return t('E-bike'); },
+  get e_car() { return t('E-car'); },
+};
+
+/* "Structural — Residential", or null while no fire team has said. */
+function fireTypeOf(d) {
+  if (!d.fire_type) return null;
+  const type = FIRE_TYPE[d.fire_type] ?? d.fire_type;
+  if (!d.fire_subtype) return type;
+  return `${type} — ${FIRE_SUBTYPE[d.fire_subtype] ?? d.fire_subtype.replaceAll('_', ' ')}`;
 }
 
 function Facts({ rows }) {
@@ -248,6 +285,7 @@ export default function IncidentDetail({
       ? t('{confidence} ({count} report)', { confidence: confidenceOf(d), count: d.report_count })
       : t('{confidence} ({count} reports)', { confidence: confidenceOf(d), count: d.report_count })],
     ...(d.alarm_level ? [[t('Alarm level'), `${alarmLabel(d.alarm_level)}${d.alarm_level_set_at ? ' · set by BFP' : ''}`]] : []),
+    ...(d.fire_type ? [[t('Fire type'), [fireTypeOf(d), d.fire_type_org_name].filter(Boolean).join(' · ')]] : []),
     ...(onScene && routed ? [[t('Units'), active.length ? active.map((x) => x.vehicle_name || x.responder_name).join(' · ') : t('None assigned')]] : []),
     [t('Location'), <Place lat={d.centroid_lat} lng={d.centroid_lng} stacked />],
     [t('First report'), `${clock(d.reported_at)}${firstReport ? t(' · {percent}% verified reporter', { percent: firstReport.user_verified_percent ?? 0 }) : ''}`],

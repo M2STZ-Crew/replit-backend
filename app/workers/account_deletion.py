@@ -14,7 +14,7 @@ from app.core.logging import get_logger
 from app.db.session import database
 from app.integrations.supabase_auth import SupabaseAuthClient
 from app.integrations.supabase_storage import SupabaseStorageClient
-from app.services.account_deletion import purge_due
+from app.services.account_deletion import purge_due, purge_unconfirmed
 
 log = get_logger(__name__)
 
@@ -22,14 +22,16 @@ _scheduler: AsyncIOScheduler | None = None
 
 
 async def account_deletion_tick() -> None:
-    """One run: delete the accounts whose 30 days are over."""
+    """One run: delete the accounts whose 30 days are over, and the new ones
+    whose email was never confirmed."""
     if not database.is_connected:
         return
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
-            deleted = await purge_due(
-                database, SupabaseAuthClient(client), SupabaseStorageClient(client)
-            )
+            auth, storage = SupabaseAuthClient(client), SupabaseStorageClient(client)
+            deleted = await purge_due(database, auth, storage)
+            # Residents who never confirmed their email (v1.12.38).
+            deleted += await purge_unconfirmed(database, auth, storage)
     except Exception:
         log.error("account_deletion_tick_failed", exc_info=True)
         return

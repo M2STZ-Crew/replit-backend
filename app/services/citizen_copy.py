@@ -138,6 +138,26 @@ REPORTER_MESSAGES: dict[str, dict[Language, tuple[str, str]]] = {
 }
 
 
+def fire_verified(language: Language, street: str | None) -> tuple[str, str]:
+    """Every resident, once staff verify a fire (app/services/fire_broadcast.py,
+    v1.12.38): where it is, and what to do. Asking "Do you see it too?" is left
+    to the residents within 100 m (NEIGHBOUR_ALERT)."""
+    street = (street or "").strip()
+    if language == "tl":
+        where = f"sa {street}" if street else "sa Pasay"
+        return (
+            "Kumpirmadong sunog",
+            f"Kinumpirma ng mga responder ang sunog {where}. Lumayo sa lugar at "
+            "bigyang-daan ang mga trak ng bumbero. I-tap para makita kung saan.",
+        )
+    where = f"on {street}" if street else "in Pasay"
+    return (
+        "Fire verified",
+        f"Responders verified a fire {where}. Stay away from the area and keep the "
+        "roads clear for fire trucks. Tap to see where.",
+    )
+
+
 def verified_by(language: Language, team: str) -> str:
     """The verified body naming the team that verified it — never the person."""
     if language == "tl":

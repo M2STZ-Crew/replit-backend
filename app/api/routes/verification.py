@@ -455,7 +455,7 @@ def _verification_email(full_name: str | None, link: str) -> RenderedEmail:
     summary="Send an email verification link (+10%)",
 )
 async def request_email_verification(
-    user: CurrentUser, db: DatabaseDep, email: EmailClientDep
+    user: SessionUser, db: DatabaseDep, email: EmailClientDep
 ) -> EmailLinkResponse:
     """Email a one-time link that confirms the user's address.
 

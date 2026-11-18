@@ -45,6 +45,12 @@ class AreaDetail(AreaSummary):
     parent_area_id: UUID | None = None
     version: int
     reports: list[AreaReportItem] = Field(default_factory=list)
+    # What is burning, once the first fire team on scene says (v1.12.38), and
+    # the organisation of the team that said it.
+    fire_type: str | None = None
+    fire_subtype: str | None = None
+    fire_type_set_at: datetime | None = None
+    fire_type_org_name: str | None = None
 
 class AreaOverlapItem(BaseModel):
     """A pending overlap awaiting a Merge / Keep-Separate decision."""

@@ -51,6 +51,14 @@ class AlarmRequestCreate(BaseModel):
     justification: str | None = Field(default=None, max_length=2000)
 
 
+class AlarmRaise(BaseModel):
+    """BFP raises an Area's alarm itself, with no request to answer (v1.12.38)."""
+
+    area_id: UUID
+    alarm_level: AlarmLevel
+    notes: str | None = Field(default=None, max_length=1000)
+
+
 class AlarmReviewRequest(BaseModel):
     """Optional reviewer notes on execute/reject."""
 

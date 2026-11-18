@@ -152,6 +152,64 @@ async def purge_due(db: Any, auth: Any, storage: Any) -> int:
     return deleted
 
 
+async def purge_unconfirmed(db: Any, auth: Any, storage: Any) -> int:
+    """Delete the residents who never confirmed their email (v1.12.38).
+
+    18 Nov 2026: an address nobody owns could keep a working account, because
+    "Later" skipped the emailed link. Now nothing works until it is opened, and
+    an account made from ``unconfirmed_purge_since`` on that is still
+    unconfirmed ``unconfirmed_account_hours`` after sign-up is deleted. Older
+    accounts signed up when Later was allowed, and are kept. Returns how many
+    went; one that cannot go now is tried again on the next run.
+    """
+    settings = get_settings()
+    hours = settings.unconfirmed_account_hours
+    due = await db.fetch(
+        """
+        select u.id from public.users u
+         where u.role::text = 'general_user'
+           and u.created_at >= $1
+           and u.created_at <= now() - make_interval(hours => $2::int)
+           and not exists (
+               select 1 from public.user_verifications v
+                where v.user_id = u.id
+                  and v.type::text = 'email'
+                  and v.status::text = 'verified'
+           )
+         order by u.created_at
+         limit $3
+        """,
+        datetime.fromisoformat(settings.unconfirmed_purge_since),
+        hours,
+        PURGE_BATCH,
+    )
+    deleted = 0
+    for row in due:
+        user_id: UUID = row["id"]
+        try:
+            await remove_photos(storage, photo_paths(user_id).values())
+        except Exception:
+            log.error("unconfirmed_purge_photos_failed", user_id=str(user_id), exc_info=True)
+            continue
+        await record_audit(
+            db,
+            None,
+            AuthenticatedUser(id=user_id, role="general_user"),
+            action="account.deleted",
+            entity_type="user",
+            entity_id=user_id,
+            metadata={"via": "email_never_confirmed", "hours": hours},
+        )
+        try:
+            await auth.admin_delete_user(user_id=str(user_id))
+        except AuthError:
+            log.error("unconfirmed_purge_failed", user_id=str(user_id))
+            continue
+        deleted += 1
+        log.info("unconfirmed_account_purged", user_id=str(user_id))
+    return deleted
+
+
 async def _guarded(query: Any) -> Any:
     """Run a query on deletion_requested_at; a database still without the column
     (migration 20261116090000 not applied) is a 503, said plainly, not a 500."""
