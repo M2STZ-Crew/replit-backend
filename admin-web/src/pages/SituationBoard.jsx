@@ -130,7 +130,7 @@ export default function SituationBoard({ onNavigate }) {
         title={t('Dashboard')}
         description={split
           ? t('Your work first. Other organizations’ incidents are below for awareness.')
-          : t('Your work first, then every active Area across Pasay City.')}
+          : t('Your work first, then every active incident across Pasay City.')}
       />
 
       <section aria-label={t('Your queues')} className="rpl-queues">
@@ -164,8 +164,8 @@ export default function SituationBoard({ onNavigate }) {
           yourOrg={orgStatus}
           onOpen={(inc) => onNavigate('incidents', { incidentId: inc.id })}
           emptyMessage={split
-            ? t('Nothing is routed to you right now. An Area that asks for your agency appears here, with its sound.')
-            : t('No active incidents. A new Area appears here the moment its first report is clustered.')}
+            ? t('Nothing is routed to you right now. An incident that asks for your agency appears here, with its sound.')
+            : t('No active incidents. A new incident appears here the moment its first report is clustered.')}
         />
       </section>
 

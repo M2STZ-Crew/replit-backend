@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { mapboxToken } from '../map/tiles.js';
-import { t } from '../i18n/i18n.jsx';
+import { currentLanguage, t } from '../i18n/i18n.jsx';
 
 /* Where a point is, in words: the street and barangay beside its coordinates.
  *
@@ -18,6 +18,37 @@ const KEEP = 500;
 const AT_ONCE = 4;
 
 const keyOf = (lat, lng) => `${lat.toFixed(5)},${lng.toFixed(5)}`;
+
+/* A fire's name (v1.12.42, 18 Nov 2026: "instead of area, it will be called
+ * 'Near [street]' or ... '[street] corner [street]'"). The server names each
+ * fire after its streets and keeps the name in `designation`: "Taft Avenue
+ * corner Gil Puyat Avenue", "Near F. Victor Street", "Near F. Victor Street
+ * (2)", or its coordinates (app/services/place_names.py); the Area number is
+ * never shown. Tagalog says "Malapit sa F. Victor Street"; a corner reads the
+ * same in both. */
+const NEAR = 'Near ';
+
+export function fireName(designation) {
+  const text = String(designation ?? '').trim();
+  if (currentLanguage() === 'tl' && text.startsWith(NEAR)) return `Malapit sa ${text.slice(NEAR.length)}`;
+  return text;
+}
+
+/* The fire inside a sentence: "the fire near F. Victor Street", "the fire at
+ * Taft Avenue corner Gil Puyat Avenue"; in Tagalog "sunog malapit sa ...",
+ * "sunog sa ...". Without a name, "the incident" / "insidente". `start`
+ * capitalises it to open an English sentence. */
+export function fireAt(designation, { start = false } = {}) {
+  const text = String(designation ?? '').trim();
+  const near = text.startsWith(NEAR);
+  const rest = near ? text.slice(NEAR.length) : text;
+  if (currentLanguage() === 'tl') {
+    if (!text) return 'insidente';
+    return `sunog ${near ? 'malapit sa' : 'sa'} ${rest}`;
+  }
+  const phrase = text ? `the fire ${near ? 'near' : 'at'} ${rest}` : 'the incident';
+  return start ? phrase[0].toUpperCase() + phrase.slice(1) : phrase;
+}
 
 /// "14.5378° N, 121.0014° E".
 export function degrees(lat, lng) {

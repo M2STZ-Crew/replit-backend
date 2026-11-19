@@ -11,6 +11,11 @@ you see it too?" instead and are the only ones who can corroborate
 (app/workers/neighborhood.py); the fire's own reporters, who hear of it
 already; and accounts frozen for deletion. The verify step happens once per
 fire, so this goes once.
+
+v1.12.42 (18 Nov 2026: "create a placeholder for voice for far incidents
+(outside 100m). and remain the sound of near incident"): this alert has a
+voice of its own, in English or Tagalog (res/raw/sound_far_en and
+sound_far_tl, on app v1.12.53's channels), and says the fire's street.
 """
 
 from __future__ import annotations
@@ -23,7 +28,7 @@ from uuid import UUID
 from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.session import Database
-from app.integrations.fcm import PushService, token_versions
+from app.integrations.fcm import PushService, far_voice, has_far_voice, token_versions
 from app.services.citizen_copy import by_language, fire_verified, language_of
 from app.services.notification_inbox import record_inbox
 
@@ -97,41 +102,49 @@ async def notify_residents_of_verified_fire(
     if not users:
         return 0
     push = push or PushService()
-    street = area["designation"]
+    # The fire's name, "Near F. Victor Street" (v1.12.42); it was its Area
+    # number, so the alert said "a fire on Area 3".
+    designation = area["designation"]
     reported = area["created_at"]
     data = {
         "type": "fire_verified",
         "area_id": str(area_id),
-        "designation": street or "",
+        "designation": designation or "",
         "lat": str(lat),
         "lng": str(lng),
         "reported_at": reported.isoformat() if reported is not None else "",
     }
     languages = {u["user_id"]: language_of(u["language"]) for u in users}
     for language, ids in by_language(languages).items():
-        title, body = fire_verified(language, street)
+        title, body = fire_verified(language, designation)
         rows = await db.fetch(
             "select fcm_token, app_version from public.device_tokens "
             "where user_id = any($1::uuid[]) and is_active",
             ids,
         )
-        for start in range(0, len(rows), _BATCH):
-            batch = rows[start : start + _BATCH]
-            result = await push.send_to_tokens(
-                tokens=[r["fcm_token"] for r in batch],
-                title=title,
-                body=body,
-                data=data,
-                sound="citizen",
-                tag=f"fire-{area_id}",
-                versions=token_versions(batch),
-            )
-            if result.invalid_tokens:
-                await db.execute(
-                    "update public.device_tokens set is_active = false "
-                    "where fcm_token = any($1::text[])",
-                    result.invalid_tokens,
+        # v1.12.42: a far fire has its own voice, in the reader's language, on
+        # app v1.12.53's channels; an older app has neither and hears the
+        # citizen recording, as before. The 100 m alert keeps the citizen one.
+        voiced = [r for r in rows if has_far_voice(r["app_version"])]
+        others = [r for r in rows if not has_far_voice(r["app_version"])]
+        for group, sound in ((voiced, far_voice(language)), (others, "citizen")):
+            for start in range(0, len(group), _BATCH):
+                batch = group[start : start + _BATCH]
+                result = await push.send_to_tokens(
+                    tokens=[r["fcm_token"] for r in batch],
+                    title=title,
+                    body=body,
+                    data=data,
+                    sound=sound,
+                    tag=f"fire-{area_id}",
+                    versions=token_versions(batch),
                 )
+                if result.invalid_tokens:
+                    await db.execute(
+                        "update public.device_tokens set is_active = false "
+                        "where fcm_token = any($1::text[])",
+                        result.invalid_tokens,
+                    )
         await record_inbox(db, ids, "fire_verified", title, body, data)
     log.info("fire_verified_broadcast", area_id=str(area_id), users=len(users))
     return len(users)

@@ -10,7 +10,7 @@ import { t } from '../../i18n/i18n.jsx';
  * public/icons/map are the Figma exports. */
 
 const KINDS = {
-  incident: { tone: 'incident', get label() { return t('Active incident Area'); } },
+  incident: { tone: 'incident', get label() { return t('Active incident'); } },
   hydrant: { tone: 'water', get label() { return t('Hydrant'); } },
   water: { tone: 'water', get label() { return t('Body of water'); } },
   cistern: { tone: 'water', get label() { return t('Cistern'); } },

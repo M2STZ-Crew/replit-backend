@@ -13,6 +13,7 @@ import {
   useAlarmSettings,
 } from '../sound/alarm.js';
 import { t } from '../i18n/i18n.jsx';
+import { fireName } from '../lib/place.js';
 
 const BASE_TITLE = typeof document !== 'undefined' ? document.title : 'RepLiT Admin';
 
@@ -116,7 +117,7 @@ export default function AlarmBanner({ onOpen }) {
             </span>
             <div className="rpl-alarm-text">
               <p className="rpl-alarm-eyebrow">{t('New incident ·')}{' '}{heard}{' '}{t('sound playing')}</p>
-              <p className="rpl-alarm-title">{kind}{' '}{t('reported —')}{' '}{inc.designation}</p>
+              <p className="rpl-alarm-title">{kind}{' '}{t('reported —')}{' '}{fireName(inc.designation)}</p>
               <p className="rpl-alarm-body">
                 {reportsOf(inc)} · {statusLabel(inc.status)} ·{' '}
                 <span title={new Date(inc.reported_at).toLocaleString()}>

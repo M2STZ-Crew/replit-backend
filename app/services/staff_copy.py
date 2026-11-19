@@ -7,36 +7,53 @@ fire, the reminders until a coordinator acknowledges it, a dispatch, an
 incident routed to the team, an alarm request and BFP's answer to it.
 
 Alarm levels keep BFP's own words ("2nd alarm") in both languages, the way
-they are said on the radio, and so do Area names ("Area 1.2"). Tagalog here
-is the app's: everyday Metro Manila Tagalog in short sentences, keeping the
-English words staff use anyway (report, responder, dispatch, team).
+they are said on the radio. A fire is called by its street (v1.12.42,
+app/services/place_names.py): "Taft Avenue corner Gil Puyat Avenue" in both
+languages, "Near F. Victor Street" or "Malapit sa F. Victor Street", never
+by its Area number. Tagalog here is the app's: everyday Metro Manila Tagalog
+in short sentences, keeping the English words staff use anyway (report,
+responder, dispatch, team).
 """
 
 from __future__ import annotations
 
 from app.services.citizen_copy import Language
+from app.services.place_names import in_language, where
 
 
 def area_called(designation: str | None, language: Language, *, start: bool = False) -> str:
-    """ "Area 1.2" for a designation (older rows already carry the word), else
-    "an incident" in the language — capitalised when it starts the sentence."""
-    text = (designation or "").strip()
+    """The fire's name as the reader says it ("Near F. Victor Street", "Malapit
+    sa F. Victor Street", "Taft Avenue corner Gil Puyat Avenue"), else "an
+    incident" in the language — capitalised when it starts the sentence."""
+    text = in_language(designation, language)
     if text:
-        return text if text.lower().startswith("area") else f"Area {text}"
+        return text
     if language == "tl":
         return "Ang insidente" if start else "isang insidente"
     return "The incident" if start else "an incident"
 
 
+def fire_at(designation: str | None, language: Language, *, start: bool = False) -> str:
+    """The fire inside a sentence: "the fire near F. Victor Street", "the fire
+    at Taft Avenue corner Gil Puyat Avenue"; in Tagalog "sunog malapit sa ...",
+    "sunog sa ...". Without a name, "the incident" / "insidente"."""
+    place = where(designation, language)
+    if language == "tl":
+        return f"sunog {place}" if place else "insidente"
+    text = f"the fire {place}" if place else "the incident"
+    return text[0].upper() + text[1:] if start else text
+
+
 def new_fire(language: Language, designation: str | None) -> tuple[str, str]:
     """A resident's fire report, to the staff who can see it."""
+    name = in_language(designation, language)
     if language == "tl":
         return (
-            f"May ini-report na sunog: {designation or 'bagong insidente'}",
+            f"May ini-report na sunog: {name or 'bagong insidente'}",
             "May residenteng nag-report ng sunog. I-tap para buksan, i-verify at tugunan ito.",
         )
     return (
-        f"Fire reported: {designation or 'new incident'}",
+        f"Fire reported: {name or 'new incident'}",
         "A resident reported a fire. Tap to open it, verify it and respond.",
     )
 
@@ -63,11 +80,11 @@ def dispatched(
         if vehicle_name:
             parts.append(f"sakay ng {vehicle_name}")
         suffix = f" — {' '.join(parts)}" if parts else ""
-        return "Na-dispatch ka", f"Tumugon sa {designation or 'isang insidente'}{suffix}."
+        return "Na-dispatch ka", f"Tumugon sa {fire_at(designation, language)}{suffix}."
     if vehicle_name:
         parts.append(f"on {vehicle_name}")
     suffix = f" — {' '.join(parts)}" if parts else ""
-    return "You've been dispatched", f"Respond to {designation or 'an incident'}{suffix}."
+    return "You've been dispatched", f"Respond to {fire_at(designation, language)}{suffix}."
 
 
 def routed(language: Language, designation: str | None) -> tuple[str, str]:
@@ -75,12 +92,12 @@ def routed(language: Language, designation: str | None) -> tuple[str, str]:
     if language == "tl":
         return (
             "May insidenteng ipinasa sa team mo",
-            f"Ipinasa ng Admin ang {designation or 'isang insidente'} sa team mo. "
+            f"Ipinasa ng Admin ang {fire_at(designation, language)} sa team mo. "
             "Buksan ito para tumugon.",
         )
     return (
         "Incident routed to your team",
-        f"Admin routed {designation or 'an incident'} to your team. Open it to respond.",
+        f"Admin routed {fire_at(designation, language)} to your team. Open it to respond.",
     )
 
 
@@ -93,18 +110,18 @@ def alarm_requested(
 ) -> tuple[str, str]:
     """A request to raise the alarm, to BFP's coordinators. [level] is BFP's
     own label ("2nd alarm")."""
-    area = area_called(designation, language)
+    fire = fire_at(designation, language)
     who = f"{requester} ({organization})" if requester and organization else requester
     if language == "tl":
         if who:
-            body = f"Humiling si {who} ng {level} para sa {area}."
+            body = f"Humiling si {who} ng {level} para sa {fire}."
         else:
             org = f" ({organization})" if organization else ""
-            body = f"Humiling ang isang responder{org} ng {level} para sa {area}."
+            body = f"Humiling ang isang responder{org} ng {level} para sa {fire}."
         return "May hiling na itaas ang alarma", body
     if not who:
         who = f"A responder ({organization})" if organization else "A responder"
-    return "Alarm escalation requested", f"{who} asked for {level} on {area}."
+    return "Alarm escalation requested", f"{who} asked for {level} for {fire}."
 
 
 def alarm_answered(
@@ -115,24 +132,20 @@ def alarm_answered(
     notes: str | None = None,
 ) -> tuple[str, str]:
     """BFP's answer, to whoever asked. Review notes are added as BFP wrote them."""
-    area = area_called(designation, language, start=True)
     if language == "tl":
+        fire = fire_at(designation, language)
         if approved:
             return (
                 "Itinaas ng BFP ang alarma",
-                f"Nasa {level} na ang {_lower(area)}, gaya ng hiniling mo.",
+                f"Nasa {level} na ang {fire}, gaya ng hiniling mo.",
             )
         title, body = (
             "Hindi inaprubahan ng BFP ang hiling mong alarma",
-            f"Walang babaguhin sa {_lower(area)}.",
+            f"Walang babaguhin sa {fire}.",
         )
     else:
+        fire = fire_at(designation, language, start=True)
         if approved:
-            return "BFP raised the alarm", f"{area} is now at {level}, as you asked."
-        title, body = "BFP declined your alarm request", f"{area} stays as it is."
+            return "BFP raised the alarm", f"{fire} is now at {level}, as you asked."
+        title, body = "BFP declined your alarm request", f"{fire} stays as it is."
     return title, f"{body} {notes}" if notes else body
-
-
-def _lower(area: str) -> str:
-    """ "ang insidente" mid-sentence; Area names keep their capital."""
-    return "insidente" if area == "Ang insidente" else area

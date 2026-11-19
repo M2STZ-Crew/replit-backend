@@ -5,6 +5,7 @@ import IncidentSummary from '../components/reports/IncidentSummary.jsx';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import { EmptyState, Icon, PageHeader, StatePanel, StatusChip } from '../components/ui/index.js';
 import { t } from '../i18n/i18n.jsx';
+import { fireAt, fireName } from '../lib/place.js';
 
 /* Reports & CIAR (REPLIT (MAIN) 10 · A60 878:8055, A61 878:8354).
  *
@@ -67,8 +68,8 @@ function ReportView({ report, readIncidentReports, readSummary, downloadIncident
     <div className="rpl-page">
       <button type="button" className="rpl-text-button rpl-back" onClick={onBack}>{t('← All reports')}</button>
       <PageHeader
-        eyebrow={`${report.area_designation}${report.organization_name ? ` · ${report.organization_name}` : ''}`}
-        title={report.area_designation}
+        eyebrow={`${fireName(report.area_designation)}${report.organization_name ? ` · ${report.organization_name}` : ''}`}
+        title={fireName(report.area_designation)}
         description={sub}
         actions={(
           <button type="button" className="rpl-button rpl-button--secondary" onClick={download} disabled={pdf.busy}>
@@ -94,7 +95,7 @@ function ReportView({ report, readIncidentReports, readSummary, downloadIncident
           ))}
         </div>
         {team.phase === 'ready' && team.count > 1 && (
-          <p className="rpl-table-foot">{t('{count} teams filed for {area}; the PDF has every one.', { count: team.count, area: report.area_designation })}</p>
+          <p className="rpl-table-foot">{t('{count} teams filed for {fire}; the PDF has every one.', { count: team.count, fire: fireAt(report.area_designation) })}</p>
         )}
       </div>
 
@@ -200,7 +201,7 @@ export default function Reports({ readReports, readIncidentReports, readSummary,
                   <tr key={r.id} className="web-table-row">
                     <th scope="row">
                       <span className="rpl-cell-text">
-                        <span className="rpl-cell-title">{r.area_designation}</span>
+                        <span className="rpl-cell-title">{fireName(r.area_designation)}</span>
                         <span className="rpl-cell-meta">{r.filed_by_name ? t('By {name}', { name: r.filed_by_name }) : t('By the team captain')}{r.driver_name ? t(' · driver {name}', { name: r.driver_name }) : ''}</span>
                       </span>
                     </th>
@@ -208,7 +209,7 @@ export default function Reports({ readReports, readIncidentReports, readSummary,
                     <td className="rpl-cell-strong">{r.organization_name || t('Not recorded')}</td>
                     <td><StatusChip {...outcome(r)} /></td>
                     <td className="web-table-action-cell">
-                      <button type="button" className="web-table-row-action" onClick={() => setSelected(r)}>{t('Open')}<span className="web-sr-only">{' '}{t('the report for')}{' '}{r.area_designation}</span>
+                      <button type="button" className="web-table-row-action" onClick={() => setSelected(r)}>{t('Open')}<span className="web-sr-only">{' '}{t('the report for')}{' '}{fireName(r.area_designation)}</span>
                       </button>
                     </td>
                   </tr>

@@ -7,6 +7,7 @@ import AreaMap from './AreaMap.jsx';
 import { agenciesOf, confidenceOf } from './IncidentTable.jsx';
 import Skeleton from '../ui/Skeleton.jsx';
 import { t } from '../../i18n/i18n.jsx';
+import { fireName } from '../../lib/place.js';
 
 /* Two Areas that grew within range of each other (REPLIT (MAIN) 10 · A27
  * 868:3155, A27b 868:3356; PRD v13 §4.3): are they one fire? Merge moves the
@@ -59,8 +60,8 @@ export default function OverlapReview({ overlap, onDone, onBack }) {
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const left = useSecondsLeft(overlap.expires_at);
-  const nameA = overlap.area_a_designation;
-  const nameB = overlap.area_b_designation;
+  const nameA = fireName(overlap.area_a_designation);
+  const nameB = fireName(overlap.area_b_designation);
 
   useEffect(() => {
     let alive = true;

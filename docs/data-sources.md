@@ -183,6 +183,44 @@ nwr(area.ncr)["waterway"~"^(river|canal|stream|drain)$"]["name"];
 rel(area.ncr)["boundary"="administrative"]["admin_level"="6"];
 ```
 
+## Streets: what a fire is called
+
+**Fetched 19 November 2026** for v1.12.42 ("Corner, else Near"): Metro
+Manila's named streets, from which each new fire is named
+(`app/services/place_names.py`): "Taft Avenue corner Gil Puyat Avenue" where
+two named streets meet within 30 m of it, else "Near F. Victor Street". They
+are loaded into `public.streets` by `scripts/load_streets.py`.
+
+- **Kept:** ways tagged `highway` = trunk, primary, secondary, tertiary (and
+  their links), unclassified, residential, living_street, pedestrian or road,
+  with a `name`, and with a point inside one of the 17 city boundaries above:
+  57,499 ways, 56,128 of them loaded, under 13,779 names.
+- **Left out:** expressways and service roads, paths, and bridges, flyovers
+  and tunnels (a fire beneath a flyover is on the street below, and a flyover
+  would make a corner where there is none).
+- **OpenStreetMap data as of** 19 November 2026, 06:35 UTC.
+
+**Citation (APA 7)**
+
+> OpenStreetMap contributors. (2026). *Metro Manila, Philippines: named
+> streets (highway=* with name)* [Data set]. OpenStreetMap Foundation.
+> Retrieved November 19, 2026, from https://www.openstreetmap.org, via the
+> Overpass API (https://overpass-api.de).
+
+**Licence.** © OpenStreetMap contributors, ODbL 1.0, as above. A fire's name
+is drawn from this database, so a fire named this way is attributed with the
+map layers ("© OpenStreetMap contributors").
+
+**Query used** (Overpass QL). One query for the whole region timed out on
+every public server, so the region's bounding box was cut into boxes 0.06°
+square and each asked in turn; a way in several boxes was kept once, and only
+those inside the city boundaries were loaded.
+
+```
+way["highway"~"^(trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|unclassified|residential|living_street|pedestrian|road)$"]["name"](south,west,north,east);
+out geom qt;
+```
+
 ## What the licence asks of RepLiT
 
 - **Attribution where the data is shown.** For example: "Map layers ©

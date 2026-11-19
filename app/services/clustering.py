@@ -16,10 +16,13 @@ from __future__ import annotations
 import statistics
 from uuid import UUID
 
+import asyncpg
+
 from app.core.logging import get_logger
 from app.db.session import Database
 from app.services.geo import haversine_m
 from app.services.incident import active_area_sql, versionable_area_sql
+from app.services.place_names import find_place, place_name
 
 log = get_logger(__name__)
 
@@ -34,7 +37,9 @@ _VERSION_WINDOW = "1 hour"
 
 
 def _designation(base_number: int, version: int) -> str:
-    """Human-readable area label: 'Area 1' (v1) or 'Area 1.2' (v2)."""
+    """The Area's number: 'Area 1' (v1) or 'Area 1.2' (v2). Since v1.12.42 it
+    is only its code (areas.area_code, the PDF report's reference); what every
+    screen and alert calls the fire is its street (app/services/place_names.py)."""
     return f"Area {base_number}" if version <= 1 else f"Area {base_number}.{version}"
 
 
@@ -109,22 +114,54 @@ async def _create_area(
     version: int,
     parent_area_id: UUID | None,
 ) -> UUID:
-    """Insert a new pending area centered on the report's coordinates."""
-    new_id: UUID = await db.fetchval(
-        """
-        insert into public.areas
-            (designation, base_number, version, parent_area_id,
-             centroid_lat, centroid_lng, status, reported_at)
-        values ($1, $2, $3, $4, $5, $6, 'reported', now())
-        returning id
-        """,
-        _designation(base_number, version),
-        base_number,
-        version,
-        parent_area_id,
-        lat,
-        lng,
-    )
+    """Insert a new pending area centered on the report's coordinates, named
+    after the streets there (v1.12.42) and keeping its number as its code."""
+    place = await find_place(db, lat, lng)
+    name = place_name(place, lat, lng)
+    code = _designation(base_number, version)
+    try:
+        new_id: UUID = await db.fetchval(
+            """
+            insert into public.areas
+                (designation, area_code, place_street, place_cross, place_number,
+                 base_number, version, parent_area_id,
+                 centroid_lat, centroid_lng, status, reported_at)
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'reported', now())
+            returning id
+            """,
+            name,
+            code,
+            place.street,
+            place.cross,
+            place.number,
+            base_number,
+            version,
+            parent_area_id,
+            lat,
+            lng,
+        )
+    except asyncpg.exceptions.UndefinedColumnError:
+        # Migration 20261119120000_street_names.sql is not applied yet: the
+        # fire is called by its number, as before v1.12.42, rather than not
+        # reported. Named fires start once it is.
+        log.warning("area_names_wait_for_migration", area_code=code)
+        name = code
+        new_id = await db.fetchval(
+            """
+            insert into public.areas
+                (designation, base_number, version, parent_area_id,
+                 centroid_lat, centroid_lng, status, reported_at)
+            values ($1, $2, $3, $4, $5, $6, 'reported', now())
+            returning id
+            """,
+            code,
+            base_number,
+            version,
+            parent_area_id,
+            lat,
+            lng,
+        )
+    log.info("area_named", area_id=str(new_id), designation=name, area_code=code)
     return new_id
 
 

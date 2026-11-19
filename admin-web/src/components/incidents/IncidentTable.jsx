@@ -6,6 +6,7 @@ import StatusChip from '../ui/StatusChip.jsx';
 import LifecycleChip from './LifecycleChip.jsx';
 import Skeleton from '../ui/Skeleton.jsx';
 import { t } from '../../i18n/i18n.jsx';
+import { fireName } from '../../lib/place.js';
 
 /* The incident list (REPLIT (MAIN) 04 · Incident row; PRD v13 §4.6.2, §4.14):
  * the Area and where it is, its status, the agencies its reporters asked for,
@@ -66,7 +67,7 @@ function IncidentCards({
               <span className="rpl-plate rpl-plate--fire" aria-hidden="true"><Icon name="flame" /></span>
               <span className="rpl-cell-text">
                 <span className="rpl-cell-title">
-                  {inc.designation}
+                  {fireName(inc.designation)}
                   {unread && <span className="web-sr-only">{t(', new since you last looked')}</span>}
                 </span>
                 <span className="rpl-cell-meta"><Place lat={inc.centroid_lat} lng={inc.centroid_lng} /> · {agenciesOf(inc)}</span>
@@ -77,7 +78,7 @@ function IncidentCards({
                 <div key={t}><dt>{t}</dt><dd>{v}</dd></div>
               ))}
             </dl>
-            <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onOpen(inc)}>{t('Open incident')}<span className="web-sr-only"> {inc.designation}</span>
+            <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onOpen(inc)}>{t('Open incident')}<span className="web-sr-only"> {fireName(inc.designation)}</span>
             </button>
           </li>
         );
@@ -115,7 +116,7 @@ export default function IncidentTable({
       <table className="web-table rpl-incidents" aria-busy={loading || undefined}>
         <thead>
           <tr>
-            <th scope="col">{t('Area')}</th>
+            <th scope="col">{t('Location')}</th>
             <th scope="col">{t('Status')}</th>
             <th scope="col">{t('Requested')}</th>
             <th scope="col">{t('Confidence')}</th>
@@ -139,7 +140,7 @@ export default function IncidentTable({
                     <span className={`rpl-unread-dot${unread ? ' is-on' : ''}`} aria-hidden="true" />
                     <span className="rpl-cell-text">
                       <span className="rpl-cell-title">
-                        {inc.designation}
+                        {fireName(inc.designation)}
                         {unread && <span className="web-sr-only">{t(', new since you last looked')}</span>}
                       </span>
                       <span className="rpl-cell-meta"><Place lat={inc.centroid_lat} lng={inc.centroid_lng} /></span>
@@ -160,7 +161,7 @@ export default function IncidentTable({
                     className="web-table-row-action"
                     onClick={() => onOpen(inc)}
                     aria-current={selected ? 'true' : undefined}
-                  >{t('Open')}<span className="web-sr-only"> {inc.designation}</span>
+                  >{t('Open')}<span className="web-sr-only"> {fireName(inc.designation)}</span>
                   </button>
                 </td>
               </tr>

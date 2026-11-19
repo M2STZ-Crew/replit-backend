@@ -665,7 +665,8 @@ async def test_the_asker_is_told_the_answer(
     monkeypatch.setattr(incident_notify, "record_inbox", record)
     now = datetime.now(UTC)
     detail = AlarmRequestResponse(
-        id=uuid4(), area_id=uuid4(), area_designation="1.2", requested_by=uuid4(),
+        id=uuid4(), area_id=uuid4(), area_designation="Near F. Victor Street",
+        requested_by=uuid4(),
         requested_alarm_level="second_alarm", status=status, review_notes="Contained",
         created_at=now, updated_at=now,
     )
@@ -674,8 +675,11 @@ async def test_the_asker_is_told_the_answer(
     )
     assert sent == 1
     assert pushed[0]["title"] == title
+    # The fire is called by its street, never its Area number (v1.12.42).
     assert pushed[0]["body"].startswith(
-        "Area 1.2 is now at 2nd alarm" if status == "approved" else "Area 1.2 stays as it is."
+        "The fire near F. Victor Street is now at 2nd alarm"
+        if status == "approved"
+        else "The fire near F. Victor Street stays as it is."
     )
     assert pushed[0]["data"]["type"] == "alarm_request_answered"
     assert pushed[0]["data"]["request_id"] == str(detail.id)
@@ -703,7 +707,7 @@ class _BfpDb:
         self.bfp = uuid4()
 
     async def fetchval(self, query: str, *args: Any) -> Any:
-        return "1.2" if "designation" in query else "R. Alonzo"
+        return "Taft Avenue corner Gil Puyat Avenue" if "designation" in query else "R. Alonzo"
 
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
         if "device_tokens" in query:
@@ -741,7 +745,8 @@ async def test_bfps_push_names_the_request_and_the_organisation(
     assert pushed[0]["data"]["request_id"] == str(rid)
     assert pushed[0]["sound"] == "fire"
     assert pushed[0]["body"] == (
-        "R. Alonzo (Hercules Fire & Rescue) asked for 1st alarm on Area 1.2."
+        "R. Alonzo (Hercules Fire & Rescue) asked for 1st alarm for the fire at Taft Avenue "
+        "corner Gil Puyat Avenue."
     )
     assert db.recipients is not None
     query, args = db.recipients
