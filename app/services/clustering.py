@@ -16,6 +16,8 @@ from __future__ import annotations
 import statistics
 from uuid import UUID
 
+import asyncpg
+
 from app.core.logging import get_logger
 from app.db.session import Database
 from app.services.geo import haversine_m
@@ -117,26 +119,48 @@ async def _create_area(
     place = await find_place(db, lat, lng)
     name = place_name(place, lat, lng)
     code = _designation(base_number, version)
-    new_id: UUID = await db.fetchval(
-        """
-        insert into public.areas
-            (designation, area_code, place_street, place_cross, place_number,
-             base_number, version, parent_area_id,
-             centroid_lat, centroid_lng, status, reported_at)
-        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'reported', now())
-        returning id
-        """,
-        name,
-        code,
-        place.street,
-        place.cross,
-        place.number,
-        base_number,
-        version,
-        parent_area_id,
-        lat,
-        lng,
-    )
+    try:
+        new_id: UUID = await db.fetchval(
+            """
+            insert into public.areas
+                (designation, area_code, place_street, place_cross, place_number,
+                 base_number, version, parent_area_id,
+                 centroid_lat, centroid_lng, status, reported_at)
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'reported', now())
+            returning id
+            """,
+            name,
+            code,
+            place.street,
+            place.cross,
+            place.number,
+            base_number,
+            version,
+            parent_area_id,
+            lat,
+            lng,
+        )
+    except asyncpg.exceptions.UndefinedColumnError:
+        # Migration 20261118090000_street_names.sql is not applied yet: the
+        # fire is called by its number, as before v1.12.40, rather than not
+        # reported. Named fires start once it is.
+        log.warning("area_names_wait_for_migration", area_code=code)
+        name = code
+        new_id = await db.fetchval(
+            """
+            insert into public.areas
+                (designation, base_number, version, parent_area_id,
+                 centroid_lat, centroid_lng, status, reported_at)
+            values ($1, $2, $3, $4, $5, $6, 'reported', now())
+            returning id
+            """,
+            code,
+            base_number,
+            version,
+            parent_area_id,
+            lat,
+            lng,
+        )
     log.info("area_named", area_id=str(new_id), designation=name, area_code=code)
     return new_id
 
