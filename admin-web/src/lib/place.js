@@ -19,7 +19,7 @@ const AT_ONCE = 4;
 
 const keyOf = (lat, lng) => `${lat.toFixed(5)},${lng.toFixed(5)}`;
 
-/* A fire's name (v1.12.40, 18 Nov 2026: "instead of area, it will be called
+/* A fire's name (v1.12.42, 18 Nov 2026: "instead of area, it will be called
  * 'Near [street]' or ... '[street] corner [street]'"). The server names each
  * fire after its streets and keeps the name in `designation`: "Taft Avenue
  * corner Gil Puyat Avenue", "Near F. Victor Street", "Near F. Victor Street

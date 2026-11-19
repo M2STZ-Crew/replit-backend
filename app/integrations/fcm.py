@@ -57,7 +57,7 @@ SoundCategory = Literal[
     # sound (id verified and rejected)").
     "id_verified",
     "id_rejected",
-    # v1.12.40: "Fire verified" for a far fire, in English or Tagalog.
+    # v1.12.42: "Fire verified" for a far fire, in English or Tagalog.
     "far_en",
     "far_tl",
 ]
@@ -121,24 +121,24 @@ SOUND_CHANNELS_V2: dict[SoundCategory, str] = {
     "rejected": "citizen_rejected_v3",
     "id_verified": "id_verified_v1",
     "id_rejected": "id_rejected_v1",
-    # v1.12.40: a far fire's voice, by language (fire_broadcast.py). Only
-    # app v1.12.51 and later have these two (FAR_VOICE_SINCE).
+    # v1.12.42: a far fire's voice, by language (fire_broadcast.py). Only
+    # app v1.12.53 and later have these two (FAR_VOICE_SINCE).
     "far_en": "citizen_far_en_v1",
     "far_tl": "citizen_far_tl_v1",
 }
 
-# v1.12.40 (18 Nov 2026: "create a placeholder for voice for far incidents
+# v1.12.42 (18 Nov 2026: "create a placeholder for voice for far incidents
 # (outside 100m). and remain the sound of near incident"): "Fire verified",
 # which every resident gets once staff verify a fire, plays a voice of its own
 # in the reader's language (res/raw/sound_far_en.mp3, sound_far_tl.mp3),
 # placeholders until the team's own recordings replace them under the same
-# names. App v1.12.51 makes their channels; an older app hears the citizen
+# names. App v1.12.53 makes their channels; an older app hears the citizen
 # recording, as before.
-FAR_VOICE_SINCE = (1, 12, 51)
+FAR_VOICE_SINCE = (1, 12, 53)
 
 
 def has_far_voice(installed: str | None) -> bool:
-    """Whether a phone on ``installed`` has the far-fire voices (app v1.12.51)."""
+    """Whether a phone on ``installed`` has the far-fire voices (app v1.12.53)."""
     version = app_version_of(installed)
     return version is not None and version >= FAR_VOICE_SINCE
 

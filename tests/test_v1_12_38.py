@@ -215,10 +215,10 @@ async def test_a_verified_fire_alerts_every_resident_in_their_language(
     assert alerted == 2
     by_title = {s["title"]: s for s in push.sent}
     assert set(by_title) == {"Fire verified", "Kumpirmadong sunog"}
-    # The fire's street (v1.12.40); it said "on Area 3" before.
+    # The fire's street (v1.12.42); it said "on Area 3" before.
     assert "verified a fire near Taft Avenue." in by_title["Fire verified"]["body"]
     assert "ang sunog malapit sa Taft Avenue." in by_title["Kumpirmadong sunog"]["body"]
-    assert {s["sound"] for s in push.sent} == {"citizen"}, "an app before 1.12.51"
+    assert {s["sound"] for s in push.sent} == {"citizen"}, "an app before 1.12.53"
     for sent in push.sent:
         assert sent["data"]["type"] == "fire_verified"
         assert sent["data"]["designation"] == "Near Taft Avenue"
@@ -232,8 +232,8 @@ async def test_a_verified_fire_alerts_every_resident_in_their_language(
 async def test_a_far_fire_has_its_own_voice_on_new_phones(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """v1.12.40: "create a placeholder for voice for far incidents (outside
-    100m). and remain the sound of near incident". A phone on app v1.12.51 or
+    """v1.12.42: "create a placeholder for voice for far incidents (outside
+    100m). and remain the sound of near incident". A phone on app v1.12.53 or
     later hears the far-fire voice in its reader's language; an older one has
     no channel for it and hears the citizen recording, as before."""
 
@@ -247,7 +247,7 @@ async def test_a_far_fire_has_its_own_voice_on_new_phones(
         {"user_id": uuid4(), "language": "en"},
     ]
     await fire_broadcast.notify_residents_of_verified_fire(
-        _fire_db(residents, versions=("1.12.51 (80)", "1.12.50")), uuid4(), push
+        _fire_db(residents, versions=("1.12.53 (80)", "1.12.52")), uuid4(), push
     )
     sounds = {(s["title"], s["sound"]): s["tokens"] for s in push.sent}
     assert set(sounds) == {
@@ -257,7 +257,7 @@ async def test_a_far_fire_has_its_own_voice_on_new_phones(
         ("Fire verified", "citizen"),
     }
     for (_, sound), tokens in sounds.items():
-        assert all(t.endswith("1.12.50") == (sound == "citizen") for t in tokens)
+        assert all(t.endswith("1.12.52") == (sound == "citizen") for t in tokens)
 
 
 async def test_a_city_of_phones_goes_in_batches_of_500(monkeypatch: pytest.MonkeyPatch) -> None:

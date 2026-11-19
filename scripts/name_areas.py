@@ -1,9 +1,9 @@
-"""Name the fires recorded before v1.12.40 after their streets.
+"""Name the fires recorded before v1.12.42 after their streets.
 
     python scripts/name_areas.py --dry-run
     python scripts/name_areas.py
 
-An Area made before v1.12.40 is still called by its number ("Area 3.2"). This
+An Area made before v1.12.42 is still called by its number ("Area 3.2"). This
 names each one the way a new Area is named (app/services/place_names.py),
 from the streets around its centre: "Taft Avenue corner Gil Puyat Avenue",
 "Near F. Victor Street". Its number stays in area_code, where the migration

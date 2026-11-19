@@ -9,7 +9,7 @@ the mobile app (`replit-android`) carry the same number.
 ## v1.12.42 — 19 November 2026 — A fire is called by its street; a far fire has its own voice
 
 Backend and console; app v1.12.53 goes with it. **Migration:**
-`20261118090000_street_names.sql` (additive: `public.streets` and four
+`20261119120000_street_names.sql` (additive: `public.streets` and four
 nullable columns on `areas`). Then, from the folder whose `.env` points at
 the database, `python scripts/load_streets.py <streets.json>` and
 `python scripts/name_areas.py` (each has `--dry-run`). Until the migration is
@@ -54,7 +54,7 @@ Backend, console and residents' site; app v1.12.52 goes with it.
 **Migration:** `20261119090000_report_strikes.sql` (one new table, nothing
 else changed). Until it is applied, everything fails open: reports go through,
 neighbour alerts go out, and only the strike screens are unavailable. Comes
-after v1.12.40 (street names).
+before the street names, planned as v1.12.40 and shipped as v1.12.42.
 
 ### Changes
 - **A strike for a prank report, and a pause that grows** (19 Nov: "a false

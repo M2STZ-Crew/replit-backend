@@ -12,10 +12,10 @@ you see it too?" instead and are the only ones who can corroborate
 already; and accounts frozen for deletion. The verify step happens once per
 fire, so this goes once.
 
-v1.12.40 (18 Nov 2026: "create a placeholder for voice for far incidents
+v1.12.42 (18 Nov 2026: "create a placeholder for voice for far incidents
 (outside 100m). and remain the sound of near incident"): this alert has a
 voice of its own, in English or Tagalog (res/raw/sound_far_en and
-sound_far_tl, on app v1.12.51's channels), and says the fire's street.
+sound_far_tl, on app v1.12.53's channels), and says the fire's street.
 """
 
 from __future__ import annotations
@@ -102,7 +102,7 @@ async def notify_residents_of_verified_fire(
     if not users:
         return 0
     push = push or PushService()
-    # The fire's name, "Near F. Victor Street" (v1.12.40); it was its Area
+    # The fire's name, "Near F. Victor Street" (v1.12.42); it was its Area
     # number, so the alert said "a fire on Area 3".
     designation = area["designation"]
     reported = area["created_at"]
@@ -122,8 +122,8 @@ async def notify_residents_of_verified_fire(
             "where user_id = any($1::uuid[]) and is_active",
             ids,
         )
-        # v1.12.40: a far fire has its own voice, in the reader's language, on
-        # app v1.12.51's channels; an older app has neither and hears the
+        # v1.12.42: a far fire has its own voice, in the reader's language, on
+        # app v1.12.53's channels; an older app has neither and hears the
         # citizen recording, as before. The 100 m alert keeps the citizen one.
         voiced = [r for r in rows if has_far_voice(r["app_version"])]
         others = [r for r in rows if not has_far_voice(r["app_version"])]

@@ -7,7 +7,7 @@ fire, the reminders until a coordinator acknowledges it, a dispatch, an
 incident routed to the team, an alarm request and BFP's answer to it.
 
 Alarm levels keep BFP's own words ("2nd alarm") in both languages, the way
-they are said on the radio. A fire is called by its street (v1.12.40,
+they are said on the radio. A fire is called by its street (v1.12.42,
 app/services/place_names.py): "Taft Avenue corner Gil Puyat Avenue" in both
 languages, "Near F. Victor Street" or "Malapit sa F. Victor Street", never
 by its Area number. Tagalog here is the app's: everyday Metro Manila Tagalog

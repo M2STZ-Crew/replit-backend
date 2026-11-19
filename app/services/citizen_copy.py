@@ -144,7 +144,7 @@ def fire_verified(language: Language, designation: str | None) -> tuple[str, str
     v1.12.38): where it is, and what to do. Asking "Do you see it too?" is left
     to the residents within 100 m (NEIGHBOUR_ALERT).
 
-    v1.12.40: where is the fire's name, "near F. Victor Street" or "at Taft
+    v1.12.42: where is the fire's name, "near F. Victor Street" or "at Taft
     Avenue corner Gil Puyat Avenue" (app/services/place_names.py); it said
     "on Area 3" before, the Area's number standing in for a street."""
     place = where(designation, language)

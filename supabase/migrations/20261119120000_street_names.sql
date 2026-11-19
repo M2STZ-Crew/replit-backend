@@ -1,4 +1,4 @@
--- Fires named after their streets (v1.12.40, 18 Nov 2026: "instead of area,
+-- Fires named after their streets (v1.12.42, 18 Nov 2026: "instead of area,
 -- it will be called 'Near [street]' or the street itself because 'Area #1' is
 -- not appropriate ... '[street] corner [street]' or 'near [street]'";
 -- answered "Corner, else Near", and the area number "Nowhere on screen").
@@ -15,7 +15,7 @@
 -- the exported PDF report. place_street, place_cross and place_number are
 -- the name's parts.
 --
--- Additive: the backend before v1.12.40 neither reads nor writes the new
+-- Additive: the backend before v1.12.42 neither reads nor writes the new
 -- columns, so this can be applied before it is replaced.
 
 create table if not exists public.streets (
@@ -47,10 +47,10 @@ alter table public.areas
 comment on column public.areas.designation is
   'The name every screen and alert shows: "Taft Avenue corner Gil Puyat Avenue", '
   '"Near F. Victor Street", "Near F. Victor Street (2)", or its coordinates when no '
-  'street is near (v1.12.40). Before v1.12.40 it was the number, now area_code.';
+  'street is near (v1.12.42). Before v1.12.42 it was the number, now area_code.';
 comment on column public.areas.area_code is
   'The Area number ("Area 3", "Area 3.2"): the PDF report''s reference only, never shown '
-  'on screen (v1.12.40).';
+  'on screen (v1.12.42).';
 comment on column public.areas.place_street is
   'The street the name is about: the nearer street at a corner, else the nearest street.';
 comment on column public.areas.place_cross is

@@ -19,7 +19,7 @@ from app.services import incident_notify, staff_copy
 from app.workers import coordinator_pings
 
 AREA = uuid4()
-# A fire named after the two streets it is at (v1.12.40).
+# A fire named after the two streets it is at (v1.12.42).
 CORNER = "Taft Avenue corner Gil Puyat Avenue"
 
 
@@ -137,7 +137,7 @@ def test_every_staff_message_has_its_tagalog() -> None:
         assert english != tagalog, make
         assert all(part.strip() for part in tagalog)
     # BFP's alarm words and a corner's streets are kept as they are said;
-    # "Near" is said in Tagalog (v1.12.40).
+    # "Near" is said in Tagalog (v1.12.42).
     answered = staff_copy.alarm_answered("tl", True, "2nd alarm", CORNER)[1]
     assert "2nd alarm" in answered and CORNER in answered
     assert staff_copy.new_fire("tl", "Near F. Victor Street")[0] == (

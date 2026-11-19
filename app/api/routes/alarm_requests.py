@@ -109,7 +109,7 @@ def _rank(level: str | None) -> int:
 
 def _area_name(designation: Any) -> str:
     """The fire, starting a sentence: "The fire near F. Victor Street", never
-    its Area number (v1.12.40)."""
+    its Area number (v1.12.42)."""
     return fire_at(str(designation or "").strip() or None, "en", start=True)
 
 

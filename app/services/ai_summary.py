@@ -279,7 +279,7 @@ async def gather_incident_facts(db: Database, area_id: UUID) -> IncidentFacts:
 
     structured: dict[str, Any] = {
         "designation": area["designation"],
-        # The Area's number (v1.12.40): the PDF report's reference, never shown
+        # The Area's number (v1.12.42): the PDF report's reference, never shown
         # on screen. Null for a report built before it.
         "area_code": area["area_code"],
         "status": area["status"],

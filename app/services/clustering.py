@@ -37,7 +37,7 @@ _VERSION_WINDOW = "1 hour"
 
 
 def _designation(base_number: int, version: int) -> str:
-    """The Area's number: 'Area 1' (v1) or 'Area 1.2' (v2). Since v1.12.40 it
+    """The Area's number: 'Area 1' (v1) or 'Area 1.2' (v2). Since v1.12.42 it
     is only its code (areas.area_code, the PDF report's reference); what every
     screen and alert calls the fire is its street (app/services/place_names.py)."""
     return f"Area {base_number}" if version <= 1 else f"Area {base_number}.{version}"
@@ -115,7 +115,7 @@ async def _create_area(
     parent_area_id: UUID | None,
 ) -> UUID:
     """Insert a new pending area centered on the report's coordinates, named
-    after the streets there (v1.12.40) and keeping its number as its code."""
+    after the streets there (v1.12.42) and keeping its number as its code."""
     place = await find_place(db, lat, lng)
     name = place_name(place, lat, lng)
     code = _designation(base_number, version)
@@ -141,8 +141,8 @@ async def _create_area(
             lng,
         )
     except asyncpg.exceptions.UndefinedColumnError:
-        # Migration 20261118090000_street_names.sql is not applied yet: the
-        # fire is called by its number, as before v1.12.40, rather than not
+        # Migration 20261119120000_street_names.sql is not applied yet: the
+        # fire is called by its number, as before v1.12.42, rather than not
         # reported. Named fires start once it is.
         log.warning("area_names_wait_for_migration", area_code=code)
         name = code

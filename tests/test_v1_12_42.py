@@ -1,4 +1,4 @@
-"""v1.12.40: fires named after their streets, and the far-fire voice.
+"""v1.12.42: fires named after their streets, and the far-fire voice.
 
 18 Nov 2026: "instead of area, it will be called 'Near [street]' or the street
 itself ... '[street] corner [street]' or 'near [street]'" (answered "Corner,
@@ -184,7 +184,7 @@ async def test_a_new_area_is_named_and_keeps_its_number_as_its_code(
 async def test_before_the_migration_a_fire_is_still_reported_by_its_number(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The backend can go live before 20261118090000_street_names.sql is
+    """The backend can go live before 20261119120000_street_names.sql is
     applied: the new columns are missing, so the area is made as before."""
 
     async def unnamed(db: Any, lat: float, lng: float, *, leave_out: UUID | None = None) -> Place:
@@ -223,9 +223,9 @@ def test_the_pdf_report_keeps_the_area_number_as_its_reference() -> None:
 # The far-fire voice
 # --------------------------------------------------------------------------- #
 def test_the_far_voice_is_for_app_1_12_51_and_later() -> None:
-    assert FAR_VOICE_SINCE == (1, 12, 51)
-    assert has_far_voice("1.12.51 (80)") and has_far_voice("1.13.0")
-    assert not has_far_voice("1.12.50")
+    assert FAR_VOICE_SINCE == (1, 12, 53)
+    assert has_far_voice("1.12.53 (80)") and has_far_voice("1.13.0")
+    assert not has_far_voice("1.12.52")
     assert not has_far_voice(None) and not has_far_voice("dev")
     assert (far_voice("tl"), far_voice("en")) == ("far_tl", "far_en")
 

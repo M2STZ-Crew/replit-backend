@@ -1,4 +1,4 @@
-"""Load Metro Manila's named streets into public.streets (v1.12.40).
+"""Load Metro Manila's named streets into public.streets (v1.12.42).
 
     python scripts/load_streets.py ncr_streets.json --dry-run
     python scripts/load_streets.py ncr_streets.json

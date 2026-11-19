@@ -1,4 +1,4 @@
-"""Fires named after their streets (v1.12.40).
+"""Fires named after their streets (v1.12.42).
 
 18 November 2026: "instead of area, it will be called 'Near [street]' or the
 street itself because 'Area #1' is not appropriate or overwhelming to citizens

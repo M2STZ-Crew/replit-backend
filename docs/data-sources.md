@@ -185,7 +185,7 @@ rel(area.ncr)["boundary"="administrative"]["admin_level"="6"];
 
 ## Streets: what a fire is called
 
-**Fetched 19 November 2026** for v1.12.40 ("Corner, else Near"): Metro
+**Fetched 19 November 2026** for v1.12.42 ("Corner, else Near"): Metro
 Manila's named streets, from which each new fire is named
 (`app/services/place_names.py`): "Taft Avenue corner Gil Puyat Avenue" where
 two named streets meet within 30 m of it, else "Near F. Victor Street". They

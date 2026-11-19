@@ -675,7 +675,7 @@ async def test_the_asker_is_told_the_answer(
     )
     assert sent == 1
     assert pushed[0]["title"] == title
-    # The fire is called by its street, never its Area number (v1.12.40).
+    # The fire is called by its street, never its Area number (v1.12.42).
     assert pushed[0]["body"].startswith(
         "The fire near F. Victor Street is now at 2nd alarm"
         if status == "approved"
