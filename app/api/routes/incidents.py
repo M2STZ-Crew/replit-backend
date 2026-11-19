@@ -60,7 +60,7 @@ from app.schemas.incident import (
     ResponderLocationItem,
     SelfDispatchRequest,
 )
-from app.services import fire_broadcast
+from app.services import fire_broadcast, report_strikes
 from app.services.access import ACKNOWLEDGE, acting_agency, admin_access
 from app.services.audit import record_audit
 from app.services.fire_type import (
@@ -543,7 +543,7 @@ async def list_incident_reports(
         select r.id, r.reporter_id, u.full_name as reporter_name, r.photo_url,
                r.device_lat, r.device_lng, r.has_exif, r.gps_discrepancy_flag,
                r.user_verified_percent, r.selected_agencies::text[] as selected_agencies,
-               r.notes, r.created_at
+               r.notes, r.created_at, u.phone, u.phone_verified
         from public.area_reports ar
         join public.reports r on r.id = ar.report_id
         left join public.users u on u.id = r.reporter_id
@@ -552,6 +552,20 @@ async def list_incident_reports(
         """,
         incident_id,
     )
+    # Prank strikes (v1.12.41): each report's own, and how many its reporter
+    # has in effect. Looked up apart, so the list stands if the lookup fails.
+    marks: dict[UUID, Any] = {}
+    counts: dict[UUID, int] = {}
+    try:
+        for m in await db.fetch(
+            "select report_id, id, step, status from public.report_strikes "
+            "where report_id = any($1::uuid[])",
+            [r["id"] for r in rows],
+        ):
+            marks[m["report_id"]] = m
+        counts = await report_strikes.strike_counts(db, rows)
+    except Exception:
+        log.error("incident_report_strikes_failed", incident_id=str(incident_id), exc_info=True)
     items: list[IncidentReportDetail] = []
     for r in rows:
         signed: str | None = None
@@ -563,8 +577,17 @@ async def list_incident_reports(
             except ExternalServiceError:
                 signed = None
         data = dict(r)
+        data.pop("phone", None)
+        data.pop("phone_verified", None)
         data["photo_url"] = signed
         data["selected_agencies"] = list(r["selected_agencies"] or [])
+        mark = marks.get(r["id"])
+        if mark is not None:
+            data.update(
+                strike_id=mark["id"], strike_step=mark["step"], strike_status=mark["status"]
+            )
+        if r["reporter_id"] is not None:
+            data["reporter_strikes"] = counts.get(r["reporter_id"], 0)
         items.append(IncidentReportDetail.model_validate(data))
     return items
 
@@ -627,10 +650,61 @@ async def reject_incident(
         await _audit_transition(
             conn, request, user, incident_id,
             action="incident.reject", before=current, after="rejected",
-            metadata={"reason": payload.reason, "responders_released": len(released)},
+            metadata={
+                "reason": payload.reason,
+                "responders_released": len(released),
+                "prank": payload.prank,
+            },
         )
+        # "Prank or malicious" (v1.12.41): the first resident's report gets a
+        # strike, and they read the reason. An honest mistake gets none, and
+        # neither do the neighbours who answered "Do you see it too?".
+        strike: report_strikes.Strike | None = None
+        if payload.prank:
+            first = await conn.fetchval(
+                """
+                select r.id from public.area_reports ar
+                join public.reports r on r.id = ar.report_id
+                join public.users u on u.id = r.reporter_id
+                where ar.area_id = $1 and u.role = 'general_user'
+                order by r.created_at
+                limit 1
+                """,
+                incident_id,
+            )
+            # In a savepoint: the rejection stands even if the strike cannot
+            # be given (a report two Areas share, already marked; or a fault).
+            if first is not None:
+                try:
+                    async with conn.transaction():
+                        strike = await report_strikes.give(
+                            conn,
+                            report_id=first,
+                            reason=payload.reason,
+                            serious=payload.serious,
+                            giver=user,
+                        )
+                        await record_audit(
+                            conn, request, user,
+                            action="report_strike.give", entity_type="report_strike",
+                            entity_id=strike.id, area_id=incident_id,
+                            metadata={
+                                "step": strike.step,
+                                "serious": strike.serious,
+                                "awaiting_check": strike.status == "awaiting_confirmation",
+                                "from": "reject",
+                            },
+                        )
+                except ConflictError:
+                    strike = None
+                except Exception:
+                    strike = None
+                    log.error("reject_strike_failed", incident_id=str(incident_id), exc_info=True)
     log.info("incident_rejected", incident_id=str(incident_id), user_id=str(user.id))
-    return await finish_incident_change(db, incident_id, "incident_rejected")
+    detail = await finish_incident_change(db, incident_id, "incident_rejected")
+    if strike is not None:
+        await report_strikes.tell(db, strike, "given")
+    return detail
 
 
 @router.post(

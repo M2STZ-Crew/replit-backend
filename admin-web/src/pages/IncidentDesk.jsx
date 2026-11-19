@@ -270,6 +270,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
           access={access}
           orgName={org?.name ?? tr('your organization')}
           onAskAlarm={() => setAskingAlarm(true)}
+          onEvidenceChanged={() => loadDetail(selectedId)}
         />
         <AlarmEscalationDialog
           open={askingAlarm}

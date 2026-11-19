@@ -22,6 +22,7 @@ from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.db.session import Database, database
 from app.integrations.fcm import PushService, SoundCategory, token_versions
+from app.services import report_strikes
 from app.services.citizen_copy import NEIGHBOUR_ALERT, Language, by_language, language_of
 from app.services.incident import active_area_sql
 from app.services.notification_inbox import record_inbox
@@ -42,6 +43,10 @@ async def notify_area_neighbors(
     db: Database, push: PushService, area_id: UUID, lat: float, lng: float
 ) -> int:
     """Push the alert to eligible users near an area; return the number alerted."""
+    # Verify-first (v1.12.41): a fire only residents on verify-first after
+    # prank reports have reported waits for staff to verify it.
+    if await report_strikes.held_for_verification(db, area_id):
+        return 0
     point = f"SRID=4326;POINT({lng} {lat})"
     max_age = get_settings().neighborhood_location_max_age_minutes
     users = await db.fetch(

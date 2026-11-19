@@ -1,7 +1,11 @@
+import { useState } from 'react';
+
+import { api } from '../../api/client.js';
 import { PERM, acknowledgedByUs, actsOn, can, routedWord } from '../../lib/access.js';
 import { AGENCY_LABEL, OFF_FEED, alarmLabel, statusOf } from '../../lib/status.js';
+import { nextStep, stepText } from '../../lib/strikes.js';
 import Place from '../Place.jsx';
-import { ConfirmDialog } from '../ui/index.js';
+import { ConfirmDialog, StatusChip } from '../ui/index.js';
 import ZoomablePhoto from '../ui/ZoomablePhoto.jsx';
 import AreaMap from './AreaMap.jsx';
 import { agenciesOf, confidenceOf } from './IncidentTable.jsx';
@@ -270,7 +274,30 @@ export default function IncidentDetail({
   access, orgName = 'your organization',
   busy, error, confirming, acknowledgedNow,
   onAskAcknowledge, onCancelAcknowledge, onConfirmAcknowledge, onBack, onPdf, onAskAlarm,
+  onEvidenceChanged,
 }) {
+  // Prank reports (v1.12.41): the central hub marks a resident's report once
+  // its fire is rejected or closed as a false alarm; the server checks both.
+  const [marking, setMarking] = useState(null);
+  const [markReason, setMarkReason] = useState('');
+  const [markSerious, setMarkSerious] = useState(false);
+  const canMark = can(access, PERM.REVIEW_STRIKES)
+    && (d.status === 'rejected' || (reports ?? []).some((r) => r.false_alarm));
+
+  function startMark(report) {
+    setMarkReason('');
+    setMarkSerious(false);
+    setMarking(report);
+  }
+
+  async function confirmMark() {
+    const reason = markReason.trim();
+    if (reason.length < 3) throw new Error(t('Say what staff found. The resident reads it.'));
+    await api.markPrank(marking.id, reason, markSerious);
+    setMarking(null);
+    onEvidenceChanged?.();
+  }
+
   const live = !OFF_FEED.includes(d.status);
   const onScene = ON_SCENE.includes(d.status);
   const routed = actsOn(access, d);
@@ -414,6 +441,32 @@ export default function IncidentDetail({
                     </span>
                     <span className="rpl-cell-meta"><Place lat={r.device_lat} lng={r.device_lng} /></span>
                     {r.notes && <span className="rpl-evidence-note">“{r.notes}”</span>}
+                    {(r.strike_id || r.reporter_strikes > 0 || (canMark && r.reporter_id)) && (
+                      <span className="rpl-evidence-strike">
+                        {r.strike_id ? (
+                          <StatusChip
+                            tone="danger"
+                            label={r.strike_status === 'awaiting_confirmation'
+                              ? t('Marked a prank · waiting for a second check')
+                              : r.strike_status === 'overturned'
+                                ? t('Marked a prank · strike removed')
+                                : t('Marked a prank · strike {step}', { step: r.strike_step })}
+                          />
+                        ) : r.reporter_strikes > 0 && (
+                          <StatusChip
+                            tone="warn"
+                            label={r.reporter_strikes === 1
+                              ? t('Reporter has {count} strike in effect', { count: r.reporter_strikes })
+                              : t('Reporter has {count} strikes in effect', { count: r.reporter_strikes })}
+                          />
+                        )}
+                        {canMark && r.reporter_id && !r.strike_id && (
+                          <button type="button" className="rpl-button rpl-button--secondary rpl-button--compact" onClick={() => startMark(r)}>
+                            {t('Mark as prank')}
+                          </button>
+                        )}
+                      </span>
+                    )}
                   </span>
                 </li>
               ))}
@@ -433,6 +486,33 @@ export default function IncidentDetail({
         onClose={onCancelAcknowledge}
         onConfirm={onConfirmAcknowledge}
       />
+
+      <ConfirmDialog
+        open={Boolean(marking)}
+        eyebrow={t('Prank or malicious report')}
+        title={t('Mark {name}’s report as a prank?', { name: marking?.reporter_name || t('the resident') })}
+        description={t('Only for a report made up or sent to cause trouble, never an honest mistake. This would be their {step}. Calling 911 and fire alerts are never blocked.', {
+          step: stepText(nextStep(marking?.reporter_strikes, markSerious)),
+        })}
+        confirmLabel={t('Mark as prank')}
+        destructive
+        onClose={() => setMarking(null)}
+        onConfirm={confirmMark}
+      >
+        {marking && (
+          <>
+            <label className="rpl-field">
+              <span className="rpl-field-label">{t('What did staff find?')}</span>
+              <textarea value={markReason} onChange={(e) => setMarkReason(e.target.value)} maxLength={500} rows={3} placeholder={t('e.g. The photo was copied from the internet, and no fire was found.')} />
+              <span className="rpl-field-help">{t('The resident reads this in the app. It is also kept with the strike.')}</span>
+            </label>
+            <label className="rpl-check">
+              <input type="checkbox" checked={markSerious} onChange={(e) => setMarkSerious(e.target.checked)} />
+              <span>{t('Serious case: a truck was sent out, or a real household was targeted (at least the 3rd strike)')}</span>
+            </label>
+          </>
+        )}
+      </ConfirmDialog>
     </div>
   );
 }

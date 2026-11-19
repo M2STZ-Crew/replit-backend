@@ -17,6 +17,8 @@ export const PERM = {
   COORDINATE: 'incidents.coordinate',
   REVIEW_AFFILIATES: 'affiliates.review',
   REVIEW_IDS: 'verifications.review',
+  // Prank-report strikes (v1.12.41): the central hub's, like ID reviews.
+  REVIEW_STRIKES: 'strikes.review',
   MANAGE_MAP: 'map.manage',
   DELETE_WATER: 'water.delete',
   REQUEST_ALARM: 'alarm.request',

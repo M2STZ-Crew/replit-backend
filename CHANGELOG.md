@@ -6,6 +6,56 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.41 — 19 November 2026 — Prank reports pause reporting, step by step
+
+Backend, console and residents' site; app v1.12.52 goes with it.
+**Migration:** `20261119090000_report_strikes.sql` (one new table, nothing
+else changed). Until it is applied, everything fails open: reports go through,
+neighbour alerts go out, and only the strike screens are unavailable. Comes
+after v1.12.40 (street names).
+
+### Changes
+- **A strike for a prank report, and a pause that grows** (19 Nov: "a false
+  alarm or prank report can be temporarily cannot report and has a
+  progressive penalty"; "Yes, build it" to the ladder,
+  `app/services/report_strikes.py`). Only a report staff mark "Prank or
+  malicious" gives a strike, never an honest mistake, and never a neighbour
+  who answered "Do you see it too?". Strikes count over 12 months:
+  - 1st: reporting paused 24 hours, and a lesson on what a false alarm costs;
+  - 2nd: paused 7 days, then 30 days of verify-first (their report waits for
+    staff before the 100 m neighbour alert goes out);
+  - 3rd: paused 30 days, then 90 days of verify-first;
+  - 4th: reporting removed until an appeal is granted.
+  A serious case (a truck sent out, a real household targeted) starts at the
+  3rd. The 3rd and 4th wait for a second staff member, never the one who gave
+  it; meanwhile the resident is paused 24 hours. Calling 911, fire alerts and
+  signing in are never blocked.
+- **Where strikes come from.** A coordinator rejecting a fire as "Prank or
+  misuse" (`POST /incidents/{id}/reject` with `prank`, `serious`) strikes the
+  first resident report; the rejection stands even if the strike cannot be
+  given. The central hub's Admins (`strikes.review`) mark any report of a
+  rejected or false-alarm fire (`POST /report-strikes`), check 3rd and 4th
+  steps, and decide appeals.
+- **The resident.** `GET /report-strikes/me` says whether they can report and
+  until when; a paused report is refused with 403 `reporting_paused`
+  (`details`: `removed`, `paused_until`, `step`). One appeal per strike within
+  7 days (`POST /report-strikes/me/{id}/appeal`), decided by someone other
+  than whoever gave it; a 4th strike may be appealed again once a year after
+  12 months. Each strike, check and answer is pushed and kept in their alerts,
+  in their language, with the reason staff wrote and never who gave it.
+- **Strikes follow the verified number**, as an HMAC of it, so a new account
+  on the same number keeps them. A strike is deleted 12 months after it takes
+  effect, and an overturned one 30 days after (the hourly job).
+- **Console: Prank reports** (Organization, the central hub's): strikes to
+  check, appeals and every strike, with the masked number, the report, and
+  Print record for a referral to BFP or the barangay. On an incident, each
+  report shows its strike or its reporter's strikes in effect, with Mark as
+  prank once the fire is rejected or a false alarm.
+- **Residents' site:** the privacy policy has a "False and prank reports"
+  section (Fire Code §8(i), what is kept, appeals, how long, referral).
+
+---
+
 ## v1.12.39 — 18 November 2026 — No emoji in any text box; all of Metro Manila on the map
 
 Console, residents' site and docs; app v1.12.50 goes with it. No server

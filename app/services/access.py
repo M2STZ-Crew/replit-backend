@@ -63,6 +63,9 @@ CREATE_COORDINATORS = "accounts.coordinators"
 MANAGE_ANY_ACCOUNT = "accounts.any"  # any role, any organisation (POST /admin/users)
 ALL_ORGANIZATIONS = "organizations.all"  # read any organisation's people and equipment
 ALL_RECORDS = "records.all"  # every report, summary and audit entry, unredacted
+# Prank-report strikes (v1.12.41): mark a report, check a 3rd or 4th step,
+# decide an appeal. The central hub's, like National ID reviews.
+REVIEW_STRIKES = "strikes.review"
 
 _EVERY_ADMIN = frozenset({ACKNOWLEDGE, DECIDE_OVERLAPS, DELETE_WATER, CREATE_COORDINATORS})
 
@@ -73,6 +76,7 @@ _SYSTEM = frozenset(
         COORDINATE,
         REVIEW_AFFILIATES,
         REVIEW_IDS,
+        REVIEW_STRIKES,
         MANAGE_MAP,
         DELETE_WATER,
         CREATE_COORDINATORS,

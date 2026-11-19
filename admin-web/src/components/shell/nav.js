@@ -22,6 +22,7 @@ export const NAV = [
   { key: 'organization', get label() { return t('Organization'); }, icon: 'organization', group: 'organization' },
   { key: 'accounts', get label() { return t('Accounts'); }, icon: 'accounts', group: 'organization' },
   { key: 'idreview', get label() { return t('Verification'); }, icon: 'verification', group: 'organization', requires: PERM.REVIEW_IDS, badge: 'ids' },
+  { key: 'strikes', get label() { return t('Prank reports'); }, icon: 'escalate', group: 'organization', requires: PERM.REVIEW_STRIKES, badge: 'strikes' },
   { key: 'affiliates', get label() { return t('Affiliates'); }, icon: 'affiliates', group: 'organization', requires: PERM.REVIEW_AFFILIATES, badge: 'affiliates' },
 ];
 

@@ -23,6 +23,7 @@ from app.db.session import Database
 from app.integrations.fcm import PushService
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.report import ReportResponse, ReportSubmitResponse
+from app.services import report_strikes
 from app.services.clustering import cluster_report
 from app.services.exif import extract_gps, validate_image
 from app.services.geo import haversine_m
@@ -132,6 +133,10 @@ async def submit_report(
     """Validate, store, EXIF-cross-reference, and persist a citizen incident report."""
     settings = get_settings()
     agencies = _parse_agencies(selected_agencies)
+
+    # Paused or removed after prank reports (v1.12.41): refused with
+    # reporting_paused, before the photo is even read. 911 still works.
+    await report_strikes.assert_may_report(db, user)
 
     # One report at a time: while the caller's last one is still a live incident,
     # a second is refused. It is almost always the same fire sent again, and

@@ -342,6 +342,15 @@ IdReviewer = Annotated[
         )
     ),
 ]
+StrikeReviewer = Annotated[
+    AuthenticatedUser,
+    Depends(
+        require_admin_permission(
+            console_access.REVIEW_STRIKES,
+            "Prank reports are reviewed by the central hub's Admins.",
+        )
+    ),
+]
 MapManager = Annotated[
     AuthenticatedUser,
     Depends(
