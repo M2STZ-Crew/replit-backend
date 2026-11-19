@@ -196,7 +196,7 @@ async def gather_incident_facts(db: Database, area_id: UUID) -> IncidentFacts:
     """Collect the structured facts for an incident; raise 404 if it does not exist."""
     area = await db.fetchrow(
         """
-        select a.designation, a.status::text as status,
+        select a.designation, a.area_code, a.status::text as status,
                a.centroid_lat, a.centroid_lng, a.report_count,
                a.confidence_score, a.confidence_band::text as confidence_band,
                a.alarm_level::text as alarm_level,
@@ -278,6 +278,9 @@ async def gather_incident_facts(db: Database, area_id: UUID) -> IncidentFacts:
 
     structured: dict[str, Any] = {
         "designation": area["designation"],
+        # The Area's number (v1.12.40): the PDF report's reference, never shown
+        # on screen. Null for a report built before it.
+        "area_code": area["area_code"],
         "status": area["status"],
         "centroid": {"lat": area["centroid_lat"], "lng": area["centroid_lng"]},
         "confidence": {"score": area["confidence_score"], "band": area["confidence_band"]},

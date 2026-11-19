@@ -19,6 +19,8 @@ from app.services import incident_notify, staff_copy
 from app.workers import coordinator_pings
 
 AREA = uuid4()
+# A fire named after the two streets it is at (v1.12.40).
+CORNER = "Taft Avenue corner Gil Puyat Avenue"
 
 
 class _Push:
@@ -33,7 +35,9 @@ class _Push:
 class _StaffDb:
     """Two (or more) staff, each with a language and one phone."""
 
-    def __init__(self, people: dict[UUID, str], designation: str | None = "Area 1.2") -> None:
+    def __init__(
+        self, people: dict[UUID, str], designation: str | None = "Near F. Victor Street"
+    ) -> None:
         self.people = people
         self.designation = designation
 
@@ -97,20 +101,20 @@ def _two() -> tuple[UUID, UUID, dict[UUID, str]]:
 # The words
 # --------------------------------------------------------------------------- #
 def test_the_english_is_what_staff_already_read() -> None:
-    assert staff_copy.new_fire("en", "Area 1.2") == (
-        "Fire reported: Area 1.2",
+    assert staff_copy.new_fire("en", "Near F. Victor Street") == (
+        "Fire reported: Near F. Victor Street",
         "A resident reported a fire. Tap to open it, verify it and respond.",
     )
     assert staff_copy.reminder("en", None)[1] == (
         "Still waiting for you. Tap to open it and acknowledge."
     )
-    assert staff_copy.dispatched("en", "Area 1.2", "Driver", "Truck 1") == (
+    assert staff_copy.dispatched("en", "Near F. Victor Street", "Driver", "Truck 1") == (
         "You've been dispatched",
-        "Respond to Area 1.2 — Driver on Truck 1.",
+        "Respond to the fire near F. Victor Street — Driver on Truck 1.",
     )
     assert staff_copy.alarm_requested("en", None, "Hercules", "2nd alarm", None) == (
         "Alarm escalation requested",
-        "A responder (Hercules) asked for 2nd alarm on an incident.",
+        "A responder (Hercules) asked for 2nd alarm for the incident.",
     )
     assert staff_copy.alarm_answered("en", False, "2nd alarm", None, "Under control.") == (
         "BFP declined your alarm request",
@@ -120,21 +124,28 @@ def test_the_english_is_what_staff_already_read() -> None:
 
 def test_every_staff_message_has_its_tagalog() -> None:
     pairs = [
-        (staff_copy.new_fire, ("Area 1.2",)),
-        (staff_copy.reminder, ("Area 1.2",)),
-        (staff_copy.dispatched, ("Area 1.2", "Driver", "Truck 1")),
-        (staff_copy.routed, ("Area 1.2",)),
-        (staff_copy.alarm_requested, ("Juan", "Hercules", "2nd alarm", "1.2")),
-        (staff_copy.alarm_answered, (True, "2nd alarm", "1.2")),
+        (staff_copy.new_fire, ("Near F. Victor Street",)),
+        (staff_copy.reminder, ("Near F. Victor Street",)),
+        (staff_copy.dispatched, ("Near F. Victor Street", "Driver", "Truck 1")),
+        (staff_copy.routed, ("Near F. Victor Street",)),
+        (staff_copy.alarm_requested, ("Juan", "Hercules", "2nd alarm", CORNER)),
+        (staff_copy.alarm_answered, (True, "2nd alarm", CORNER)),
         (staff_copy.alarm_answered, (False, "2nd alarm", None)),
     ]
     for make, args in pairs:
         english, tagalog = make("en", *args), make("tl", *args)  # type: ignore[operator]
         assert english != tagalog, make
         assert all(part.strip() for part in tagalog)
-    # BFP's alarm words and Area names are kept as they are said.
-    assert "2nd alarm" in staff_copy.alarm_answered("tl", True, "2nd alarm", "1.2")[1]
-    assert "Area 1.2" in staff_copy.alarm_answered("tl", True, "2nd alarm", "1.2")[1]
+    # BFP's alarm words and a corner's streets are kept as they are said;
+    # "Near" is said in Tagalog (v1.12.40).
+    answered = staff_copy.alarm_answered("tl", True, "2nd alarm", CORNER)[1]
+    assert "2nd alarm" in answered and CORNER in answered
+    assert staff_copy.new_fire("tl", "Near F. Victor Street")[0] == (
+        "May ini-report na sunog: Malapit sa F. Victor Street"
+    )
+    # Never the Area number, in either language.
+    for language in ("en", "tl"):
+        assert "Area" not in " ".join(staff_copy.new_fire(language, "Near F. Victor Street"))  # type: ignore[arg-type]
 
 
 # --------------------------------------------------------------------------- #
@@ -147,12 +158,15 @@ async def test_a_new_fire_reaches_each_in_their_language(sent: Any) -> None:
     assert notified == 2
     by_title = {s["title"]: s["tokens"] for s in push.sent}
     assert by_title == {
-        "Fire reported: Area 1.2": [f"tok-{english}"],
-        "May ini-report na sunog: Area 1.2": [f"tok-{tagalog}"],
+        "Fire reported: Near F. Victor Street": [f"tok-{english}"],
+        "May ini-report na sunog: Malapit sa F. Victor Street": [f"tok-{tagalog}"],
     }
     assert {s["tag"] for s in push.sent} == {f"incident-{AREA}"}
     assert sorted((ids, title) for ids, title, _ in inbox) == sorted(
-        [([english], "Fire reported: Area 1.2"), ([tagalog], "May ini-report na sunog: Area 1.2")]
+        [
+            ([english], "Fire reported: Near F. Victor Street"),
+            ([tagalog], "May ini-report na sunog: Malapit sa F. Victor Street"),
+        ]
     )
 
 
@@ -169,7 +183,7 @@ async def test_a_dispatch_in_tagalog(sent: Any) -> None:
     (push_sent,) = push.sent
     assert (push_sent["title"], push_sent["body"]) == (
         "Na-dispatch ka",
-        "Tumugon sa Area 1.2 — Driver sakay ng Truck 1.",
+        "Tumugon sa sunog malapit sa F. Victor Street — Driver sakay ng Truck 1.",
     )
     assert inbox[0][1] == "Na-dispatch ka"
 
@@ -204,9 +218,12 @@ async def test_an_alarm_request_reaches_bfp_in_their_language(sent: Any) -> None
         organization="Hercules",
     )
     bodies = {s["tokens"][0]: s["body"] for s in push.sent}
-    assert bodies[f"tok-{english}"] == "Juan Dela Cruz (Hercules) asked for 2nd alarm on Area 1.2."
+    assert bodies[f"tok-{english}"] == (
+        "Juan Dela Cruz (Hercules) asked for 2nd alarm for the fire near F. Victor Street."
+    )
     assert bodies[f"tok-{tagalog}"] == (
-        "Humiling si Juan Dela Cruz (Hercules) ng 2nd alarm para sa Area 1.2."
+        "Humiling si Juan Dela Cruz (Hercules) ng 2nd alarm para sa sunog malapit sa "
+        "F. Victor Street."
     )
     assert {s["sound"] for s in push.sent} == {"fire"}, "still the alarm, in both"
 
@@ -217,12 +234,12 @@ async def test_an_alarm_request_reaches_bfp_in_their_language(sent: Any) -> None
         (
             "approved",
             "Itinaas ng BFP ang alarma",
-            "Nasa 2nd alarm na ang Area 1.2, gaya ng hiniling mo.",
+            "Nasa 2nd alarm na ang sunog malapit sa F. Victor Street, gaya ng hiniling mo.",
         ),
         (
             "rejected",
             "Hindi inaprubahan ng BFP ang hiling mong alarma",
-            "Walang babaguhin sa Area 1.2. Kontrolado na.",
+            "Walang babaguhin sa sunog malapit sa F. Victor Street. Kontrolado na.",
         ),
     ],
 )
@@ -233,7 +250,7 @@ async def test_bfps_answer_in_tagalog(sent: Any, status: str, title: str, body: 
         id=uuid4(),
         status=status,
         area_id=AREA,
-        area_designation="1.2",
+        area_designation="Near F. Victor Street",
         requested_alarm_level="second_alarm",
         requested_by=asker,
         review_notes="Kontrolado na.",
@@ -249,7 +266,7 @@ async def test_a_coordinators_reminder_in_tagalog() -> None:
     row = {
         "area_id": AREA,
         "user_id": coordinator,
-        "designation": "Area 1.2",
+        "designation": "Near F. Victor Street",
         "agency_type": "fire_volunteer",
         "language": "tl",
     }
@@ -260,7 +277,7 @@ async def test_a_coordinators_reminder_in_tagalog() -> None:
         sound=True,
     )
     (push_sent,) = push.sent
-    assert push_sent["title"] == "May ini-report na sunog: Area 1.2"
+    assert push_sent["title"] == "May ini-report na sunog: Malapit sa F. Victor Street"
     assert push_sent["body"] == "Hinihintay ka pa. I-tap para buksan at i-acknowledge ito."
 
 

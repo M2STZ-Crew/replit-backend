@@ -45,7 +45,8 @@ class ReportResponse(BaseModel):
 
     area_id: UUID | None = None
     area_designation: str | None = Field(
-        default=None, description='Human label from clustering, e.g. "Area 1.2".'
+        default=None,
+        description="The fire's name, e.g. 'Near F. Victor Street' (v1.12.40; it was 'Area 1.2').",
     )
     area_status: str | None = Field(
         default=None, description="Lifecycle status of the clustered incident."
