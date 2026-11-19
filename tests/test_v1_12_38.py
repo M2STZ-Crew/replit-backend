@@ -157,11 +157,15 @@ class _Push:
         return SimpleNamespace(invalid_tokens=[])
 
 
-def _fire_db(residents: list[dict[str, Any]], tokens_each: int = 1) -> Any:
+def _fire_db(
+    residents: list[dict[str, Any]],
+    tokens_each: int = 1,
+    versions: tuple[str, ...] = ("1.12.49",),
+) -> Any:
     class Db:
         async def fetchrow(self, query: str, *args: Any) -> dict[str, Any]:
             return {
-                "designation": "Taft Avenue",
+                "designation": "Near Taft Avenue",
                 "centroid_lat": 14.5378,
                 "centroid_lng": 121.0014,
                 "created_at": datetime(2026, 11, 18, 9, 30, tzinfo=UTC),
@@ -178,9 +182,10 @@ def _fire_db(residents: list[dict[str, Any]], tokens_each: int = 1) -> Any:
                 return residents
             if "device_tokens" in query:
                 return [
-                    {"fcm_token": f"{uid}-{n}", "app_version": "1.12.49"}
+                    {"fcm_token": f"{uid}-{n}-{version}", "app_version": version}
                     for uid in args[0]
                     for n in range(tokens_each)
+                    for version in versions
                 ]
             return []
 
@@ -210,16 +215,49 @@ async def test_a_verified_fire_alerts_every_resident_in_their_language(
     assert alerted == 2
     by_title = {s["title"]: s for s in push.sent}
     assert set(by_title) == {"Fire verified", "Kumpirmadong sunog"}
-    assert "on Taft Avenue" in by_title["Fire verified"]["body"]
-    assert "sa Taft Avenue" in by_title["Kumpirmadong sunog"]["body"]
+    # The fire's street (v1.12.40); it said "on Area 3" before.
+    assert "verified a fire near Taft Avenue." in by_title["Fire verified"]["body"]
+    assert "ang sunog malapit sa Taft Avenue." in by_title["Kumpirmadong sunog"]["body"]
+    assert {s["sound"] for s in push.sent} == {"citizen"}, "an app before 1.12.51"
     for sent in push.sent:
         assert sent["data"]["type"] == "fire_verified"
-        assert sent["data"]["designation"] == "Taft Avenue"
+        assert sent["data"]["designation"] == "Near Taft Avenue"
         assert sent["data"]["reported_at"].startswith("2026-11-18T09:30")
     assert sorted(inbox) == [
         ("fire_verified", "Fire verified"),
         ("fire_verified", "Kumpirmadong sunog"),
     ]
+
+
+async def test_a_far_fire_has_its_own_voice_on_new_phones(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """v1.12.40: "create a placeholder for voice for far incidents (outside
+    100m). and remain the sound of near incident". A phone on app v1.12.51 or
+    later hears the far-fire voice in its reader's language; an older one has
+    no channel for it and hears the citizen recording, as before."""
+
+    async def record(*args: Any, **kw: Any) -> None:
+        return None
+
+    monkeypatch.setattr(fire_broadcast, "record_inbox", record)
+    push = _Push()
+    residents = [
+        {"user_id": uuid4(), "language": "tl"},
+        {"user_id": uuid4(), "language": "en"},
+    ]
+    await fire_broadcast.notify_residents_of_verified_fire(
+        _fire_db(residents, versions=("1.12.51 (80)", "1.12.50")), uuid4(), push
+    )
+    sounds = {(s["title"], s["sound"]): s["tokens"] for s in push.sent}
+    assert set(sounds) == {
+        ("Kumpirmadong sunog", "far_tl"),
+        ("Kumpirmadong sunog", "citizen"),
+        ("Fire verified", "far_en"),
+        ("Fire verified", "citizen"),
+    }
+    for (_, sound), tokens in sounds.items():
+        assert all(t.endswith("1.12.50") == (sound == "citizen") for t in tokens)
 
 
 async def test_a_city_of_phones_goes_in_batches_of_500(monkeypatch: pytest.MonkeyPatch) -> None:

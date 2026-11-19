@@ -363,6 +363,9 @@ def build_fire_out_pdf(
             _kv_table(
             [
                 ("Incident", designation),
+                # The Area's number (v1.12.40): kept here as the record's
+                # reference, and nowhere on screen.
+                ("Reference", str(facts.get("area_code") or "-")),
                 ("Location", f"{facts['centroid']['lat']}, {facts['centroid']['lng']} (lat, lng)"),
                 ("Alarm level", _label(facts.get("alarm_level"))),
                 ("Citizen reports", str(facts["report_count"])),

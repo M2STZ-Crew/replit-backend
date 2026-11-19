@@ -17,6 +17,7 @@ from uuid import UUID
 
 from app.core.logging import get_logger
 from app.db.session import Database
+from app.services.place_names import where
 
 log = get_logger(__name__)
 
@@ -138,22 +139,26 @@ REPORTER_MESSAGES: dict[str, dict[Language, tuple[str, str]]] = {
 }
 
 
-def fire_verified(language: Language, street: str | None) -> tuple[str, str]:
+def fire_verified(language: Language, designation: str | None) -> tuple[str, str]:
     """Every resident, once staff verify a fire (app/services/fire_broadcast.py,
     v1.12.38): where it is, and what to do. Asking "Do you see it too?" is left
-    to the residents within 100 m (NEIGHBOUR_ALERT)."""
-    street = (street or "").strip()
+    to the residents within 100 m (NEIGHBOUR_ALERT).
+
+    v1.12.40: where is the fire's name, "near F. Victor Street" or "at Taft
+    Avenue corner Gil Puyat Avenue" (app/services/place_names.py); it said
+    "on Area 3" before, the Area's number standing in for a street."""
+    place = where(designation, language)
     if language == "tl":
-        where = f"sa {street}" if street else "sa Pasay"
+        fire = f"ang sunog {place}" if place else "ang isang sunog"
         return (
             "Kumpirmadong sunog",
-            f"Kinumpirma ng mga responder ang sunog {where}. Lumayo sa lugar at "
+            f"Kinumpirma ng mga responder {fire}. Lumayo sa lugar at "
             "bigyang-daan ang mga trak ng bumbero. I-tap para makita kung saan.",
         )
-    where = f"on {street}" if street else "in Pasay"
+    fire = f"a fire {place}" if place else "a fire"
     return (
         "Fire verified",
-        f"Responders verified a fire {where}. Stay away from the area and keep the "
+        f"Responders verified {fire}. Stay away from the area and keep the "
         "roads clear for fire trucks. Tap to see where.",
     )
 

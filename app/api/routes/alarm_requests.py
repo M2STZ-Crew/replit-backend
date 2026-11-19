@@ -72,6 +72,7 @@ from app.services.incident_notify import (
     notify_bfp_alarm_request,
 )
 from app.services.map_feed import publish_area_change
+from app.services.staff_copy import fire_at
 
 log = get_logger(__name__)
 
@@ -107,10 +108,9 @@ def _rank(level: str | None) -> int:
 
 
 def _area_name(designation: Any) -> str:
-    text = str(designation or "").strip()
-    if not text:
-        return "This Area"
-    return text if text.lower().startswith("area") else f"Area {text}"
+    """The fire, starting a sentence: "The fire near F. Victor Street", never
+    its Area number (v1.12.40)."""
+    return fire_at(str(designation or "").strip() or None, "en", start=True)
 
 
 def _is_bfp_subadmin(user: AuthenticatedUser) -> bool:
