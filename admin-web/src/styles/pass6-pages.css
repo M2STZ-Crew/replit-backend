@@ -802,6 +802,43 @@
 .rpl-timeline-item.is-quiet::before { background: var(--muted); }
 .rpl-org-about { margin-top: 12px !important; }
 
+/* ── Prank reports (v1.12.41) ─────────────────────────────────────────── */
+.rpl-strike-list { display: flex; flex-direction: column; gap: 12px; margin: 16px 0 0; padding: 0; list-style: none; }
+.rpl-strike {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  color: var(--text);
+  break-inside: avoid;
+}
+.rpl-strike-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.rpl-strike-head .rpl-cell-title { font-size: 15px; }
+.rpl-strike-head .rpl-cell-meta { font-size: 13px; color: var(--text-2); }
+.rpl-strike-step { margin: 0; font-size: 13px; font-weight: 700; color: var(--text); }
+.rpl-strike-reason { margin: 0; font-size: 14px; line-height: 20px; color: var(--text); }
+.rpl-strike-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.rpl-strike-actions .rpl-field-help { flex: 1 1 100%; margin: 0; text-align: right; }
+.rpl-evidence-strike { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.rpl-check { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; font-size: 14px; line-height: 20px; color: var(--text); cursor: pointer; }
+.rpl-check input { width: 18px; height: 18px; margin: 1px 0 0; flex: none; accent-color: var(--accent); }
+@media (max-width: 767px) {
+  .rpl-strike { padding: 14px 16px; }
+  .rpl-strike-actions { justify-content: stretch; }
+  .rpl-strike-actions .rpl-button { flex: 1 1 0; }
+  .rpl-strike-actions .rpl-field-help { text-align: left; }
+}
+/* The printed record (Print record, All strikes): the list alone. */
+@media print {
+  .rpl-strikes-page .rpl-toolbar,
+  .rpl-strikes-page .web-page-header-actions,
+  .rpl-strike-actions { display: none !important; }
+  .rpl-strike { border-color: #999; }
+}
+
 /* ── ID reviews (10 · A50, A51) ───────────────────────────────────────── */
 .rpl-idr-list { display: flex; flex-direction: column; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
 .rpl-idr-row {

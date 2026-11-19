@@ -29,6 +29,7 @@ from app.api.routes import (
     organizations,
     password_reset,
     post_incident_reports,
+    report_strikes,
     reports,
     staff_email,
     team,
@@ -68,3 +69,4 @@ api_router.include_router(fire_codes.router)
 api_router.include_router(alarm_requests.router)
 api_router.include_router(audit.router)
 api_router.include_router(incident_reports.router)
+api_router.include_router(report_strikes.router)

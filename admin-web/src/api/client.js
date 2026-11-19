@@ -231,6 +231,18 @@ export const api = {
       body: { notes: notes || null, philsys_result: philsysResult || null },
     }),
 
+  // Prank-report strikes (v1.12.41, the central hub's): 3rd and 4th steps to
+  // check, appeals to decide, every strike; and marking a report a prank.
+  reportStrikes: (view = 'to_check') => request(`/report-strikes?view=${encodeURIComponent(view)}`),
+  markPrank: (reportId, reason, serious = false) =>
+    request('/report-strikes', { method: 'POST', body: { report_id: reportId, reason, serious } }),
+  confirmStrike: (id, note) =>
+    request(`/report-strikes/${id}/confirm`, { method: 'POST', body: { note: note || null } }),
+  declineStrike: (id, note) =>
+    request(`/report-strikes/${id}/decline`, { method: 'POST', body: { note: note || null } }),
+  decideStrikeAppeal: (id, decision, note) =>
+    request(`/report-strikes/${id}/appeal-decision`, { method: 'POST', body: { decision, note: note || null } }),
+
   // Affiliate organization review (admin).
   affiliates: (statusFilter) =>
     request(`/affiliates${statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : ''}`),

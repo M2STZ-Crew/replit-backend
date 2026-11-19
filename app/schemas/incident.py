@@ -46,6 +46,12 @@ class IncidentReportDetail(BaseModel):
     selected_agencies: list[str] = Field(default_factory=list)
     notes: str | None = None
     created_at: datetime
+    # Prank strikes (v1.12.41): this report's, if staff marked it, and how many
+    # its reporter has in effect, for weighing the report.
+    strike_id: UUID | None = None
+    strike_step: int | None = None
+    strike_status: str | None = None
+    reporter_strikes: int = 0
 
 
 class AvailableResponder(BaseModel):
@@ -211,6 +217,14 @@ class IncidentRejectRequest(BaseModel):
 
     reason: str = Field(
         min_length=1, max_length=1000, description="Why the incident is being rejected."
+    )
+    # v1.12.41: "Prank or malicious", not an honest mistake. The first
+    # resident's report gets a strike (app/services/report_strikes.py), and they
+    # read ``reason``. False (the default) gives no strike.
+    prank: bool = Field(default=False, description="It was a prank or malicious report.")
+    serious: bool = Field(
+        default=False,
+        description="A truck sent out, or a real household targeted: at least the 3rd step.",
     )
 
 

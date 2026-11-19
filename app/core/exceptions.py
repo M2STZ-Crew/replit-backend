@@ -99,6 +99,18 @@ class EmailNotVerifiedError(ForbiddenError):
     error_code = "email_not_verified"
 
 
+class ReportingPausedError(ForbiddenError):
+    """A resident's reporting is paused or removed after prank reports (HTTP 403,
+    v1.12.41; app/services/report_strikes.py).
+
+    Its own code, so the app shows when they can report again, why, and the
+    911 button, rather than a generic refusal. ``details`` carries ``removed``,
+    ``paused_until`` (ISO 8601, or null) and ``step``.
+    """
+
+    error_code = "reporting_paused"
+
+
 class NotFoundError(AppError):
     """The requested resource does not exist (HTTP 404)."""
 

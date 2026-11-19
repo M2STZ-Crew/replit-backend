@@ -14,6 +14,7 @@ from app.core.logging import get_logger
 from app.db.session import database
 from app.integrations.supabase_auth import SupabaseAuthClient
 from app.integrations.supabase_storage import SupabaseStorageClient
+from app.services import report_strikes
 from app.services.account_deletion import purge_due, purge_unconfirmed
 
 log = get_logger(__name__)
@@ -37,6 +38,15 @@ async def account_deletion_tick() -> None:
         return
     if deleted:
         log.info("account_deletion_purged", count=deleted)
+    # Prank-report strikes past their 12 months, and overturned ones after 30
+    # days (v1.12.41): kept no longer than they are needed.
+    try:
+        expired = await report_strikes.purge(database)
+    except Exception:
+        log.error("report_strike_purge_failed", exc_info=True)
+        return
+    if expired:
+        log.info("report_strikes_purged", count=expired)
 
 
 def start_account_deletion_scheduler() -> None:

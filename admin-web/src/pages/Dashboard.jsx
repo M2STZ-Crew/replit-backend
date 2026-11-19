@@ -27,6 +27,7 @@ const PAGES = {
   organization: () => import('./Organization.jsx'),
   accounts: () => import('./Accounts.jsx'),
   idreview: () => import('./IdReview.jsx'),
+  strikes: () => import('./PrankReports.jsx'),
   affiliates: () => import('./Affiliates.jsx'),
   settings: () => import('./Settings.jsx'),
 };
@@ -40,6 +41,7 @@ const ActionRecord = lazy(PAGES.audit);
 const Organization = lazy(PAGES.organization);
 const Accounts = lazy(PAGES.accounts);
 const IdReview = lazy(PAGES.idreview);
+const PrankReports = lazy(PAGES.strikes);
 const Affiliates = lazy(PAGES.affiliates);
 const Settings = lazy(PAGES.settings);
 
@@ -105,6 +107,8 @@ function Destination({ active, focusId, focusTab, go }) {
       return <Organization onNavigate={go} />;
     case 'idreview':
       return <IdReview />;
+    case 'strikes':
+      return <PrankReports />;
     case 'affiliates':
       return <Affiliates />;
     case 'settings':

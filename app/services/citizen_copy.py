@@ -158,6 +158,83 @@ def fire_verified(language: Language, street: str | None) -> tuple[str, str]:
     )
 
 
+def strike_message(
+    language: Language,
+    event: str,
+    *,
+    step: int,
+    awaiting: bool,
+    until: str,
+    can_report: bool,
+) -> tuple[str, str]:
+    """A resident's news about a prank strike (app/services/report_strikes.py,
+    v1.12.41): what it stops, until when, and that 911 still works. Never who
+    gave it. ``until`` is already in the reader's words ("20 Nov, 3:15 PM")."""
+    tl = language == "tl"
+    if event in ("given", "confirmed"):
+        if awaiting:
+            if tl:
+                return (
+                    "Naka-pause ang pag-report habang sinusuri",
+                    "Nakita ng staff na prank ulit ang isang report mo. Susuriin pa ito "
+                    "ng isa pang staff. Kung may emergency, tumawag sa 911.",
+                )
+            return (
+                "Reporting paused while staff check",
+                "Staff found another of your reports was a prank. A second staff member "
+                "will check it. In an emergency, call 911.",
+            )
+        if step >= 4:
+            if tl:
+                return (
+                    "Hindi ka na makakapag-report",
+                    "Dahil sa paulit-ulit na prank na report, tinanggal na ang pag-report "
+                    "sa account mo. Makakatanggap ka pa rin ng fire alert at puwede kang "
+                    "tumawag sa 911. Buksan ang RepLiT para mag-apela.",
+                )
+            return (
+                "You can no longer send reports",
+                "After repeated prank reports, reporting is removed from your account. You "
+                "still get fire alerts and can call 911. Open RepLiT to appeal.",
+            )
+        if tl:
+            return (
+                f"Naka-pause ang pag-report hanggang {until}",
+                "Nakita ng staff na prank ang isang report mo. Buksan ang RepLiT para "
+                "makita kung bakit, o para mag-apela. Kung may emergency, tumawag sa 911.",
+            )
+        return (
+            f"Reporting paused until {until}",
+            "Staff found that a report you sent was a prank. Open RepLiT to see why, or "
+            "to appeal. In an emergency, call 911.",
+        )
+    if event == "declined":
+        if tl:
+            return (
+                "Tinanggal na ang strike",
+                "Sinuri ng isa pang staff ang report mo at tinanggal ang strike.",
+            )
+        return (
+            "Strike removed",
+            "A second staff member checked your report and removed the strike.",
+        )
+    if event == "overturned":
+        if tl:
+            again = " Puwede ka na ulit mag-report." if can_report else ""
+            return "Tinanggap ang apela mo", f"Tinanggal na ang strike.{again}"
+        again = " You can send reports again." if can_report else ""
+        return "Appeal accepted", f"The strike was removed.{again}"
+    if tl:
+        return (
+            "Hindi tinanggap ang apela mo",
+            "Mananatili ang strike. Buksan ang RepLiT para makita ang sagot.",
+        )
+    return (
+        "Appeal not accepted",
+        "The strike stays. Open RepLiT to read the answer.",
+    )
+
+
 def verified_by(language: Language, team: str) -> str:
     """The verified body naming the team that verified it — never the person."""
     if language == "tl":
