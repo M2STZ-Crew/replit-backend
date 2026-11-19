@@ -5,6 +5,7 @@ import { agencyLabel } from '../auth.jsx';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import { EmptyState, Icon, PageHeader, StatePanel } from '../components/ui/index.js';
 import { t } from '../i18n/i18n.jsx';
+import { fireName } from '../lib/place.js';
 
 /* Audit log (REPLIT (MAIN) 10 · A64 879:8852; Section 2.5 audit trail): the
  * append-only record of consequential actions, newest first.
@@ -121,13 +122,13 @@ export default function ActionRecord() {
         <label className="rpl-search">
           <Icon name="search" />
           <span className="web-sr-only">{t('Search the audit log')}</span>
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search actions, areas, agencies')} />
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search actions, incidents, agencies')} />
         </label>
         <label className="rpl-select">
-          <span className="rpl-select-label">{t('Area')}</span>
+          <span className="rpl-select-label">{t('Incident')}</span>
           <select value={area} onChange={(e) => setArea(e.target.value)}>
-            <option value="all">{t('All areas')}</option>
-            {areas.map((a) => <option key={a} value={a}>{a}</option>)}
+            <option value="all">{t('All incidents')}</option>
+            {areas.map((a) => <option key={a} value={a}>{fireName(a)}</option>)}
           </select>
         </label>
         <label className="rpl-select">
@@ -178,7 +179,7 @@ export default function ActionRecord() {
                       </span>
                     </th>
                     <td className="rpl-cell-strong">
-                      {r.area_designation || (r.entity_type ? `${r.entity_type.replace(/_/g, ' ')} ${shortId(r.entity_id ?? r.area_id)}` : '—')}
+                      {fireName(r.area_designation) || (r.entity_type ? `${r.entity_type.replace(/_/g, ' ')} ${shortId(r.entity_id ?? r.area_id)}` : '—')}
                     </td>
                     <td className="rpl-audit-detail">{detailOf(r) ?? '—'}</td>
                   </tr>

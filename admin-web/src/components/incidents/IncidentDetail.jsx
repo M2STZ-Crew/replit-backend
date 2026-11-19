@@ -12,6 +12,7 @@ import { agenciesOf, confidenceOf } from './IncidentTable.jsx';
 import LifecycleChip from './LifecycleChip.jsx';
 import LifecycleProgress from './LifecycleProgress.jsx';
 import { t } from '../../i18n/i18n.jsx';
+import { fireAt, fireName } from '../../lib/place.js';
 
 /* One Area, in full (REPLIT (MAIN) 10 · A23 867:2193, A24 867:2419, A24b
  * 867:2662, A25 867:2909, A26 868:2888): the map and its progress with the
@@ -42,13 +43,13 @@ const ON_SCENE = ['en_route', 'arrived'];
 function timelineOf(d, evidence) {
   const items = [];
   const push = (at, title, sub, tone) => at && items.push({ at, title, sub, tone });
-  push(d.reported_at, t('{area} created', { area: d.designation }), <>{t('First report,')}{' '}<Place lat={d.centroid_lat} lng={d.centroid_lng} /></>, 'live');
+  push(d.reported_at, t('Incident created'), <>{t('First report,')}{' '}<Place lat={d.centroid_lat} lng={d.centroid_lng} /></>, 'live');
   const later = (evidence ?? []).slice(1);
   if (later.length) {
     const last = later.reduce((a, r) => (new Date(r.created_at) > new Date(a.created_at) ? r : a), later[0]);
     push(last.created_at, (later.length === 1
       ? t('{count} more report clustered', { count: later.length })
-      : t('{count} more reports clustered', { count: later.length })), t('Joined the first report’s Area'), 'neutral');
+      : t('{count} more reports clustered', { count: later.length })), t('Joined the first report’s incident'), 'neutral');
   }
   push(
     d.verified_at,
@@ -63,14 +64,14 @@ function timelineOf(d, evidence) {
     a.user_name || null,
     'neutral',
   ));
-  push(d.en_route_at, t('A unit set off'), t('The Area went En route'), 'live');
-  push(d.arrived_at, t('Arrived on scene'), t('The first unit reached the Area'), 'live');
+  push(d.en_route_at, t('A unit set off'), t('The incident went En route'), 'live');
+  push(d.arrived_at, t('Arrived on scene'), t('The first unit reached the fire'), 'live');
   push(d.alarm_level_set_at, t('Alarm set to {alarmLabel}', { alarmLabel: alarmLabel(d.alarm_level) }), t('Set by BFP'), 'live');
   push(d.fire_type_set_at, t('Fire type: {label}', { label: fireTypeOf(d) }), d.fire_type_org_name || t('The fire team on scene'), 'live');
   push(d.resolved_at, t('Fire out'), d.resolved_by_name ? t('Marked by {resolved_by_name}', { resolved_by_name: d.resolved_by_name }) : t('Marked on scene'), 'ok');
   push(d.closed_at, t('Closed'), t('Post-incident report filed'), 'neutral');
   push(d.rejected_at, t('Rejected'), d.rejection_reason || (d.rejected_by_name ? t('By {rejected_by_name}', { rejected_by_name: d.rejected_by_name }) : ''), 'neutral');
-  push(d.merged_at, t('Merged'), d.merged_by_name ? t('By {merged_by_name}', { merged_by_name: d.merged_by_name }) : t('Into another Area'), 'neutral');
+  push(d.merged_at, t('Merged'), d.merged_by_name ? t('By {merged_by_name}', { merged_by_name: d.merged_by_name }) : t('Into another incident'), 'neutral');
   return items.sort((a, b) => new Date(b.at) - new Date(a.at));
 }
 
@@ -155,7 +156,7 @@ function ViewOnly({ d, access, orgName }) {
         <div className="rpl-alert-text">
           <p className="rpl-alert-title">{t('View only')}</p>
           <p className="rpl-alert-body">
-            {t('{area} asked for {agencies}, not {routed}. You can follow it here but can’t act on it or see who reported it.', { area: d.designation, agencies: agenciesOf(d), routed: routedWord(access) })}</p>
+            {t('This fire asked for {agencies}, not {routed}. You can follow it here but can’t act on it or see who reported it.', { agencies: agenciesOf(d), routed: routedWord(access) })}</p>
         </div>
       </div>
     </section>
@@ -170,11 +171,11 @@ function Decision({ d, access, orgName, onAcknowledge, busy, acknowledgedNow }) 
     return (
       <section className="rpl-panel rpl-decision" aria-labelledby="rpl-decision-title">
         <div className="rpl-decision-head">
-          <h2 className="rpl-decision-title" id="rpl-decision-title">{t('Acknowledge this Area')}</h2>
+          <h2 className="rpl-decision-title" id="rpl-decision-title">{t('Acknowledge this incident')}</h2>
           <LifecycleChip status={status} />
         </div>
         <p className="rpl-decision-body">
-          {t('{area} asked for {agencies}. Acknowledging says {org} has seen it and will check. It sends nobody: Coordinators decide who goes.', { area: d.designation, agencies: agenciesOf(d), org: orgName })}</p>
+          {t('This fire asked for {agencies}. Acknowledging says {org} has seen it and will check. It sends nobody: Coordinators decide who goes.', { agencies: agenciesOf(d), org: orgName })}</p>
         <button type="button" className="rpl-button rpl-button--primary rpl-button--run" onClick={onAcknowledge} disabled={busy}>
           {busy ? t('Acknowledging…') : t('Acknowledge')}
         </button>
@@ -238,7 +239,7 @@ function OnScene({ d, dispatches, requests, onAskAlarm }) {
         <LifecycleChip status={d.status} />
       </div>
       {active.length === 0 ? (
-        <p className="rpl-decision-body">{t('No unit is assigned to this Area right now.')}</p>
+        <p className="rpl-decision-body">{t('No unit is assigned to this incident right now.')}</p>
       ) : (
         <ul className="rpl-units">
           {active.map((x) => (
@@ -324,8 +325,8 @@ export default function IncidentDetail({
     d.report_count === 1 ? t('{count} report', { count: d.report_count }) : t('{count} reports', { count: d.report_count }),
   ].join(' · ');
   const eyebrow = routed
-    ? `${d.designation} · ${statusOf(d.status).label}`
-    : t('{designation} · {label} · not routed to {orgName}', { designation: d.designation, label: statusOf(d.status).label, orgName });
+    ? `${fireName(d.designation)} · ${statusOf(d.status).label}`
+    : t('{designation} · {label} · not routed to {orgName}', { designation: fireName(d.designation), label: statusOf(d.status).label, orgName });
 
   return (
     <div className="rpl-page rpl-incident">
@@ -333,7 +334,7 @@ export default function IncidentDetail({
       <header className="web-page-header">
         <div className="web-page-header-copy">
           <p className="web-eyebrow">{eyebrow}</p>
-          <h1 className="web-page-title">{d.designation}</h1>
+          <h1 className="web-page-title">{fireName(d.designation)}</h1>
           <p className="web-page-description">{sub}</p>
         </div>
       </header>
@@ -342,7 +343,7 @@ export default function IncidentDetail({
 
       <div className="rpl-incident-grid">
         <div className="rpl-incident-main">
-          <AreaMap lat={d.centroid_lat} lng={d.centroid_lng} label={d.designation} />
+          <AreaMap lat={d.centroid_lat} lng={d.centroid_lng} label={fireName(d.designation)} />
           <section className="rpl-panel">
             <LifecycleProgress status={d.status} />
             <Facts rows={facts} />
@@ -383,7 +384,7 @@ export default function IncidentDetail({
               </div>
               <p className="rpl-decision-body">
                 {reports.length === 0
-                  ? t('Fire out. Waiting on the responding team captain’s report; the Area closes when it is filed.')
+                  ? t('Fire out. Waiting on the responding team captain’s report; the incident closes when it is filed.')
                   : (reports.length === 1
                     ? t('{count} team filed. Read them in Reports & CIAR, or download the record.', { count: reports.length })
                     : t('{count} teams filed. Read them in Reports & CIAR, or download the record.', { count: reports.length }))}
@@ -414,7 +415,7 @@ export default function IncidentDetail({
       {routed && (
         <section className="rpl-board-section" aria-labelledby="rpl-evidence-title">
           <div className="rpl-section-head">
-            <h2 className="rpl-section-title" id="rpl-evidence-title">{t('Reports in this Area')}</h2>
+            <h2 className="rpl-section-title" id="rpl-evidence-title">{t('Reports in this incident')}</h2>
             <span className="rpl-section-meta">{evidence.length}</span>
           </div>
           {evidence.length === 0 ? (
@@ -428,7 +429,7 @@ export default function IncidentDetail({
                       <ZoomablePhoto
                         src={r.photo_url}
                         alt={t('the scene reported by {name}', { name: r.reporter_name || t('a resident') })}
-                        caption={`${r.reporter_name || t('A resident')} · ${clock(r.created_at)} · ${d.designation}`}
+                        caption={`${r.reporter_name || t('A resident')} · ${clock(r.created_at)} · ${fireName(d.designation)}`}
                         imageClassName="rpl-evidence-photo"
                       />
                     )
@@ -477,10 +478,10 @@ export default function IncidentDetail({
 
       <ConfirmDialog
         open={confirming}
-        eyebrow={t('{designation} · asked for {agenciesOf}', { designation: d.designation, agenciesOf: agenciesOf(d) })}
-        title={d.status === 'reported' ? t('Acknowledge {designation}?', { designation: d.designation }) : t('Acknowledge {designation} for {orgName}?', { designation: d.designation, orgName })}
+        eyebrow={t('{designation} · asked for {agenciesOf}', { designation: fireName(d.designation), agenciesOf: agenciesOf(d) })}
+        title={d.status === 'reported' ? t('Acknowledge {fire}?', { fire: fireAt(d.designation) }) : t('Acknowledge {fire} for {orgName}?', { fire: fireAt(d.designation), orgName })}
         description={d.status === 'reported'
-          ? t('{orgName} commits to go and check. The Area moves to Acknowledged; nobody is dispatched by this.', { orgName })
+          ? t('{orgName} commits to go and check. The incident moves to Acknowledged; nobody is dispatched by this.', { orgName })
           : t('It is already acknowledged; this adds {orgName}. Nobody is dispatched by this.', { orgName })}
         confirmLabel={t('Acknowledge')}
         onClose={onCancelAcknowledge}

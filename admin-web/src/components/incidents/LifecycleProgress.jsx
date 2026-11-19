@@ -29,7 +29,7 @@ export default function LifecycleProgress({ status }) {
         <span className="rpl-progress-now">{label}</span>
       </div>
       {at < 0 ? (
-        <p className="rpl-progress-off">{t('This Area left the response as {status}; it has no further steps.', { status: label.toLowerCase() })}</p>
+        <p className="rpl-progress-off">{t('This incident left the response as {status}; it has no further steps.', { status: label.toLowerCase() })}</p>
       ) : (
         <ol className="rpl-progress-steps" aria-label={t('Progress: {label}, step {n} of {count}', { label, n: at + 1, count: STEPS.length })}>
           {STEPS.map((s, i) => (

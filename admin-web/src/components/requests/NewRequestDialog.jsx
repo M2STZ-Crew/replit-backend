@@ -50,7 +50,7 @@ export default function NewRequestDialog({ open, kind = 'water', areas = [], org
   const copy = COPY[kind] ?? COPY.water;
   const toName = organizations.find((o) => o.id === to)?.name ?? t('They');
   const missing = {
-    area: !areaId ? t('Choose the Area this is for.') : null,
+    area: !areaId ? t('Choose the incident this is for.') : null,
     to: !to ? t('Choose who to ask.') : null,
     amount: kind === 'water' && !amount.trim() ? t('Say roughly how much water.') : null,
     role: kind === 'backup' && !role ? t('Choose who you need.') : null,
@@ -94,7 +94,7 @@ export default function NewRequestDialog({ open, kind = 'water', areas = [], org
     >
       <div className="rpl-form-row">
         <label className="rpl-select">
-          <span className="rpl-select-label">{t('Area')}</span>
+          <span className="rpl-select-label">{t('Incident')}</span>
           <select value={areaId} onChange={(e) => setAreaId(e.target.value)} disabled={busy}>
             {areas.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
           </select>

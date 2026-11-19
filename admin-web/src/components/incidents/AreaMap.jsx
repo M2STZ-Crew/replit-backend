@@ -29,7 +29,7 @@ function markerIcon(small) {
 export default function AreaMap({ lat, lng, label, areas, height }) {
   const list = (areas ?? [{ lat, lng, label }]).filter((a) => a.lat != null && a.lng != null);
   if (list.length === 0) {
-    return <div className="rpl-area-map is-empty">{t('No location recorded for this Area.')}</div>;
+    return <div className="rpl-area-map is-empty">{t('No location recorded for this incident.')}</div>;
   }
   const centre = [
     list.reduce((s, a) => s + a.lat, 0) / list.length,

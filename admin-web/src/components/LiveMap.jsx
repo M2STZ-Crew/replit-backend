@@ -6,6 +6,7 @@ import { TILE_ATTRIBUTION } from '../map/tiles.js';
 import BaseTiles, { useConsoleTheme } from '../map/BaseTiles.jsx';
 import ZoomGate from '../map/ZoomGate.jsx';
 import { t } from '../i18n/i18n.jsx';
+import { fireName } from '../lib/place.js';
 
 const PASAY = [14.5378, 121.0014];
 
@@ -84,7 +85,7 @@ export default function LiveMap({ incidents = [], layerPoints = {}, enabled, onS
               eventHandlers={onSelectIncident ? { click: () => onSelectIncident(inc) } : undefined}
             >
               <Tooltip>
-                {(inc.designation || t('Incident'))} · {st.label}
+                {(fireName(inc.designation) || t('Incident'))} · {st.label}
               </Tooltip>
             </CircleMarker>
           );
