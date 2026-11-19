@@ -23,6 +23,7 @@ import BaseTiles from '../map/BaseTiles.jsx';
 import ZoomGate from '../map/ZoomGate.jsx';
 import { groupOnScreen } from '../map/unitGroups.js';
 import { t } from '../i18n/i18n.jsx';
+import { fireAt, fireName } from '../lib/place.js';
 
 /* Live map (REPLIT (MAIN) 10 · A30 869:3563, A31 869:3858; PRD v13 §4.4):
  * every active Area on the shared map with the water sources, shelters and
@@ -77,7 +78,7 @@ function UnitsLayer({ units, onSelect }) {
     const stale = members.every((u) => u.stale);
     const names = members.map((u) => u.label);
     const title = members.length === 1
-      ? t('{name}, to {area}', { name: names[0], area: members[0].designation })
+      ? t('{name}, to {fire}', { name: names[0], fire: fireAt(members[0].designation) })
       : t('{count} units: {names}', { count: members.length, names: names.join(', ') });
     return (
       <Marker
@@ -92,7 +93,7 @@ function UnitsLayer({ units, onSelect }) {
           {members.map((u) => (
             <span className="rpl-unit-tip" key={u.key}>
               <strong>{u.label}</strong>
-              {` · ${u.designation} · ${u.stale ? t('last seen {seen}', { seen: seen(u.at) }) : 'live'}`}
+              {` · ${fireName(u.designation)} · ${u.stale ? t('last seen {seen}', { seen: seen(u.at) }) : 'live'}`}
             </span>
           ))}
         </Tooltip>
@@ -113,8 +114,8 @@ function Selected({ inc, onClose, onOpen }) {
     <aside className="rpl-map-panel" aria-labelledby="rpl-map-panel-title">
       <div className="rpl-detail-head">
         <div>
-          <p className="rpl-eyebrow">{inc.designation} · {statusOf(inc.status).label}</p>
-          <h2 className="rpl-detail-title" id="rpl-map-panel-title">{inc.designation}</h2>
+          <p className="rpl-eyebrow">{fireName(inc.designation)} · {statusOf(inc.status).label}</p>
+          <h2 className="rpl-detail-title" id="rpl-map-panel-title">{fireName(inc.designation)}</h2>
         </div>
         <button type="button" className="rpl-icon-button" onClick={onClose} aria-label={t('Close')}>
           <span aria-hidden="true">✕</span>
@@ -212,7 +213,7 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
               position={[i.centroid_lat, i.centroid_lng]}
               icon={markerIcon('incident', i.id === selectedId)}
               eventHandlers={{ click: () => setSelectedId(i.id) }}
-              title={`${i.designation}, ${statusOf(i.status).label}`}
+              title={`${fireName(i.designation)}, ${statusOf(i.status).label}`}
             />,
           ])}
         <UnitsLayer units={units} onSelect={setSelectedId} />

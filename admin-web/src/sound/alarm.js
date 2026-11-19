@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { CATEGORY_LABEL, categoriesOf } from './cues.js';
 import { t } from '../i18n/i18n.jsx';
+import { fireName } from '../lib/place.js';
 
 /// The repeating incident alarm (Admin Console).
 ///
@@ -155,7 +156,7 @@ export function notifyDesktop(incidents, { again = false } = {}) {
   if (typeof document !== 'undefined' && !document.hidden) return;
   for (const inc of incidents) {
     try {
-      const n = new Notification(t('New incident: {designation}', { designation: inc.designation }), {
+      const n = new Notification(t('New incident: {designation}', { designation: fireName(inc.designation) }), {
         body: `${kindOf(inc)} · ${reportsOf(inc)} · ${statusLabel(inc.status)}. `
           + 'Open the Admin Console to acknowledge it.',
         tag: `incident-${inc.id}`,

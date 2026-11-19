@@ -10,7 +10,7 @@ import Icon from '../components/ui/Icon.jsx';
 import { EmptyState, PageHeader, StatePanel } from '../components/ui/index.js';
 import { useLiveFeed, useSurfaceVisit } from '../live/LiveFeed.jsx';
 import { actsOn, splitsIncidents, yourOrg } from '../lib/access.js';
-import { degrees, knownAddress } from '../lib/place.js';
+import { degrees, fireAt, knownAddress, fireName } from '../lib/place.js';
 import { AGENCY_LABEL } from '../lib/status.js';
 import { t as tr } from '../i18n/i18n.jsx';
 
@@ -134,7 +134,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
       if (tab !== 'closed' && status !== 'all' && status !== 'post_incident_report' && inc.status !== status) return false;
       if (agency !== 'any' && !(inc.requested_agencies ?? []).includes(agency)) return false;
       if (band !== 'any' && inc.confidence_band !== band) return false;
-      if (term && !`${inc.designation} ${knownAddress(inc.centroid_lat, inc.centroid_lng) ?? ''} ${degrees(inc.centroid_lat, inc.centroid_lng)}`.toLowerCase().includes(term)) return false;
+      if (term && !`${inc.designation} ${fireName(inc.designation)} ${knownAddress(inc.centroid_lat, inc.centroid_lng) ?? ''} ${degrees(inc.centroid_lat, inc.centroid_lng)}`.toLowerCase().includes(term)) return false;
       return true;
     });
   }, [source, tab, status, agency, band, query, access]);
@@ -202,8 +202,8 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
       await Promise.all([refreshFeed(), loadDetail(detail.id)]);
       setConfirming(false);
       setNotice(org?.id && org?.name
-        ? tr('{area} acknowledged for {org}', { area: detail.designation, org: org.name })
-        : tr('{area} acknowledged', { area: detail.designation }));
+        ? tr('Acknowledged {fire} for {org}', { fire: fireAt(detail.designation), org: org.name })
+        : tr('Acknowledged {fire}', { fire: fireAt(detail.designation) }));
     } finally {
       setBusy(false);
     }
@@ -279,7 +279,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
           onSend={async ({ areaId, level, justification }) => {
             await api.alarmRequestCreate({ areaId, level, justification });
             setAskingAlarm(false);
-            setNotice(tr('Asked BFP to raise {area} to {level}', { area: detail.designation, level: level.replace(/_/g, ' ') }));
+            setNotice(tr('Asked BFP to raise {fire} to {level}', { fire: fireAt(detail.designation), level: level.replace(/_/g, ' ') }));
             await loadDetail(detail.id);
           }}
         />
@@ -299,8 +299,8 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
     : tab === 'closed'
       ? tr('Nothing closed yet.')
       : tab === 'routed'
-        ? tr('Nothing is routed to you right now. An Area that asks for your agency appears here, with its sound.')
-        : tr('No active incidents. A new Area appears here the moment its first report is clustered.');
+        ? tr('Nothing is routed to you right now. An incident that asks for your agency appears here, with its sound.')
+        : tr('No active incidents. A new incident appears here the moment its first report is clustered.');
 
   return (
     <div className="rpl-page">
@@ -316,7 +316,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
         <div className="rpl-overlap-alert" key={o.id} role="status">
           <span className="rpl-overlap-alert-mark" aria-hidden="true">!</span>
           <span className="rpl-overlap-alert-text">
-            <span className="rpl-cell-title">{tr('{a} and {b} may be the same fire', { a: o.area_a_designation, b: o.area_b_designation })}</span>
+            <span className="rpl-cell-title">{tr('{a} and {b} may be the same fire', { a: fireName(o.area_a_designation), b: fireName(o.area_b_designation) })}</span>
             <span className="rpl-cell-meta">{tr('{m} m apart · decide in the next two minutes, or they stay separate', { m: Math.round(o.distance_m) })}</span>
           </span>
           <button type="button" className="rpl-button rpl-button--secondary rpl-button--compact" onClick={() => setReviewing(o)}>{tr('Review')}</button>
@@ -400,9 +400,9 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
           title={tab === 'closed' ? tr('Nothing closed yet') : tab === 'routed' ? tr('Nothing routed to you') : tr('No active incidents in Pasay')}
         >
           {tab === 'closed'
-            ? tr('An Area lands here once its post-incident report is filed.')
+            ? tr('An incident lands here once its post-incident report is filed.')
             : tab === 'routed'
-              ? tr('An Area that asks for your agency appears here, with its sound. Every other one is under All active.')
+              ? tr('An incident that asks for your agency appears here, with its sound. Every other one is under All active.')
               : tr('New reports appear here with a sound. Closed incidents are under Closed.')}
         </EmptyState>
       ) : (rows.length > 0 || !(fetchError || failed)) ? (

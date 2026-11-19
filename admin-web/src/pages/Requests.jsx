@@ -11,6 +11,7 @@ import { useLiveFeed } from '../live/LiveFeed.jsx';
 import { PERM, actsOn, can, mayWithdraw } from '../lib/access.js';
 import { ago, alarmLabel, statusOf } from '../lib/status.js';
 import { t } from '../i18n/i18n.jsx';
+import { fireAt, fireName } from '../lib/place.js';
 
 /* Requests (REPLIT (MAIN) 10 · A40 873:5264, A41 873:5578, A45 874:6513,
  * A46 874:6933, A46b 874:7126).
@@ -45,7 +46,7 @@ const CLOCK_S = new Intl.DateTimeFormat('en-PH', {
 
 const clock = (iso) => (iso ? CLOCK.format(new Date(iso)) : '—');
 const requestStatus = (s) => REQUEST_STATUS[s] ?? { label: (s || '—').replace(/_/g, ' '), tone: 'neutral' };
-const areaOf = (r) => r.area_designation || t('Area not recorded');
+const areaOf = (r) => fireName(r.area_designation) || t('Location not recorded');
 const askedBy = (r) => r.requested_by_name || t('A Coordinator');
 
 function received(iso) {
@@ -148,7 +149,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
         description={decides
           ? t('Alarm escalations from the organizations on scene. You set the alarm level or decline.')
           : asks
-            ? t('Alarm escalations raised on scene, and BFP’s answers. Ask BFP to raise the alarm on an Area routed to you.')
+            ? t('Alarm escalations raised on scene, and BFP’s answers. Ask BFP to raise the alarm on an incident routed to you.')
             : t('Alarm escalations raised on scene. BFP sets the alarm level; you follow each request and its answer here.')}
         actions={(
           <>
@@ -159,7 +160,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
                 className="rpl-button rpl-button--primary"
                 onClick={() => setAsking(true)}
                 disabled={askable.length === 0}
-                title={askable.length === 0 ? t('No acknowledged Area is routed to you right now') : undefined}
+                title={askable.length === 0 ? t('No acknowledged incident is routed to you right now') : undefined}
               >{t('New request')}</button>
             )}
           </>
@@ -181,7 +182,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
         onSend={async ({ areaId, level, justification }) => {
           await api.alarmRequestCreate({ areaId, level, justification });
           setAsking(false);
-          setNotice(t('Asked BFP for {level} on {area}', { level: alarmLabel(level), area: areaById.get(areaId)?.designation ?? t('the Area') }));
+          setNotice(t('Asked BFP for {level} for {fire}', { level: alarmLabel(level), fire: fireAt(areaById.get(areaId)?.designation) }));
           refresh();
         }}
       />
@@ -286,7 +287,7 @@ function RequestDetail({
   const [note, setNote] = useState('');
   const level = alarmLabel(r.requested_alarm_level);
   const facts = [
-    [t('Area'), `${areaOf(r)}${area ? ` · ${statusOf(area.status).label}` : ''}`],
+    [t('Location'), `${areaOf(r)}${area ? ` · ${statusOf(area.status).label}` : ''}`],
     ...(area?.alarm_level ? [[t('Current level'), alarmLabel(area.alarm_level)]] : []),
     [t('Proposed level'), level],
     [t('Asked by'), askedBy(r)],
@@ -304,7 +305,7 @@ function RequestDetail({
       sub: r.review_notes || null,
       tone: r.status === 'approved' ? 'ok' : 'quiet',
     },
-    r.executed_at && { at: r.executed_at, title: t('Alarm set to {level}', { level }), sub: t('For every organization on this Area'), tone: 'live' },
+    r.executed_at && { at: r.executed_at, title: t('Alarm set to {level}', { level }), sub: t('For every organization on this incident'), tone: 'live' },
   ].filter(Boolean);
   const status = requestStatus(r.status);
 

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ALARM_LEVEL, ASKABLE_ALARM_LEVELS, alarmLabel } from '../../lib/status.js';
 import FormDialog from '../ui/FormDialog.jsx';
 import { t } from '../../i18n/i18n.jsx';
+import { fireName } from '../../lib/place.js';
 
 /* Ask BFP to raise the alarm (REPLIT (MAIN) 10 · A45 874:6513; PRD v13 §4.7:
  * Fire Volunteer Admins request, BFP sets the level). A Fire Volunteer
@@ -71,15 +72,15 @@ export default function AlarmEscalationDialog({ open, areas, bfpName = 'BFP', on
     >
       {(areas ?? []).length > 1 ? (
         <label className="rpl-field">
-          <span className="rpl-field-label">{t('Area')}</span>
+          <span className="rpl-field-label">{t('Incident')}</span>
           <select value={areaId} onChange={(e) => { setAreaId(e.target.value); setLevel(''); }} disabled={busy}>
-            {areas.map((a) => <option key={a.id} value={a.id}>{a.designation}</option>)}
+            {areas.map((a) => <option key={a.id} value={a.id}>{fireName(a.designation)}</option>)}
           </select>
         </label>
       ) : (
         <p className="rpl-field-static">
-          <span className="rpl-field-label">{t('Area')}</span>
-          <span>{area?.designation ?? '—'}</span>
+          <span className="rpl-field-label">{t('Incident')}</span>
+          <span>{fireName(area?.designation) || '—'}</span>
         </p>
       )}
       <p className="rpl-field-static">
@@ -90,7 +91,7 @@ export default function AlarmEscalationDialog({ open, areas, bfpName = 'BFP', on
         <legend className="rpl-field-label">{area?.alarm_level ? t('Proposed level · now {alarm}', { alarm: alarmLabel(area.alarm_level) }) : t('Proposed level')}
         </legend>
         {choices.length === 0 ? (
-          <p className="rpl-field-help">{t('This Area is already at the highest level.')}</p>
+          <p className="rpl-field-help">{t('This fire is already at the highest level.')}</p>
         ) : (
           <div className="rpl-segment">
             {choices.map((key) => (

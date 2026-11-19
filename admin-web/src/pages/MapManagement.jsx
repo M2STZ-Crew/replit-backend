@@ -22,6 +22,7 @@ import {
 } from '../components/map/markers.js';
 import { statusOf } from '../lib/status.js';
 import { t } from '../i18n/i18n.jsx';
+import { fireName } from '../lib/place.js';
 
 const PASAY = [14.5378, 121.0014];
 
@@ -432,7 +433,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
                   }
                 >
                   <Tooltip>
-                    {(inc.designation || t('Incident'))} · {st.label}
+                    {(fireName(inc.designation) || t('Incident'))} · {st.label}
                   </Tooltip>
                 </CircleMarker>
               );
