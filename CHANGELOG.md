@@ -6,6 +6,48 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.40 — 19 November 2026 — A fire is called by its street; a far fire has its own voice
+
+Backend and console; app v1.12.51 goes with it. **Migration:**
+`20261118090000_street_names.sql` (additive: `public.streets` and four
+nullable columns on `areas`). Then, from the folder whose `.env` points at
+the database, `python scripts/load_streets.py <streets.json>` and
+`python scripts/name_areas.py` (each has `--dry-run`). Until the migration is
+applied, a new fire is still made and called by its number, as before.
+
+### Changes
+- **A fire is called by its street, never "Area 3"** (18 Nov: "instead of
+  area, it will be called 'Near [street]' or the street itself because 'Area
+  #1' is not appropriate or overwhelming to citizens and to all"; answered
+  "Corner, else Near", and the number "Nowhere on screen"). A new Area is
+  named from the OpenStreetMap streets around its first report
+  (`app/services/place_names.py`, `public.streets`): "Taft Avenue corner Gil
+  Puyat Avenue" when two named streets meet within 30 m of it, the nearer
+  first; else "Near F. Victor Street", the nearest street within 300 m, then
+  1.5 km; else its coordinates. A second live fire of the same name gets
+  " (2)". The name is kept in `areas.designation`, so every alert, screen,
+  AI summary and report says it; the number moves to `areas.area_code`, the
+  PDF report's "Reference" and nowhere else. Staff alerts say "the fire near
+  ..." ("Respond to the fire near F. Victor Street — Driver on Truck 1."),
+  and Tagalog "Malapit sa ..." / "sunog malapit sa ...".
+- **"Fire verified" says the street.** It said "a fire on Area 3": the
+  Area's number stood in for the street (`fire_broadcast.py`).
+- **A far fire has its own voice** (18 Nov: "create a placeholder for voice
+  for far incidents (outside 100m). and remain the sound of near incident").
+  "Fire verified" plays `far_en` or `far_tl`, by the reader's language, on
+  app v1.12.51's channels (`citizen_far_en_v1`, `citizen_far_tl_v1`); an older
+  app, and the 100 m alert, keep the citizen recording.
+- **The console calls a fire by its street** (`fireName`, `fireAt` in
+  `admin-web/src/lib/place.js`): "Acknowledge the fire near F. Victor
+  Street?", Tagalog "Malapit sa ...". "Area" as a word became "incident" or
+  "fire"; the table's column is Location. "Risk Area" stays.
+- **Metro Manila's streets** (`scripts/load_streets.py`): 56,128 named
+  streets from OpenStreetMap, as of 19 Nov 2026 (bridges, flyovers and
+  tunnels left out). `docs/data-sources.md` cites them (APA 7, ODbL) with
+  the query.
+
+---
+
 ## v1.12.39 — 18 November 2026 — No emoji in any text box; all of Metro Manila on the map
 
 Console, residents' site and docs; app v1.12.50 goes with it. No server

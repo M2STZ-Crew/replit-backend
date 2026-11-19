@@ -196,7 +196,8 @@ async def gather_incident_facts(db: Database, area_id: UUID) -> IncidentFacts:
     """Collect the structured facts for an incident; raise 404 if it does not exist."""
     area = await db.fetchrow(
         """
-        select a.designation, a.area_code, a.status::text as status,
+        select a.designation, to_jsonb(a) ->> 'area_code' as area_code,
+               a.status::text as status,
                a.centroid_lat, a.centroid_lng, a.report_count,
                a.confidence_score, a.confidence_band::text as confidence_band,
                a.alarm_level::text as alarm_level,

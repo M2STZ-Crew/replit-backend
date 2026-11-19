@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID, uuid4
 
+import asyncpg
 import pytest
 
 from app.integrations.fcm import (
@@ -178,6 +179,34 @@ async def test_a_new_area_is_named_and_keeps_its_number_as_its_code(
     (query, args), = inserted
     assert "area_code" in query and "place_street" in query
     assert args[:5] == (CORNER, "Area 3.2", "Taft Avenue", "Gil Puyat Avenue", None)
+
+
+async def test_before_the_migration_a_fire_is_still_reported_by_its_number(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The backend can go live before 20261118090000_street_names.sql is
+    applied: the new columns are missing, so the area is made as before."""
+
+    async def unnamed(db: Any, lat: float, lng: float, *, leave_out: UUID | None = None) -> Place:
+        return Place()
+
+    monkeypatch.setattr(clustering, "find_place", unnamed)
+    inserted: list[tuple[str, tuple[Any, ...]]] = []
+
+    class Db:
+        async def fetchval(self, query: str, *args: Any) -> UUID:
+            inserted.append((query, args))
+            if "area_code" in query:
+                raise asyncpg.exceptions.UndefinedColumnError(
+                    'column "area_code" of relation "areas" does not exist'
+                )
+            return uuid4()
+
+    await clustering._create_area(Db(), 14.5, 121.0, 7, 1, None)  # type: ignore[arg-type]
+    assert len(inserted) == 2
+    query, args = inserted[1]
+    assert "area_code" not in query
+    assert args[:3] == ("Area 7", 7, 1)
 
 
 # --------------------------------------------------------------------------- #
