@@ -12,6 +12,10 @@ import { OPEN_INCIDENT_EVENT } from '../sound/alarm.js';
 import SituationBoard from './SituationBoard.jsx';
 import { t } from '../i18n/i18n.jsx';
 
+/* Map settings edits shelters and risk areas; water is edited on its own page
+ * since v1.12.43 (19 Nov 2026: "One Water resources page"). */
+const MAP_SETTINGS_LAYERS = ['risk', 'evac'];
+
 /* Every destination but the Dashboard loads on first use, so signing in
  * fetches the console's frame and its first screen, not every page and the
  * map library behind them. Once the Dashboard is up, the rest are fetched in
@@ -84,10 +88,11 @@ function Destination({ active, focusId, focusTab, go }) {
     case 'requests':
       return <Requests readRequests={records.readRequests} onOpenIncident={(incidentId) => go('incidents', { incidentId })} />;
     case 'water':
-      return <WaterResources onManage={() => go('mapsettings', { tab: 'hydrants' })} />;
+      return <WaterResources onOpenIncident={(incidentId) => go('incidents', { incidentId })} />;
     case 'mapsettings':
       return (
         <MapManagement
+          layers={MAP_SETTINGS_LAYERS}
           initialLayer={focusTab}
           onOpenIncident={(incidentId) => go('incidents', { incidentId })}
         />

@@ -802,9 +802,13 @@
 .rpl-timeline-item.is-quiet::before { background: var(--muted); }
 .rpl-org-about { margin-top: 12px !important; }
 
+/* ── Water resources: the editor on the page, coordinators' requests (v1.12.43) */
+.rpl-water-editor .mm-root { height: 100%; }
+.rpl-water-editor .mm-map { border-radius: inherit; }
+
 /* ── Prank reports (v1.12.41) ─────────────────────────────────────────── */
 .rpl-strike-list { display: flex; flex-direction: column; gap: 12px; margin: 16px 0 0; padding: 0; list-style: none; }
-.rpl-strike {
+.rpl-strike, .rpl-water-request {
   display: flex;
   flex-direction: column;
   gap: 8px;

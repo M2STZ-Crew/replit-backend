@@ -125,6 +125,23 @@ class ConflictError(AppError):
     error_code = "conflict"
 
 
+class MigrationPendingError(ConflictError):
+    """The change needs a database migration not applied yet (HTTP 409, v1.12.43).
+
+    Raised in place of a 500 while the server runs ahead of its migration: that
+    one change waits, and everything else keeps working.
+    """
+
+    error_code = "migration_pending"
+
+    def __init__(
+        self,
+        message: str = "The database has not been updated for this yet. "
+        "Try again once the update is in.",
+    ) -> None:
+        super().__init__(message)
+
+
 class ExternalServiceError(AppError):
     """A required third-party service failed or was unavailable (HTTP 502).
 

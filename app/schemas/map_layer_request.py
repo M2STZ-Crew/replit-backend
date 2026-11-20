@@ -56,3 +56,6 @@ class MapLayerRequestResponse(BaseModel):
     applied_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
+    # Who asked (v1.12.43), for the Admin deciding.
+    requested_by_name: str | None = None
+    organization_name: str | None = None

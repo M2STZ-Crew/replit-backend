@@ -9,7 +9,16 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
-HydrantStatus = Literal["operational", "non_operational", "under_maintenance", "unknown"]
+# Working, broken, under maintenance, unknown; and from the field (v1.12.43):
+# low pressure, no access.
+HydrantStatus = Literal[
+    "operational",
+    "non_operational",
+    "under_maintenance",
+    "unknown",
+    "low_pressure",
+    "no_access",
+]
 RiskLevel = Literal["low", "medium", "high", "critical"]
 
 
@@ -59,6 +68,10 @@ class HydrantResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+    # Who last checked it on site (v1.12.43): "checked by BFP Pasay". For staff;
+    # a resident's copy carries no status at all.
+    checked_by_name: str | None = None
+    checked_by_org: str | None = None
 
 
 # --------------------------------------------------------------------------- #
@@ -196,6 +209,8 @@ class BodyOfWaterUpdate(BaseModel):
     is_accessible: bool | None = None
     description: str | None = Field(default=None, max_length=2000)
     area_geojson: str | None = None
+    # Switched off, kept on record (v1.12.43), as hydrants and cisterns are.
+    is_active: bool | None = None
 
 
 class BodyOfWaterResponse(BaseModel):
@@ -211,6 +226,7 @@ class BodyOfWaterResponse(BaseModel):
     area_geojson: str | None = None
     created_at: datetime
     updated_at: datetime
+    is_active: bool = True
 
 
 # --------------------------------------------------------------------------- #
