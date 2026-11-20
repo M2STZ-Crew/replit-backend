@@ -1207,4 +1207,8 @@ export const TAGALOG = {
   'E-bike': 'E-bike',
   'E-car': 'E-car',
   'Zoom in to see the places you turned on': 'Mag-zoom in para makita ang mga lugar na binuksan mo',
+  // The barangay layer (v1.12.45).
+  'Barangays': 'Mga barangay',
+  'High fire risk': 'Mataas na panganib sa sunog',
+  'High fire-risk zone (research-based)': 'Lugar na mataas ang panganib sa sunog (batay sa pananaliksik)',
 };

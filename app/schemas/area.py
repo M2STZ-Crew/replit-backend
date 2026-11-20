@@ -51,6 +51,9 @@ class AreaDetail(AreaSummary):
     fire_subtype: str | None = None
     fire_type_set_at: datetime | None = None
     fire_type_org_name: str | None = None
+    # The full place for detail screens (v1.12.45): "Near F. Victor Street,
+    # Barangay 76 Zone 10, Pasay"; designation is the short form.
+    place_line: str | None = None
 
 class AreaOverlapItem(BaseModel):
     """A pending overlap awaiting a Merge / Keep-Separate decision."""

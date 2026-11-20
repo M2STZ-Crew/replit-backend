@@ -22,7 +22,7 @@ from app.core.logging import get_logger
 from app.db.session import Database
 from app.services.geo import haversine_m
 from app.services.incident import active_area_sql, versionable_area_sql
-from app.services.place_names import find_place, place_name
+from app.services.place_names import find_place, place_line, place_name
 
 log = get_logger(__name__)
 
@@ -115,18 +115,25 @@ async def _create_area(
     parent_area_id: UUID | None,
 ) -> UUID:
     """Insert a new pending area centered on the report's coordinates, named
-    after the streets there (v1.12.42) and keeping its number as its code."""
+    after the streets there (v1.12.42) and its barangay (v1.12.45), keeping
+    its number as its code."""
     place = await find_place(db, lat, lng)
     name = place_name(place, lat, lng)
     code = _designation(base_number, version)
+    # A barangay found means migration 20261120150000 is in: the full place
+    # and the barangay go with the name.
+    barangay = place.barangay
+    extra_cols = ", place_line, barangay_pcode" if barangay is not None else ""
+    extra_vals = ", $11, $12" if barangay is not None else ""
+    extra = [place_line(place, lat, lng), barangay.pcode] if barangay is not None else []
     try:
         new_id: UUID = await db.fetchval(
-            """
+            f"""
             insert into public.areas
                 (designation, area_code, place_street, place_cross, place_number,
                  base_number, version, parent_area_id,
-                 centroid_lat, centroid_lng, status, reported_at)
-            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'reported', now())
+                 centroid_lat, centroid_lng, status, reported_at{extra_cols})
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'reported', now(){extra_vals})
             returning id
             """,
             name,
@@ -139,6 +146,7 @@ async def _create_area(
             parent_area_id,
             lat,
             lng,
+            *extra,
         )
     except asyncpg.exceptions.UndefinedColumnError:
         # Migration 20261119120000_street_names.sql is not applied yet: the

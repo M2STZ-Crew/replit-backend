@@ -221,6 +221,64 @@ way["highway"~"^(trunk|trunk_link|primary|primary_link|secondary|secondary_link|
 out geom qt;
 ```
 
+## Barangays: where a fire is, and the barangay layer
+
+Since v1.12.45 a fire is named in its barangay ("Near F. Victor St., Brgy 76,
+Pasay"; in full "Near F. Victor Street, Barangay 76 Zone 10, Pasay"), and
+every map can draw Metro Manila's barangays with Pasay's High fire-risk zones.
+The files are in `docs/barangays/`; `scripts/load_barangays.py` loads them.
+
+**Outlines.** The 1,712 barangays of Metro Manila (`ncr-barangays-psa.geojson.gz`,
+layer `phl_admin4`, adm1 `PH13`), chosen over OpenStreetMap, which has 900 of
+them (Manila 152 of 899):
+
+> Philippine Statistics Authority and National Mapping and Resource
+> Information Authority. (2025). *Philippines: Subnational administrative
+> boundaries (COD-AB)*, version 3, valid 13 February 2025 [Data set]. UN OCHA,
+> Humanitarian Data Exchange. https://data.humdata.org/dataset/cod-ab-phl.
+> Retrieved November 19, 2026 (`phl_admin_boundaries.gdb.zip`, 360,586,879
+> bytes).
+
+Licence: CC BY-IGO 3.0. Shown on the maps as "Barangay boundaries: PSA/NAMRIA
+via UN OCHA (CC BY-IGO)".
+
+**Zones and Manila's districts** (`metro-manila-barangays.csv`), from
+Wikipedia's lists, read through the MediaWiki API on November 20, 2026 (CC
+BY-SA 4.0). PSA's own PSGC pages could not be read: psa.gov.ph answers
+scripts and the browser alike with a "Verify you are human" loop.
+
+> Wikipedia contributors. (2026). *Pasay* (revision 1386022808), *Caloocan*
+> (revision 1386021331), and Manila's district articles: *Tondo, Manila*
+> (1384934795), *Binondo* (1378931041), *Quiapo, Manila* (1376581025), *San
+> Nicolas, Manila* (1378198975), *Santa Cruz, Manila* (1383250899), *Sampaloc,
+> Manila* (1376763701), *San Miguel, Manila* (1376766913), *Ermita*
+> (1384974235), *Intramuros* (1386421980), *Malate, Manila* (1379561741),
+> *Paco, Manila* (1386051986), *Pandacan* (1378961766), *Port Area, Manila*
+> (1378966424), *Santa Ana, Manila* (1386341155), *San Andres, Manila*
+> (1377113667), *Santa Mesa* (1380955117). In *Wikipedia, The Free
+> Encyclopedia*. Retrieved November 20, 2026, from https://en.wikipedia.org.
+
+What the file carries beyond PSA's names:
+
+- `name`: PSA's name without a trailing note ("San Jose (Pob.)" is "San Jose").
+- The ten EMBO barangays (Cembo, Comembo, East Rembo, Pembo, Pitogo, Post
+  Proper Northside and Southside, Rizal, South Cembo, West Rembo) are named
+  Taguig, as the Supreme Court ruled, though PSA's file still has them under
+  Makati.
+- Port Area (649–653) is Zone 68, which its article says in words.
+- Caloocan's Barangay 176 is one barangay: PSA draws no outlines for 176-A to
+  176-F, so none are invented.
+
+**High fire-risk zones** (`pasay-high-fire-risk-barangays.csv`): the 86
+barangays of Pasay's Zones 8, 11, 13, 14, 15, 16, 19 and 20, from RepLiT's
+research-based fire incident assessment (2022-01-01 to 2026-11-19). They are
+shown as "High fire-risk zone (research-based)", never as a BFP designation,
+and keep their outlines as drawn. Zones come from the revision of *Barangays
+of Pasay* the assessment cites:
+
+> Wikipedia contributors. (2023, September 12). *Barangays of Pasay*
+> (revision 1175023360). In *Wikipedia, The Free Encyclopedia*.
+
 ## What the licence asks of RepLiT
 
 - **Attribution where the data is shown.** For example: "Map layers ©

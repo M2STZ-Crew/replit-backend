@@ -363,6 +363,8 @@ def build_fire_out_pdf(
             _kv_table(
             [
                 ("Incident", designation),
+                # Street, barangay, district and city (v1.12.45).
+                ("Place", str(facts.get("place_line") or designation)),
                 # The Area's number (v1.12.42): kept here as the record's
                 # reference, and nowhere on screen.
                 ("Reference", str(facts.get("area_code") or "-")),

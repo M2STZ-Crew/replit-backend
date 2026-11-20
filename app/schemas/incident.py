@@ -116,6 +116,9 @@ class IncidentSummary(BaseModel):
     fire_type: str | None = None
     fire_subtype: str | None = None
     fire_type_set_at: datetime | None = None
+    # The full place for detail screens (v1.12.45): "Near F. Victor Street,
+    # Barangay 76 Zone 10, Pasay"; designation is the short form alerts use.
+    place_line: str | None = None
 
 
 class IncidentRoute(BaseModel):

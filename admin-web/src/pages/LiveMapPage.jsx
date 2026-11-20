@@ -19,6 +19,7 @@ import { useLiveFeed } from '../live/LiveFeed.jsx';
 import { useLiveUnits } from '../live/useLiveUnits.js';
 import { PERM, can, governsAll } from '../lib/access.js';
 import { AGENCY_LABEL, statusOf } from '../lib/status.js';
+import BarangayLayer, { BARANGAY_ATTRIBUTION } from '../map/BarangayLayer.jsx';
 import BaseTiles from '../map/BaseTiles.jsx';
 import ZoomGate from '../map/ZoomGate.jsx';
 import { groupOnScreen } from '../map/unitGroups.js';
@@ -47,7 +48,14 @@ const LAYERS = [
   { key: 'water', get label() { return t('Water'); }, tone: 'info' },
   { key: 'shelters', get label() { return t('Shelters'); }, tone: 'ok' },
   { key: 'risk', get label() { return t('Risk zones'); }, tone: 'danger' },
+  // v1.12.45: PSA/NAMRIA's barangay outlines, and Pasay's High fire-risk
+  // zones (research-based) filled.
+  { key: 'barangays', get label() { return t('Barangays'); }, tone: 'info' },
+  { key: 'fireRisk', get label() { return t('High fire risk'); }, tone: 'danger' },
 ];
+
+// Off until switched on: 1,712 outlines are a lot of lines over a busy map.
+const OFF_AT_FIRST = ['barangays'];
 
 const SOURCES = [
   { key: 'hydrant', path: 'hydrants', layer: 'water', lat: 'latitude', lng: 'longitude', name: (r) => r.code || t('Hydrant') },
@@ -115,7 +123,7 @@ function Selected({ inc, onClose, onOpen }) {
       <div className="rpl-detail-head">
         <div>
           <p className="rpl-eyebrow">{fireName(inc.designation)} · {statusOf(inc.status).label}</p>
-          <h2 className="rpl-detail-title" id="rpl-map-panel-title">{fireName(inc.designation)}</h2>
+          <h2 className="rpl-detail-title" id="rpl-map-panel-title">{fireName(inc.place_line || inc.designation)}</h2>
         </div>
         <button type="button" className="rpl-icon-button" onClick={onClose} aria-label={t('Close')}>
           <span aria-hidden="true">✕</span>
@@ -136,7 +144,8 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
   const { incidents } = useLiveFeed();
   const { console: access } = useConsole();
   const managesMap = can(access, PERM.MANAGE_MAP);
-  const [on, setOn] = useState(() => new Set(LAYERS.map((l) => l.key)));
+  const [on, setOn] = useState(() => new Set(LAYERS.map((l) => l.key).filter((k) => !OFF_AT_FIRST.includes(k))));
+  const [barangays, setBarangays] = useState(null);
   const [legend, setLegend] = useState(true);
   const [points, setPoints] = useState({});
   const [selectedId, setSelectedId] = useState(null);
@@ -152,6 +161,17 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
       });
     return () => { alive = false; };
   }, []);
+
+  // The barangay layer, read once either of its switches is on.
+  const wantsBarangays = on.has('barangays') || on.has('fireRisk');
+  useEffect(() => {
+    if (!wantsBarangays || barangays) return undefined;
+    let alive = true;
+    api.mapLayer('barangays')
+      .then((rows) => { if (alive) setBarangays(Array.isArray(rows) ? rows : []); })
+      .catch(() => { if (alive) setBarangays([]); });
+    return () => { alive = false; };
+  }, [wantsBarangays, barangays]);
 
   const selected = useMemo(() => incidents.find((i) => i.id === selectedId) ?? null, [incidents, selectedId]);
   const units = useLiveUnits(incidents);
@@ -173,6 +193,9 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
       >
         <BaseTiles />
         <ZoomControl position="bottomright" />
+        {wantsBarangays && (
+          <BarangayLayer rows={barangays} outlines={on.has('barangays')} risk={on.has('fireRisk')} />
+        )}
         {/* A risk zone is its icon inside the circle the Admin set. The circle
             is the zone, so it shows at every zoom, as on the app. */}
         {on.has('risk') && (points.risk ?? [])
@@ -274,9 +297,16 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
               </li>
             ))}
           </ul>
+          {on.has('fireRisk') && (
+            <p className="rpl-map-legend-note">
+              <span className="rpl-legend-swatch rpl-legend-swatch--risk" aria-hidden="true" />
+              {t('High fire-risk zone (research-based)')}
+            </p>
+          )}
           {!governsAll(access) && (
             <p className="rpl-map-legend-note">{t('Other organizations’ vehicles are never shown.')}</p>
           )}
+          {wantsBarangays && <p className="rpl-map-legend-note">{BARANGAY_ATTRIBUTION}</p>}
         </section>
       )}
 

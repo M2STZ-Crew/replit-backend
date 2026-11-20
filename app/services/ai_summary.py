@@ -197,6 +197,7 @@ async def gather_incident_facts(db: Database, area_id: UUID) -> IncidentFacts:
     area = await db.fetchrow(
         """
         select a.designation, to_jsonb(a) ->> 'area_code' as area_code,
+               to_jsonb(a) ->> 'place_line' as place_line,
                a.status::text as status,
                a.centroid_lat, a.centroid_lng, a.report_count,
                a.confidence_score, a.confidence_band::text as confidence_band,
@@ -282,6 +283,8 @@ async def gather_incident_facts(db: Database, area_id: UUID) -> IncidentFacts:
         # The Area's number (v1.12.42): the PDF report's reference, never shown
         # on screen. Null for a report built before it.
         "area_code": area["area_code"],
+        # The full place (v1.12.45): street, barangay, district, city.
+        "place_line": area["place_line"],
         "status": area["status"],
         "centroid": {"lat": area["centroid_lat"], "lng": area["centroid_lng"]},
         "confidence": {"score": area["confidence_score"], "band": area["confidence_band"]},

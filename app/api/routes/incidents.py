@@ -140,7 +140,9 @@ _SUMMARY_COLS = """
     -- 20261112090000 still lists incidents: the fields read as null.
     to_jsonb(a) ->> 'fire_type' as fire_type,
     to_jsonb(a) ->> 'fire_subtype' as fire_subtype,
-    (to_jsonb(a) ->> 'fire_type_set_at')::timestamptz as fire_type_set_at
+    (to_jsonb(a) ->> 'fire_type_set_at')::timestamptz as fire_type_set_at,
+    -- The full place (v1.12.45), null before migration 20261120150000.
+    to_jsonb(a) ->> 'place_line' as place_line
 """
 
 
