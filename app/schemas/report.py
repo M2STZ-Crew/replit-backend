@@ -19,6 +19,9 @@ class ReportSubmitResponse(BaseModel):
     area_id: UUID
     area_designation: str
     message: str
+    # A coordinator's or responder's report starts acknowledged by their
+    # organisation (v1.12.44, 19 Nov 2026: "Acknowledged on sending").
+    acknowledged: bool = False
 
 
 class ReportResponse(BaseModel):

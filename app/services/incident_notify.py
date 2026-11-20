@@ -174,11 +174,15 @@ _REPORTER_SOUNDS: dict[str, SoundCategory] = {
 }
 
 
-async def notify_incident_reporters(db: Database, area_id: UUID, event_type: str) -> int:
+async def notify_incident_reporters(
+    db: Database, area_id: UUID, event_type: str, *, skip: UUID | None = None
+) -> int:
     """Push a lifecycle update to the citizens who reported ``area_id``.
 
     No-op for events not in [_REPORTER_MESSAGES]. Deactivates dead tokens.
-    Returns the number of device tokens targeted.
+    Returns the number of device tokens targeted. ``skip`` is a reporter who
+    made the change themself (a coordinator whose own report acknowledged it,
+    v1.12.44): nobody is told what they just did.
     """
     texts = REPORTER_MESSAGES.get(event_type)
     if texts is None:
@@ -206,8 +210,10 @@ async def notify_incident_reporters(db: Database, area_id: UUID, event_type: str
         join public.reports r on r.id = ar.report_id
         left join public.users u on u.id = r.reporter_id
         where ar.area_id = $1 and r.reporter_id is not null
+          and r.reporter_id is distinct from $2
         """,
         area_id,
+        skip,
     )
     reporters = {r["user_id"]: language_of(r.get("language")) for r in reporter_rows}
     for language, ids in by_language(reporters).items():
@@ -222,8 +228,10 @@ async def notify_incident_reporters(db: Database, area_id: UUID, event_type: str
         join public.device_tokens dt on dt.user_id = r.reporter_id
         left join public.users u on u.id = r.reporter_id
         where ar.area_id = $1 and r.reporter_id is not null and dt.is_active
+          and r.reporter_id is distinct from $2
         """,
         area_id,
+        skip,
     )
     tokens = [r["fcm_token"] for r in rows]
     if not tokens:
