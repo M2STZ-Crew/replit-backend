@@ -67,6 +67,13 @@ const SOURCES = [
 
 const AGO = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 
+/* A hydrant is gray until checked on the ground in the last 6 months
+ * (v1.12.46). */
+const kindOf = (key, r) => (key === 'hydrant' && !r.verified ? 'hydrantUnverified' : key);
+
+// The fire's ripple reaches as far as the residents it alerts (v1.12.46).
+const RIPPLE_M = 100;
+
 function seen(iso) {
   const s = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
   if (s < 60) return 'just now';
@@ -214,9 +221,9 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
         {(near) => SOURCES.filter((s) => on.has(s.layer)).flatMap((s) => (points[s.key] ?? [])
           .filter((r) => r[s.lat] != null && r[s.lng] != null && near(r[s.lat], r[s.lng]))
           .map((r) => (
-            <Marker key={`${s.key}-${r.id}`} position={[r[s.lat], r[s.lng]]} icon={markerIcon(s.key)}>
+            <Marker key={`${s.key}-${r.id}`} position={[r[s.lat], r[s.lng]]} icon={markerIcon(kindOf(s.key, r))}>
               <Tooltip direction="top" offset={[0, -18]}>
-                {`${MARKER_KINDS[s.key].label} · ${s.name(r)}${s.key === 'risk' ? ` · ${Math.round(riskRadius(r))} m` : ''}`}
+                {`${MARKER_KINDS[kindOf(s.key, r)].label} · ${s.name(r)}${s.key === 'risk' ? ` · ${Math.round(riskRadius(r))} m` : ''}`}
               </Tooltip>
             </Marker>
           )))}
@@ -229,6 +236,13 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
               center={[i.centroid_lat, i.centroid_lng]}
               radius={CLUSTER_RADIUS_M}
               pathOptions={{ color: '#ff9066', weight: 1.5, fillColor: '#ff9066', fillOpacity: 0.12 }}
+              interactive={false}
+            />,
+            <Circle
+              key={`p-${i.id}`}
+              center={[i.centroid_lat, i.centroid_lng]}
+              radius={RIPPLE_M}
+              pathOptions={{ className: 'rpl-ripple', color: '#ff9066', weight: 2, fillColor: '#ff9066', fillOpacity: 0.08 }}
               interactive={false}
             />,
             <Marker
@@ -288,10 +302,10 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
         <section className="rpl-map-legend" aria-label={t('Legend')}>
           <p className="rpl-eyebrow rpl-eyebrow--quiet">{t('Legend')}</p>
           <ul>
-            {['incident', 'unit', 'hydrant', 'water', 'cistern', 'shelter', 'risk'].map((k) => (
+            {['incident', 'unit', 'hydrant', 'hydrantUnverified', 'water', 'cistern', 'shelter', 'risk'].map((k) => (
               <li key={k}>
                 <span className={`rpl-legend-mark rpl-marker-disc--${MARKER_KINDS[k].tone}`} aria-hidden="true">
-                  <img src={`/icons/map/${k}.svg`} alt="" width="12" height="12" />
+                  <img src={`/icons/map/${MARKER_KINDS[k].icon ?? k}.svg`} alt="" width="12" height="12" />
                 </span>
                 {k === 'unit' && governsAll(access) ? t('Responding unit') : MARKER_KINDS[k].label}
               </li>

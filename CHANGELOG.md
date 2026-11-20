@@ -6,6 +6,32 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.46 — 20 November 2026 — Fire codes shown and heard, both ways; hydrants verified by a check
+
+Backend and console; app v1.12.58 goes with it. No migration.
+
+### Changes
+- **A fire code is shown and heard** (20 Nov: "there's a logical flaw in the
+  fire code in coordinator to admin and vice versa ... if they press the fire
+  code, there's nothing happening"; answered "Show it and alert", "By what the
+  code asks", and Admins press on the incident page). A press was saved and
+  sent on a channel nothing read. Now it is on the incident everywhere
+  (`IncidentDetail.fire_codes`, the incident's broadcast) and alerts, in each
+  reader's language (`app/services/fire_code_notify.py`): FC-6 water, Fire
+  Volunteer and BFP coordinators; FC-7 more units, coordinators of every
+  agency on the fire; FC-8 a casualty, medical coordinators and the central
+  hub; FC-1 to FC-5, the incident's crews and coordinators, without a sound.
+  Never the presser; the status never changes.
+- **Admins press codes from the console** (`codes.press`: Fire Volunteer, BFP,
+  the central hub and the system Admin): a Fire codes panel on the incident
+  page, with a confirmation, and every press in its timeline.
+- **A hydrant is verified by a field check** for 6 months (`verified` on every
+  hydrant); the console's live map draws the rest gray, with a legend entry.
+- **Every fire ripples out to 100 m** on the console's live map and incident
+  map.
+
+---
+
 ## v1.12.45 — 20 November 2026 — Every fire in its barangay; the barangay layer
 
 Backend and console; app v1.12.57 goes with it. **Migration:**

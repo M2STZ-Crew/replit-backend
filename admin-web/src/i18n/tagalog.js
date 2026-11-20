@@ -1211,4 +1211,15 @@ export const TAGALOG = {
   'Barangays': 'Mga barangay',
   'High fire risk': 'Mataas na panganib sa sunog',
   'High fire-risk zone (research-based)': 'Lugar na mataas ang panganib sa sunog (batay sa pananaliksik)',
+
+  // Fire codes from the console; gray hydrants (v1.12.46).
+  '{code} recorded on this incident. The people it is for were alerted.': 'Naitala ang {code} sa insidenteng ito. Naabisuhan ang mga taong para rito.',
+  'Fire codes': 'Mga fire code',
+  'Press a code to record it on this incident and alert whoever it is for. It does not change the incident’s status.': 'Pumindot ng code para maitala ito sa insidenteng ito at maabisuhan ang mga para rito. Hindi nito binabago ang status ng insidente.',
+  'Press {name} on {fire}?': 'Pindutin ang {name} sa {fire}?',
+  'It goes on the incident’s timeline everywhere, and the people it asks for are alerted with the fire alarm.': 'Lalabas ito sa timeline ng insidente sa lahat ng screen, at maaabisuhan ang mga hinihingan nito gamit ang fire alarm.',
+  'It goes on the incident’s timeline everywhere, and its crews and coordinators are told quietly.': 'Lalabas ito sa timeline ng insidente sa lahat ng screen, at tahimik na sasabihan ang mga crew at coordinator nito.',
+  'Press code': 'Pindutin ang code',
+  'Could not load the fire codes.': 'Hindi ma-load ang mga fire code.',
+  'Hydrant, not verified': 'Hydrant, hindi pa beripikado',
 };

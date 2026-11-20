@@ -46,6 +46,10 @@ _HYDRANT_COLS = (
     "ground_truth_by, ground_truth_at, ground_truth_notes, "
     "effective_status::text as effective_status, source, is_active, "
     "created_at, updated_at, "
+    # Verified while checked on the ground in the last 6 months (v1.12.46:
+    # gray on every map until then).
+    "(ground_truth_at is not null and ground_truth_at > now() - interval '6 months') "
+    "as verified, "
     # Who last checked it on site, and for which organisation (v1.12.43).
     "(select u.full_name from public.users u "
     " where u.id = hydrants.ground_truth_by) as checked_by_name, "

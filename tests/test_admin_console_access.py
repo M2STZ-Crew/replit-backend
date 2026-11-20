@@ -87,12 +87,16 @@ def _admin(
 @pytest.mark.parametrize(
     ("agency", "hub", "variant", "act", "extra", "absent"),
     [
-        ("police", False, "police", ("police",), set(), {A.REVIEW_AFFILIATES, A.DECIDE_ALARM}),
-        ("medical", False, "medical", ("medical",), set(), {A.REQUEST_ALARM, A.REVIEW_IDS}),
+        ("police", False, "police", ("police",), set(),
+         {A.REVIEW_AFFILIATES, A.DECIDE_ALARM, A.PRESS_CODES}),
+        ("medical", False, "medical", ("medical",), set(),
+         {A.REQUEST_ALARM, A.REVIEW_IDS, A.PRESS_CODES}),
         ("barangay", False, "barangay", ("barangay",), set(), {A.REVIEW_AFFILIATES}),
+        # The fire agencies press fire codes from the console too (v1.12.46).
         ("fire_volunteer", False, "fire_volunteer", A.FIRE_AGENCIES,
-         {A.REQUEST_ALARM, A.MANAGE_MAP}, {A.DECIDE_ALARM}),
-        ("bfp", False, "bfp", A.FIRE_AGENCIES, {A.DECIDE_ALARM, A.MANAGE_MAP}, {A.REQUEST_ALARM}),
+         {A.REQUEST_ALARM, A.MANAGE_MAP, A.PRESS_CODES}, {A.DECIDE_ALARM}),
+        ("bfp", False, "bfp", A.FIRE_AGENCIES,
+         {A.DECIDE_ALARM, A.MANAGE_MAP, A.PRESS_CODES}, {A.REQUEST_ALARM}),
     ],
 )
 def test_the_four_variants(

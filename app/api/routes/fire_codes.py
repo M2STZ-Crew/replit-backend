@@ -13,6 +13,7 @@ from uuid import UUID
 from fastapi import APIRouter, Query, status
 
 from app.api.deps import CurrentUser, DatabaseDep, StaffUser
+from app.api.routes.incidents import finish_incident_change
 from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
 from app.core.logging import get_logger
 from app.realtime.manager import manager
@@ -21,6 +22,8 @@ from app.schemas.fire_code import (
     FireCodePressRequest,
     FireCodeResponse,
 )
+from app.services.access import PRESS_CODES, admin_access
+from app.services.fire_code_notify import notify_fire_code
 from app.services.incident import is_coordinator
 
 log = get_logger(__name__)
@@ -33,9 +36,12 @@ _CODE_COLS = (
 )
 _EVENT_SELECT = (
     "select e.id, e.fire_code_id, fc.code_number, fc.name, e.area_id, "
-    "e.pressed_by, e.pressed_at, e.notes "
+    "e.pressed_by, e.pressed_at, e.notes, "
+    "u.full_name as pressed_by_name, o.name as pressed_by_org "
     "from public.fire_code_events e "
-    "join public.fire_codes fc on fc.id = e.fire_code_id"
+    "join public.fire_codes fc on fc.id = e.fire_code_id "
+    "left join public.users u on u.id = e.pressed_by "
+    "left join public.organizations o on o.id = u.primary_org_id"
 )
 
 
@@ -97,10 +103,16 @@ async def press_fire_code(
     # press only their own target code. An observer sub-admin (police, medical,
     # barangay) may press none: fire codes direct the fire response, and these
     # agencies take part for awareness only.
-    allowed = is_coordinator(user) or (
-        user.role == code["target_role"]
-        and (code["target_agency"] is None or user.agency_type == code["target_agency"])
-    )
+    # An Admin presses from the console's incident page (v1.12.46): Fire
+    # Volunteer, BFP, the central hub and the system Admin.
+    access = admin_access(user)
+    if access is not None:
+        allowed = access.can(PRESS_CODES)
+    else:
+        allowed = is_coordinator(user) or (
+            user.role == code["target_role"]
+            and (code["target_agency"] is None or user.agency_type == code["target_agency"])
+        )
     if not allowed:
         raise ForbiddenError("You are not permitted to press this fire code.")
 
@@ -126,6 +138,8 @@ async def press_fire_code(
     data = dict(row)
     data["code_number"] = code["code_number"]
     data["name"] = code["name"]
+    data["pressed_by_name"] = user.full_name
+    data["pressed_by_org"] = user.org_name
 
     if payload.area_id is not None:
         await manager.broadcast(
@@ -138,6 +152,18 @@ async def press_fire_code(
                 "pressed_by": str(user.id),
             },
         )
+        # On the incident everywhere at once, and to the people the code is
+        # for (v1.12.46). Best-effort: the press is saved either way.
+        try:
+            await finish_incident_change(db, payload.area_id, "fire_code_pressed")
+        except Exception:
+            log.error("fire_code_broadcast_failed", area_id=str(payload.area_id), exc_info=True)
+        try:
+            await notify_fire_code(
+                db, payload.area_id, code["code_number"], code["name"], user.id
+            )
+        except Exception:
+            log.error("fire_code_notify_failed", area_id=str(payload.area_id), exc_info=True)
     log.info(
         "fire_code_pressed",
         code_id=str(code_id),

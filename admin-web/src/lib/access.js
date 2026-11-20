@@ -20,6 +20,8 @@ export const PERM = {
   // Prank-report strikes (v1.12.41): the central hub's, like ID reviews.
   REVIEW_STRIKES: 'strikes.review',
   MANAGE_MAP: 'map.manage',
+  // Press fire codes from the incident page (v1.12.46).
+  PRESS_CODES: 'codes.press',
   DELETE_WATER: 'water.delete',
   REQUEST_ALARM: 'alarm.request',
   DECIDE_ALARM: 'alarm.decide',

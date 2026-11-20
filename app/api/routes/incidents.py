@@ -348,9 +348,27 @@ async def build_incident_detail(db: Database, incident_id: UUID) -> IncidentDeta
         """,
         incident_id,
     )
+    # The fire codes pressed on it (v1.12.46: "if they press the fire code,
+    # there's nothing happening"), newest first.
+    codes = await db.fetch(
+        """
+        select fc.code_number, fc.name, fc.description, e.pressed_at,
+               u.full_name as pressed_by_name, o.name as pressed_by_org,
+               u.role::text as pressed_by_role
+          from public.fire_code_events e
+          join public.fire_codes fc on fc.id = e.fire_code_id
+          left join public.users u on u.id = e.pressed_by
+          left join public.organizations o on o.id = u.primary_org_id
+         where e.area_id = $1
+         order by e.pressed_at desc
+         limit 30
+        """,
+        incident_id,
+    )
     verifier = await fetch_verifier(db, incident_id)
     progress = await pir_progress(db, incident_id)
     data = dict(row)
+    data["fire_codes"] = [dict(r) for r in codes]
     data["pir_teams_expected"] = len(progress.expected)
     data["pir_teams_filed"] = len(progress.filed)
     data["pir_waiting_on"] = list(progress.waiting_names)

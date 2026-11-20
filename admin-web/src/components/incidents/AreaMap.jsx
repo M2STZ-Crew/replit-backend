@@ -59,6 +59,16 @@ export default function AreaMap({ lat, lng, label, areas, height }) {
             pathOptions={{ color: '#ff9066', weight: 1.5, fillColor: '#ff9066', fillOpacity: 0.12 }}
           />
         ))}
+        {/* The 100 m ripple, as on the live map (v1.12.46). */}
+        {list.map((a, i) => (
+          <Circle
+            key={`p-${i}`}
+            center={[a.lat, a.lng]}
+            radius={100}
+            pathOptions={{ className: 'rpl-ripple', color: '#ff9066', weight: 2, fillColor: '#ff9066', fillOpacity: 0.08 }}
+            interactive={false}
+          />
+        ))}
         {list.map((a, i) => (
           <Marker key={`m-${i}`} position={[a.lat, a.lng]} icon={markerIcon(i > 0)} interactive={false} keyboard={false} />
         ))}

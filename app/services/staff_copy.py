@@ -162,6 +162,28 @@ _LAYER_WORD: dict[str, tuple[str, str]] = {
 }
 
 
+def fire_code(
+    language: Language,
+    code_number: str,
+    code_name: str,
+    presser: str | None,
+    organization: str | None,
+    designation: str | None,
+) -> tuple[str, str]:
+    """A fire code pressed on an incident (v1.12.46): "FC-6 · Water Supply
+    Needed", "Ana Cruz (BFP Pasay) pressed it for the fire near F. Victor St.,
+    Brgy 76, Pasay." The code's name is the fire service's own term, the same
+    in both languages."""
+    title = f"{code_number} · {code_name}"
+    fire = fire_at(designation, language)
+    who = f"{presser} ({organization})" if presser and organization else presser
+    if language == "tl":
+        body = f"Pinindot ni {who} para sa {fire}." if who else f"Pinindot para sa {fire}."
+        return title, body
+    body = f"{who} pressed it for {fire}." if who else f"Pressed for {fire}."
+    return title, body[0].upper() + body[1:]
+
+
 def map_request_decided(
     language: Language,
     *,

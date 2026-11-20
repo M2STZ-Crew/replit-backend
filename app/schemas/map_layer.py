@@ -72,6 +72,10 @@ class HydrantResponse(BaseModel):
     # a resident's copy carries no status at all.
     checked_by_name: str | None = None
     checked_by_org: str | None = None
+    # Checked on the ground in the last 6 months (v1.12.46, 20 Nov 2026: "make
+    # all of the fire hydrants as unverified and make it color gray. if it's
+    # verified make it the default color"). Every map draws the rest gray.
+    verified: bool = False
 
 
 # --------------------------------------------------------------------------- #
