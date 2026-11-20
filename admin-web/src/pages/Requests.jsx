@@ -12,6 +12,7 @@ import { PERM, actsOn, can, mayWithdraw } from '../lib/access.js';
 import { ago, alarmLabel, statusOf } from '../lib/status.js';
 import { t } from '../i18n/i18n.jsx';
 import { fireAt, fireName } from '../lib/place.js';
+import Pager, { usePager } from '../components/ui/Pager.jsx';
 
 /* Requests (REPLIT (MAIN) 10 · A40 873:5264, A41 873:5578, A45 874:6513,
  * A46 874:6933, A46b 874:7126).
@@ -115,6 +116,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
       .filter((r) => !q || [r.area_designation, r.requested_by_name, alarmLabel(r.requested_alarm_level), r.justification]
         .some((v) => v != null && String(v).toLowerCase().includes(q)));
   }, [rows, tab, query]);
+  const { shown: visible, pager } = usePager(shown, { key: 'requests', reset: [tab, query] });
 
   const selected = rows.find((r) => r.id === selectedId) ?? null;
   if (selected) {
@@ -238,7 +240,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
                 </tr>
               </thead>
               <tbody>
-                {shown.map((r) => {
+                {visible.map((r) => {
                   const area = areaById.get(r.area_id);
                   return (
                     <tr key={r.id} className={`web-table-row${r.status === 'pending' ? ' is-unread' : ''}`}>
@@ -255,7 +257,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
                       </th>
                       <td className="rpl-cell-strong">{askedBy(r)}{' '}{t('→ BFP')}</td>
                       <td><StatusChip {...requestStatus(r.status)} /></td>
-                      <td className="rpl-cell-quiet">{received(r.created_at)}</td>
+                      <td className="rpl-cell-quiet" data-label={t('Received')}>{received(r.created_at)}</td>
                       <td className="web-table-action-cell">
                         <button type="button" className="web-table-row-action" onClick={() => setSelectedId(r.id)}>{t('Open')}<span className="web-sr-only">{' '}{t('the request for')}{' '}{areaOf(r)}</span>
                         </button>
@@ -269,7 +271,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
               </tbody>
             </table>
           </div>
-          <p className="rpl-table-foot">{t('Showing {shown} of {total}', { shown: shown.length, total: tab === 'inbox' ? pending.length : rows.length - pending.length })}</p>
+          <Pager {...pager} />
         </>
       )}
     </div>

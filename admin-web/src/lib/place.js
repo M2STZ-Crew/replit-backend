@@ -56,6 +56,27 @@ export function degrees(lat, lng) {
   return `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(4)}° ${lng >= 0 ? 'E' : 'W'}`;
 }
 
+/// A link that opens the point in Google Maps (v1.12.47).
+export function mapsLink(lat, lng) {
+  return `https://www.google.com/maps/search/?api=1&query=${Number(lat).toFixed(6)},${Number(lng).toFixed(6)}`;
+}
+
+/// Metres between two points on the ground (haversine).
+export function metresBetween(lat1, lng1, lat2, lng2) {
+  const rad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * rad;
+  const dLng = (lng2 - lng1) * rad;
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371000 * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+
+/// "40 m", "1.4 km": to the nearest 10 m under a kilometre.
+export function distanceText(m) {
+  if (m < 1000) return t('{metres} m', { metres: Math.max(10, Math.round(m / 10) * 10) });
+  return t('{km} km', { km: (m / 1000).toFixed(m < 10000 ? 1 : 0) });
+}
+
 function loadSaved() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORE) || '[]');

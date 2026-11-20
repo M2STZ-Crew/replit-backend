@@ -32,6 +32,23 @@
 .rpl-marker-disc--shelter { background: #188c43; }
 .rpl-marker-disc--risk { background: #b53c37; }
 .rpl-marker-disc--unit { background: #626262; }
+/* A hydrant nobody has checked on the ground in 6 months (v1.12.46). */
+.rpl-marker-disc--muted { background: #6b7280; }
+/* The fire's 100 m ripple (v1.12.46): a ring grows from the fire and fades. */
+.rpl-ripple { transform-box: fill-box; transform-origin: center; animation: rpl-ripple 2s ease-out infinite; }
+@keyframes rpl-ripple {
+  0% { transform: scale(0.08); opacity: 0.9; }
+  100% { transform: scale(1); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .rpl-ripple { animation: none; opacity: 0; } }
+/* Fire codes on the incident page (v1.12.46). */
+.rpl-code-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 12px; }
+.rpl-code-button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text-1); cursor: pointer; text-align: left; }
+.rpl-code-button:hover { border-color: var(--accent-line); }
+.rpl-code-button.is-ask { border-color: rgba(181, 60, 55, 0.6); }
+.rpl-code-number { font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: 0.04em; }
+.rpl-code-name { font-size: 13px; }
+.rpl-inline-note { margin: 10px 0 0; color: var(--ok); font-size: 13px; }
 /* Units (A30): trucks that would overlap share one marker — a second plate
  * peeks out behind the first, and the count sits at the top right. */
 .rpl-unit .rpl-unit-behind { transform: translate(5px, -5px); }
@@ -218,4 +235,20 @@
 @media (max-width: 700px) {
   /* There the editor is a sheet along the bottom. */
   .lm-zoom-hint.mm-zoom-hint.is-beside-panel { left: 50%; }
+}
+
+/* ── A place's details on the live map (v1.12.47) ─────────────────────── */
+.rpl-point-panel { max-height: calc(100% - 32px); overflow-y: auto; }
+.rpl-point-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.rpl-point-actions > .rpl-button { flex: 1 1 auto; min-width: 0; }
+.rpl-text-button--inline {
+  min-height: 24px;
+  padding: 0;
+  font-size: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+@media (max-width: 1023px) {
+  .rpl-point-panel { max-height: 60vh; }
 }

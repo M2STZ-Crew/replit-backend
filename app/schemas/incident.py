@@ -136,6 +136,18 @@ class IncidentRoute(BaseModel):
     accepted_at: datetime | None = None
 
 
+class IncidentFireCode(BaseModel):
+    """A fire code pressed on this incident (v1.12.46): what, when, by whom."""
+
+    code_number: str
+    name: str
+    description: str | None = None
+    pressed_at: datetime
+    pressed_by_name: str | None = None
+    pressed_by_org: str | None = None
+    pressed_by_role: str | None = None
+
+
 class IncidentAcceptance(BaseModel):
     """One Accept on an incident (v11 Section 2.5.1): who committed, for which agency.
 
@@ -193,6 +205,8 @@ class IncidentDetail(IncidentSummary):
     routes: list[IncidentRoute] = Field(default_factory=list)
     acceptances: list[IncidentAcceptance] = Field(default_factory=list)
     reports: list[IncidentReportItem] = Field(default_factory=list)
+    # The fire codes pressed on it, newest first (v1.12.46).
+    fire_codes: list[IncidentFireCode] = Field(default_factory=list)
 
 
 # --------------------------------------------------------------------------- #

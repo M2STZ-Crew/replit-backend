@@ -5,7 +5,9 @@ import { agencyAuthority, agencyLabel } from '../auth.jsx';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import OrgDialog from '../components/OrgDialog.jsx';
 import { standingLabel } from '../components/OrgStanding.jsx';
-import { ConfirmDialog, EmptyState, Icon, PageHeader, StatePanel, StatusChip } from '../components/ui/index.js';
+import {
+  ConfirmDialog, EmptyState, Icon, PageHeader, Pager, StatePanel, StatusChip, usePager,
+} from '../components/ui/index.js';
 import { t } from '../i18n/i18n.jsx';
 
 /* Affiliate requests (REPLIT (MAIN) 10 · A05 860:194, A06 860:528, A06b
@@ -157,56 +159,60 @@ function RequestDetail({ request: r, result, orgs, onAccept, onDecline, onOpenOr
 }
 
 function Network({ orgs, onOpen }) {
+  const { shown, pager } = usePager(orgs, { key: 'network' });
   if (orgs.length === 0) {
     return <EmptyState icon="organization" title={t('No organizations yet')}>{t('An organization joins the network when its affiliate request is accepted.')}</EmptyState>;
   }
   return (
-    <div className="web-table-wrap">
-      <table className="web-table">
-        <caption className="web-sr-only">{t('Accredited organizations')}</caption>
-        <thead>
-          <tr>
-            <th scope="col">{t('Organization')}</th>
-            <th scope="col">{t('Type')}</th>
-            <th scope="col">{t('Authority')}</th>
-            <th scope="col">{t('Personnel')}</th>
-            <th scope="col">{t('Units')}</th>
-            <th scope="col">{t('Status')}</th>
-            <th scope="col"><span className="web-sr-only">{t('Open')}</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {orgs.map((o) => {
-            const auth = agencyAuthority(o.agency_type);
-            return (
-              <tr key={o.id} className="web-table-row">
-                <th scope="row">
-                  <span className="rpl-cell-text">
-                    <span className="rpl-cell-title">{o.name}</span>
-                    {(o.address || o.created_at) && (
-                      <span className="rpl-cell-meta">{o.address || t('On the network since {day}', { day: day(o.created_at) })}</span>
-                    )}
-                  </span>
-                </th>
-                <td>{agencyLabel(o.agency_type)}</td>
-                <td>
-                  <span title={auth.note ?? undefined}>
-                    {auth.label}
-                  </span>
-                </td>
-                <td className="rpl-cell-strong">{o.personnel_count ?? 0}</td>
-                <td className="rpl-cell-strong">{o.equipment_count ?? 0}</td>
-                <td><StatusChip label={standingLabel(o)} tone={o.standing === 'revoked' ? 'danger' : o.standing === 'suspended' ? 'warn' : o.is_active ? 'ok' : 'neutral'} /></td>
-                <td className="web-table-action-cell">
-                  <button type="button" className="web-table-row-action" onClick={() => onOpen(o.id)} aria-haspopup="dialog">{t('Open')}<span className="web-sr-only"> {o.name}</span>
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <div className="web-table-wrap">
+        <table className="web-table">
+          <caption className="web-sr-only">{t('Accredited organizations')}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{t('Organization')}</th>
+              <th scope="col">{t('Type')}</th>
+              <th scope="col">{t('Authority')}</th>
+              <th scope="col">{t('Personnel')}</th>
+              <th scope="col">{t('Units')}</th>
+              <th scope="col">{t('Status')}</th>
+              <th scope="col"><span className="web-sr-only">{t('Open')}</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((o) => {
+              const auth = agencyAuthority(o.agency_type);
+              return (
+                <tr key={o.id} className="web-table-row">
+                  <th scope="row">
+                    <span className="rpl-cell-text">
+                      <span className="rpl-cell-title">{o.name}</span>
+                      {(o.address || o.created_at) && (
+                        <span className="rpl-cell-meta">{o.address || t('On the network since {day}', { day: day(o.created_at) })}</span>
+                      )}
+                    </span>
+                  </th>
+                  <td data-label={t('Type')}>{agencyLabel(o.agency_type)}</td>
+                  <td data-label={t('Authority')}>
+                    <span title={auth.note ?? undefined}>
+                      {auth.label}
+                    </span>
+                  </td>
+                  <td className="rpl-cell-strong" data-label={t('Personnel')}>{o.personnel_count ?? 0}</td>
+                  <td className="rpl-cell-strong" data-label={t('Units')}>{o.equipment_count ?? 0}</td>
+                  <td><StatusChip label={standingLabel(o)} tone={o.standing === 'revoked' ? 'danger' : o.standing === 'suspended' ? 'warn' : o.is_active ? 'ok' : 'neutral'} /></td>
+                  <td className="web-table-action-cell">
+                    <button type="button" className="web-table-row-action" onClick={() => onOpen(o.id)} aria-haspopup="dialog">{t('Open')}<span className="web-sr-only"> {o.name}</span>
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <Pager {...pager} />
+    </>
   );
 }
 
@@ -253,6 +259,7 @@ export default function Affiliates() {
   }, [requests]);
 
   const list = lists[tab] ?? [];
+  const { shown: listed, pager: listPager } = usePager(list, { key: 'affiliate-requests', reset: [tab] });
   const selected = list.find((r) => r.id === selectedId) ?? list[0] ?? null;
   const applicationOf = useMemo(() => {
     const byOrg = new Map();
@@ -329,25 +336,28 @@ export default function Affiliates() {
         </EmptyState>
       ) : (
         <div className="rpl-aff-grid">
-          <ul className="rpl-panel rpl-aff-list" aria-label={TABS.find((t) => t.key === tab).label}>
-            {list.map((r) => (
-              <li key={r.id}>
-                <button
-                  type="button"
-                  className={`rpl-idr-row${selected?.id === r.id ? ' is-selected' : ''}`}
-                  onClick={() => setSelectedId(r.id)}
-                  aria-current={selected?.id === r.id ? 'true' : undefined}
-                >
-                  <span className="rpl-idr-plate" aria-hidden="true"><Icon name="organization" /></span>
-                  <span className="rpl-cell-text">
-                    <span className="rpl-cell-title">{r.organization_name}</span>
-                    <span className="rpl-cell-meta">{subline(r, results[r.id])}</span>
-                  </span>
-                  <Icon name="chevron-right" />
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className="rpl-stack">
+            <ul className="rpl-panel rpl-aff-list" aria-label={TABS.find((t) => t.key === tab).label}>
+              {listed.map((r) => (
+                <li key={r.id}>
+                  <button
+                    type="button"
+                    className={`rpl-idr-row${selected?.id === r.id ? ' is-selected' : ''}`}
+                    onClick={() => setSelectedId(r.id)}
+                    aria-current={selected?.id === r.id ? 'true' : undefined}
+                  >
+                    <span className="rpl-idr-plate" aria-hidden="true"><Icon name="organization" /></span>
+                    <span className="rpl-cell-text">
+                      <span className="rpl-cell-title">{r.organization_name}</span>
+                      <span className="rpl-cell-meta">{subline(r, results[r.id])}</span>
+                    </span>
+                    <Icon name="chevron-right" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <Pager {...listPager} compact />
+          </div>
           {selected && (
             <RequestDetail
               request={selected}

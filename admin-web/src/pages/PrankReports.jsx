@@ -3,7 +3,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client.js';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import Place from '../components/Place.jsx';
-import { ConfirmDialog, EmptyState, PageHeader, StatePanel, StatusChip } from '../components/ui/index.js';
+import {
+  ConfirmDialog, EmptyState, PageHeader, Pager, StatePanel, StatusChip, usePager,
+} from '../components/ui/index.js';
 import { t } from '../i18n/i18n.jsx';
 import { stepText } from '../lib/strikes.js';
 
@@ -91,6 +93,7 @@ export default function PrankReports() {
   const [acting, setActing] = useState(null);
   const [note, setNote] = useState('');
   const [notice, setNotice] = useState(null);
+  const { shown, pager } = usePager(items, { key: 'prank-reports', reset: [view] });
 
   const load = useCallback(async (which) => {
     setPhase('loading');
@@ -185,11 +188,14 @@ export default function PrankReports() {
       ) : items.length === 0 ? (
         <EmptyState icon="escalate" title={t('Nothing here')}>{empty}</EmptyState>
       ) : (
-        <ul className="rpl-strike-list">
-          {items.map((s) => (
-            <Strike key={s.id} s={s} view={view} onAct={startAction} />
-          ))}
-        </ul>
+        <>
+          <ul className="rpl-strike-list">
+            {shown.map((s) => (
+              <Strike key={s.id} s={s} view={view} onAct={startAction} />
+            ))}
+          </ul>
+          <Pager {...pager} />
+        </>
       )}
 
       <ConfirmDialog

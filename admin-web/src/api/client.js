@@ -204,6 +204,10 @@ export const api = {
       `${(designation || 'incident').replace(/[^\w.-]+/g, '-')}-report.pdf`,
     ),
   equipment: () => request('/equipment'),
+  // Fire codes (v1.12.46): the catalog, and pressing one on an incident.
+  fireCodes: () => request('/fire-codes'),
+  pressFireCode: (id, areaId) =>
+    request(`/fire-codes/${id}/press`, { method: 'POST', body: { area_id: areaId } }),
   mapLayer: (name, { includeInactive = false } = {}) =>
     request(`/map/${name}${includeInactive ? '?include_inactive=true' : ''}`),
 

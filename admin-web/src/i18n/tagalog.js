@@ -1211,4 +1211,50 @@ export const TAGALOG = {
   'Barangays': 'Mga barangay',
   'High fire risk': 'Mataas na panganib sa sunog',
   'High fire-risk zone (research-based)': 'Lugar na mataas ang panganib sa sunog (batay sa pananaliksik)',
+
+  // Fire codes from the console; gray hydrants (v1.12.46).
+  '{code} recorded on this incident. The people it is for were alerted.': 'Naitala ang {code} sa insidenteng ito. Naabisuhan ang mga taong para rito.',
+  'Fire codes': 'Mga fire code',
+  'Press a code to record it on this incident and alert whoever it is for. It does not change the incident’s status.': 'Pumindot ng code para maitala ito sa insidenteng ito at maabisuhan ang mga para rito. Hindi nito binabago ang status ng insidente.',
+  'Press {name} on {fire}?': 'Pindutin ang {name} sa {fire}?',
+  'It goes on the incident’s timeline everywhere, and the people it asks for are alerted with the fire alarm.': 'Lalabas ito sa timeline ng insidente sa lahat ng screen, at maaabisuhan ang mga hinihingan nito gamit ang fire alarm.',
+  'It goes on the incident’s timeline everywhere, and its crews and coordinators are told quietly.': 'Lalabas ito sa timeline ng insidente sa lahat ng screen, at tahimik na sasabihan ang mga crew at coordinator nito.',
+  'Press code': 'Pindutin ang code',
+  'Could not load the fire codes.': 'Hindi ma-load ang mga fire code.',
+  'Hydrant, not verified': 'Hydrant, hindi pa beripikado',
+
+  // A place's details on the live map (v1.12.47).
+  'Critical': 'Kritikal',
+  'Verified · {at}': 'Beripikado · {at}',
+  'Not verified · last checked {at}': 'Hindi beripikado · huling sinuri {at}',
+  'Not verified · never checked on the ground': 'Hindi beripikado · hindi pa nasusuri sa mismong lugar',
+  'Field check': 'Pagsusuri sa lugar',
+  '{count} people': '{count} katao',
+  'City': 'Lungsod',
+  '{city}, outside Pasay': '{city}, labas ng Pasay',
+  'Radius': 'Radius',
+  '{metres} m': '{metres} m',
+  '{km} km': '{km} km',
+  'Nearest live fire': 'Pinakamalapit na aktibong sunog',
+  'No live fire now': 'Walang aktibong sunog ngayon',
+  'Open in Google Maps': 'Buksan sa Google Maps',
+  'That place is no longer on the map.': 'Wala na sa mapa ang lugar na iyon.',
+
+  // One pager everywhere (v1.12.47).
+  'Page {page}': 'Pahina {page}',
+  'Rows per page': 'Hilera bawat pahina',
+  'Search reports': 'Maghanap ng mga ulat',
+  'The latest {count} reports are listed.': 'Nakalista ang pinakabagong {count} ulat.',
+
+  // The audit log, grouped by incident (v1.12.47).
+  'Incident {shortId}': 'Insidente {shortId}',
+  'Not about an incident': 'Hindi tungkol sa isang insidente',
+  'Most recent': 'Pinakabago',
+  'A–Z': 'A–Z',
+  'Show {count} older entries': 'Ipakita ang {count} mas lumang tala',
+  'Show {count} earlier entries': 'Ipakita ang {count} naunang tala',
+  '{count} entries · latest {when}': '{count} tala · pinakabago {when}',
+  'Append-only, grouped by incident. Each entry keeps the actor’s role and agency as they were at the time.': 'Hindi nabubura, nakapangkat ayon sa insidente. Bawat tala ay nagtatago ng papel at ahensya ng gumawa noong panahong iyon.',
+  'Sort': 'Ayusin',
+  'The latest {count} entries, in {groups} groups.': 'Ang pinakabagong {count} tala, sa {groups} pangkat.',
 };

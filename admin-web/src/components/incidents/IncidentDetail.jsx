@@ -13,6 +13,7 @@ import LifecycleChip from './LifecycleChip.jsx';
 import LifecycleProgress from './LifecycleProgress.jsx';
 import { t } from '../../i18n/i18n.jsx';
 import { fireAt, fireName } from '../../lib/place.js';
+import FireCodesPanel, { codeEntries } from './FireCodesPanel.jsx';
 
 /* One Area, in full (REPLIT (MAIN) 10 · A23 867:2193, A24 867:2419, A24b
  * 867:2662, A25 867:2909, A26 868:2888): the map and its progress with the
@@ -72,6 +73,8 @@ function timelineOf(d, evidence) {
   push(d.closed_at, t('Closed'), t('Post-incident report filed'), 'neutral');
   push(d.rejected_at, t('Rejected'), d.rejection_reason || (d.rejected_by_name ? t('By {rejected_by_name}', { rejected_by_name: d.rejected_by_name }) : ''), 'neutral');
   push(d.merged_at, t('Merged'), d.merged_by_name ? t('By {merged_by_name}', { merged_by_name: d.merged_by_name }) : t('Into another incident'), 'neutral');
+  // Every fire code pressed on it (v1.12.46).
+  codeEntries(d).forEach((c) => push(c.at, c.title, c.sub, c.tone));
   return items.sort((a, b) => new Date(b.at) - new Date(a.at));
 }
 
@@ -375,6 +378,10 @@ export default function IncidentDetail({
                 />
               )}
             </>
+          )}
+
+          {live && can(access, PERM.PRESS_CODES) && (
+            <FireCodesPanel d={d} onPressed={onEvidenceChanged} />
           )}
 
           {(d.status === 'post_incident_report' || reports.length > 0) && (

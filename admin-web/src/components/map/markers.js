@@ -12,6 +12,8 @@ import { t } from '../../i18n/i18n.jsx';
 const KINDS = {
   incident: { tone: 'incident', get label() { return t('Active incident'); } },
   hydrant: { tone: 'water', get label() { return t('Hydrant'); } },
+  // Not checked on the ground in the last 6 months (v1.12.46): gray.
+  hydrantUnverified: { tone: 'muted', icon: 'hydrant', get label() { return t('Hydrant, not verified'); } },
   water: { tone: 'water', get label() { return t('Body of water'); } },
   cistern: { tone: 'water', get label() { return t('Cistern'); } },
   shelter: { tone: 'shelter', get label() { return t('Evacuation site'); } },
@@ -65,14 +67,14 @@ const cache = new Map();
 export function markerIcon(kind, selected = false) {
   const key = `${kind}:${selected}`;
   if (cache.has(key)) return cache.get(key);
-  const { tone } = KINDS[kind] ?? KINDS.incident;
+  const { tone, icon: glyph = kind } = KINDS[kind] ?? KINDS.incident;
   const size = 48;
   const icon = L.divIcon({
     className: 'rpl-marker',
     html:
       `<span class="rpl-marker-backing${selected ? ' is-selected' : ''}"></span>` +
       `<span class="rpl-marker-disc rpl-marker-disc--${tone}${selected ? ' is-selected' : ''}">` +
-      `<img src="/icons/map/${kind}.svg" alt="" width="${selected ? 24 : 20}" height="${selected ? 24 : 20}"></span>`,
+      `<img src="/icons/map/${glyph}.svg" alt="" width="${selected ? 24 : 20}" height="${selected ? 24 : 20}"></span>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   });

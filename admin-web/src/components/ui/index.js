@@ -6,3 +6,4 @@ export { default as FormDialog } from './FormDialog.jsx';
 export { default as StatePanel } from './StatePanel.jsx';
 export { default as EmptyState } from './EmptyState.jsx';
 export { default as Icon } from './Icon.jsx';
+export { default as Pager, usePager } from './Pager.jsx';

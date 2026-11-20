@@ -39,3 +39,6 @@ class FireCodeEventResponse(BaseModel):
     pressed_by: UUID | None = None
     pressed_at: datetime
     notes: str | None = None
+    # Who pressed it (v1.12.46), for the incident's timeline.
+    pressed_by_name: str | None = None
+    pressed_by_org: str | None = None

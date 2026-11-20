@@ -1,12 +1,13 @@
 import 'leaflet/dist/leaflet.css';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Circle,
   CircleMarker,
   MapContainer,
   Marker,
   Tooltip,
+  useMap,
   useMapEvents,
   ZoomControl,
 } from 'react-leaflet';
@@ -16,7 +17,7 @@ import ZoomGate, { LAYER_MIN_ZOOM } from '../map/ZoomGate.jsx';
 
 import { api } from '../api/client.js';
 import { outsidePasayStyle } from '../components/LiveMap.jsx';
-import { ConfirmDialog, Icon } from '../components/ui/index.js';
+import { ConfirmDialog, Icon, Pager, usePager } from '../components/ui/index.js';
 import {
   RISK_CIRCLE_STYLE, RISK_RADIUS_M, RISK_RADIUS_MAX_M, RISK_RADIUS_MIN_M, markerIcon, riskRadius,
 } from '../components/map/markers.js';
@@ -236,7 +237,19 @@ function ClickCapture({ active, onPick }) {
 /* `layers` names the layers this editor shows (v1.12.43, 19 Nov 2026: "One
  * Water resources page"): Map settings passes shelters and risk areas, Water
  * resources hydrants, bodies of water and cisterns. Without it, every layer. */
-export default function MapManagement({ query = '', initialLayer, onOpenIncident, layers }) {
+/* The place opened from the live map, in view (v1.12.47). */
+function CenterOn({ lat, lng }) {
+  const map = useMap();
+  useEffect(() => {
+    if (lat == null || lng == null) return;
+    map.setView([lat, lng], Math.max(map.getZoom(), LAYER_MIN_ZOOM + 2));
+  }, [map, lat, lng]);
+  return null;
+}
+
+/* `initialEdit` ({ layer, id }): Edit pressed on the live map's details panel
+ * (v1.12.47); the editor opens on that place's form, with the map on it. */
+export default function MapManagement({ query = '', initialLayer, initialEdit = null, onOpenIncident, layers }) {
   const theme = useConsoleTheme();
   const shown = useMemo(
     () => EDIT_LAYERS.filter((l) => !layers || layers.includes(l.key)),
@@ -266,6 +279,8 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
   const [form, setForm] = useState(null); // { layer, mode, id, values }
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
+  const [focus, setFocus] = useState(null);
+  const editOpened = useRef(false);
 
   // After a save: on failure the old rows stay, and the toast says so.
   async function loadLayer(key) {
@@ -319,6 +334,20 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
     setSelected(layer);
     setForm({ layer, mode: 'edit', id: rec.id, values: initValues(layer, rec) });
   }
+
+  // The place Edit was pressed for, once the layers are in.
+  useEffect(() => {
+    if (loading || editOpened.current || !initialEdit) return;
+    editOpened.current = true;
+    const rec = (data[initialEdit.layer] || []).find((r) => r.id === initialEdit.id);
+    if (!rec) {
+      flash(t('That place is no longer on the map.'), 'err');
+      return;
+    }
+    openEdit(initialEdit.layer, rec);
+    setPanelOpen(true);
+    setFocus(pointOf(initialEdit.layer, rec));
+  }, [loading, data, initialEdit]);
 
   function handlePick(lat, lng) {
     const [latName, lngName] = coordNames(form.layer);
@@ -394,6 +423,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
         return `${title} ${sub}`.toLowerCase().includes(term);
       })
     : selRows;
+  const { shown: listed, pager } = usePager(shownRows, { key: 'map-editor', reset: [selected, term] });
 
   // Temporary marker preview for the form being edited.
   const formPoint = useMemo(() => {
@@ -426,6 +456,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
           <BaseTiles />
           <ZoomControl position="bottomleft" />
           <ClickCapture active={!!form} onPick={handlePick} />
+          {focus && <CenterOn lat={focus.lat} lng={focus.lng} />}
 
           {/* incidents — status-coloured, and a click opens the incident
               (unless a marker is being placed, when the click places it) */}
@@ -653,7 +684,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
                   {selRows.length > 0 && shownRows.length === 0 && (
                     <div className="mm-empty">{t('No matches for “{query}”.', { query })}</div>
                   )}
-                  {shownRows.map((r) => {
+                  {listed.map((r) => {
                     const { title, sub } = entryText(selected, r);
                     return (
                       <div className="mm-entry" key={r.id}>
@@ -681,6 +712,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
                     );
                   })}
                 </div>
+                {listed.length > 0 && <Pager {...pager} compact />}
 
                 <button className="mm-add" onClick={openAdd}>{t('+ ADD')}{' '}{selCfg.singular.toUpperCase()}
                 </button>

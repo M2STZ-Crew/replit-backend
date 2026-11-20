@@ -66,6 +66,9 @@ ALL_RECORDS = "records.all"  # every report, summary and audit entry, unredacted
 # Prank-report strikes (v1.12.41): mark a report, check a 3rd or 4th step,
 # decide an appeal. The central hub's, like National ID reviews.
 REVIEW_STRIKES = "strikes.review"
+# Press a fire code on an incident from the console (v1.12.46): Fire Volunteer
+# and BFP Admins, the central hub and the system Admin.
+PRESS_CODES = "codes.press"
 
 _EVERY_ADMIN = frozenset({ACKNOWLEDGE, DECIDE_OVERLAPS, DELETE_WATER, CREATE_COORDINATORS})
 
@@ -78,6 +81,7 @@ _SYSTEM = frozenset(
         REVIEW_IDS,
         REVIEW_STRIKES,
         MANAGE_MAP,
+        PRESS_CODES,
         DELETE_WATER,
         CREATE_COORDINATORS,
         MANAGE_ANY_ACCOUNT,
@@ -181,6 +185,7 @@ def admin_access(user: AuthenticatedUser) -> AdminAccess | None:
     permissions = set(_EVERY_ADMIN)
     if agency in FIRE_AGENCIES:
         permissions.add(MANAGE_MAP)
+        permissions.add(PRESS_CODES)
     if agency == "fire_volunteer":
         permissions.add(REQUEST_ALARM)
     if agency == "bfp":

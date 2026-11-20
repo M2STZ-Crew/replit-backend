@@ -911,8 +911,6 @@
 .rpl-report-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
 @media (max-width: 1023px) { .rpl-report-grid { grid-template-columns: minmax(0, 1fr); } }
 .rpl-report-narrative { margin-top: 8px !important; white-space: pre-line; }
-.rpl-pager { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.rpl-pager-buttons { display: flex; gap: 8px; }
 .rpl-panel .web-incident-summary .web-report-heading { margin-bottom: 8px; }
 .rpl-panel .web-incident-summary .web-report-heading h3 {
   margin: 0;
@@ -924,7 +922,7 @@
 }
 
 /* ── Audit log (10 · A64) ─────────────────────────────────────────────── */
-.rpl-audit-time { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rpl-audit-time { color: var(--text); font-size: 13px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .rpl-audit-detail { max-width: 360px; color: var(--text-2); font-size: 13px; line-height: 18px; }
 
 /* ── UI READY forms (10 · A43, A44, A65) ──────────────────────────────── */
@@ -1129,3 +1127,66 @@
 .rpl-password-show { display: inline-flex; align-items: center; gap: 8px; color: var(--label); font-size: 13px; cursor: pointer; }
 .rpl-password-result { margin: 0; font-size: 13px; line-height: 1.5; }
 .rpl-password-result.is-ok { color: var(--ok); font-weight: 600; }
+
+/* ── Audit log, grouped by incident (v1.12.47) ─────────────────────────── */
+.rpl-audit-groups { display: flex; flex-direction: column; gap: 12px; margin: 12px 0 16px; }
+.rpl-panel.rpl-audit-group { gap: 0; padding: 0; overflow: hidden; }
+.rpl-audit-group-head { display: flex; align-items: center; gap: 12px; padding: 8px 16px 8px 8px; }
+.rpl-audit-toggle {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rpl-audit-toggle:hover { box-shadow: inset 0 0 0 100px var(--hover); }
+.rpl-audit-chevron { display: inline-flex; flex: none; color: var(--label); transition: transform 160ms ease; }
+.rpl-audit-group.is-open .rpl-audit-chevron { transform: rotate(90deg); }
+.rpl-audit-timeline { margin: 0; padding: 4px 24px 12px 52px; list-style: none; border-top: 1px solid var(--line); }
+.rpl-audit-entry {
+  position: relative;
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) auto;
+  gap: 4px 16px;
+  align-items: baseline;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.rpl-audit-entry:last-child { border-bottom: 0; }
+/* The timeline's dot, in the gutter. */
+.rpl-audit-entry::before {
+  content: "";
+  position: absolute;
+  left: -26px;
+  top: 18px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.rpl-audit-what { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rpl-audit-code {
+  color: var(--label);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.rpl-audit-more { padding: 4px 0; }
+@media (prefers-reduced-motion: reduce) { .rpl-audit-chevron { transition: none; } }
+@media (max-width: 699px) {
+  .rpl-audit-group-head { flex-wrap: wrap; padding: 8px; }
+  .rpl-audit-group-head > .web-table-row-action { margin-left: 44px; }
+  .rpl-audit-timeline { padding: 4px 12px 12px 36px; }
+  .rpl-audit-entry { grid-template-columns: minmax(0, 1fr); }
+  .rpl-audit-entry::before { left: -20px; }
+  .rpl-audit-code { white-space: normal; overflow-wrap: anywhere; }
+}

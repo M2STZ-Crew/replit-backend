@@ -1,0 +1,100 @@
+/* ── Responsive, from 360 px phones up (v1.12.47) ─────────────────────────
+   20 Nov 2026: "make the web responsive to any device"; answered "Phones up,
+   both sites". The console's phone layout (the bottom bar under 900 px) was
+   in place; these are the parts that still ran off a 360 px screen, scrolled
+   sideways or squeezed their words. Loaded last, so it refines the pages' own
+   rules. */
+
+/* Tables become cards on a phone: the row's name on its own line, then each
+   cell, under its label where the cell needs one (data-label), and the
+   action at the end. A table that scrolled sideways showed only its first
+   column at 360 px. */
+@media (max-width: 699px) {
+  .web-table-wrap { overflow: visible; border: 0; border-radius: 0; background: transparent; }
+  .web-table,
+  .web-table tbody { display: block; width: 100%; }
+  .web-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .web-table tbody tr {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 20px;
+    margin-bottom: 8px;
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+  }
+  .web-table tbody th,
+  .web-table tbody td { display: block; height: auto; padding: 0; border: 0; }
+  .web-table tbody th[scope="row"] { flex: 1 1 100%; min-width: 0; }
+  .web-table tbody td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 4px;
+    color: var(--label);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .web-table .web-table-action-cell { width: auto; margin-left: auto; }
+  .web-table-row.is-selected { border-color: var(--accent-line); background: var(--accent-soft); }
+  .web-table-row.is-selected > * { border: 0; background: transparent; box-shadow: none; }
+  /* Unread: the card's edge, not a bar over the name. */
+  .web-table-row.is-unread { box-shadow: inset 3px 0 0 var(--accent); }
+  .web-table-row.is-unread > th:first-child::before { display: none; }
+  .web-table .web-table-empty { flex: 1 1 100%; height: auto; padding: 24px 0; }
+  .rpl-incidents th:first-child { min-width: 0; }
+
+  /* Tabs scroll sideways rather than running off the edge. */
+  .rpl-tabs,
+  .web-tabs { gap: 16px; overflow-x: auto; scrollbar-width: none; }
+  .rpl-tabs::-webkit-scrollbar,
+  .web-tabs::-webkit-scrollbar { display: none; }
+  .rpl-tab,
+  .web-tab { flex: none; }
+}
+
+/* A section's title on its own line, its count and link under it. */
+@media (max-width: 599px) {
+  .rpl-section-head { flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+  .rpl-section-head > .rpl-section-title { flex: 1 1 100%; }
+
+  /* Settings: the words above their control, not squeezed beside it. */
+  .rpl-setting { flex-wrap: wrap; align-items: flex-start; }
+  .rpl-setting-text { flex: 1 1 100%; }
+  .rpl-setting-control { flex: 1 1 100%; min-width: 0; flex-wrap: wrap; }
+  .rpl-setting-control > .rpl-range { flex: 1 1 120px; min-width: 0; }
+
+  /* Filters: each one the width of the screen. */
+  .rpl-filters > .rpl-select,
+  .rpl-filters > .rpl-search { flex: 1 1 100%; min-width: 0; }
+}
+
+/* The dashboard's queues, one to a line: two side by side broke "To
+   acknowledge" over three lines at 360 px. */
+@media (max-width: 479px) {
+  .rpl-queues { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .rpl-queue { min-height: 64px; }
+
+  /* A page's actions under its title, each as wide as the screen. */
+  .web-page-header-actions { flex: 1 1 100%; flex-wrap: wrap; }
+  .web-page-header-actions > .rpl-button,
+  .web-page-header-actions > .web-button { flex: 1 1 auto; }
+}
+
+/* On a phone the map's details panel is a sheet at the bottom: above the
+   zoom buttons, which otherwise sat on its Edit button. */
+@media (max-width: 1023px) {
+  .rpl-map-panel { z-index: 1001; }
+}

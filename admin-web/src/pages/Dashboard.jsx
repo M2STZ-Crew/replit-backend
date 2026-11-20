@@ -15,6 +15,10 @@ import { t } from '../i18n/i18n.jsx';
 /* Map settings edits shelters and risk areas; water is edited on its own page
  * since v1.12.43 (19 Nov 2026: "One Water resources page"). */
 const MAP_SETTINGS_LAYERS = ['risk', 'evac'];
+// Water is edited from Water resources (v1.12.43).
+const WATER_LAYERS = ['hydrants', 'water', 'cisterns'];
+// A place opened with Edit on the live map (v1.12.47); a new one remounts.
+const pointKey = (p) => (p ? `${p.layer}:${p.id}` : 'all');
 
 /* Every destination but the Dashboard loads on first use, so signing in
  * fetches the console's frame and its first screen, not every page and the
@@ -66,7 +70,7 @@ export default function Dashboard() {
   );
 }
 
-function Destination({ active, focusId, focusTab, go }) {
+function Destination({ active, focusId, focusTab, focusPoint, go }) {
   switch (active) {
     case 'dashboard':
       return <SituationBoard onNavigate={go} />;
@@ -83,17 +87,26 @@ function Destination({ active, focusId, focusTab, go }) {
         <LiveMapPage
           onOpenIncident={(incidentId) => go('incidents', { incidentId })}
           onManage={() => go('mapsettings')}
+          onEditPoint={(layer, id) => go(WATER_LAYERS.includes(layer) ? 'water' : 'mapsettings', { tab: layer, point: { layer, id } })}
         />
       );
     case 'requests':
       return <Requests readRequests={records.readRequests} onOpenIncident={(incidentId) => go('incidents', { incidentId })} />;
     case 'water':
-      return <WaterResources onOpenIncident={(incidentId) => go('incidents', { incidentId })} />;
+      return (
+        <WaterResources
+          key={pointKey(focusPoint)}
+          initialEdit={focusPoint}
+          onOpenIncident={(incidentId) => go('incidents', { incidentId })}
+        />
+      );
     case 'mapsettings':
       return (
         <MapManagement
+          key={pointKey(focusPoint)}
           layers={MAP_SETTINGS_LAYERS}
           initialLayer={focusTab}
+          initialEdit={focusPoint}
           onOpenIncident={(incidentId) => go('incidents', { incidentId })}
         />
       );
@@ -107,7 +120,7 @@ function Destination({ active, focusId, focusTab, go }) {
         />
       );
     case 'audit':
-      return <ActionRecord />;
+      return <ActionRecord onOpenIncident={(incidentId) => go('incidents', { incidentId })} />;
     case 'organization':
       return <Organization onNavigate={go} />;
     case 'idreview':
@@ -132,12 +145,15 @@ function Console() {
   // dashboard queue was clicked for ("Routed to you").
   const [focusId, setFocusId] = useState(null);
   const [focusTab, setFocusTab] = useState(null);
+  // The place Edit was pressed for on the live map (v1.12.47).
+  const [focusPoint, setFocusPoint] = useState(null);
 
   const go = useCallback((wanted, opts = {}) => {
     const key = keys.has(wanted) ? wanted : 'dashboard';
     setActive(key);
     setFocusId(opts.incidentId ?? null);
     setFocusTab(opts.tab ?? null);
+    setFocusPoint(opts.point ?? null);
     const hash = key === 'dashboard' ? '' : `#/${key}`;
     if (window.location.hash !== hash) {
       window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${hash}`);
@@ -158,6 +174,7 @@ function Console() {
       setActive(destinationFromHash(keys));
       setFocusId(null);
       setFocusTab(null);
+      setFocusPoint(null);
     };
     window.addEventListener('hashchange', follow);
     return () => window.removeEventListener('hashchange', follow);
@@ -184,7 +201,7 @@ function Console() {
       <div className={`db-scroll rpl-scroll${flush ? ' db-scroll-flush' : ''}`}>
         {!flush && <AlarmBanner onOpen={(incidentId) => go('incidents', { incidentId })} />}
         <Suspense fallback={<StatePanel kind="loading" skeleton="detail" rows={3} title={t('Opening…')} busy />}>
-          <Destination active={active} focusId={focusId} focusTab={focusTab} go={go} />
+          <Destination active={active} focusId={focusId} focusTab={focusTab} focusPoint={focusPoint} go={go} />
         </Suspense>
       </div>
     </ConsoleShell>

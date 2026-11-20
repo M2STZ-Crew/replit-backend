@@ -7,7 +7,7 @@ import IncidentTable from '../components/incidents/IncidentTable.jsx';
 import OverlapReview from '../components/incidents/OverlapReview.jsx';
 import AlarmEscalationDialog from '../components/requests/AlarmEscalationDialog.jsx';
 import Icon from '../components/ui/Icon.jsx';
-import { EmptyState, PageHeader, StatePanel } from '../components/ui/index.js';
+import { EmptyState, PageHeader, Pager, StatePanel, usePager } from '../components/ui/index.js';
 import { useLiveFeed, useSurfaceVisit } from '../live/LiveFeed.jsx';
 import { actsOn, splitsIncidents, yourOrg } from '../lib/access.js';
 import { degrees, fireAt, knownAddress, fireName } from '../lib/place.js';
@@ -25,7 +25,6 @@ import { t as tr } from '../i18n/i18n.jsx';
  * other Area it can open and follow, view only (A25). An Admin never rejects
  * an Area (PRD v13 §4.5.2: Reject is the Coordinator's, before anyone goes). */
 
-const PAGE = 10;
 
 const STATUSES = [
   { key: 'all', get label() { return tr('All active'); } },
@@ -72,7 +71,6 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
   const [agency, setAgency] = useState('any');
   const [band, setBand] = useState('any');
   const [query, setQuery] = useState('');
-  const [page, setPage] = useState(0);
   const [fetched, setFetched] = useState({ post_incident_report: null, closed: null });
   const [fetchError, setFetchError] = useState(null);
 
@@ -138,9 +136,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
       return true;
     });
   }, [source, tab, status, agency, band, query, access]);
-  useEffect(() => { setPage(0); }, [tab, status, agency, band, query]);
-  const pages = Math.max(1, Math.ceil(rows.length / PAGE));
-  const shown = rows.slice(page * PAGE, page * PAGE + PAGE);
+  const { shown, pager } = usePager(rows, { key: 'incidents', reset: [tab, status, agency, band, query] });
 
   const loadDetail = useCallback(async (id) => {
     if (!id) { setDetail(null); setDetailState('idle'); return; }
@@ -416,28 +412,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
             staleAt={!needs && failed ? loadedAt : null}
             yourOrg={orgStatus}
           />
-          <div className="rpl-pager">
-            <span className="rpl-pager-range">
-              {rows.length === 0 ? tr('Showing 0 of 0') : tr('Showing {from}–{to} of {count}', { from: page * PAGE + 1, to: Math.min(rows.length, page * PAGE + PAGE), count: rows.length })}
-            </span>
-            {pages > 1 && (
-              <nav className="rpl-pager-pages" aria-label={tr('Pages')}>
-                <button type="button" className="rpl-page-button" onClick={() => setPage((p) => p - 1)} disabled={page === 0} aria-label={tr('Previous page')}>‹</button>
-                {Array.from({ length: pages }, (_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    className={`rpl-page-button${i === page ? ' is-current' : ''}`}
-                    onClick={() => setPage(i)}
-                    aria-current={i === page ? 'page' : undefined}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-                <button type="button" className="rpl-page-button" onClick={() => setPage((p) => p + 1)} disabled={page >= pages - 1} aria-label={tr('Next page')}>›</button>
-              </nav>
-            )}
-          </div>
+          <Pager {...pager} />
         </>
       ) : null}
     </div>

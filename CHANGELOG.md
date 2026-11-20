@@ -6,6 +6,80 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.47 — 20 November 2026 — The map's places open; one pager; the audit log by incident; the console on a phone
+
+Console and backend; no app release, no migration. The second of the two
+releases for the 20 Nov list, after v1.12.46.
+
+### Changes
+- **The map's places open a details panel** (20 Nov: "in the admin map, make
+  evacuation, hydrants, and things are interactable"; answered "Open a details
+  panel"). A click on a shelter, hydrant, body of water, cistern or risk zone
+  on the live map opens its details beside the map
+  (`components/map/PointDetail.jsx`): its status and last field check (a
+  hydrant is Verified for 6 months after a check), capacity and contact,
+  type, radius and description, how far the nearest live fire is, with a link
+  to it, Open in Google Maps, and Edit for the Admin who manages the map.
+  Edit opens the place in the editor that holds it, on its form with the map
+  on it: Water resources' Edit on map for water, Map settings for shelters
+  and risk zones. Escape closes the panel. The status words are shared with
+  Water resources (`lib/water.js`).
+- **One pager everywhere** ("fix the pagination bar in admin, it is a UI
+  flaw"; answered "One pager everywhere"). `components/ui/Pager.jsx` replaces
+  three different paging bars: "Showing 11–20 of 134", the first and last
+  page with the pages around this one (1 … 4 5 6 … 14) instead of a button for
+  every page, and Rows per page (10, 25, 50), remembered per list. It wraps on
+  a narrow screen, and on a phone keeps only this page between the first and
+  last. On the incident desk, water resources, accounts, requests, reports,
+  the affiliate network and requests, National ID review, prank reports, the
+  map editor's list and the audit log. Reports are read 200 at once and paged
+  in the console, so a search covers all of them (`/post-incident-reports`
+  now lists up to 500).
+- **The audit log by incident** ("in the audit logs, make it per incident and
+  put some sorting to it (alphabethical and recent)"; answered "Grouped by
+  incident"). The latest 500 entries, grouped by the incident they are about,
+  each group's timeline inside it, oldest first, with who acted by name and
+  organisation; sorted Most recent or A–Z. Entries about no incident
+  (accounts, map layers, identity checks) are a group of their own, newest
+  first. A search opens every group it found something in; Open incident
+  goes to the incident.
+- **The console on a phone, from 360 px** ("make the web responsive to any
+  device"; answered "Phones up, both sites"; `styles/pass7-responsive.css`).
+  Tables become cards under 700 px, each cell under its label, rather than
+  scrolling sideways with only their first column in view; the dashboard's
+  queues are one to a line; section headings, Settings rows and filters
+  stack; tabs scroll sideways; the map's details panel sits above the zoom
+  buttons. Checked at 360 and 768 px: nothing runs off the screen. The
+  residents' site and the download page already fit a 360 px phone.
+
+---
+
+## v1.12.46 — 20 November 2026 — Fire codes shown and heard, both ways; hydrants verified by a check
+
+Backend and console; app v1.12.58 goes with it. No migration.
+
+### Changes
+- **A fire code is shown and heard** (20 Nov: "there's a logical flaw in the
+  fire code in coordinator to admin and vice versa ... if they press the fire
+  code, there's nothing happening"; answered "Show it and alert", "By what the
+  code asks", and Admins press on the incident page). A press was saved and
+  sent on a channel nothing read. Now it is on the incident everywhere
+  (`IncidentDetail.fire_codes`, the incident's broadcast) and alerts, in each
+  reader's language (`app/services/fire_code_notify.py`): FC-6 water, Fire
+  Volunteer and BFP coordinators; FC-7 more units, coordinators of every
+  agency on the fire; FC-8 a casualty, medical coordinators and the central
+  hub; FC-1 to FC-5, the incident's crews and coordinators, without a sound.
+  Never the presser; the status never changes.
+- **Admins press codes from the console** (`codes.press`: Fire Volunteer, BFP,
+  the central hub and the system Admin): a Fire codes panel on the incident
+  page, with a confirmation, and every press in its timeline.
+- **A hydrant is verified by a field check** for 6 months (`verified` on every
+  hydrant); the console's live map draws the rest gray, with a legend entry.
+- **Every fire ripples out to 100 m** on the console's live map and incident
+  map.
+
+---
+
 ## v1.12.45 — 20 November 2026 — Every fire in its barangay; the barangay layer
 
 Backend and console; app v1.12.57 goes with it. **Migration:**

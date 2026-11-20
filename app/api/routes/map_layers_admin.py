@@ -50,7 +50,9 @@ _HYDRANT_COLS = (
     "bfp_synced_at, ground_truth_status::text as ground_truth_status, "
     "ground_truth_by, ground_truth_at, ground_truth_notes, "
     "effective_status::text as effective_status, source, is_active, "
-    "created_at, updated_at"
+    "created_at, updated_at, "
+    "(ground_truth_at is not null and ground_truth_at > now() - interval '6 months') "
+    "as verified"
 )
 _EVAC_COLS = (
     "id, name, latitude, longitude, capacity, address, contact_info, "
