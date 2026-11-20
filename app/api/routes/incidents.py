@@ -62,6 +62,7 @@ from app.schemas.incident import (
 )
 from app.services import fire_broadcast, report_strikes
 from app.services.access import ACKNOWLEDGE, acting_agency, admin_access
+from app.services.acknowledge import insert_acceptance
 from app.services.audit import record_audit
 from app.services.fire_type import (
     ON_SCENE_STATUSES,
@@ -361,19 +362,25 @@ async def build_incident_detail(db: Database, incident_id: UUID) -> IncidentDeta
 
 
 async def finish_incident_change(
-    db: Database, incident_id: UUID, event_type: str
+    db: Database,
+    incident_id: UUID,
+    event_type: str,
+    *,
+    skip_reporter: UUID | None = None,
 ) -> IncidentDetail:
     """Rebuild the detail, broadcast to subscribers, push the reporter, and return it.
 
     Public because the Post-Incident Report and Admin routing modules change
-    incidents too, and their subscribers deserve the same broadcast.
+    incidents too, and their subscribers deserve the same broadcast; so does a
+    staff member's own report, which acknowledges it (``skip_reporter``: they
+    are not told what they just did).
     """
     detail = await build_incident_detail(db, incident_id)
     await broadcast_incident_event(detail, event_type)
     await publish_tracking(db, incident_id)
     await publish_area_change(db, incident_id)
     try:
-        await notify_incident_reporters(db, incident_id, event_type)
+        await notify_incident_reporters(db, incident_id, event_type, skip=skip_reporter)
     except Exception:
         log.error("reporter_notify_failed", incident_id=str(incident_id), exc_info=True)
     # Verified (v1.12.38): every resident hears of it, after this answers.
@@ -869,18 +876,9 @@ async def accept_incident(
                 moved = True
             # An organisation's Admin records its organisation's agency: the
             # row then counts for that agency and team like its Coordinators'.
-            await conn.execute(
-                """
-                insert into public.area_acceptances
-                    (area_id, user_id, agency, organization_id, is_first)
-                values ($1, $2, $3::public.agency_type, $4, $5)
-                """,
-                incident_id,
-                user.id,
-                agency,
-                user.primary_org_id if agency else None,
-                is_first,
-            )
+            # The central hub's Fire Volunteer and medical members (19 Nov
+            # 2026's "unexpected error") are kept, organisation or not.
+            await insert_acceptance(conn, incident_id, user, agency, is_first=is_first)
             if moved:
                 await _audit_transition(
                     conn, request, user, incident_id,

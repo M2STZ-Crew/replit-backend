@@ -6,6 +6,34 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.44 — 20 November 2026 — A staff report is acknowledged; the hub acknowledges again
+
+Backend; app v1.12.56 goes with it. **Migration:**
+`20261120120000_hub_acknowledges_any_agency.sql` (one function body). Until it
+is applied, the central hub's acknowledgements are kept without its
+organisation; nothing fails.
+
+### Changes
+- **The "unexpected error" on acknowledging is fixed** (19 Nov: "there's an
+  unexpected error when the coordinator report a fire incident himself and he
+  acknowledge it by himself too"). The self-report was not the cause. The
+  central hub (Barangay 76, all in one) has Fire Volunteer and medical
+  members, and the database refused any acknowledgement whose organisation is
+  not of the acknowledging agency. The hub is filed under barangay, so those
+  six accounts could acknowledge no fire at all; Accept answered 500. The
+  acknowledgement now goes through `app/services/acknowledge.py`, which keeps
+  it without the organisation when the database refuses it, and the
+  migration lets the hub count for every agency.
+- **A staff report is acknowledged on sending** (answered "Acknowledged on
+  sending"). A coordinator's or responder's report starts acknowledged by
+  their organisation: the incident moves to Verified as on Accept, staff on
+  duty are alerted, residents hear of a verified fire, and the reporter is
+  not told what they just did. Accept's rules hold: only an incident their
+  agency may see, once per person, and a responder adds nothing to a fire
+  already verified. The submit answer says so (`acknowledged`).
+
+---
+
 ## v1.12.43 — 20 November 2026 — Water resources, kept from the field
 
 Backend and console; app v1.12.55 goes with it. **Migration:**

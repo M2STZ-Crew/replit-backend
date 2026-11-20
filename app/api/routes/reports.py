@@ -13,9 +13,10 @@ from typing import Annotated
 from uuid import UUID, uuid4
 
 from asyncpg import Record
-from fastapi import APIRouter, File, Form, UploadFile, status
+from fastapi import APIRouter, File, Form, Request, UploadFile, status
 
 from app.api.deps import CurrentUser, DatabaseDep, StorageClientDep
+from app.api.routes.incidents import finish_incident_change
 from app.core.config import get_settings
 from app.core.exceptions import BadRequestError, ConflictError, ExternalServiceError
 from app.core.logging import get_logger
@@ -24,6 +25,7 @@ from app.integrations.fcm import PushService
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.report import ReportResponse, ReportSubmitResponse
 from app.services import report_strikes
+from app.services.acknowledge import acknowledge_own_report
 from app.services.clustering import cluster_report
 from app.services.exif import extract_gps, validate_image
 from app.services.geo import haversine_m
@@ -118,6 +120,7 @@ def _reporter_verified_percent(user: AuthenticatedUser) -> int:
     summary="Submit an incident report (SOS)",
 )
 async def submit_report(
+    request: Request,
     user: CurrentUser,
     db: DatabaseDep,
     storage: StorageClientDep,
@@ -244,6 +247,16 @@ async def submit_report(
     )
     assert area is not None
 
+    # A coordinator or responder who reports a fire is there: their report
+    # starts acknowledged by their organisation, with no self-acknowledge step
+    # (v1.12.44, 19 Nov 2026: "Acknowledged on sending"). Best-effort: the
+    # report stands, and anyone may still acknowledge it, if this fails.
+    own_ack = None
+    try:
+        own_ack = await acknowledge_own_report(db, request, user, area_id)
+    except Exception:
+        log.error("own_report_ack_failed", area_id=str(area_id), exc_info=True)
+
     # Keep the reporter locatable for future incidents, then immediately alert
     # nearby users (100 m) — they don't have to wait for the 60 s worker tick.
     await db.execute(
@@ -277,6 +290,18 @@ async def submit_report(
         except Exception:
             log.error("staff_new_incident_notify_failed", area_id=str(area_id), exc_info=True)
     await publish_area_change(db, area_id)
+    if own_ack is not None:
+        # The same broadcast an Accept makes: dashboards move it to Verified and
+        # every resident hears of a verified fire.
+        try:
+            await finish_incident_change(
+                db,
+                area_id,
+                "incident_verified" if own_ack.outcome == "verified" else "incident_accepted",
+                skip_reporter=user.id,
+            )
+        except Exception:
+            log.error("own_report_ack_broadcast_failed", area_id=str(area_id), exc_info=True)
 
     if not has_exif:
         note = "No EXIF GPS (e.g. gallery upload)."
@@ -301,6 +326,7 @@ async def submit_report(
         area_id=area_id,
         area_designation=area["designation"],
         message=f"Report submitted. {note}",
+        acknowledged=own_ack is not None,
     )
 
 
