@@ -6,6 +6,40 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.45 — 20 November 2026 — Every fire in its barangay; the barangay layer
+
+Backend and console; app v1.12.57 goes with it. **Migration:**
+`20261120150000_barangays.sql` (two new tables, two nullable columns on
+`areas`). Then `python scripts/load_barangays.py` (with `--dry-run` first) and
+`python scripts/name_areas.py --barangays` for the fires named before. Until
+then fires are named as in v1.12.42 and the layer is empty.
+
+### Changes
+- **A fire says its barangay** (19 Nov: "Concha Street corner Camba Street,
+  Barangay 70 Zone 10, Tondo, Manila ... we are covering metro manila for
+  now"). Alerts and lists say the short form, kept in `areas.designation`:
+  "Near F. Victor St., Brgy 76, Pasay", "Concha St. corner Camba St., Brgy 70,
+  Tondo", "Ayala Ave. corner Paseo de Roxas, Bel-Air, Makati". Detail screens
+  and the PDF report say it in full, `areas.place_line`: "Near F. Victor
+  Street, Barangay 76 Zone 10, Pasay", "Concha Street corner Camba Street,
+  Barangay 70 Zone 6, Tondo, Manila". A fire with no street near is named by
+  its barangay alone ("Brgy 76, Pasay"); outside Metro Manila nothing changes.
+  Tagalog still says "Malapit sa ...".
+- **Metro Manila's barangays** (`public.barangays`): PSA/NAMRIA's 1,712
+  outlines (UN OCHA COD-AB v03), zones and Manila's districts from Wikipedia,
+  the EMBO barangays named Taguig. `docs/data-sources.md` cites each.
+- **The barangay layer** (19 Nov: "displayed as a clean layer so you can
+  color-code and highlight fire risk zones"). `GET /map/barangays` sends every
+  outline (simplified to 2 m, about 1.3 MB, gzipped) and, for the 86
+  barangays of Pasay's Zones 8, 11, 13, 14, 15, 16, 19 and 20, "High fire-risk
+  zone (research-based)", never a BFP designation. The console's live map has
+  two switches, Barangays and High fire risk; the admin-drawn Risk Areas stay
+  as they are.
+- **Incidents and areas carry `place_line`**, and the console titles an
+  incident with it.
+
+---
+
 ## v1.12.44 — 20 November 2026 — A staff report is acknowledged; the hub acknowledges again
 
 Backend; app v1.12.56 goes with it. **Migration:**

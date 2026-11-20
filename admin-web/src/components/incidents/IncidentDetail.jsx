@@ -334,7 +334,8 @@ export default function IncidentDetail({
       <header className="web-page-header">
         <div className="web-page-header-copy">
           <p className="web-eyebrow">{eyebrow}</p>
-          <h1 className="web-page-title">{fireName(d.designation)}</h1>
+          {/* The full place (v1.12.45): street, barangay, district, city. */}
+          <h1 className="web-page-title">{fireName(d.place_line || d.designation)}</h1>
           <p className="web-page-description">{sub}</p>
         </div>
       </header>

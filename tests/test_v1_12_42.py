@@ -103,6 +103,9 @@ class _StreetsDb:
         self.counted: tuple[Any, ...] | None = None
 
     async def fetchrow(self, query: str, *args: Any) -> dict[str, str] | None:
+        if "from public.barangays" in query:
+            # Before the barangays (v1.12.45): named after the streets alone.
+            return None
         self.rows.append((query, args))
         if self.fail:
             raise RuntimeError('relation "public.streets" does not exist')

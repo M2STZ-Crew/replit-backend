@@ -13,14 +13,19 @@ sight of a row the moment they switched it off.
 
 from __future__ import annotations
 
+import gzip
+import json
+import time
+from typing import Any
 from uuid import UUID
 
 import asyncpg
-from fastapi import APIRouter
+from fastapi import APIRouter, Request, Response
 
 from app.api.deps import CurrentUser, DatabaseDep
 from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
+from app.db.session import Database
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.map_layer import (
     BodyOfWaterResponse,
@@ -274,3 +279,102 @@ async def get_cistern(
     if row is None:
         raise NotFoundError("Underground cistern not found.")
     return CisternResponse.model_validate(_for_resident(user, dict(row)))
+
+
+# --------------------------------------------------------------------------- #
+# Barangays (v1.12.45)
+# --------------------------------------------------------------------------- #
+# What the map calls a High zone: research-based, never a BFP designation
+# (the user's risk file, 19 Nov 2026).
+RISK_LABEL = "High fire-risk zone (research-based)"
+
+# The outlines at 5 decimals (about 1 m), each drawn simplified to 2 m but for
+# the High fire-risk barangays, kept as drawn.
+_BARANGAY_LAYER_SQL = """
+select b.pcode, b.name, b.kind, b.number, b.zone, b.district, b.city,
+       extensions.ST_AsGeoJSON(
+           case when r.pcode is null then b.geom_map
+                else extensions.ST_Transform(b.geom, 4326) end, 5) as area_geojson,
+       r.zone_id as risk_zone, r.risk_level, r.risk_source,
+       r.assessment_start, r.assessment_end
+  from public.barangays b
+  left join public.fire_risk_barangays r on r.pcode = b.pcode
+ order by b.pcode
+"""
+
+# The layer changes only when scripts/load_barangays.py runs: built once,
+# kept for an hour, then built again.
+_LAYER_TTL_S = 3600.0
+_layer: dict[str, Any] = {"at": 0.0, "body": b"[]", "packed": gzip.compress(b"[]")}
+
+
+def _barangay_row(r: Any) -> dict[str, Any]:
+    risk = None
+    if r["risk_level"] is not None:
+        risk = {
+            "zone_id": r["risk_zone"],
+            "level": r["risk_level"],
+            "label": RISK_LABEL,
+            "source": r["risk_source"],
+            "assessment_start": r["assessment_start"].isoformat(),
+            "assessment_end": r["assessment_end"].isoformat(),
+            "official_bfp_designation": False,
+        }
+    return {
+        "pcode": r["pcode"],
+        "name": r["name"],
+        "kind": r["kind"],
+        "number": r["number"],
+        "zone": r["zone"],
+        "district": r["district"],
+        "city": r["city"],
+        "area_geojson": r["area_geojson"],
+        "risk": risk,
+    }
+
+
+async def barangay_layer(db: Database) -> tuple[bytes, bytes]:
+    """The layer's JSON, plain and gzipped. Empty, and built again on the next
+    call, before migration 20261120150000 or before the barangays are loaded."""
+    if _layer["at"] and time.monotonic() - _layer["at"] < _LAYER_TTL_S:
+        return _layer["body"], _layer["packed"]
+    try:
+        rows = await db.fetch(_BARANGAY_LAYER_SQL)
+    except (asyncpg.exceptions.UndefinedTableError, asyncpg.exceptions.UndefinedColumnError):
+        log.info("barangay_layer_waits_for_migration")
+        return b"[]", gzip.compress(b"[]")
+    body = json.dumps([_barangay_row(r) for r in rows], separators=(",", ":")).encode()
+    packed = gzip.compress(body, compresslevel=6)
+    if rows:
+        _layer.update(at=time.monotonic(), body=body, packed=packed)
+    log.info("barangay_layer_built", barangays=len(rows), bytes=len(body), gzipped=len(packed))
+    return body, packed
+
+
+@router.get(
+    "/barangays",
+    summary="Metro Manila's barangay outlines, with Pasay's High fire-risk zones",
+    responses={
+        200: {"description": "A JSON list of barangays.", "content": {"application/json": {}}}
+    },
+)
+async def list_barangays(request: Request, user: CurrentUser, db: DatabaseDep) -> Response:
+    """The barangay layer every map can switch on (v1.12.45; 19 Nov 2026: "the
+    exact geographic boundary lines (polygons) of each barangay, displayed as a
+    clean layer so you can color-code and highlight fire risk zones").
+
+    Each row: PSGC code, name ("Barangay 76", "Bel-Air"), kind, number, zone,
+    Manila district, city, outline (GeoJSON MultiPolygon, ``area_geojson``),
+    and ``risk`` for the 86 barangays of Pasay's High fire-risk zones ("High
+    fire-risk zone (research-based)", never a BFP designation), else null.
+    About 1.3 MB, sent gzipped to any client that accepts it.
+    """
+    body, packed = await barangay_layer(db)
+    headers = {"Vary": "Accept-Encoding", "Cache-Control": "private, max-age=3600"}
+    if "gzip" in request.headers.get("accept-encoding", "").lower():
+        return Response(
+            packed,
+            media_type="application/json",
+            headers={**headers, "Content-Encoding": "gzip"},
+        )
+    return Response(body, media_type="application/json", headers=headers)

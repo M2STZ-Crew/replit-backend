@@ -92,7 +92,9 @@ async def get_area(area_id: UUID, user: CurrentUser, db: DatabaseDep) -> AreaDet
                (select fo.name from public.users fu
                   join public.organizations fo on fo.id = fu.primary_org_id
                  where fu.id = (to_jsonb(a) ->> 'fire_type_set_by')::uuid)
-                   as fire_type_org_name
+                   as fire_type_org_name,
+               -- The full place (v1.12.45), null before its migration.
+               to_jsonb(a) ->> 'place_line' as place_line
         from public.areas a
         where a.id = $1
         """,
