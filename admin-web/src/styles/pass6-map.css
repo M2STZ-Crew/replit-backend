@@ -236,3 +236,19 @@
   /* There the editor is a sheet along the bottom. */
   .lm-zoom-hint.mm-zoom-hint.is-beside-panel { left: 50%; }
 }
+
+/* ── A place's details on the live map (v1.12.47) ─────────────────────── */
+.rpl-point-panel { max-height: calc(100% - 32px); overflow-y: auto; }
+.rpl-point-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.rpl-point-actions > .rpl-button { flex: 1 1 auto; min-width: 0; }
+.rpl-text-button--inline {
+  min-height: 24px;
+  padding: 0;
+  font-size: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+@media (max-width: 1023px) {
+  .rpl-point-panel { max-height: 60vh; }
+}

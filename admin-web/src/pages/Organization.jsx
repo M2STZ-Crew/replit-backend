@@ -142,7 +142,7 @@ export default function Organization({ onNavigate }) {
                     {equipment.map((e) => (
                       <tr key={e.id} className="web-table-row">
                         <th scope="row"><span className="rpl-cell-title">{e.name}</span></th>
-                        <td>
+                        <td data-label={t('Category')}>
                           {words(e.category)}
                           {e.capacity_liters ? ` · ${Number(e.capacity_liters).toLocaleString()} L` : ''}
                         </td>

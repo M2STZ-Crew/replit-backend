@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { api } from '../api/client.js';
 import { useConsole } from '../components/ConsoleShell.jsx';
-import { ConfirmDialog, EmptyState, Icon, PageHeader, StatePanel } from '../components/ui/index.js';
+import {
+  ConfirmDialog, EmptyState, Icon, PageHeader, Pager, StatePanel, usePager,
+} from '../components/ui/index.js';
 import ZoomablePhoto from '../components/ui/ZoomablePhoto.jsx';
 import { t } from '../i18n/i18n.jsx';
 
@@ -69,6 +71,7 @@ export default function IdReview() {
   const [error, setError] = useState(null);
   const [openId, setOpenId] = useState(null);
   const [notice, setNotice] = useState(null);
+  const { shown, pager } = usePager(items, { key: 'id-review' });
 
   const load = useCallback(async () => {
     setPhase('loading');
@@ -129,7 +132,7 @@ export default function IdReview() {
         <section className="rpl-panel" aria-labelledby="rpl-idr-waiting">
           <h2 className="rpl-decision-title" id="rpl-idr-waiting">{t('Waiting ·')}{' '}{items.length}</h2>
           <ul className="rpl-idr-list">
-            {items.map((item) => (
+            {shown.map((item) => (
               <li key={item.id}>
                 <button type="button" className="rpl-idr-row" onClick={() => setOpenId(item.id)}>
                   <span className="rpl-idr-plate" aria-hidden="true"><Icon name="verification" /></span>
@@ -144,6 +147,7 @@ export default function IdReview() {
               </li>
             ))}
           </ul>
+          <Pager {...pager} />
         </section>
       )}
 

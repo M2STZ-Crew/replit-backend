@@ -9,6 +9,7 @@ import { api } from '../api/client.js';
 import { CLUSTER_RADIUS_M } from '../components/incidents/AreaMap.jsx';
 import { agenciesOf, confidenceOf } from '../components/incidents/IncidentTable.jsx';
 import LifecycleChip from '../components/incidents/LifecycleChip.jsx';
+import PointDetail, { POINT_KINDS } from '../components/map/PointDetail.jsx';
 import {
   MARKER_KINDS, RISK_CIRCLE_STYLE, markerIcon, riskRadius, unitIcon,
 } from '../components/map/markers.js';
@@ -38,7 +39,13 @@ import { fireAt, fireName } from '../lib/place.js';
  *
  * The gear opens Map settings, the editor for every map element, for the Admin
  * the server lets change map layers (`map.manage`: Fire Volunteer, BFP and
- * central hub Admins, and the system Admin where one exists). */
+ * central hub Admins, and the system Admin where one exists).
+ *
+ * v1.12.47 (20 Nov 2026: "make evacuation, hydrants, and things are
+ * interactable"): a click on a shelter, hydrant, body of water, cistern or
+ * risk zone opens its details beside the map (components/map/PointDetail.jsx)
+ * — its state and last check, capacity and contact, the nearest live fire,
+ * Google Maps, and Edit for that Admin, which opens it in the editor. */
 
 const PASAY = [14.5378, 121.0014];
 const CLOCK = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit' });
@@ -147,7 +154,7 @@ function Selected({ inc, onClose, onOpen }) {
   );
 }
 
-export default function LiveMapPage({ onOpenIncident, onManage }) {
+export default function LiveMapPage({ onOpenIncident, onManage, onEditPoint }) {
   const { incidents } = useLiveFeed();
   const { console: access } = useConsole();
   const managesMap = can(access, PERM.MANAGE_MAP);
@@ -156,6 +163,8 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
   const [legend, setLegend] = useState(true);
   const [points, setPoints] = useState({});
   const [selectedId, setSelectedId] = useState(null);
+  // A place clicked on the map (v1.12.47): { kind, id }.
+  const [point, setPoint] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -181,6 +190,25 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
   }, [wantsBarangays, barangays]);
 
   const selected = useMemo(() => incidents.find((i) => i.id === selectedId) ?? null, [incidents, selectedId]);
+  const pointRow = useMemo(
+    () => (point ? (points[point.kind] ?? []).find((r) => r.id === point.id) ?? null : null),
+    [points, point],
+  );
+  // One panel at a time: a fire's, or a place's.
+  const selectIncident = (id) => { setSelectedId(id); setPoint(null); };
+  const selectPoint = (kind, id) => { setPoint({ kind, id }); setSelectedId(null); };
+
+  // Escape closes the panel.
+  useEffect(() => {
+    if (!point && !selectedId) return undefined;
+    const close = (e) => {
+      if (e.key !== 'Escape') return;
+      setPoint(null);
+      setSelectedId(null);
+    };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [point, selectedId]);
   const units = useLiveUnits(incidents);
 
   const toggle = (key) => setOn((prev) => {
@@ -204,7 +232,8 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
           <BarangayLayer rows={barangays} outlines={on.has('barangays')} risk={on.has('fireRisk')} />
         )}
         {/* A risk zone is its icon inside the circle the Admin set. The circle
-            is the zone, so it shows at every zoom, as on the app. */}
+            is the zone, so it shows at every zoom, as on the app; a click on
+            it opens the zone (v1.12.47). */}
         {on.has('risk') && (points.risk ?? [])
           .filter((r) => r.centroid_lat != null && r.centroid_lng != null)
           .map((r) => (
@@ -213,7 +242,7 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
               center={[r.centroid_lat, r.centroid_lng]}
               radius={riskRadius(r)}
               pathOptions={RISK_CIRCLE_STYLE}
-              interactive={false}
+              eventHandlers={{ click: () => selectPoint('risk', r.id) }}
             />
           ))}
         {/* The layers' points nearby, from street level in (v1.12.39). */}
@@ -221,7 +250,12 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
         {(near) => SOURCES.filter((s) => on.has(s.layer)).flatMap((s) => (points[s.key] ?? [])
           .filter((r) => r[s.lat] != null && r[s.lng] != null && near(r[s.lat], r[s.lng]))
           .map((r) => (
-            <Marker key={`${s.key}-${r.id}`} position={[r[s.lat], r[s.lng]]} icon={markerIcon(kindOf(s.key, r))}>
+            <Marker
+              key={`${s.key}-${r.id}`}
+              position={[r[s.lat], r[s.lng]]}
+              icon={markerIcon(kindOf(s.key, r), point?.kind === s.key && point.id === r.id)}
+              eventHandlers={{ click: () => selectPoint(s.key, r.id) }}
+            >
               <Tooltip direction="top" offset={[0, -18]}>
                 {`${MARKER_KINDS[kindOf(s.key, r)].label} · ${s.name(r)}${s.key === 'risk' ? ` · ${Math.round(riskRadius(r))} m` : ''}`}
               </Tooltip>
@@ -249,11 +283,11 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
               key={`i-${i.id}`}
               position={[i.centroid_lat, i.centroid_lng]}
               icon={markerIcon('incident', i.id === selectedId)}
-              eventHandlers={{ click: () => setSelectedId(i.id) }}
+              eventHandlers={{ click: () => selectIncident(i.id) }}
               title={`${fireName(i.designation)}, ${statusOf(i.status).label}`}
             />,
           ])}
-        <UnitsLayer units={units} onSelect={setSelectedId} />
+        <UnitsLayer units={units} onSelect={selectIncident} />
       </MapContainer>
 
       <div className="rpl-map-chips" role="group" aria-label={t('Map layers')}>
@@ -329,6 +363,17 @@ export default function LiveMapPage({ onOpenIncident, onManage }) {
           inc={selected}
           onClose={() => setSelectedId(null)}
           onOpen={() => onOpenIncident(selected.id)}
+        />
+      )}
+
+      {point && pointRow && (
+        <PointDetail
+          kind={point.kind}
+          row={pointRow}
+          incidents={incidents}
+          onClose={() => setPoint(null)}
+          onOpenIncident={onOpenIncident}
+          onEdit={managesMap && onEditPoint ? () => onEditPoint(POINT_KINDS[point.kind].layer, point.id) : null}
         />
       )}
     </div>

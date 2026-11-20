@@ -5,6 +5,7 @@ import { agencyLabel, useAuth } from '../auth.jsx';
 import CreateCoordinatorDialog from '../components/accounts/CreateCoordinatorDialog.jsx';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import Icon from '../components/ui/Icon.jsx';
+import Pager, { usePager } from '../components/ui/Pager.jsx';
 import {
   ConfirmDialog, EmptyState, PageHeader, StatePanel, StatusChip,
 } from '../components/ui/index.js';
@@ -98,6 +99,7 @@ export default function Accounts() {
     sub_admin: people.filter((p) => p.role === 'sub_admin').length,
     response_team: people.filter((p) => p.role === 'response_team').length,
   }), [people]);
+  const { shown, pager } = usePager(rows, { key: 'accounts', reset: [tab, query] });
 
   async function create({ firstName, lastName, personalEmail, title, organizationId }) {
     const result = await api.createCoordinator({ firstName, lastName, personalEmail, title, organizationId });
@@ -202,61 +204,64 @@ export default function Accounts() {
             : t('Coordinators create Responder accounts for their team on the mobile app.')}
         </EmptyState>
       ) : (
-        <div className="web-table-wrap">
-          <table className="web-table">
-            <caption className="web-sr-only">{coordinators ? t('Coordinators') : t('Responders')}</caption>
-            <thead>
-              <tr>
-                <th scope="col">{coordinators ? t('Coordinator') : t('Responder')}</th>
-                {everyOrg && <th scope="col">{t('Organization')}</th>}
-                <th scope="col">{t('Title')}</th>
-                <th scope="col">{t('Status')}</th>
-                <th scope="col">{t('Created')}</th>
-                {coordinators && manages && <th scope="col"><span className="web-sr-only">{t('Actions')}</span></th>}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((p) => (
-                <tr key={p.id} className={`web-table-row${p.is_active === false ? ' is-disabled' : ''}`}>
-                  <th scope="row">
-                    <span className="rpl-cell-resource">
-                      <span className="rpl-avatar" aria-hidden="true">{initials(p.full_name)}</span>
-                      <span className="rpl-cell-text">
-                        <span className="rpl-cell-title">{p.full_name || t('Unnamed account')}</span>
-                        <span className="rpl-cell-meta">{p.email || (p.agency_type ? agencyLabel(p.agency_type) : '—')}</span>
-                      </span>
-                    </span>
-                  </th>
-                  {everyOrg && <td>{p.org}</td>}
-                  <td>{p.title || '—'}</td>
-                  <td>
-                    <StatusChip
-                      label={p.is_active === false ? t('Disabled') : t('Active')}
-                      tone={p.is_active === false ? 'neutral' : 'ok'}
-                    />
-                  </td>
-                  <td className="rpl-cell-quiet">{created(p, myName)}</td>
-                  {coordinators && manages && (
-                    <td className="web-table-action-cell">
-                      <span className="rpl-account-actions">
-                        {p.is_active === false ? (
-                          <button type="button" className="web-table-row-action" onClick={() => turnOn(p)}>{t('Turn on')}<span className="web-sr-only">{t(' {name}’s account', { name: p.full_name })}</span>
-                          </button>
-                        ) : (
-                          <button type="button" className="web-table-row-action" onClick={() => setTurningOff(p)}>{t('Turn off')}<span className="web-sr-only">{t(' {name}’s account', { name: p.full_name })}</span>
-                          </button>
-                        )}
-                      </span>
-                    </td>
-                  )}
+        <>
+          <div className="web-table-wrap">
+            <table className="web-table">
+              <caption className="web-sr-only">{coordinators ? t('Coordinators') : t('Responders')}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">{coordinators ? t('Coordinator') : t('Responder')}</th>
+                  {everyOrg && <th scope="col">{t('Organization')}</th>}
+                  <th scope="col">{t('Title')}</th>
+                  <th scope="col">{t('Status')}</th>
+                  <th scope="col">{t('Created')}</th>
+                  {coordinators && manages && <th scope="col"><span className="web-sr-only">{t('Actions')}</span></th>}
                 </tr>
-              ))}
-              {rows.length === 0 && (
-                <tr><td className="web-table-empty" colSpan={6}>{t('Nobody matches “{query}”.', { query })}</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {shown.map((p) => (
+                  <tr key={p.id} className={`web-table-row${p.is_active === false ? ' is-disabled' : ''}`}>
+                    <th scope="row">
+                      <span className="rpl-cell-resource">
+                        <span className="rpl-avatar" aria-hidden="true">{initials(p.full_name)}</span>
+                        <span className="rpl-cell-text">
+                          <span className="rpl-cell-title">{p.full_name || t('Unnamed account')}</span>
+                          <span className="rpl-cell-meta">{p.email || (p.agency_type ? agencyLabel(p.agency_type) : '—')}</span>
+                        </span>
+                      </span>
+                    </th>
+                    {everyOrg && <td data-label={t('Organization')}>{p.org}</td>}
+                    <td data-label={t('Title')}>{p.title || '—'}</td>
+                    <td>
+                      <StatusChip
+                        label={p.is_active === false ? t('Disabled') : t('Active')}
+                        tone={p.is_active === false ? 'neutral' : 'ok'}
+                      />
+                    </td>
+                    <td className="rpl-cell-quiet" data-label={t('Created')}>{created(p, myName)}</td>
+                    {coordinators && manages && (
+                      <td className="web-table-action-cell">
+                        <span className="rpl-account-actions">
+                          {p.is_active === false ? (
+                            <button type="button" className="web-table-row-action" onClick={() => turnOn(p)}>{t('Turn on')}<span className="web-sr-only">{t(' {name}’s account', { name: p.full_name })}</span>
+                            </button>
+                          ) : (
+                            <button type="button" className="web-table-row-action" onClick={() => setTurningOff(p)}>{t('Turn off')}<span className="web-sr-only">{t(' {name}’s account', { name: p.full_name })}</span>
+                            </button>
+                          )}
+                        </span>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+                {rows.length === 0 && (
+                  <tr><td className="web-table-empty" colSpan={6}>{t('Nobody matches “{query}”.', { query })}</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <Pager {...pager} />
+        </>
       )}
 
       {notice && (

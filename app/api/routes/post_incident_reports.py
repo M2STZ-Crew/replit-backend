@@ -400,7 +400,7 @@ async def list_post_incident_reports(
     user: StaffUser,
     db: DatabaseDep,
     area_id: UUID | None = None,
-    limit: int = Query(default=50, ge=1, le=200),
+    limit: int = Query(default=50, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
 ) -> list[PostIncidentReportResponse]:
     """Filed reports, newest first: those of incidents the caller responded to

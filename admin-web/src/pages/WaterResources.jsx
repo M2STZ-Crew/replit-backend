@@ -8,9 +8,12 @@ import { useConsole } from '../components/ConsoleShell.jsx';
 import { markerIcon } from '../components/map/markers.js';
 import Place from '../components/Place.jsx';
 import Icon from '../components/ui/Icon.jsx';
-import { ConfirmDialog, EmptyState, PageHeader, StatePanel, StatusChip } from '../components/ui/index.js';
+import {
+  ConfirmDialog, EmptyState, PageHeader, Pager, StatePanel, StatusChip, usePager,
+} from '../components/ui/index.js';
 import { PERM, can } from '../lib/access.js';
 import { degrees, knownAddress } from '../lib/place.js';
+import { WATER_STATUS as STATUS, checkedOf, waterStatusOf as statusOf } from '../lib/water.js';
 import BaseTiles from '../map/BaseTiles.jsx';
 import WaterRequests, { WATER_REQUEST_LAYERS } from '../components/water/WaterRequests.jsx';
 import MapManagement from './MapManagement.jsx';
@@ -44,23 +47,8 @@ const KINDS = [
 ];
 const kindOf = (key) => KINDS.find((k) => k.key === key);
 
-// In the words of 19 Nov 2026: working, low pressure, broken, no access.
-const STATUS = {
-  operational: { get label() { return t('Working'); }, tone: 'ok' },
-  low_pressure: { get label() { return t('Low pressure'); }, tone: 'warn' },
-  non_operational: { get label() { return t('Broken'); }, tone: 'danger' },
-  no_access: { get label() { return t('No access'); }, tone: 'warn' },
-  under_maintenance: { get label() { return t('Under maintenance'); }, tone: 'warn' },
-  unknown: { get label() { return t('Not checked'); }, tone: 'neutral' },
-};
-
-function statusOf(row) {
-  if (row.kind === 'water') {
-    return row.is_accessible ? { label: t('Accessible'), tone: 'ok' } : { label: t('Not accessible'), tone: 'danger' };
-  }
-  const value = row.kind === 'hydrant' ? row.effective_status : row.status;
-  return STATUS[value] ?? STATUS.unknown;
-}
+// Status words and the last check are shared with the live map's details
+// panel (lib/water.js, v1.12.47).
 
 function nameOf(row) {
   const singular = kindOf(row.kind).singular;
@@ -73,29 +61,6 @@ function nameOf(row) {
 const placeOf = (row) => row.address
   || knownAddress(row.latitude, row.longitude)
   || degrees(row.latitude, row.longitude);
-
-const WHEN = new Intl.DateTimeFormat('en-PH', {
-  timeZone: 'Asia/Manila', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-});
-const when = (iso) => {
-  if (!iso) return null;
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? null : WHEN.format(d);
-};
-
-/* When the source was last looked at: a hydrant's on-the-ground check, else
- * the record's last change. */
-function checkedOf(row) {
-  if (row.kind === 'hydrant' && row.ground_truth_at) {
-    // Who checked it, for which organisation (v1.12.43).
-    const by = row.checked_by_org || row.checked_by_name;
-    const at = when(row.ground_truth_at);
-    return { title: t('Checked on the ground'), at: at && by ? t('{at} · {by}', { at, by }) : at };
-  }
-  return { title: t('Record updated'), at: when(row.updated_at) };
-}
-
-const PAGE = 10;
 
 function Detail({ row, onClose, onDelete, floating = false }) {
   const status = statusOf(row);
@@ -139,15 +104,16 @@ function Detail({ row, onClose, onDelete, floating = false }) {
   );
 }
 
-export default function WaterResources({ onOpenIncident }) {
+/* `initialEdit` ({ layer, id }): opened from Edit on the live map's details
+ * panel (v1.12.47), on that source's form in Edit on map. */
+export default function WaterResources({ onOpenIncident, initialEdit = null }) {
   const { console: access, refreshQueues } = useConsole();
   const managesMap = can(access, PERM.MANAGE_MAP);
-  const [view, setView] = useState('list');
+  const [view, setView] = useState(initialEdit ? 'edit' : 'list');
   const [type, setType] = useState('all');
   const [state, setState] = useState({ loading: true, error: null, rows: [] });
   const [attempt, setAttempt] = useState(0);
   const [query, setQuery] = useState('');
-  const [page, setPage] = useState(0);
   const [selectedId, setSelectedId] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -216,9 +182,7 @@ export default function WaterResources({ onOpenIncident }) {
       && (!term || `${nameOf(r)} ${placeOf(r)}`.toLowerCase().includes(term))),
     [state.rows, type, term],
   );
-  useEffect(() => { setPage(0); }, [type, term]);
-  const pages = Math.max(1, Math.ceil(rows.length / PAGE));
-  const shown = rows.slice(page * PAGE, page * PAGE + PAGE);
+  const { shown, pager } = usePager(rows, { key: 'water', reset: [type, term] });
   const selected = state.rows.find((r) => `${r.kind}:${r.id}` === selectedId) ?? null;
 
   const confirmDelete = useCallback(async () => {
@@ -291,7 +255,12 @@ export default function WaterResources({ onOpenIncident }) {
 
       {view === 'edit' ? (
         <div className="rpl-water-map rpl-water-editor">
-          <MapManagement layers={WATER_LAYERS} initialLayer="hydrants" onOpenIncident={onOpenIncident} />
+          <MapManagement
+            layers={WATER_LAYERS}
+            initialLayer={initialEdit?.layer ?? 'hydrants'}
+            initialEdit={initialEdit}
+            onOpenIncident={onOpenIncident}
+          />
         </div>
       ) : view === 'requests' ? (
         <WaterRequests
@@ -366,7 +335,7 @@ export default function WaterResources({ onOpenIncident }) {
                           </span>
                         </th>
                         <td><StatusChip label={s.label} tone={s.tone} /></td>
-                        <td>
+                        <td data-label={t('Last checked')}>
                           <span className="rpl-cell-text">
                             <span className="rpl-cell-value">{c.title}</span>
                             <span className="rpl-cell-meta">{c.at ?? '—'}</span>
@@ -392,20 +361,7 @@ export default function WaterResources({ onOpenIncident }) {
                 </tbody>
               </table>
             </div>
-            <div className="rpl-pager">
-              <span className="rpl-pager-range">
-                {rows.length === 0 ? t('Showing 0 of 0') : t('Showing {from}–{to} of {count}', { from: page * PAGE + 1, to: Math.min(rows.length, page * PAGE + PAGE), count: rows.length })}
-              </span>
-              {pages > 1 && (
-                <nav className="rpl-pager-pages" aria-label={t('Pages')}>
-                  <button type="button" className="rpl-page-button" onClick={() => setPage((p) => p - 1)} disabled={page === 0} aria-label={t('Previous page')}>‹</button>
-                  {Array.from({ length: pages }, (_, i) => (
-                    <button key={i} type="button" className={`rpl-page-button${i === page ? ' is-current' : ''}`} onClick={() => setPage(i)} aria-current={i === page ? 'page' : undefined}>{i + 1}</button>
-                  ))}
-                  <button type="button" className="rpl-page-button" onClick={() => setPage((p) => p + 1)} disabled={page >= pages - 1} aria-label={t('Next page')}>›</button>
-                </nav>
-              )}
-            </div>
+            <Pager {...pager} />
           </div>
           {selected && <Detail row={selected} onClose={() => setSelectedId(null)} onDelete={() => setDeleting(selected)} />}
         </div>

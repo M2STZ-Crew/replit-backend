@@ -3,7 +3,9 @@ import { useEffect, useMemo, useState } from 'react';
 import FiledReport from '../components/reports/FiledReport.jsx';
 import IncidentSummary from '../components/reports/IncidentSummary.jsx';
 import { useConsole } from '../components/ConsoleShell.jsx';
-import { EmptyState, Icon, PageHeader, StatePanel, StatusChip } from '../components/ui/index.js';
+import {
+  EmptyState, Icon, PageHeader, Pager, StatePanel, StatusChip, usePager,
+} from '../components/ui/index.js';
 import { t } from '../i18n/i18n.jsx';
 import { fireAt, fireName } from '../lib/place.js';
 
@@ -21,7 +23,9 @@ import { fireAt, fireName } from '../lib/place.js';
  *   readSummary({ areaId }) -> { state, summary }
  *   downloadIncidentPdf({ areaId, designation }) */
 
-const PAGE_SIZE = 25;
+// The latest reports, read at once and paged here like every list (v1.12.47),
+// so a search covers all of them rather than one page.
+const LOADED = 200;
 const CLOCK = new Intl.DateTimeFormat('en-PH', {
   timeZone: 'Asia/Manila', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit',
 });
@@ -118,7 +122,6 @@ function ReportView({ report, readIncidentReports, readSummary, downloadIncident
 
 export default function Reports({ readReports, readIncidentReports, readSummary, downloadIncidentPdf }) {
   const { org } = useConsole();
-  const [offset, setOffset] = useState(0);
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState({ phase: 'loading', rows: [], hasMore: false, error: null });
   const [query, setQuery] = useState('');
@@ -128,7 +131,7 @@ export default function Reports({ readReports, readIncidentReports, readSummary,
     let alive = true;
     setState((s) => ({ ...s, phase: 'loading', error: null }));
     Promise.resolve()
-      .then(() => readReports({ areaId: null, offset, pageSize: PAGE_SIZE }))
+      .then(() => readReports({ areaId: null, offset: 0, pageSize: LOADED }))
       .then((page) => {
         if (!alive) return;
         if (!Array.isArray(page?.items)) throw new Error(t('The reports could not be read. Try again.'));
@@ -136,7 +139,7 @@ export default function Reports({ readReports, readIncidentReports, readSummary,
       })
       .catch((e) => { if (alive) setState({ phase: 'error', rows: [], hasMore: false, error: message(e, t('The reports could not be loaded.')) }); });
     return () => { alive = false; };
-  }, [readReports, offset, attempt]);
+  }, [readReports, attempt]);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -144,6 +147,7 @@ export default function Reports({ readReports, readIncidentReports, readSummary,
     return state.rows.filter((r) => [r.area_designation, r.organization_name, r.filed_by_name, r.driver_name]
       .some((v) => String(v || '').toLowerCase().includes(q)));
   }, [state.rows, query]);
+  const { shown: visible, pager } = usePager(shown, { key: 'reports', reset: [query, attempt] });
 
   if (selected) {
     return (
@@ -171,7 +175,7 @@ export default function Reports({ readReports, readIncidentReports, readSummary,
       <div className="rpl-toolbar rpl-toolbar--plain">
         <label className="rpl-search">
           <Icon name="search" />
-          <span className="web-sr-only">{t('Search reports on this page')}</span>
+          <span className="web-sr-only">{t('Search reports')}</span>
           <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search areas, organizations, names')} />
         </label>
       </div>
@@ -181,7 +185,7 @@ export default function Reports({ readReports, readIncidentReports, readSummary,
       ) : state.phase === 'error' ? (
         <StatePanel kind="error" title={t('The reports couldn’t load')} description={state.error} onRetry={() => setAttempt((a) => a + 1)} />
       ) : state.rows.length === 0 ? (
-        <EmptyState icon="reports" title={offset > 0 ? t('No more reports') : t('No reports filed yet')}>{t('A team captain files a post-incident report on the mobile app after the fire is out.')}</EmptyState>
+        <EmptyState icon="reports" title={t('No reports filed yet')}>{t('A team captain files a post-incident report on the mobile app after the fire is out.')}</EmptyState>
       ) : (
         <>
           <div className="web-table-wrap">
@@ -197,7 +201,7 @@ export default function Reports({ readReports, readIncidentReports, readSummary,
                 </tr>
               </thead>
               <tbody>
-                {shown.map((r) => (
+                {visible.map((r) => (
                   <tr key={r.id} className="web-table-row">
                     <th scope="row">
                       <span className="rpl-cell-text">
@@ -205,9 +209,9 @@ export default function Reports({ readReports, readIncidentReports, readSummary,
                         <span className="rpl-cell-meta">{r.filed_by_name ? t('By {name}', { name: r.filed_by_name }) : t('By the team captain')}{r.driver_name ? t(' · driver {name}', { name: r.driver_name }) : ''}</span>
                       </span>
                     </th>
-                    <td className="rpl-cell-quiet">{time(r.submitted_at)}</td>
-                    <td className="rpl-cell-strong">{r.organization_name || t('Not recorded')}</td>
-                    <td><StatusChip {...outcome(r)} /></td>
+                    <td className="rpl-cell-quiet" data-label={t('Filed')}>{time(r.submitted_at)}</td>
+                    <td className="rpl-cell-strong" data-label={t('Organization')}>{r.organization_name || t('Not recorded')}</td>
+                    <td data-label={t('Outcome')}><StatusChip {...outcome(r)} /></td>
                     <td className="web-table-action-cell">
                       <button type="button" className="web-table-row-action" onClick={() => setSelected(r)}>{t('Open')}<span className="web-sr-only">{' '}{t('the report for')}{' '}{fireName(r.area_designation)}</span>
                       </button>
@@ -215,18 +219,15 @@ export default function Reports({ readReports, readIncidentReports, readSummary,
                   </tr>
                 ))}
                 {shown.length === 0 && (
-                  <tr><td className="web-table-empty" colSpan={5}>{t('Nothing on this page matches “{query}”.', { query })}</td></tr>
+                  <tr><td className="web-table-empty" colSpan={5}>{t('Nothing matches “{query}”.', { query })}</td></tr>
                 )}
               </tbody>
             </table>
           </div>
-          <nav className="rpl-pager" aria-label={t('Report pages')}>
-            <p className="rpl-table-foot">{t('Showing {from}–{to}', { from: offset + 1, to: offset + state.rows.length })}</p>
-            <div className="rpl-pager-buttons">
-              <button type="button" className="rpl-button rpl-button--secondary rpl-button--compact" disabled={offset === 0} onClick={() => { setOffset(Math.max(0, offset - PAGE_SIZE)); setQuery(''); }}>{t('Previous')}</button>
-              <button type="button" className="rpl-button rpl-button--secondary rpl-button--compact" disabled={!state.hasMore} onClick={() => { setOffset(offset + PAGE_SIZE); setQuery(''); }}>{t('Next')}</button>
-            </div>
-          </nav>
+          <Pager {...pager} />
+          {state.hasMore && (
+            <p className="rpl-table-foot">{t('The latest {count} reports are listed.', { count: LOADED })}</p>
+          )}
         </>
       )}
     </div>

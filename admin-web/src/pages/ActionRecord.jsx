@@ -3,18 +3,30 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client.js';
 import { agencyLabel } from '../auth.jsx';
 import { useConsole } from '../components/ConsoleShell.jsx';
-import { EmptyState, Icon, PageHeader, StatePanel } from '../components/ui/index.js';
+import {
+  EmptyState, Icon, PageHeader, Pager, StatePanel, usePager,
+} from '../components/ui/index.js';
 import { t } from '../i18n/i18n.jsx';
 import { fireName } from '../lib/place.js';
 
 /* Audit log (REPLIT (MAIN) 10 · A64 879:8852; Section 2.5 audit trail): the
- * append-only record of consequential actions, newest first.
+ * append-only record of consequential actions.
  *
- * Each entry keeps the actor's role and agency as they were at the time.
- * The server stores no actor name, so the actor column names the role and
- * agency instead. The design's correction entries (A65) wait on server
- * support. An earlier design showed a hash-chained digest; audit_logs has
- * no hash or chain, so no such property is claimed. */
+ * Each entry keeps the actor's role and agency as they were at the time, and
+ * a staff member's name and organisation (a resident's name is never sent).
+ * The design's correction entries (A65) wait on server support. An earlier
+ * design showed a hash-chained digest; audit_logs has no hash or chain, so no
+ * such property is claimed.
+ *
+ * v1.12.47 (20 Nov 2026: "in the audit logs, make it per incident and put
+ * some sorting to it (alphabethical and recent)"; answered "Grouped by
+ * incident"): the entries are grouped by the incident they are about, each
+ * group's timeline inside it, oldest first, as the incident unfolded. The
+ * groups are sorted by their latest entry (Most recent) or by the fire's name
+ * (A–Z), and paged like every list. Entries about no incident (accounts, map
+ * layers, identity checks) are a group of their own, newest first. */
+
+const LOADED = 500; // the most the server lists at once
 
 const CLOCK = new Intl.DateTimeFormat('en-PH', {
   timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', second: '2-digit',
@@ -69,20 +81,155 @@ function timeOf(iso) {
   return today ? CLOCK.format(d) : `${DAY.format(d)}, ${CLOCK.format(d)}`;
 }
 
-export default function ActionRecord() {
+/* Who acted: a staff member by name and organisation, with their role then;
+ * otherwise the role and agency, or the system. */
+function actorOf(r) {
+  const role = r.actor_role ? (ROLE[r.actor_role] ?? r.actor_role) : t('System');
+  if (r.actor_name) {
+    const org = r.actor_organization || (r.actor_agency ? agencyLabel(r.actor_agency) : null);
+    return [r.actor_name, org, role].filter(Boolean).join(' · ');
+  }
+  const who = r.actor_agency
+    ? agencyLabel(r.actor_agency)
+    : r.actor_user_id ? t('Account {shortId}', { shortId: shortId(r.actor_user_id) }) : t('Automatic');
+  return `${role} · ${who}`;
+}
+
+/* What an entry about no incident was about: "map layer 1a2b3c4d". */
+const targetOf = (r) => (r.entity_type ? `${r.entity_type.replace(/_/g, ' ')} ${shortId(r.entity_id)}` : null);
+
+const OTHER = 'other';
+const at = (iso) => new Date(iso).getTime();
+
+/* The entries by incident: each group's entries oldest first (newest first
+ * for the group about no incident), its latest time, and its name. */
+function groupsOf(rows) {
+  const byKey = new Map();
+  for (const r of rows) {
+    const key = r.area_id ?? OTHER;
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        key,
+        areaId: r.area_id ?? null,
+        name: r.area_id
+          ? fireName(r.area_designation) || t('Incident {shortId}', { shortId: shortId(r.area_id) })
+          : t('Not about an incident'),
+        entries: [],
+      });
+    }
+    byKey.get(key).entries.push(r);
+  }
+  return [...byKey.values()].map((g) => {
+    const newestFirst = g.key === OTHER;
+    const entries = [...g.entries].sort((a, b) => (newestFirst ? at(b.created_at) - at(a.created_at) : at(a.created_at) - at(b.created_at)));
+    const latest = entries.reduce((m, r) => Math.max(m, at(r.created_at)), 0);
+    const last = entries.find((r) => at(r.created_at) === latest);
+    return { ...g, entries, newestFirst, latest, last };
+  });
+}
+
+const SORTS = {
+  recent: { get label() { return t('Most recent'); }, compare: (a, b) => b.latest - a.latest },
+  az: {
+    get label() { return t('A–Z'); },
+    // By the fire's name; the group about no incident comes last.
+    compare: (a, b) => (a.key === OTHER) - (b.key === OTHER)
+      || a.name.localeCompare(b.name, 'en', { numeric: true, sensitivity: 'base' }),
+  },
+};
+
+const SHOWN_AT_FIRST = 20;
+
+function Timeline({ group, matched }) {
+  const [all, setAll] = useState(false);
+  const entries = matched;
+  const hidden = all ? 0 : Math.max(0, entries.length - SHOWN_AT_FIRST);
+  let visible = entries;
+  if (hidden > 0) visible = group.newestFirst ? entries.slice(0, SHOWN_AT_FIRST) : entries.slice(-SHOWN_AT_FIRST);
+  const more = hidden > 0 && (
+    <li className="rpl-audit-more">
+      <button type="button" className="rpl-text-button" onClick={() => setAll(true)}>
+        {group.newestFirst
+          ? t('Show {count} older entries', { count: hidden })
+          : t('Show {count} earlier entries', { count: hidden })}
+      </button>
+    </li>
+  );
+  return (
+    <ol className="rpl-audit-timeline" id={`rpl-audit-${group.key}`}>
+      {!group.newestFirst && more}
+      {visible.map((r) => {
+        const detail = detailOf(r);
+        const target = group.key === OTHER ? targetOf(r) : null;
+        return (
+          <li key={r.id} className="rpl-audit-entry">
+            <time className="rpl-audit-time" dateTime={r.created_at}>{timeOf(r.created_at)}</time>
+            <div className="rpl-audit-what">
+              <span className="rpl-cell-title">{labelOf(r.action)}</span>
+              <span className="rpl-cell-meta">{actorOf(r)}</span>
+              {(detail || target) && (
+                <span className="rpl-audit-detail">{[target, detail].filter(Boolean).join(' · ')}</span>
+              )}
+            </div>
+            <span className="rpl-audit-code">{r.action}</span>
+          </li>
+        );
+      })}
+      {group.newestFirst && more}
+    </ol>
+  );
+}
+
+function Group({ group, matched, open, onToggle, onOpenIncident }) {
+  const last = group.last;
+  return (
+    <section className={`rpl-panel rpl-audit-group${open ? ' is-open' : ''}`} aria-labelledby={`rpl-audit-head-${group.key}`}>
+      <div className="rpl-audit-group-head">
+        <button
+          type="button"
+          className="rpl-audit-toggle"
+          onClick={onToggle}
+          aria-expanded={open}
+          aria-controls={`rpl-audit-${group.key}`}
+          id={`rpl-audit-head-${group.key}`}
+        >
+          <span className="rpl-audit-chevron" aria-hidden="true"><Icon name="chevron-right" /></span>
+          <span className="rpl-cell-text">
+            <span className="rpl-cell-title">{group.name}</span>
+            <span className="rpl-cell-meta">
+              {t('{count} entries · latest {when}', { count: matched.length, when: timeOf(last.created_at) })}
+              {' · '}
+              {labelOf(last.action)}
+            </span>
+          </span>
+        </button>
+        {group.areaId && onOpenIncident && (
+          <button type="button" className="web-table-row-action" onClick={() => onOpenIncident(group.areaId)}>
+            {t('Open incident')}
+            <span className="web-sr-only">{' '}{group.name}</span>
+          </button>
+        )}
+      </div>
+      {open && <Timeline group={group} matched={matched} />}
+    </section>
+  );
+}
+
+export default function ActionRecord({ onOpenIncident }) {
   const { org } = useConsole();
   const [rows, setRows] = useState([]);
   const [phase, setPhase] = useState('loading');
   const [error, setError] = useState(null);
   const [query, setQuery] = useState('');
-  const [area, setArea] = useState('all');
   const [category, setCategory] = useState('all');
+  const [sort, setSort] = useState('recent');
+  const [opened, setOpened] = useState(() => new Set());
 
   const load = useCallback(async () => {
     setPhase('loading');
     setError(null);
     try {
-      const list = await api.auditLogs({ limit: 200 });
+      const list = await api.auditLogs({ limit: LOADED });
       setRows(Array.isArray(list) ? list : []);
       setPhase('ready');
     } catch (e) {
@@ -92,27 +239,46 @@ export default function ActionRecord() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const areas = useMemo(() => [...new Set(rows.map((r) => r.area_designation).filter(Boolean))].sort(), [rows]);
   const categories = useMemo(() => [...new Set(rows.map((r) => categoryOf(r.action)))].sort(), [rows]);
+  const groups = useMemo(() => groupsOf(rows), [rows]);
 
-  const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (area !== 'all' && r.area_designation !== area) return false;
-      if (category !== 'all' && categoryOf(r.action) !== category) return false;
-      if (!q) return true;
-      return [r.action, labelOf(r.action), r.actor_role, r.actor_agency, r.entity_type, r.area_designation, detailOf(r)]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q));
-    });
-  }, [rows, query, area, category]);
+  // Each group with the entries that match the search and the action filter;
+  // a search that names the incident keeps all of its entries.
+  const q = query.trim().toLowerCase();
+  const matching = useMemo(() => groups
+    .map((g) => {
+      const named = q && g.name.toLowerCase().includes(q);
+      const matched = g.entries.filter((r) => {
+        if (category !== 'all' && categoryOf(r.action) !== category) return false;
+        if (!q || named) return true;
+        return [r.action, labelOf(r.action), actorOf(r), r.entity_type, detailOf(r)]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q));
+      });
+      return { group: g, matched };
+    })
+    .filter((m) => m.matched.length > 0)
+    .sort((a, b) => SORTS[sort].compare(a.group, b.group)), [groups, q, category, sort]);
+
+  const { shown, pager } = usePager(matching, { key: 'audit', reset: [q, category, sort] });
+
+  // Groups open when clicked; while searching, every group with a match is
+  // open until it is folded.
+  const [folded, setFolded] = useState(() => new Set());
+  useEffect(() => { setFolded(new Set()); }, [q]);
+  const isOpen = (key) => (q ? !folded.has(key) : opened.has(key));
+  const toggle = (key) => (q ? setFolded : setOpened)((prev) => {
+    const next = new Set(prev);
+    if (!next.delete(key)) next.add(key);
+    return next;
+  });
 
   return (
     <div className="rpl-page">
       <PageHeader
         eyebrow={org?.name ?? t('Records')}
         title={t('Audit log')}
-        description={t('Append-only. Each entry keeps the actor’s role and agency as they were at the time.')}
+        description={t('Append-only, grouped by incident. Each entry keeps the actor’s role and agency as they were at the time.')}
         actions={(
           <button type="button" className="rpl-button rpl-button--secondary" onClick={load} disabled={phase === 'loading'}>{t('Refresh')}</button>
         )}
@@ -125,17 +291,16 @@ export default function ActionRecord() {
           <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search actions, incidents, agencies')} />
         </label>
         <label className="rpl-select">
-          <span className="rpl-select-label">{t('Incident')}</span>
-          <select value={area} onChange={(e) => setArea(e.target.value)}>
-            <option value="all">{t('All incidents')}</option>
-            {areas.map((a) => <option key={a} value={a}>{fireName(a)}</option>)}
-          </select>
-        </label>
-        <label className="rpl-select">
           <span className="rpl-select-label">{t('Action')}</span>
           <select value={category} onChange={(e) => setCategory(e.target.value)}>
             <option value="all">{t('All actions')}</option>
             {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
+        <label className="rpl-select">
+          <span className="rpl-select-label">{t('Sort')}</span>
+          <select value={sort} onChange={(e) => setSort(e.target.value)}>
+            {Object.entries(SORTS).map(([key, s]) => <option key={key} value={key}>{s.label}</option>)}
           </select>
         </label>
       </div>
@@ -148,49 +313,26 @@ export default function ActionRecord() {
         <EmptyState icon="audit" title={t('Nothing recorded yet')}>{t('Entries appear as incidents are acknowledged, reports are filed and requests are decided.')}</EmptyState>
       ) : (
         <>
-          <div className="web-table-wrap">
-            <table className="web-table rpl-audit">
-              <caption className="web-sr-only">{t('Audit log, newest first')}</caption>
-              <thead>
-                <tr>
-                  <th scope="col">{t('Time (PHT)')}</th>
-                  <th scope="col">{t('Actor at the time')}</th>
-                  <th scope="col">{t('Action')}</th>
-                  <th scope="col">{t('Target')}</th>
-                  <th scope="col">{t('Detail')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map((r) => (
-                  <tr key={r.id} className="web-table-row">
-                    <td className="rpl-cell-strong rpl-audit-time">
-                      <time dateTime={r.created_at}>{timeOf(r.created_at)}</time>
-                    </td>
-                    <td>
-                      <span className="rpl-cell-text">
-                        <span className="rpl-cell-title">{r.actor_role ? (ROLE[r.actor_role] ?? r.actor_role) : t('System')}</span>
-                        <span className="rpl-cell-meta">{r.actor_agency ? agencyLabel(r.actor_agency) : r.actor_user_id ? t('Account {shortId}', { shortId: shortId(r.actor_user_id) }) : t('Automatic')}</span>
-                      </span>
-                    </td>
-                    <th scope="row">
-                      <span className="rpl-cell-text">
-                        <span className="rpl-cell-title">{labelOf(r.action)}</span>
-                        <span className="rpl-cell-meta">{r.action}</span>
-                      </span>
-                    </th>
-                    <td className="rpl-cell-strong">
-                      {fireName(r.area_designation) || (r.entity_type ? `${r.entity_type.replace(/_/g, ' ')} ${shortId(r.entity_id ?? r.area_id)}` : '—')}
-                    </td>
-                    <td className="rpl-audit-detail">{detailOf(r) ?? '—'}</td>
-                  </tr>
-                ))}
-                {shown.length === 0 && (
-                  <tr><td className="web-table-empty" colSpan={5}>{t('No entries match these filters.')}</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          <p className="rpl-table-foot">{t('Showing {shown} of the latest {total} entries', { shown: shown.length, total: rows.length })}</p>
+          <p className="rpl-table-foot">
+            {t('The latest {count} entries, in {groups} groups.', { count: rows.length, groups: groups.length })}
+          </p>
+          {matching.length === 0 ? (
+            <p className="rpl-empty-line">{t('No entries match these filters.')}</p>
+          ) : (
+            <div className="rpl-audit-groups">
+              {shown.map(({ group, matched }) => (
+                <Group
+                  key={group.key}
+                  group={group}
+                  matched={matched}
+                  open={isOpen(group.key)}
+                  onToggle={() => toggle(group.key)}
+                  onOpenIncident={onOpenIncident}
+                />
+              ))}
+            </div>
+          )}
+          <Pager {...pager} />
         </>
       )}
     </div>

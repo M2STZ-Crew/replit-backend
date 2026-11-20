@@ -1222,4 +1222,39 @@ export const TAGALOG = {
   'Press code': 'Pindutin ang code',
   'Could not load the fire codes.': 'Hindi ma-load ang mga fire code.',
   'Hydrant, not verified': 'Hydrant, hindi pa beripikado',
+
+  // A place's details on the live map (v1.12.47).
+  'Critical': 'Kritikal',
+  'Verified · {at}': 'Beripikado · {at}',
+  'Not verified · last checked {at}': 'Hindi beripikado · huling sinuri {at}',
+  'Not verified · never checked on the ground': 'Hindi beripikado · hindi pa nasusuri sa mismong lugar',
+  'Field check': 'Pagsusuri sa lugar',
+  '{count} people': '{count} katao',
+  'City': 'Lungsod',
+  '{city}, outside Pasay': '{city}, labas ng Pasay',
+  'Radius': 'Radius',
+  '{metres} m': '{metres} m',
+  '{km} km': '{km} km',
+  'Nearest live fire': 'Pinakamalapit na aktibong sunog',
+  'No live fire now': 'Walang aktibong sunog ngayon',
+  'Open in Google Maps': 'Buksan sa Google Maps',
+  'That place is no longer on the map.': 'Wala na sa mapa ang lugar na iyon.',
+
+  // One pager everywhere (v1.12.47).
+  'Page {page}': 'Pahina {page}',
+  'Rows per page': 'Hilera bawat pahina',
+  'Search reports': 'Maghanap ng mga ulat',
+  'The latest {count} reports are listed.': 'Nakalista ang pinakabagong {count} ulat.',
+
+  // The audit log, grouped by incident (v1.12.47).
+  'Incident {shortId}': 'Insidente {shortId}',
+  'Not about an incident': 'Hindi tungkol sa isang insidente',
+  'Most recent': 'Pinakabago',
+  'A–Z': 'A–Z',
+  'Show {count} older entries': 'Ipakita ang {count} mas lumang tala',
+  'Show {count} earlier entries': 'Ipakita ang {count} naunang tala',
+  '{count} entries · latest {when}': '{count} tala · pinakabago {when}',
+  'Append-only, grouped by incident. Each entry keeps the actor’s role and agency as they were at the time.': 'Hindi nabubura, nakapangkat ayon sa insidente. Bawat tala ay nagtatago ng papel at ahensya ng gumawa noong panahong iyon.',
+  'Sort': 'Ayusin',
+  'The latest {count} entries, in {groups} groups.': 'Ang pinakabagong {count} tala, sa {groups} pangkat.',
 };
