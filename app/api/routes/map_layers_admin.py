@@ -16,10 +16,11 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+import asyncpg
 from fastapi import APIRouter, Response, status
 
 from app.api.deps import DatabaseDep, MapManager, WaterDeleter
-from app.core.exceptions import BadRequestError, NotFoundError
+from app.core.exceptions import BadRequestError, MigrationPendingError, NotFoundError
 from app.core.logging import get_logger
 from app.db.session import Database
 from app.schemas.map_layer import (
@@ -64,6 +65,8 @@ _WATER_COLS = (
     "id, name, water_type, latitude, longitude, is_accessible, description, "
     "extensions.ST_AsGeoJSON(area_geom) as area_geojson, created_at, updated_at"
 )
+# And whether it is switched on (v1.12.43, migration 20261120090000).
+_WATER_COLS_ACTIVE = f"{_WATER_COLS}, is_active"
 _CISTERN_COLS = (
     "id, name, code, latitude, longitude, capacity_liters, status::text as status, "
     "address, description, is_active, created_at, updated_at"
@@ -101,14 +104,30 @@ async def _apply_update(
             set_parts.append(f"{key} = ${len(params)}::{enum_casts[key]}")
         else:
             set_parts.append(f"{key} = ${len(params)}")
-    row = await db.fetchrow(
-        f"update public.{table} set {', '.join(set_parts)} "
-        f"where id = $1 returning {returning_cols}",
-        *params,
-    )
+    try:
+        row = await db.fetchrow(
+            f"update public.{table} set {', '.join(set_parts)} "
+            f"where id = $1 returning {returning_cols}",
+            *params,
+        )
+    except (asyncpg.exceptions.UndefinedColumnError, asyncpg.InvalidTextRepresentationError) as exc:
+        # A column or status the database does not have yet: a hydrant's "Low
+        # pressure", or switching water off, before migration 20261120090000.
+        log.warning("map_update_waits_for_migration", table=table, error=str(exc))
+        raise MigrationPendingError() from exc
     if row is None:
         raise NotFoundError(not_found_msg)
     return dict(row)
+
+
+async def _insert_with_status(db: Database, query: str, *args: Any) -> Any:
+    """Insert a hydrant or cistern; a status the database lacks yet ("Low
+    pressure" before migration 20261120090000) waits instead of failing."""
+    try:
+        return await db.fetchrow(query, *args)
+    except asyncpg.InvalidTextRepresentationError as exc:
+        log.warning("map_create_waits_for_migration", error=str(exc))
+        raise MigrationPendingError() from exc
 
 
 async def _delete_layer(db: Database, table: str, layer_id: UUID, not_found_msg: str) -> None:
@@ -131,7 +150,8 @@ async def create_hydrant(
     payload: HydrantCreate, admin: MapManager, db: DatabaseDep
 ) -> HydrantResponse:
     """Create a hydrant record (admin)."""
-    row = await db.fetchrow(
+    row = await _insert_with_status(
+        db,
         f"""
         insert into public.hydrants
             (code, latitude, longitude, address, bfp_status, source, is_active)
@@ -335,6 +355,8 @@ async def create_body_of_water(
     payload: BodyOfWaterCreate, admin: MapManager, db: DatabaseDep
 ) -> BodyOfWaterResponse:
     """Create a body of water; optional GeoJSON polygon (admin)."""
+    # A new source is on: the response's is_active holds without reading it,
+    # before migration 20261120090000 as after.
     row = await db.fetchrow(
         f"""
         insert into public.bodies_of_water
@@ -363,15 +385,20 @@ async def create_body_of_water(
 async def update_body_of_water(
     layer_id: UUID, payload: BodyOfWaterUpdate, admin: MapManager, db: DatabaseDep
 ) -> BodyOfWaterResponse:
-    """Patch a body of water (admin)."""
-    updated = await _apply_update(
-        db,
-        "bodies_of_water",
-        layer_id,
-        _WATER_COLS,
-        payload.model_dump(exclude_unset=True),
-        "Body of water not found.",
-    )
+    """Patch a body of water (admin); ``is_active`` false switches it off (v1.12.43)."""
+    fields = payload.model_dump(exclude_unset=True)
+    try:
+        updated = await _apply_update(
+            db, "bodies_of_water", layer_id, _WATER_COLS_ACTIVE, fields, "Body of water not found."
+        )
+    except MigrationPendingError:
+        # Before migration 20261120090000 every source is on: a change that
+        # keeps it on goes through as before; switching one off waits.
+        if fields.pop("is_active", True) is not True:
+            raise
+        updated = await _apply_update(
+            db, "bodies_of_water", layer_id, _WATER_COLS, fields, "Body of water not found."
+        )
     log.info("body_of_water_updated", layer_id=str(layer_id), by=str(admin.id))
     return BodyOfWaterResponse.model_validate(updated)
 
@@ -403,7 +430,8 @@ async def create_cistern(
     payload: CisternCreate, admin: MapManager, db: DatabaseDep
 ) -> CisternResponse:
     """Create an underground cistern (admin)."""
-    row = await db.fetchrow(
+    row = await _insert_with_status(
+        db,
         f"""
         insert into public.underground_cisterns
             (name, code, latitude, longitude, capacity_liters, status, address,

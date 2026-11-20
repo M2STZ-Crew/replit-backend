@@ -65,7 +65,8 @@ const CHIPS = [
 ];
 
 const RISK_OPTS = ['low', 'medium', 'high', 'critical'];
-const STATUS_OPTS = ['operational', 'non_operational', 'under_maintenance', 'unknown'];
+// From the field since v1.12.43: low pressure, no access.
+const STATUS_OPTS = ['operational', 'non_operational', 'low_pressure', 'no_access', 'under_maintenance', 'unknown'];
 
 // Form field schema per editable layer (mirrors the backend create/update models).
 const FIELDS = {
@@ -106,6 +107,8 @@ const FIELDS = {
     { name: 'longitude', get label() { return t('Longitude'); }, type: 'coord', coord: 'lng', required: true },
     { name: 'is_accessible', get label() { return t('Accessible'); }, type: 'checkbox', default: true },
     { name: 'description', get label() { return t('Description'); }, type: 'textarea' },
+    // Switched off, it leaves every map but this one (v1.12.43).
+    { name: 'is_active', get label() { return t('Active'); }, type: 'checkbox', default: true },
   ],
   cisterns: [
     { name: 'name', get label() { return t('Name'); }, type: 'text' },
@@ -230,14 +233,27 @@ function ClickCapture({ active, onPick }) {
   return null;
 }
 
-export default function MapManagement({ query = '', initialLayer, onOpenIncident }) {
+/* `layers` names the layers this editor shows (v1.12.43, 19 Nov 2026: "One
+ * Water resources page"): Map settings passes shelters and risk areas, Water
+ * resources hydrants, bodies of water and cisterns. Without it, every layer. */
+export default function MapManagement({ query = '', initialLayer, onOpenIncident, layers }) {
   const theme = useConsoleTheme();
+  const shown = useMemo(
+    () => EDIT_LAYERS.filter((l) => !layers || layers.includes(l.key)),
+    [layers],
+  );
+  const chips = useMemo(
+    () => CHIPS.filter((c) => c.kind === 'incidents' || shown.some((l) => l.key === c.key)),
+    [shown],
+  );
   const [data, setData] = useState({}); // key → array of rows
   const [incidents, setIncidents] = useState([]);
   const [enabled, setEnabled] = useState(
-    () => new Set(['incidents', 'risk', 'evac', 'hydrants', 'water', 'cisterns']),
+    () => new Set(['incidents', ...shown.map((l) => l.key)]),
   );
-  const [selected, setSelected] = useState(initialLayer ?? 'risk');
+  const [selected, setSelected] = useState(
+    shown.some((l) => l.key === initialLayer) ? initialLayer : shown[0]?.key ?? 'risk',
+  );
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState([]); // layer keys that did not load
   const [attempt, setAttempt] = useState(0);
@@ -262,17 +278,17 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
     setLoading(true);
     (async () => {
       const results = await Promise.allSettled(
-        EDIT_LAYERS.map((l) => api.mapLayer(l.path, { includeInactive: true })),
+        shown.map((l) => api.mapLayer(l.path, { includeInactive: true })),
       );
       const inc = await api.incidents().catch(() => []);
       if (!alive) return;
       const next = {};
-      EDIT_LAYERS.forEach((l, i) => {
+      shown.forEach((l, i) => {
         const { value } = results[i];
         next[l.key] = Array.isArray(value) ? value : [];
       });
       setData(next);
-      setFailed(EDIT_LAYERS.filter((_, i) => results[i].status === 'rejected').map((l) => l.key));
+      setFailed(shown.filter((_, i) => results[i].status === 'rejected').map((l) => l.key));
       setIncidents(Array.isArray(inc) ? inc : []);
       setLoading(false);
     })();
@@ -462,10 +478,10 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
 
           {/* editable GIS layers, the ones nearby, from street level in (v1.12.39) */}
           <ZoomGate
-            active={EDIT_LAYERS.some((l) => enabled.has(l.key) && (data[l.key] || []).length > 0)}
+            active={shown.some((l) => enabled.has(l.key) && (data[l.key] || []).length > 0)}
             className={panelOpen ? 'mm-zoom-hint is-beside-panel' : 'mm-zoom-hint'}
           >
-          {(near) => EDIT_LAYERS.filter((l) => enabled.has(l.key)).flatMap((l) =>
+          {(near) => shown.filter((l) => enabled.has(l.key)).flatMap((l) =>
             (data[l.key] || []).map((r) => {
               const p = pointOf(l.key, r);
               if (p.lat == null || p.lng == null || !near(p.lat, p.lng)) return null;
@@ -542,7 +558,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
         <div className={`mm-layers${panelOpen ? ' is-panel-open' : ''}`}>
           <span className="mm-layers-label">{t('☰ Layers')}</span>
           <div className="mm-chips">
-            {CHIPS.map((c) => {
+            {chips.map((c) => {
               const on = enabled.has(c.key);
               const color = COLORS[c.key];
               const count = c.kind === 'edit' ? (data[c.key] || []).length : incidents.length;
@@ -587,7 +603,7 @@ export default function MapManagement({ query = '', initialLayer, onOpenIncident
             {!form ? (
               <div className="mm-panel-body">
                 <div className="mm-grid">
-                  {EDIT_LAYERS.map((l) => (
+                  {shown.map((l) => (
                     <button
                       key={l.key}
                       className={`mm-gcard${selected === l.key ? ' active' : ''}`}

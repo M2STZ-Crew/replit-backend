@@ -12,6 +12,8 @@ import { ConfirmDialog, EmptyState, PageHeader, StatePanel, StatusChip } from '.
 import { PERM, can } from '../lib/access.js';
 import { degrees, knownAddress } from '../lib/place.js';
 import BaseTiles from '../map/BaseTiles.jsx';
+import WaterRequests, { WATER_REQUEST_LAYERS } from '../components/water/WaterRequests.jsx';
+import MapManagement from './MapManagement.jsx';
 import { t } from '../i18n/i18n.jsx';
 
 /* Water resources (REPLIT (MAIN) 10 · A32 871:4044 list, A33 871:4382 map
@@ -22,8 +24,18 @@ import { t } from '../i18n/i18n.jsx';
  * The server knows each source's status, not a level. The 5 % water level,
  * its history and "last checked by" an organisation arrive with the
  * water_resources table (PRD v13 §6.1, §17.3), so this page shows the status
- * it has and estimates nothing. Adding and updating a source (A35) happen in
- * Map settings, which this page opens for the Admin who may (`map.manage`). */
+ * it has and estimates nothing.
+ *
+ * v1.12.43 (19 Nov 2026, "One Water resources page"): everything about water
+ * is here. Edit on map is the map editor with the water layers only (Map
+ * settings keeps shelters and risk areas), and Requests holds the changes Fire
+ * Volunteer and BFP coordinators propose from the app, for the Admin who may
+ * (`map.manage`) to approve. A hydrant's status comes from the field, with who
+ * checked it and when. */
+
+// The editor's layers here; Map settings has the rest.
+const WATER_LAYERS = ['hydrants', 'water', 'cisterns'];
+const KIND_OF_LAYER = { hydrant: 'hydrant', bodies_of_water: 'water', underground_cistern: 'cistern' };
 
 const KINDS = [
   { key: 'hydrant', get label() { return t('Hydrants'); }, get singular() { return t('Hydrant'); }, path: 'hydrants' },
@@ -32,9 +44,12 @@ const KINDS = [
 ];
 const kindOf = (key) => KINDS.find((k) => k.key === key);
 
+// In the words of 19 Nov 2026: working, low pressure, broken, no access.
 const STATUS = {
-  operational: { get label() { return t('Operational'); }, tone: 'ok' },
-  non_operational: { get label() { return t('Not usable'); }, tone: 'danger' },
+  operational: { get label() { return t('Working'); }, tone: 'ok' },
+  low_pressure: { get label() { return t('Low pressure'); }, tone: 'warn' },
+  non_operational: { get label() { return t('Broken'); }, tone: 'danger' },
+  no_access: { get label() { return t('No access'); }, tone: 'warn' },
   under_maintenance: { get label() { return t('Under maintenance'); }, tone: 'warn' },
   unknown: { get label() { return t('Not checked'); }, tone: 'neutral' },
 };
@@ -72,7 +87,10 @@ const when = (iso) => {
  * the record's last change. */
 function checkedOf(row) {
   if (row.kind === 'hydrant' && row.ground_truth_at) {
-    return { title: t('Checked on the ground'), at: when(row.ground_truth_at) };
+    // Who checked it, for which organisation (v1.12.43).
+    const by = row.checked_by_org || row.checked_by_name;
+    const at = when(row.ground_truth_at);
+    return { title: t('Checked on the ground'), at: at && by ? t('{at} · {by}', { at, by }) : at };
   }
   return { title: t('Record updated'), at: when(row.updated_at) };
 }
@@ -121,8 +139,8 @@ function Detail({ row, onClose, onDelete, floating = false }) {
   );
 }
 
-export default function WaterResources({ onManage }) {
-  const { console: access } = useConsole();
+export default function WaterResources({ onOpenIncident }) {
+  const { console: access, refreshQueues } = useConsole();
   const managesMap = can(access, PERM.MANAGE_MAP);
   const [view, setView] = useState('list');
   const [type, setType] = useState('all');
@@ -133,6 +151,43 @@ export default function WaterResources({ onManage }) {
   const [selectedId, setSelectedId] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [notice, setNotice] = useState(null);
+  const [requests, setRequests] = useState({ loading: false, error: null, rows: [] });
+  const [requestAttempt, setRequestAttempt] = useState(0);
+
+  // Coordinators' water changes awaiting an Admin (v1.12.43).
+  useEffect(() => {
+    if (!managesMap) return undefined;
+    let alive = true;
+    setRequests((r) => ({ ...r, loading: true, error: null }));
+    api.mapLayerRequests('pending')
+      .then((rows) => {
+        if (!alive) return;
+        const water = (Array.isArray(rows) ? rows : []).filter((r) => WATER_REQUEST_LAYERS.includes(r.layer_type));
+        setRequests({ loading: false, error: null, rows: water });
+      })
+      .catch((e) => { if (alive) setRequests({ loading: false, error: e.message || t('The requests could not be loaded.'), rows: [] }); });
+    return () => { alive = false; };
+  }, [managesMap, requestAttempt]);
+
+  // Back from the editor, the list and map show what was changed there.
+  function switchView(next) {
+    if (view === 'edit' && next !== 'edit') setAttempt((n) => n + 1);
+    setView(next);
+  }
+
+  function targetName(req) {
+    if (!req.target_id) return null;
+    const row = state.rows.find((r) => r.kind === KIND_OF_LAYER[req.layer_type] && r.id === req.target_id);
+    // The card already says the layer: the source's own name or code only.
+    return row ? (row.kind === 'hydrant' ? row.code : row.name || row.code) || null : null;
+  }
+
+  function decided(message) {
+    setNotice(message);
+    setRequestAttempt((n) => n + 1);
+    setAttempt((n) => n + 1);
+    refreshQueues?.();
+  }
 
   useEffect(() => {
     let alive = true;
@@ -193,7 +248,7 @@ export default function WaterResources({ onManage }) {
   );
 
   return (
-    <div className={`rpl-page${view === 'map' ? ' rpl-page--map' : ''}`}>
+    <div className={`rpl-page${view === 'map' || view === 'edit' ? ' rpl-page--map' : ''}`}>
       <PageHeader
         eyebrow={t('Shared across every organization')}
         title={t('Water resources')}
@@ -201,7 +256,7 @@ export default function WaterResources({ onManage }) {
           ? t('Every hydrant, body of water and underground cistern on the shared map. Any Admin may delete one; every deletion is recorded.')
           : t('Every hydrant, body of water and underground cistern on the shared map. Any Admin may delete one; every deletion is recorded. Fire Volunteer, BFP and central hub Admins add and change them.')}
         actions={managesMap && (
-          <button type="button" className="rpl-button rpl-button--primary" onClick={onManage}>{t('Add or change resources')}</button>
+          <button type="button" className="rpl-button rpl-button--primary" onClick={() => switchView('edit')}>{t('Add or change resources')}</button>
         )}
       />
 
@@ -210,23 +265,44 @@ export default function WaterResources({ onManage }) {
       )}
 
       <div className="rpl-tabs rpl-tabs--page" role="tablist" aria-label={t('View')}>
-        {[{ key: 'list', label: t('List') }, { key: 'map', label: t('Map') }].map((t) => (
+        {[
+          { key: 'list', label: t('List') },
+          { key: 'map', label: t('Map') },
+          ...(managesMap ? [
+            { key: 'edit', label: t('Edit on map') },
+            { key: 'requests', label: t('Requests'), count: requests.rows.length },
+          ] : []),
+        ].map((tab) => (
           <button
-            key={t.key}
+            key={tab.key}
             type="button"
             role="tab"
-            aria-selected={view === t.key}
-            className={`rpl-tab${view === t.key ? ' is-active' : ''}`}
-            onClick={() => setView(t.key)}
+            aria-selected={view === tab.key}
+            className={`rpl-tab${view === tab.key ? ' is-active' : ''}`}
+            onClick={() => switchView(tab.key)}
           >
-            {t.label}
+            {tab.label}
+            {tab.count > 0 && <span className="web-count-badge" aria-label={t('{count} waiting', { count: tab.count })}>{tab.count}</span>}
           </button>
         ))}
       </div>
 
-      {filters}
+      {(view === 'list' || view === 'map') && filters}
 
-      {state.loading ? (
+      {view === 'edit' ? (
+        <div className="rpl-water-map rpl-water-editor">
+          <MapManagement layers={WATER_LAYERS} initialLayer="hydrants" onOpenIncident={onOpenIncident} />
+        </div>
+      ) : view === 'requests' ? (
+        <WaterRequests
+          requests={requests.rows}
+          loading={requests.loading}
+          error={requests.error}
+          onRetry={() => setRequestAttempt((n) => n + 1)}
+          targetName={targetName}
+          onDecided={decided}
+        />
+      ) : state.loading ? (
         <StatePanel kind="loading" title={t('Loading water resources…')} />
       ) : state.error ? (
         <StatePanel kind="error" title={t('The water resources couldn’t load')} description={state.error} onRetry={() => setAttempt((n) => n + 1)} />

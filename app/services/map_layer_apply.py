@@ -7,13 +7,15 @@ removes the target row. Raises BadRequestError on invalid proposals.
 
 from __future__ import annotations
 
+from collections.abc import Coroutine
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
+import asyncpg
 from pydantic import BaseModel, ValidationError
 
-from app.core.exceptions import BadRequestError, NotFoundError
+from app.core.exceptions import BadRequestError, MigrationPendingError, NotFoundError
 from app.db.session import Database
 from app.schemas.equipment import EquipmentCreate, EquipmentUpdate
 from app.schemas.map_layer import (
@@ -115,6 +117,16 @@ async def _do_update(
     return target_id
 
 
+async def _waiting_for_migration(change: Coroutine[Any, Any, UUID]) -> UUID:
+    """Run a change; one the database cannot hold yet (switching water off, or
+    a hydrant's "Low pressure", before migration 20261120090000) stays pending
+    with a 409 rather than failing."""
+    try:
+        return await change
+    except (asyncpg.exceptions.UndefinedColumnError, asyncpg.InvalidTextRepresentationError) as exc:
+        raise MigrationPendingError() from exc
+
+
 async def apply_map_layer_request(
     db: Database,
     layer_type: str,
@@ -142,7 +154,7 @@ async def apply_map_layer_request(
             model = spec.create_model.model_validate(proposed_data)
         except ValidationError as exc:
             raise BadRequestError(f"Invalid proposed_data for create: {exc}") from exc
-        return await _do_create(db, spec, model.model_dump())
+        return await _waiting_for_migration(_do_create(db, spec, model.model_dump()))
 
     if operation == "update":
         if target_id is None:
@@ -151,6 +163,8 @@ async def apply_map_layer_request(
             model = spec.update_model.model_validate(proposed_data)
         except ValidationError as exc:
             raise BadRequestError(f"Invalid proposed_data for update: {exc}") from exc
-        return await _do_update(db, spec, target_id, model.model_dump(exclude_unset=True))
+        return await _waiting_for_migration(
+            _do_update(db, spec, target_id, model.model_dump(exclude_unset=True))
+        )
 
     raise BadRequestError(f"Unsupported operation: {operation}.")

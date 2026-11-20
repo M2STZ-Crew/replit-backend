@@ -231,6 +231,15 @@ export const api = {
       body: { notes: notes || null, philsys_result: philsysResult || null },
     }),
 
+  // Coordinators' map changes awaiting an Admin (v1.12.43: water resources are
+  // added, changed and switched off from the app, and approved here).
+  mapLayerRequests: (status = 'pending') =>
+    request(`/map-layer-requests?status=${encodeURIComponent(status)}`),
+  approveMapLayerRequest: (id, notes) =>
+    request(`/map-layer-requests/${id}/approve`, { method: 'POST', body: { notes: notes || null } }),
+  rejectMapLayerRequest: (id, notes) =>
+    request(`/map-layer-requests/${id}/reject`, { method: 'POST', body: { notes: notes || null } }),
+
   // Prank-report strikes (v1.12.41, the central hub's): 3rd and 4th steps to
   // check, appeals to decide, every strike; and marking a report a prank.
   reportStrikes: (view = 'to_check') => request(`/report-strikes?view=${encodeURIComponent(view)}`),

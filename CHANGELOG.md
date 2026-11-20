@@ -6,6 +6,42 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.43 — 20 November 2026 — Water resources, kept from the field
+
+Backend and console; app v1.12.55 goes with it. **Migration:**
+`20261120090000_water_field_status.sql` (additive: two hydrant statuses and
+`bodies_of_water.is_active`). Until it is applied, water stays on every map as
+before; only "Low pressure", "No access" and switching a body of water off wait,
+answered 409 `migration_pending` (`MigrationPendingError`) instead of a 500.
+
+### Changes
+- **One Water resources page** (19 Nov: "One Water resources page"). The
+  console's Water resources has List, Map, Edit on map (the map editor with
+  hydrants, bodies of water and cisterns only) and Requests. Map settings keeps
+  shelters and risk areas (`MapManagement`'s `layers`).
+- **A hydrant's status comes from the field.** Fire Volunteer and BFP
+  coordinators and responders set it after checking: Working, Low pressure,
+  Broken, No access or Under maintenance ("Low pressure" and "No access" are
+  new). It applies at once, with who checked it and when: "Checked on the
+  ground Nov 18, 8:57 AM · BFP Pasay" (`checked_by_name`, `checked_by_org`).
+  Police, medical and residents may not (`not_fire_staff`).
+- **Coordinators propose, an Admin approves** ("Status at once, rest
+  approved"). A Fire Volunteer or BFP coordinator adds, changes or switches off
+  a water source from the app; it waits in Requests, counted on the sidebar,
+  until an Admin who manages the map approves or rejects it with an optional
+  note. The coordinator is told in their inbox and by a push, in their
+  language: "Map change approved" / "The hydrant you added is on the map now."
+  (`app/services/map_request_notify.py`). Other agencies' coordinators cannot
+  propose water changes (`not_fire_coordinator`).
+- **Switched off, kept on record.** A body of water can be switched off like a
+  hydrant or cistern (`is_active`, and Active in the editor): off every map but
+  the editor's. A coordinator's delete is a switch-off; nothing they propose
+  removes a source.
+- **Residents see where water is, never its status.** A resident's map reads
+  every hydrant and cistern as "unknown", with no one named as checking it.
+
+---
+
 ## v1.12.42 — 19 November 2026 — A fire is called by its street; a far fire has its own voice
 
 Backend and console; app v1.12.53 goes with it. **Migration:**

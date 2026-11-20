@@ -570,6 +570,34 @@ export const TAGALOG = {
   'The reviews could not be loaded.': 'Hindi ma-load ang mga review.',
   '{org} · Manual National ID review': '{org} · Manwal na review ng National ID',
   'ID reviews': 'Mga review ng ID',
+  // Water resources in one place, and coordinators' requests (v1.12.43).
+  'Working': 'Gumagana',
+  'Low pressure': 'Mahina ang presyon',
+  'Broken': 'Sira',
+  'No access': 'Hindi mapuntahan',
+  '{at} · {by}': '{at} · {by}',
+  'Edit on map': 'I-edit sa mapa',
+  'A coordinator': 'Isang coordinator',
+  'Capacity (litres)': 'Kapasidad (litro)',
+  'No': 'Hindi',
+  'Change': 'Pagbabago',
+  'Switch off': 'I-off',
+  'Remove': 'Tanggalin',
+  'Approve': 'Aprubahan',
+  'Reject': 'Tanggihan',
+  'Approve this change?': 'Aprubahan ang pagbabagong ito?',
+  'Reject this change?': 'Tanggihan ang pagbabagong ito?',
+  'It goes on every map at once, and the coordinator is told.':
+    'Lalabas ito agad sa bawat mapa, at sasabihan ang coordinator.',
+  'Nothing on the map changes. The coordinator is told, with your note.':
+    'Walang magbabago sa mapa. Sasabihan ang coordinator, kasama ang tala mo.',
+  'Note for the coordinator (optional)': 'Tala para sa coordinator (opsyonal)',
+  'Approved. It is on every map now, and the coordinator was told.':
+    'Naaprubahan. Nasa bawat mapa na ito, at sinabihan na ang coordinator.',
+  'Rejected. The coordinator was told.': 'Tinanggihan. Sinabihan na ang coordinator.',
+  'No requests waiting': 'Walang naghihintay na request',
+  'When a Fire Volunteer or BFP coordinator adds, changes or switches off a water source in the app, it waits here for you. Hydrant status needs no approval.':
+    'Kapag nagdagdag, nagbago o nag-off ng water source ang Fire Volunteer o BFP coordinator sa app, dito ito naghihintay sa iyo. Hindi kailangang aprubahan ang status ng hydrant.',
   // Prank reports (v1.12.41).
   'Prank reports': 'Mga prank na report',
   'Central hub · False and prank reports': 'Central hub · Mga mali at prank na report',
@@ -1053,8 +1081,6 @@ export const TAGALOG = {
   'Hydrants': 'Mga hydrant',
   'Bodies of water': 'Mga anyong-tubig',
   'Cisterns': 'Mga cistern',
-  'Operational': 'Gumagana',
-  'Not usable': 'Hindi magagamit',
   'Under maintenance': 'Inaayos',
   'Not checked': 'Hindi pa nasusuri',
   'Not accessible': 'Hindi madaling marating',

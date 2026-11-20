@@ -21,9 +21,14 @@ from app.schemas.map_layer_request import (
     MapLayerRequestResponse,
     MapLayerReviewRequest,
 )
+from app.services.access import FIRE_AGENCIES
 from app.services.map_layer_apply import apply_map_layer_request
+from app.services.map_request_notify import tell_requester
 
 log = get_logger(__name__)
+
+# The water layers fire coordinators manage (v1.12.43).
+_WATER_LAYERS = frozenset({"hydrant", "bodies_of_water", "underground_cistern"})
 
 router = APIRouter(prefix="/map-layer-requests", tags=["map-layer-requests"])
 
@@ -31,7 +36,12 @@ _COLS = (
     "id, requested_by, organization_id, layer_type::text as layer_type, "
     "operation::text as operation, target_id, proposed_data, reason, "
     "status::text as status, reviewed_by, reviewed_at, review_notes, applied_at, "
-    "created_at, updated_at"
+    "created_at, updated_at, "
+    # Who asked, for the Admin deciding (v1.12.43).
+    "(select u.full_name from public.users u where u.id = requested_by) "
+    "as requested_by_name, "
+    "(select o.name from public.organizations o where o.id = organization_id) "
+    "as organization_name"
 )
 
 
@@ -55,6 +65,17 @@ async def submit_request(
     """Submit a pending map-layer/equipment change request (sub-admin)."""
     if user.role != "sub_admin":
         raise ForbiddenError("Only a sub-admin may submit map-layer update requests.")
+    # Water resources are added, changed and switched off by fire coordinators
+    # (v1.12.43, 19 Nov 2026: Fire Volunteer and BFP coordinators).
+    if payload.layer_type in _WATER_LAYERS and user.agency_type not in FIRE_AGENCIES:
+        raise ForbiddenError(
+            "Water resources are proposed by Fire Volunteer and BFP coordinators.",
+            error_code="not_fire_coordinator",
+        )
+    operation, proposed = payload.operation, payload.proposed_data
+    if payload.layer_type in _WATER_LAYERS and operation == "delete":
+        # A coordinator switches a source off; it stays on record (19 Nov 2026).
+        operation, proposed = "update", {"is_active": False}
     row = await db.fetchrow(
         f"""
         insert into public.map_layer_update_requests
@@ -67,9 +88,9 @@ async def submit_request(
         user.id,
         user.primary_org_id,
         payload.layer_type,
-        payload.operation,
+        operation,
         payload.target_id,
-        json.dumps(payload.proposed_data),
+        json.dumps(proposed),
         payload.reason,
     )
     assert row is not None
@@ -166,7 +187,9 @@ async def approve_request(
         affected_id=str(affected),
         by=str(admin.id),
     )
-    return MapLayerRequestResponse.model_validate(_row_to_dict(row))
+    decided = _row_to_dict(row)
+    await tell_requester(db, decided, approved=True)
+    return MapLayerRequestResponse.model_validate(decided)
 
 
 @router.post(
@@ -193,4 +216,6 @@ async def reject_request(
     if row is None:
         raise NotFoundError("No pending request found for that id.")
     log.info("map_layer_request_rejected", request_id=str(request_id), by=str(admin.id))
-    return MapLayerRequestResponse.model_validate(_row_to_dict(row))
+    decided = _row_to_dict(row)
+    await tell_requester(db, decided, approved=False)
+    return MapLayerRequestResponse.model_validate(decided)

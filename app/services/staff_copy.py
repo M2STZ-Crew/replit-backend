@@ -149,3 +149,50 @@ def alarm_answered(
             return "BFP raised the alarm", f"{fire} is now at {level}, as you asked."
         title, body = "BFP declined your alarm request", f"{fire} stays as it is."
     return title, f"{body} {notes}" if notes else body
+
+
+# What a coordinator's map change is called, for the answer to it (v1.12.43).
+_LAYER_WORD: dict[str, tuple[str, str]] = {
+    "hydrant": ("hydrant", "hydrant"),
+    "bodies_of_water": ("body of water", "anyong-tubig"),
+    "underground_cistern": ("cistern", "cistern"),
+    "evacuation_site": ("evacuation site", "evacuation site"),
+    "risk_zone": ("risk area", "risk area"),
+    "equipment": ("equipment", "kagamitan"),
+}
+
+
+def map_request_decided(
+    language: Language,
+    *,
+    approved: bool,
+    layer: str,
+    operation: str,
+    notes: str | None = None,
+) -> tuple[str, str]:
+    """An Admin's answer to a coordinator's map change (v1.12.43): what was
+    asked, whether it is on the map now, and the Admin's note as written."""
+    en_word, tl_word = _LAYER_WORD.get(layer, ("map item", "bagay sa mapa"))
+    if language == "tl":
+        title = "Naaprubahan ang pagbabago sa mapa" if approved else (
+            "Hindi naaprubahan ang pagbabago sa mapa"
+        )
+        body = {
+            ("create", True): f"Nasa mapa na ang {tl_word} na idinagdag mo.",
+            ("create", False): f"Hindi naaprubahan ang {tl_word} na idinagdag mo.",
+            ("update", True): f"Nasa mapa na ang binago mo sa {tl_word}.",
+            ("update", False): f"Hindi naaprubahan ang binago mo sa {tl_word}.",
+            ("delete", True): f"Wala na sa mapa ang {tl_word} na pinatay mo.",
+            ("delete", False): f"Hindi naaprubahan ang pagpatay sa {tl_word}.",
+        }.get((operation, approved), title)
+    else:
+        title = "Map change approved" if approved else "Map change not approved"
+        body = {
+            ("create", True): f"The {en_word} you added is on the map now.",
+            ("create", False): f"The {en_word} you added was not approved.",
+            ("update", True): f"Your change to a {en_word} is on the map now.",
+            ("update", False): f"Your change to a {en_word} was not approved.",
+            ("delete", True): f"The {en_word} you switched off is off the map now.",
+            ("delete", False): f"Switching off the {en_word} was not approved.",
+        }.get((operation, approved), title)
+    return title, f"{body} {notes.strip()}" if notes and notes.strip() else body

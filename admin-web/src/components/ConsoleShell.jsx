@@ -44,7 +44,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
   const sound = useSoundSettings();
   const rail = useMedia(RAIL_BELOW);
   const phone = useMedia(PHONE_BELOW);
-  const [queues, setQueues] = useState({ affiliates: 0, ids: 0, requests: 0, strikes: 0 });
+  const [queues, setQueues] = useState({ affiliates: 0, ids: 0, requests: 0, strikes: 0, water: 0 });
   const [queueTick, setQueueTick] = useState(0);
   const refreshQueues = useCallback(() => setQueueTick((t) => t + 1), []);
   const [organizations, setOrganizations] = useState([]);
@@ -67,6 +67,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
   const reviewsAffiliates = can(consoleInfo, PERM.REVIEW_AFFILIATES);
   const reviewsIds = can(consoleInfo, PERM.REVIEW_IDS);
   const reviewsStrikes = can(consoleInfo, PERM.REVIEW_STRIKES);
+  const managesMap = can(consoleInfo, PERM.MANAGE_MAP);
   const answersAlarms = can(consoleInfo, PERM.DECIDE_ALARM) || consoleInfo.variant === 'system';
 
   // Pending queues, refreshed whenever the operator moves between screens or
@@ -76,13 +77,15 @@ export default function ConsoleShell({ active, onNavigate, children }) {
     let cancelled = false;
     const none = Promise.resolve([]);
     (async () => {
-      const [affs, ids, requests, toCheck, appeals] = await Promise.all([
+      const [affs, ids, requests, toCheck, appeals, mapRequests] = await Promise.all([
         reviewsAffiliates ? api.affiliates('pending').catch(() => []) : none,
         reviewsIds ? api.pendingVerifications().catch(() => []) : none,
         answersAlarms ? api.alarmRequests('pending').catch(() => []) : none,
         // Prank reports (v1.12.41): 3rd and 4th steps to check, and appeals.
         reviewsStrikes ? api.reportStrikes('to_check').catch(() => []) : none,
         reviewsStrikes ? api.reportStrikes('appeals').catch(() => []) : none,
+        // Coordinators' water changes awaiting approval (v1.12.43).
+        managesMap ? api.mapLayerRequests('pending').catch(() => []) : none,
       ]);
       if (!cancelled) {
         setQueues({
@@ -90,11 +93,14 @@ export default function ConsoleShell({ active, onNavigate, children }) {
           ids: ids.length,
           requests: requests.length,
           strikes: toCheck.length + appeals.length,
+          water: (Array.isArray(mapRequests) ? mapRequests : []).filter(
+            (r) => ['hydrant', 'bodies_of_water', 'underground_cistern'].includes(r.layer_type),
+          ).length,
         });
       }
     })();
     return () => { cancelled = true; };
-  }, [active, queueTick, reviewsAffiliates, reviewsIds, reviewsStrikes, answersAlarms]);
+  }, [active, queueTick, reviewsAffiliates, reviewsIds, reviewsStrikes, managesMap, answersAlarms]);
 
   useEffect(() => {
     let cancelled = false;

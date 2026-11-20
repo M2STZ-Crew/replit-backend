@@ -14,10 +14,16 @@ import json
 from typing import Annotated
 from uuid import UUID
 
+import asyncpg
 from fastapi import APIRouter, File, UploadFile
 
 from app.api.deps import DatabaseDep, MapManager, StaffUser
-from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
+from app.core.exceptions import (
+    BadRequestError,
+    ForbiddenError,
+    MigrationPendingError,
+    NotFoundError,
+)
 from app.core.logging import get_logger
 from app.db.session import Database
 from app.schemas.auth import AuthenticatedUser
@@ -36,16 +42,34 @@ _HYDRANT_COLS = (
     "bfp_synced_at, ground_truth_status::text as ground_truth_status, "
     "ground_truth_by, ground_truth_at, ground_truth_notes, "
     "effective_status::text as effective_status, source, is_active, "
-    "created_at, updated_at"
+    "created_at, updated_at, "
+    # Who checked it, so the answer to a check says so at once (v1.12.43).
+    "(select u.full_name from public.users u "
+    " where u.id = hydrants.ground_truth_by) as checked_by_name, "
+    "(select o.name from public.users u "
+    " join public.organizations o on o.id = u.primary_org_id "
+    " where u.id = hydrants.ground_truth_by) as checked_by_org"
 )
+# BFP's own words in its CSV; "low pressure" and "no access" come from the field.
 _VALID_STATUS = {"operational", "non_operational", "under_maintenance", "unknown"}
 
 
 def _require_fire_vol_subadmin(user: AuthenticatedUser) -> None:
-    """Restrict ground-truth overrides to Fire Volunteer sub-admins (Section 12)."""
-    if not (user.role == "sub_admin" and user.agency_type == "fire_volunteer"):
+    """Who sets a hydrant's status from the field.
+
+    Section 12 had Fire Volunteer coordinators only. Since 19 Nov 2026
+    (v1.12.43, the user's answers) it is Fire Volunteer and BFP coordinators,
+    and their responders "when they reach it": whoever checks it on site.
+    """
+    fire_staff = user.role in ("sub_admin", "response_team") and user.agency_type in (
+        "fire_volunteer",
+        "bfp",
+    )
+    if not fire_staff:
         raise ForbiddenError(
-            "Only a Fire Volunteer sub-admin may set hydrant ground-truth status."
+            "A hydrant's status is set by Fire Volunteer and BFP coordinators and "
+            "responders, after checking it on site.",
+            error_code="not_fire_staff",
         )
 
 
@@ -81,7 +105,7 @@ async def _audit_hydrant(
 @router.post(
     "/hydrants/{layer_id}/ground-truth",
     response_model=HydrantResponse,
-    summary="Set a hydrant's ground-truth status (Fire-Vol sub-admin)",
+    summary="Set a hydrant's status from the field (Fire Volunteer and BFP staff)",
 )
 async def set_hydrant_ground_truth(
     layer_id: UUID, payload: HydrantGroundTruthRequest, user: StaffUser, db: DatabaseDep
@@ -93,19 +117,27 @@ async def set_hydrant_ground_truth(
     )
     if cur is None:
         raise NotFoundError("Hydrant not found.")
-    row = await db.fetchrow(
-        f"""
-        update public.hydrants
-           set ground_truth_status = $2::public.hydrant_status, ground_truth_by = $3,
-               ground_truth_at = now(), ground_truth_notes = $4
-         where id = $1
-        returning {_HYDRANT_COLS}
-        """,
-        layer_id,
-        payload.status,
-        user.id,
-        payload.notes,
-    )
+    try:
+        row = await db.fetchrow(
+            f"""
+            update public.hydrants
+               set ground_truth_status = $2::public.hydrant_status, ground_truth_by = $3,
+                   ground_truth_at = now(), ground_truth_notes = $4
+             where id = $1
+            returning {_HYDRANT_COLS}
+            """,
+            layer_id,
+            payload.status,
+            user.id,
+            payload.notes,
+        )
+    except asyncpg.InvalidTextRepresentationError as exc:
+        # "Low pressure" and "No access" arrive with migration 20261120090000.
+        log.warning("hydrant_status_waits_for_migration", status=payload.status)
+        raise MigrationPendingError(
+            "This status can be saved once the database is updated. "
+            "Working, Broken and Under maintenance can be saved now."
+        ) from exc
     assert row is not None
     await _audit_hydrant(
         db, user, layer_id, "hydrant.override", cur["gt"], payload.status, payload.notes

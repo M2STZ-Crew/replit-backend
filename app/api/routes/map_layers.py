@@ -5,19 +5,22 @@ of water, underground cisterns), available to any authenticated user. Polygon
 geometries are returned as GeoJSON. Writes + the hydrant ground-truth override are
 added in later parts.
 
-Hydrants, evacuation sites and cisterns can be switched off without deleting them.
-Every map reads the active ones; ``include_inactive`` is for the Admin who edits
-the map, who would otherwise lose sight of a row the moment they switched it off.
+Hydrants, evacuation sites, cisterns and (v1.12.43) bodies of water can be
+switched off without deleting them. Every map reads the active ones;
+``include_inactive`` is for the Admin who edits the map, who would otherwise lose
+sight of a row the moment they switched it off.
 """
 
 from __future__ import annotations
 
 from uuid import UUID
 
+import asyncpg
 from fastapi import APIRouter
 
 from app.api.deps import CurrentUser, DatabaseDep
 from app.core.exceptions import NotFoundError
+from app.core.logging import get_logger
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.map_layer import (
     BodyOfWaterResponse,
@@ -28,6 +31,8 @@ from app.schemas.map_layer import (
 )
 from app.services.access import MANAGE_MAP, admin_access
 
+log = get_logger(__name__)
+
 router = APIRouter(prefix="/map", tags=["map-layers"])
 
 _HYDRANT_COLS = (
@@ -35,8 +40,34 @@ _HYDRANT_COLS = (
     "bfp_synced_at, ground_truth_status::text as ground_truth_status, "
     "ground_truth_by, ground_truth_at, ground_truth_notes, "
     "effective_status::text as effective_status, source, is_active, "
-    "created_at, updated_at"
+    "created_at, updated_at, "
+    # Who last checked it on site, and for which organisation (v1.12.43).
+    "(select u.full_name from public.users u "
+    " where u.id = hydrants.ground_truth_by) as checked_by_name, "
+    "(select o.name from public.users u "
+    " join public.organizations o on o.id = u.primary_org_id "
+    " where u.id = hydrants.ground_truth_by) as checked_by_org"
 )
+
+
+def _for_resident(user: AuthenticatedUser, row: dict[str, object]) -> dict[str, object]:
+    """Residents see where water is, never whether it works (v1.12.43): that is
+    for responders, who act on it."""
+    if user.role != "general_user":
+        return row
+    hidden: dict[str, object] = {
+        "bfp_status": "unknown",
+        "effective_status": "unknown",
+        "ground_truth_status": None,
+        "ground_truth_by": None,
+        "ground_truth_at": None,
+        "ground_truth_notes": None,
+        "checked_by_name": None,
+        "checked_by_org": None,
+    }
+    if "status" in row:
+        hidden = {"status": "unknown"}
+    return {**row, **hidden}
 _EVAC_COLS = (
     "id, name, latitude, longitude, capacity, address, contact_info, "
     "city, outside_pasay, is_active, created_at, updated_at"
@@ -48,8 +79,12 @@ _RISK_COLS = (
 )
 _WATER_COLS = (
     "id, name, water_type, latitude, longitude, is_accessible, description, "
-    "extensions.ST_AsGeoJSON(area_geom) as area_geojson, created_at, updated_at"
+    "extensions.ST_AsGeoJSON(area_geom) as area_geojson, created_at, updated_at, "
+    "is_active"
 )
+# Before migration 20261120090000 (v1.12.43) bodies_of_water has no is_active:
+# every source is on, as before, rather than no water on any map.
+_WATER_COLS_BEFORE_1_12_43 = _WATER_COLS.removesuffix(", is_active")
 _CISTERN_COLS = (
     "id, name, code, latitude, longitude, capacity_liters, status::text as status, "
     "address, description, is_active, created_at, updated_at"
@@ -76,7 +111,7 @@ async def list_hydrants(
         f"select {_HYDRANT_COLS} from public.hydrants "
         f"{_active_only(user, include_inactive)} order by code nulls last"
     )
-    return [HydrantResponse.model_validate(dict(r)) for r in rows]
+    return [HydrantResponse.model_validate(_for_resident(user, dict(r))) for r in rows]
 
 
 @router.get(
@@ -91,7 +126,7 @@ async def get_hydrant(
     )
     if row is None:
         raise NotFoundError("Hydrant not found.")
-    return HydrantResponse.model_validate(dict(row))
+    return HydrantResponse.model_validate(_for_resident(user, dict(row)))
 
 
 # --------------------------------------------------------------------------- #
@@ -164,10 +199,20 @@ async def get_risk_zone(
     summary="List bodies of water",
 )
 async def list_bodies_of_water(
-    user: CurrentUser, db: DatabaseDep
+    user: CurrentUser, db: DatabaseDep, include_inactive: bool = False
 ) -> list[BodyOfWaterResponse]:
-    """List bodies of water usable as firefighting water sources."""
-    rows = await db.fetch(f"select {_WATER_COLS} from public.bodies_of_water order by name")
+    """List bodies of water usable as firefighting water sources. One switched
+    off (v1.12.43) leaves every map but the editor's, like a hydrant."""
+    try:
+        rows = await db.fetch(
+            f"select {_WATER_COLS} from public.bodies_of_water "
+            f"{_active_only(user, include_inactive)} order by name"
+        )
+    except asyncpg.exceptions.UndefinedColumnError:
+        log.warning("water_switch_off_waits_for_migration")
+        rows = await db.fetch(
+            f"select {_WATER_COLS_BEFORE_1_12_43} from public.bodies_of_water order by name"
+        )
     return [BodyOfWaterResponse.model_validate(dict(r)) for r in rows]
 
 
@@ -180,9 +225,16 @@ async def get_body_of_water(
     layer_id: UUID, user: CurrentUser, db: DatabaseDep
 ) -> BodyOfWaterResponse:
     """Get one body of water by id."""
-    row = await db.fetchrow(
-        f"select {_WATER_COLS} from public.bodies_of_water where id = $1", layer_id
-    )
+    try:
+        row = await db.fetchrow(
+            f"select {_WATER_COLS} from public.bodies_of_water where id = $1", layer_id
+        )
+    except asyncpg.exceptions.UndefinedColumnError:
+        log.warning("water_switch_off_waits_for_migration")
+        row = await db.fetchrow(
+            f"select {_WATER_COLS_BEFORE_1_12_43} from public.bodies_of_water where id = $1",
+            layer_id,
+        )
     if row is None:
         raise NotFoundError("Body of water not found.")
     return BodyOfWaterResponse.model_validate(dict(row))
@@ -204,7 +256,7 @@ async def list_cisterns(
         f"select {_CISTERN_COLS} from public.underground_cisterns "
         f"{_active_only(user, include_inactive)} order by code nulls last"
     )
-    return [CisternResponse.model_validate(dict(r)) for r in rows]
+    return [CisternResponse.model_validate(_for_resident(user, dict(r))) for r in rows]
 
 
 @router.get(
@@ -221,4 +273,4 @@ async def get_cistern(
     )
     if row is None:
         raise NotFoundError("Underground cistern not found.")
-    return CisternResponse.model_validate(dict(row))
+    return CisternResponse.model_validate(_for_resident(user, dict(row)))
