@@ -164,6 +164,9 @@ export const api = {
 
   // Dashboard data (admin = staff, sees everything).
   incidentStats: () => request('/incidents/stats'),
+  // The Dashboard's Statistics (v1.12.50): 7, 30 or 90 days; 'org' or 'all'.
+  incidentStatistics: ({ days, scope }) =>
+    request(`/incidents/statistics?${new URLSearchParams({ days: String(days), scope }).toString()}`),
   incidents: (opts = {}) => {
     const q = new URLSearchParams();
     if (opts.activeOnly === false) q.set('active_only', 'false');

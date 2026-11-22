@@ -43,6 +43,17 @@ export const AGENCY_LABEL = {
   get barangay() { return t('Barangay'); },
 };
 
+/* What is burning, as the first fire team on scene said (v1.12.37): the
+ * server's values (app/services/fire_type.py). */
+export const FIRE_TYPE = {
+  get structural() { return t('Structural'); },
+  get electrical() { return t('Electrical'); },
+  get vehicular() { return t('Vehicular'); },
+  get rubbish() { return t('Rubbish'); },
+  get grass() { return t('Grass'); },
+  get chemical() { return t('Chemical'); },
+};
+
 /// v11 removed Admin's manual routing (§2.6.2), and routableAgencies with it:
 /// the reporter's selected_agencies already decides which agencies see an
 /// incident, and each of them now presses its own Accept.
