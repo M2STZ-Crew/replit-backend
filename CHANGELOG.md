@@ -6,6 +6,78 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.49 — 22 November 2026 — The alarm status everywhere; Admins manage responders; Alarm Escalations
+
+Backend and console; app v1.12.60 goes with it. The second of three releases
+for the 22 Nov list.
+
+Migration `20261122090000_under_control.sql` (two empty columns on `areas`).
+The backend works without it, and until it is applied nobody is shown Under
+control: an FC-2 is recorded as a code only and withdrawing answers
+`migration_pending`.
+
+### Changes
+- **The alarm status everywhere** ("fire alarm status can be seen in any
+  details info"; answered "Level + situation" and "Everyone, everywhere";
+  `app/services/alarm_status.py`). The incident, area, tracking, map and report
+  payloads carry the level, who set it, and Under control while in effect. The
+  console highlights it at the top of the incident and as a badge on lists and
+  map cards. Residents get the organization, never a person's name.
+- **Under control** (answered "Coordinators declare";
+  `app/services/under_control.py`). FC-2 from a Fire Volunteer or BFP
+  coordinator, or from an Admin who presses fire codes, declares it on an
+  acknowledged fire; a responder's still only tells command. A raise clears
+  it. `POST /incidents/{id}/under-control/withdraw` takes it back, and tells
+  that fire's staff without a sound.
+- **A raise is heard** (answered "Staff loud, residents quiet";
+  `app/services/alarm_notify.py`). Only whoever asked was told. The fire's
+  crews and coordinators now get the fire sound; residents who reported it or
+  were alerted to it get a silent notification. Admins hear it in the open
+  console.
+- **Admins manage responders** ("admin can manage responders too"; answered
+  "Full account control" and "Own org; hub manages all";
+  `app/api/routes/admin_responders.py`, permission `accounts.responders`).
+  Create, edit name, title and mobile, send a password link, turn off and on,
+  and see who is on a fire. The central hub and the system Admin manage
+  everyone's and move one to another organization of the same agency, not
+  while on a fire. An Admin fills in a personal email only until the
+  responder confirms it. Every change is audited; dispatching stays with
+  coordinators.
+- **Requests are Alarm Escalations** in the console, the notification and the
+  errors. The water tab is Water requests. Routes and tables keep their names.
+
+---
+
+## v1.12.48 — 22 November 2026 — Who presses a fire code; a pulse that moves; the sidebar and search fixed
+
+Backend and console; app v1.12.59 goes with it. No migration. The first of
+three releases for the 22 Nov list ("Three, safety first").
+
+### Changes
+- **Who may press a fire code** (answered "Coordinators declare";
+  `app/services/fire_code_rules.py`). Any responder of any agency, on a fire or
+  not, could press any code. A responder now presses only on a fire they are
+  on; crews outside the fire service press only FC-7 (more units) and FC-8 (a
+  casualty). Fire out completes every response, so a fire crew keeps FC-4
+  (overhauling) and FC-5 (returning) on it. Coordinators and Admins are as
+  before.
+- **The fire's pulse moves in production** ("make the animation of the pulsing
+  incident in the web too"; answered "Ring + marker halo"; `map/FirePulse.jsx`).
+  The v1.12.46 ripple passed its class through react-leaflet's pathOptions,
+  which reaches the path only on the dev server: no ring moved in production.
+  The class is a prop now, with a test against it coming back. The 100 m ring
+  and a halo that shows zoomed out are on the live map, a live incident's map
+  and Map settings; both stand still under reduced motion.
+- **Settings in the sidebar is the size of the others** ("hindi niya ka same
+  ng size yung mga ibang Nav Item"): it was squashed to 21.6 px, the others
+  44 px, whenever the sidebar was taller than the window.
+- **The search box** ("ang weird ng Design niya parang naka Default"): one
+  focus ring, not a box inside the box, and our own Clear in place of the
+  browser's (`components/ui/SearchBox.jsx`, on every page with a search). The
+  filters' fields lose their inner box too.
+
+---
+
 ## v1.12.47 — 20 November 2026 — The map's places open; one pager; the audit log by incident; the console on a phone
 
 Console and backend; no app release, no migration. The second of the two

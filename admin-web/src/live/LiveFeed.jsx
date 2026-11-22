@@ -9,9 +9,11 @@ import {
   CATCH_UP_MS,
   isAcknowledged,
   notifyDesktop,
+  notifyDesktopRaised,
   recordAcknowledged,
 } from '../sound/alarm.js';
 import { announce, stopCues } from '../sound/cues.js';
+import { alarmRank, isRaise } from '../lib/alarmStatus.js';
 
 /// The live incident feed behind the console's red badges and sounds
 /// (Master Context v10, Sections 2.8 and 2.9).
@@ -29,6 +31,10 @@ import { announce, stopCues } from '../sound/cues.js';
 /// An organisation's Admin is alarmed only by incidents routed to it — that
 /// asked for its agency — and hears its own agency's sound (PRD v14 §4.13.1;
 /// A00: every Admin sees every incident, acts where it was asked).
+///
+/// v1.12.49 ("Staff loud, residents quiet"): when BFP raises the alarm on an
+/// incident routed to this Admin it plays the sound once and says so until it
+/// is dismissed — never to whoever raised it.
 
 const POLL_MS = 12_000;
 const SEEN_KEY = 'replit.seen.v1';
@@ -51,6 +57,11 @@ export function LiveFeedProvider({ children }) {
   const access = useMemo(() => consoleOf(user), [user]);
   const accessRef = useRef(access);
   accessRef.current = access;
+  const meRef = useRef(user?.id);
+  meRef.current = user?.id;
+  // Each incident's level at the last poll, and the raises not yet dismissed.
+  const levels = useRef(new Map());
+  const [raisedIds, setRaisedIds] = useState([]);
   const [incidents, setIncidents] = useState([]);
   const [stats, setStats] = useState(null);
   const [loaded, setLoaded] = useState(false);
@@ -83,11 +94,30 @@ export function LiveFeedProvider({ children }) {
           && now - new Date(inc.reported_at).getTime() < CATCH_UP_MS);
       }
       list.forEach((inc) => known.current.add(inc.id));
+      // BFP raised the alarm on one of ours since the last poll.
+      const raised = list.filter((inc) => {
+        if (!levels.current.has(inc.id)) return false;
+        const before = levels.current.get(inc.id);
+        return isRaise(inc.alarm_level)
+          && alarmRank(inc.alarm_level) > alarmRank(before)
+          && inc.alarm_level_set_by !== meRef.current
+          && ours(inc);
+      });
+      levels.current = new Map(list.map((inc) => [inc.id, inc.alarm_level]));
+      if (raised.length) {
+        // A ringing new incident's loop already sounds.
+        if (!ringing.current.length) announce(raised, soundCategories(accessRef.current));
+        notifyDesktopRaised(raised);
+      }
       // An incident that has left the feed (closed, rejected, merged) stops ringing.
       const live = new Set(list.map((inc) => inc.id));
       setAlarmIds((prev) => {
         const added = ring.map((inc) => inc.id).filter((id) => !prev.includes(id));
         const next = [...added, ...prev].filter((id) => live.has(id));
+        return next.length === prev.length && next.every((id, i) => id === prev[i]) ? prev : next;
+      });
+      setRaisedIds((prev) => {
+        const next = [...new Set([...raised.map((inc) => inc.id), ...prev])].filter((id) => live.has(id));
         return next.length === prev.length && next.every((id, i) => id === prev[i]) ? prev : next;
       });
       setIncidents(list);
@@ -122,6 +152,14 @@ export function LiveFeedProvider({ children }) {
     () => alarmIds.map((id) => incidents.find((inc) => inc.id === id)).filter(Boolean),
     [alarmIds, incidents],
   );
+
+  const raises = useMemo(
+    () => raisedIds.map((id) => incidents.find((inc) => inc.id === id)).filter(Boolean),
+    [raisedIds, incidents],
+  );
+  const dismissRaise = useCallback((id) => {
+    setRaisedIds((prev) => prev.filter((r) => r !== id));
+  }, []);
 
   const acknowledge = useCallback((ids) => {
     const list = Array.isArray(ids) ? ids : [ids];
@@ -176,6 +214,7 @@ export function LiveFeedProvider({ children }) {
     <LiveFeedContext.Provider
       value={{
         incidents, stats, loaded, failed, loadedAt, seenAt, markSeen, newSince, refresh, alarms, acknowledge,
+        raises, dismissRaise,
       }}
     >
       {children}

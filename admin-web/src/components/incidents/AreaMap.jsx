@@ -5,6 +5,7 @@ import { Circle, MapContainer, Marker } from 'react-leaflet';
 
 import BaseTiles from '../../map/BaseTiles.jsx';
 import { t } from '../../i18n/i18n.jsx';
+import FirePulse from '../../map/FirePulse.jsx';
 
 /* One or more Areas on the map (REPLIT (MAIN) 10 · A23, A27; 04 · Map
  * marker, Area radius): the incident marker — the brand's solid step with a
@@ -26,7 +27,8 @@ function markerIcon(small) {
   });
 }
 
-export default function AreaMap({ lat, lng, label, areas, height }) {
+/* `pulse`: a live fire pulses; one that is over stands still (v1.12.48). */
+export default function AreaMap({ lat, lng, label, areas, height, pulse = true }) {
   const list = (areas ?? [{ lat, lng, label }]).filter((a) => a.lat != null && a.lng != null);
   if (list.length === 0) {
     return <div className="rpl-area-map is-empty">{t('No location recorded for this incident.')}</div>;
@@ -59,16 +61,8 @@ export default function AreaMap({ lat, lng, label, areas, height }) {
             pathOptions={{ color: '#ff9066', weight: 1.5, fillColor: '#ff9066', fillOpacity: 0.12 }}
           />
         ))}
-        {/* The 100 m ripple, as on the live map (v1.12.46). */}
-        {list.map((a, i) => (
-          <Circle
-            key={`p-${i}`}
-            center={[a.lat, a.lng]}
-            radius={100}
-            pathOptions={{ className: 'rpl-ripple', color: '#ff9066', weight: 2, fillColor: '#ff9066', fillOpacity: 0.08 }}
-            interactive={false}
-          />
-        ))}
+        {/* The fire's pulse, as on the live map. */}
+        {pulse && list.map((a, i) => <FirePulse key={`p-${i}`} lat={a.lat} lng={a.lng} />)}
         {list.map((a, i) => (
           <Marker key={`m-${i}`} position={[a.lat, a.lng]} icon={markerIcon(i > 0)} interactive={false} keyboard={false} />
         ))}

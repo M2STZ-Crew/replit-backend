@@ -15,18 +15,21 @@ import { t } from '../../i18n/i18n.jsx';
  * and sets their password, and later password resets go there too. No
  * password passes through the console. `organizations`, when given, is for
  * the system Admin, which belongs to no organisation and names one.
- * `onCreate({ firstName, lastName, personalEmail, title, organizationId })`
+ * With `responder`, the same form makes a Responder (v1.12.49; POST
+ * /admin/responders) and asks for a mobile too.
+ * `onCreate({ firstName, lastName, personalEmail, title, mobile, organizationId })`
  * must resolve once the account exists; a rejected promise shows its message
  * in the dialog. */
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STAFF_DOMAIN = /@replit\.com$/i;
 
-export default function CreateCoordinatorDialog({ open, organization, organizations = null, onCreate, onClose }) {
+export default function CreateCoordinatorDialog({ open, organization, organizations = null, responder = false, onCreate, onClose }) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [personalEmail, setPersonalEmail] = useState('');
   const [title, setTitle] = useState('');
+  const [mobile, setMobile] = useState('');
   const [organizationId, setOrganizationId] = useState('');
   const [address, setAddress] = useState(null);
   const [tried, setTried] = useState(false);
@@ -35,13 +38,13 @@ export default function CreateCoordinatorDialog({ open, organization, organizati
 
   useEffect(() => {
     if (!open) return;
-    setFirstName(''); setLastName(''); setPersonalEmail(''); setTitle('');
+    setFirstName(''); setLastName(''); setPersonalEmail(''); setTitle(''); setMobile('');
     setOrganizationId(''); setAddress(null); setTried(false); setError(null);
   }, [open]);
 
   const picking = Array.isArray(organizations);
   const chosen = picking ? organizations.find((o) => o.id === organizationId) : null;
-  const orgName = picking ? (chosen?.name ?? 'the organization') : organization;
+  const orgName = picking ? (chosen?.name ?? t('the organization')) : organization;
 
   // The address, as the server would make it now, a moment after typing stops.
   useEffect(() => {
@@ -53,12 +56,14 @@ export default function CreateCoordinatorDialog({ open, organization, organizati
     }
     let stale = false;
     const timer = setTimeout(() => {
-      api.coordinatorEmailPreview({ firstName: first, lastName: last, organizationId: picking ? organizationId : null })
+      (responder ? api.responderEmailPreview : api.coordinatorEmailPreview)({
+        firstName: first, lastName: last, organizationId: picking ? organizationId : null,
+      })
         .then((r) => { if (!stale) setAddress(r?.email ?? null); })
         .catch(() => { if (!stale) setAddress(null); });
     }, 300);
     return () => { stale = true; clearTimeout(timer); };
-  }, [open, firstName, lastName, organizationId, picking]);
+  }, [open, firstName, lastName, organizationId, picking, responder]);
 
   const personal = personalEmail.trim();
   const firstError = tried && !firstName.trim() ? t('Enter their first name.') : null;
@@ -81,6 +86,7 @@ export default function CreateCoordinatorDialog({ open, organization, organizati
         lastName: lastName.trim(),
         personalEmail: personal,
         title: title.trim() || null,
+        mobile: mobile.trim() || null,
         organizationId: picking ? organizationId : null,
       });
     } catch (err) {
@@ -94,12 +100,14 @@ export default function CreateCoordinatorDialog({ open, organization, organizati
     <FormDialog
       open={open}
       eyebrow={t('Organization · {orgName}', { orgName })}
-      title={t('Create a Coordinator account')}
+      title={responder ? t('Create a Responder account') : t('Create a Coordinator account')}
       onClose={onClose}
       onSubmit={submit}
       busy={busy}
       error={error}
-      note={t('They can acknowledge Areas and create Responder accounts for {orgName}. We email their personal address a link to confirm it and set their password.', { orgName })}
+      note={responder
+        ? t('They join {orgName} as a Responder, and its Coordinators dispatch them. We email their personal address a link to confirm it and set their password.', { orgName })
+        : t('They can acknowledge Areas and create Responder accounts for {orgName}. We email their personal address a link to confirm it and set their password.', { orgName })}
       submitLabel={t('Create account')}
       busyLabel={t('Creating…')}
     >
@@ -137,8 +145,14 @@ export default function CreateCoordinatorDialog({ open, organization, organizati
       </label>
       <label className="rpl-field">
         <span className="rpl-field-label">{t('Title (optional)')}</span>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} disabled={busy} placeholder={t('e.g. Lieutenant')} maxLength={80} />
+        <input value={title} onChange={(e) => setTitle(e.target.value)} disabled={busy} placeholder={responder ? t('e.g. Nozzleman') : t('e.g. Lieutenant')} maxLength={80} />
       </label>
+      {responder && (
+        <label className="rpl-field">
+          <span className="rpl-field-label">{t('Mobile (optional)')}</span>
+          <input type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} disabled={busy} autoComplete="off" placeholder="0917 123 4567" maxLength={32} />
+        </label>
+      )}
     </FormDialog>
   );
 }

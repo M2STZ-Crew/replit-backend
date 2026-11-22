@@ -13,7 +13,8 @@ The rules are REPLIT (MAIN) pass 6, A00 "Four permission variants":
   Fire, everyone else for their own agency. Elsewhere it follows the incident
   but cannot act on it (A25, view only). It decides an overlap only when both
   Areas were routed to it, deletes water resources, creates and turns off its
-  own organisation's Coordinators, and reads the reports of incidents its
+  own organisation's Coordinators, manages its Responders' accounts (22 Nov
+  2026), and reads the reports of incidents its
   organisation took part in. It never rejects, marks fire out, dispatches or
   drives: those are the Coordinators', on the mobile app (§4.5.2, §4.6.1).
 * **Fire Volunteer Admin** also asks BFP to raise the alarm (A45).
@@ -60,6 +61,9 @@ DELETE_WATER = "water.delete"
 REQUEST_ALARM = "alarm.request"
 DECIDE_ALARM = "alarm.decide"
 CREATE_COORDINATORS = "accounts.coordinators"
+# Responder accounts (v1.12.49): every Admin its own organization's, the
+# central hub and the system Admin everyone's. Never their dispatch.
+MANAGE_RESPONDERS = "accounts.responders"
 MANAGE_ANY_ACCOUNT = "accounts.any"  # any role, any organisation (POST /admin/users)
 ALL_ORGANIZATIONS = "organizations.all"  # read any organisation's people and equipment
 ALL_RECORDS = "records.all"  # every report, summary and audit entry, unredacted
@@ -70,7 +74,9 @@ REVIEW_STRIKES = "strikes.review"
 # and BFP Admins, the central hub and the system Admin.
 PRESS_CODES = "codes.press"
 
-_EVERY_ADMIN = frozenset({ACKNOWLEDGE, DECIDE_OVERLAPS, DELETE_WATER, CREATE_COORDINATORS})
+_EVERY_ADMIN = frozenset(
+    {ACKNOWLEDGE, DECIDE_OVERLAPS, DELETE_WATER, CREATE_COORDINATORS, MANAGE_RESPONDERS}
+)
 
 _SYSTEM = frozenset(
     {
@@ -84,6 +90,7 @@ _SYSTEM = frozenset(
         PRESS_CODES,
         DELETE_WATER,
         CREATE_COORDINATORS,
+        MANAGE_RESPONDERS,
         MANAGE_ANY_ACCOUNT,
         ALL_ORGANIZATIONS,
         ALL_RECORDS,

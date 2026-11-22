@@ -26,6 +26,8 @@ import ZoomGate from '../map/ZoomGate.jsx';
 import { groupOnScreen } from '../map/unitGroups.js';
 import { t } from '../i18n/i18n.jsx';
 import { fireAt, fireName } from '../lib/place.js';
+import FirePulse from '../map/FirePulse.jsx';
+import { AlarmBadge } from '../components/incidents/AlarmStatus.jsx';
 
 /* Live map (REPLIT (MAIN) 10 · A30 869:3563, A31 869:3858; PRD v13 §4.4):
  * every active Area on the shared map with the water sources, shelters and
@@ -77,9 +79,6 @@ const AGO = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 /* A hydrant is gray until checked on the ground in the last 6 months
  * (v1.12.46). */
 const kindOf = (key, r) => (key === 'hydrant' && !r.verified ? 'hydrantUnverified' : key);
-
-// The fire's ripple reaches as far as the residents it alerts (v1.12.46).
-const RIPPLE_M = 100;
 
 function seen(iso) {
   const s = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
@@ -143,7 +142,10 @@ function Selected({ inc, onClose, onOpen }) {
           <span aria-hidden="true">✕</span>
         </button>
       </div>
-      <LifecycleChip status={inc.status} />
+      <span className="rpl-cell-chips is-row">
+        <LifecycleChip status={inc.status} />
+        <AlarmBadge incident={inc} />
+      </span>
       <dl className="rpl-facts">
         {facts.map(([t, v]) => (
           <div className="rpl-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
@@ -272,13 +274,7 @@ export default function LiveMapPage({ onOpenIncident, onManage, onEditPoint }) {
               pathOptions={{ color: '#ff9066', weight: 1.5, fillColor: '#ff9066', fillOpacity: 0.12 }}
               interactive={false}
             />,
-            <Circle
-              key={`p-${i.id}`}
-              center={[i.centroid_lat, i.centroid_lng]}
-              radius={RIPPLE_M}
-              pathOptions={{ className: 'rpl-ripple', color: '#ff9066', weight: 2, fillColor: '#ff9066', fillOpacity: 0.08 }}
-              interactive={false}
-            />,
+            <FirePulse key={`p-${i.id}`} lat={i.centroid_lat} lng={i.centroid_lng} />,
             <Marker
               key={`i-${i.id}`}
               position={[i.centroid_lat, i.centroid_lng]}

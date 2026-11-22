@@ -33,6 +33,7 @@ from app.db.session import Database
 from app.realtime.manager import manager
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.tracking import TrackedResponder, TrackingSnapshot
+from app.services.alarm_status import under_control_at_sql
 from app.services.incident import visible_agencies, visible_area_sql
 from app.services.verifier import fetch_verifier
 
@@ -279,7 +280,9 @@ async def build_tracking_snapshot(
     settings = get_settings()
     now = now or datetime.now(UTC)
     area = await db.fetchrow(
-        "select id, designation, status::text as status, centroid_lat, centroid_lng "
+        "select id, designation, status::text as status, centroid_lat, centroid_lng, "
+        "alarm_level::text as alarm_level, alarm_level_set_at, "
+        f"{under_control_at_sql('areas')} as under_control_at "
         "from public.areas where id = $1",
         area_id,
     )
@@ -306,6 +309,9 @@ async def build_tracking_snapshot(
         verified_by=None if verifier is None else verifier.public_label,
         verified_by_agency=None if verifier is None else verifier.agency,
         verified_at=None if verifier is None else verifier.verified_at,
+        alarm_level=area.get("alarm_level"),
+        alarm_level_set_at=area.get("alarm_level_set_at"),
+        under_control_at=area.get("under_control_at"),
         generated_at=now,
     )
 

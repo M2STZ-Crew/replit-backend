@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     admin,
+    admin_responders,
     affiliate_standing,
     affiliates,
     ai,
@@ -33,6 +34,7 @@ from app.api.routes import (
     reports,
     staff_email,
     team,
+    under_control,
     verification,
     ws,
 )
@@ -60,6 +62,7 @@ api_router.include_router(affiliates.router)
 api_router.include_router(affiliate_standing.router)
 api_router.include_router(organizations.router)
 api_router.include_router(org_accounts.router)
+api_router.include_router(admin_responders.router)
 api_router.include_router(team.router)
 api_router.include_router(map_layers.router)
 api_router.include_router(map_layers_admin.router)
@@ -67,6 +70,7 @@ api_router.include_router(hydrant_ops.router)
 api_router.include_router(map_layer_requests.router)
 api_router.include_router(fire_codes.router)
 api_router.include_router(alarm_requests.router)
+api_router.include_router(under_control.router)
 api_router.include_router(audit.router)
 api_router.include_router(incident_reports.router)
 api_router.include_router(report_strikes.router)

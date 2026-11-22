@@ -18,6 +18,7 @@ import BaseTiles from '../map/BaseTiles.jsx';
 import WaterRequests, { WATER_REQUEST_LAYERS } from '../components/water/WaterRequests.jsx';
 import MapManagement from './MapManagement.jsx';
 import { t } from '../i18n/i18n.jsx';
+import SearchBox from '../components/ui/SearchBox.jsx';
 
 /* Water resources (REPLIT (MAIN) 10 · A32 871:4044 list, A33 871:4382 map
  * and detail, A34 delete, A34b deleted; PRD v13 §4.9.6): every hydrant,
@@ -196,11 +197,7 @@ export default function WaterResources({ onOpenIncident, initialEdit = null }) {
 
   const filters = (
     <div className="rpl-filters">
-      <label className="rpl-search">
-        <Icon name="search" />
-        <span className="web-sr-only">{t('Search water resources')}</span>
-        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search codes, names and streets')} />
-      </label>
+      <SearchBox label={t('Search water resources')} placeholder={t('Search codes, names and streets')} value={query} onChange={setQuery} />
       <label className="rpl-select">
         <span className="rpl-select-label">{t('Type')}</span>
         <select value={type} onChange={(e) => setType(e.target.value)}>
@@ -234,7 +231,7 @@ export default function WaterResources({ onOpenIncident, initialEdit = null }) {
           { key: 'map', label: t('Map') },
           ...(managesMap ? [
             { key: 'edit', label: t('Edit on map') },
-            { key: 'requests', label: t('Requests'), count: requests.rows.length },
+            { key: 'requests', label: t('Water requests'), count: requests.rows.length },
           ] : []),
         ].map((tab) => (
           <button

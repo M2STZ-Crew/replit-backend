@@ -54,6 +54,12 @@ class ReportResponse(BaseModel):
     area_status: str | None = Field(
         default=None, description="Lifecycle status of the clustered incident."
     )
+    area_alarm_level: str | None = Field(
+        default=None, description="BFP's alarm level on the incident (v1.12.49)."
+    )
+    area_under_control_at: datetime | None = Field(
+        default=None, description="When it was declared under control, while in effect."
+    )
     area_confidence_band: str | None = Field(
         default=None, description="high | medium | low, from the area confidence score."
     )

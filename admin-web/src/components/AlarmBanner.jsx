@@ -14,6 +14,7 @@ import {
 } from '../sound/alarm.js';
 import { t } from '../i18n/i18n.jsx';
 import { fireName } from '../lib/place.js';
+import { alarmLabel } from '../lib/status.js';
 
 const BASE_TITLE = typeof document !== 'undefined' ? document.title : 'RepLiT Admin';
 
@@ -58,7 +59,7 @@ function useTitleFlash(count) {
  * back until someone clicks the page — and offers desktop alerts for when the
  * console is behind another window. */
 export default function AlarmBanner({ onOpen }) {
-  const { alarms, acknowledge } = useLiveFeed();
+  const { alarms, acknowledge, raises, dismissRaise } = useLiveFeed();
   const { console: access } = useConsole() ?? {};
   const sounding = soundCategories(access ?? consoleOf(null));
   const alarm = useAlarmSettings();
@@ -85,7 +86,7 @@ export default function AlarmBanner({ onOpen }) {
     };
   }, [canSound]);
 
-  if (!alarms.length) return null;
+  if (!alarms.length && !raises.length) return null;
 
   const many = alarms.length > 1;
 
@@ -96,6 +97,19 @@ export default function AlarmBanner({ onOpen }) {
   // without leaving the page.
   return (
     <section className="rpl-alarms" role="alert" aria-live="assertive">
+      {raises.map((inc) => (
+        <div className="rpl-alarm is-raise" key={`raise-${inc.id}`}>
+          <span className="rpl-alarm-plate" aria-hidden="true">
+            <img src="/icons/volume.svg" alt="" width="20" height="20" />
+          </span>
+          <div className="rpl-alarm-text">
+            <p className="rpl-alarm-eyebrow">{t('Alarm raised')}</p>
+            <p className="rpl-alarm-title">{t('{level}: {fire}', { level: alarmLabel(inc.alarm_level), fire: fireName(inc.designation) })}</p>
+          </div>
+          <button type="button" className="rpl-text-button" onClick={() => dismissRaise(inc.id)}>{t('Dismiss')}</button>
+          <button type="button" className="rpl-button" onClick={() => { dismissRaise(inc.id); onOpen(inc.id); }}>{t('Open incident')}</button>
+        </div>
+      ))}
       {many && (
         <div className="rpl-alarms-head">
           <span>{alarms.length}{' '}{t('new incidents are ringing')}</span>

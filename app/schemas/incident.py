@@ -88,6 +88,11 @@ class IncidentSummary(BaseModel):
     confidence_score: float
     confidence_band: str
     alarm_level: str | None = None
+    # The alarm status (v1.12.49): who set the level and when, and when it was
+    # declared under control, while that is in effect.
+    alarm_level_set_by: UUID | None = None
+    alarm_level_set_at: datetime | None = None
+    under_control_at: datetime | None = None
     active_dispatch_count: int = 0
     reported_at: datetime
     verified_at: datetime | None = None
@@ -189,8 +194,11 @@ class IncidentDetail(IncidentSummary):
     merged_by: UUID | None = None
     merged_by_name: str | None = None
     merged_into_area_id: UUID | None = None
-    alarm_level_set_by: UUID | None = None
-    alarm_level_set_at: datetime | None = None
+    # Who is behind the alarm status, for staff (v1.12.49).
+    alarm_level_set_by_name: str | None = None
+    alarm_level_set_by_org: str | None = None
+    under_control_by_name: str | None = None
+    under_control_by_org: str | None = None
     fire_type_set_by_name: str | None = None
     # The team that said what is burning (v1.12.29): only it corrects it.
     fire_type_org_id: UUID | None = None

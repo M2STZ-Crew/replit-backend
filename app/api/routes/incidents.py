@@ -60,7 +60,7 @@ from app.schemas.incident import (
     ResponderLocationItem,
     SelfDispatchRequest,
 )
-from app.services import fire_broadcast, report_strikes
+from app.services import alarm_status, fire_broadcast, report_strikes
 from app.services.access import ACKNOWLEDGE, acting_agency, admin_access
 from app.services.acknowledge import insert_acceptance
 from app.services.audit import record_audit
@@ -142,8 +142,10 @@ _SUMMARY_COLS = """
     to_jsonb(a) ->> 'fire_subtype' as fire_subtype,
     (to_jsonb(a) ->> 'fire_type_set_at')::timestamptz as fire_type_set_at,
     -- The full place (v1.12.45), null before migration 20261120150000.
-    to_jsonb(a) ->> 'place_line' as place_line
-"""
+    to_jsonb(a) ->> 'place_line' as place_line,
+    -- The alarm status (v1.12.49).
+    a.alarm_level_set_by, a.alarm_level_set_at,
+""" + f"    {alarm_status.under_control_at_sql('a')} as under_control_at\n"
 
 
 # --------------------------------------------------------------------------- #
@@ -283,7 +285,7 @@ async def build_incident_detail(db: Database, incident_id: UUID) -> IncidentDeta
                a.rejected_by, ju.full_name as rejected_by_name,
                a.rejection_reason,
                a.merged_by, mu.full_name as merged_by_name, a.merged_into_area_id,
-               a.alarm_level_set_by, a.alarm_level_set_at,
+               {alarm_status.STAFF_DETAIL_COLS},
                (select fu.full_name from public.users fu
                  where fu.id = (to_jsonb(a) ->> 'fire_type_set_by')::uuid)
                  as fire_type_set_by_name,

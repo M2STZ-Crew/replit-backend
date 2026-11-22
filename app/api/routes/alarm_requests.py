@@ -48,10 +48,11 @@ import asyncpg
 from fastapi import APIRouter, Query, Request, Response, status
 
 from app.api.deps import CurrentUser, DatabaseDep, StaffUser
+from app.api.routes.incidents import build_incident_detail
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.core.logging import get_logger
 from app.db.session import Database
-from app.realtime.events import broadcast_alarm_request
+from app.realtime.events import broadcast_alarm_request, broadcast_incident_event
 from app.realtime.manager import manager
 from app.schemas.alarm import (
     INITIAL_ALARM_LEVEL,
@@ -64,7 +65,9 @@ from app.schemas.alarm import (
     alarm_label,
 )
 from app.schemas.auth import AuthenticatedUser
+from app.services import fire_broadcast
 from app.services.access import DECIDE_ALARM, REQUEST_ALARM, admin_access
+from app.services.alarm_notify import notify_alarm_raised
 from app.services.audit import record_audit
 from app.services.incident import OFF_FEED_STATUSES, assert_admin_routed
 from app.services.incident_notify import (
@@ -73,6 +76,7 @@ from app.services.incident_notify import (
 )
 from app.services.map_feed import publish_area_change
 from app.services.staff_copy import fire_at
+from app.services.tracking import publish_tracking
 
 log = get_logger(__name__)
 
@@ -100,6 +104,23 @@ left join public.users u on u.id = a.requested_by
 left join public.organizations o on o.id = u.primary_org_id
 left join public.users rv on rv.id = a.reviewed_by
 """
+
+
+async def _alert_everyone(
+    db: Database, area_id: UUID, level: str, raised_by: UUID, answered: list[UUID]
+) -> None:
+    """A raise reaches every screen on the fire, and alerts (v1.12.49: "Staff
+    loud, residents quiet"; app/services/alarm_notify.py). [answered] asked
+    for it and get BFP's answer instead. Best-effort: the level stands."""
+    try:
+        detail = await build_incident_detail(db, area_id)
+        await broadcast_incident_event(detail, "alarm_raised")
+        await publish_tracking(db, area_id)
+    except Exception:
+        log.error("alarm_raise_broadcast_failed", area_id=str(area_id), exc_info=True)
+    fire_broadcast.spawn(
+        notify_alarm_raised(db, area_id, level, raised_by, already_told=answered)
+    )
 
 
 def _rank(level: str | None) -> int:
@@ -159,7 +180,7 @@ async def _withdrawable(
         request_id,
     )
     if row is None:
-        raise NotFoundError("Alarm request not found.")
+        raise NotFoundError("Alarm escalation not found.")
     if not _may_withdraw(user, row["requested_by"], row["requester_org"]):
         raise ForbiddenError(
             "Only whoever asked, an Admin of their organization, or the system Admin "
@@ -182,7 +203,7 @@ def _may_request(user: AuthenticatedUser) -> bool:
 async def _detail(db: Database, request_id: UUID) -> AlarmRequestResponse:
     row = await db.fetchrow(f"{_DETAIL_SQL} where a.id = $1", request_id)
     if row is None:
-        raise NotFoundError("Alarm request not found.")
+        raise NotFoundError("Alarm escalation not found.")
     return AlarmRequestResponse.model_validate(dict(row))
 
 
@@ -219,7 +240,7 @@ async def create_alarm_request(
     if not _may_request(user):
         raise ForbiddenError(
             "Only Fire Volunteer responders, Coordinators and Admins, or BFP "
-            "Coordinators, may raise an alarm request."
+            "Coordinators, may ask for an alarm escalation."
         )
     await assert_admin_routed(db, payload.area_id, user, "ask BFP to raise its alarm")
     level = payload.requested_alarm_level
@@ -374,7 +395,7 @@ async def list_alarm_requests(
     carries stays bounded however long the system runs.
     """
     if not (user.role == "admin" or _is_bfp_subadmin(user)):
-        raise ForbiddenError("Only BFP sub-admins or admin may review alarm requests.")
+        raise ForbiddenError("Only BFP sub-admins or admin may review alarm escalations.")
     conditions: list[str] = []
     params: list[Any] = []
     if status_filter is not None:
@@ -515,10 +536,13 @@ async def raise_alarm(
         },
     )
     await publish_area_change(db, payload.area_id)
+    askers: list[UUID] = []
     for answered_id in met:
         answered = await _detail(db, answered_id)
+        askers.append(answered.requested_by)
         await _announce(answered, "approved")
         await _tell_asker(db, answered)
+    await _alert_everyone(db, payload.area_id, level, user.id, askers)
     detail = await _detail(db, new_id)
     await _announce(detail, "approved")
     log.info(
@@ -564,9 +588,9 @@ async def execute_alarm_request(
             request_id,
         )
         if req is None:
-            raise NotFoundError("Alarm request not found.")
+            raise NotFoundError("Alarm escalation not found.")
         if req["status"] != "pending":
-            raise ConflictError("This alarm request has already been reviewed.")
+            raise ConflictError("This alarm escalation has already been reviewed.")
         area = await conn.fetchrow(
             "select status::text as status, alarm_level::text as alarm_level, designation "
             "from public.areas where id = $1 for update",
@@ -642,6 +666,7 @@ async def execute_alarm_request(
     detail = await _detail(db, request_id)
     await _announce(detail, "approved")
     await _tell_asker(db, detail)
+    await _alert_everyone(db, req["area_id"], req["lvl"], user.id, [detail.requested_by])
     log.info(
         "alarm_request_executed",
         request_id=str(request_id),
@@ -667,7 +692,7 @@ async def reject_alarm_request(
     """Reject a pending alarm request (BFP Coordinator or Admin)."""
     if not _may_decide(user):
         raise ForbiddenError(
-            "Only BFP (a Coordinator or the BFP Admin) may decline alarm requests."
+            "Only BFP (a Coordinator or the BFP Admin) may decline alarm escalations."
         )
     async with db.acquire() as conn, conn.transaction():
         row = await conn.fetchrow(
@@ -683,7 +708,7 @@ async def reject_alarm_request(
             payload.notes,
         )
         if row is None:
-            raise NotFoundError("No pending alarm request found for that id.")
+            raise NotFoundError("No pending alarm escalation found for that id.")
         await record_audit(
             conn,
             request,

@@ -60,4 +60,8 @@ class TrackingSnapshot(BaseModel):
         default=None, description="That team's agency; null when an Admin verified it."
     )
     verified_at: datetime | None = None
+    # The alarm status (v1.12.49), so Track It Live follows a raise at once.
+    alarm_level: str | None = None
+    alarm_level_set_at: datetime | None = None
+    under_control_at: datetime | None = None
     generated_at: datetime

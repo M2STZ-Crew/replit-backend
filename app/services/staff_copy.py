@@ -147,8 +147,36 @@ def alarm_answered(
         fire = fire_at(designation, language, start=True)
         if approved:
             return "BFP raised the alarm", f"{fire} is now at {level}, as you asked."
-        title, body = "BFP declined your alarm request", f"{fire} stays as it is."
+        title, body = "BFP declined your alarm escalation", f"{fire} stays as it is."
     return title, f"{body} {notes}" if notes else body
+
+
+def alarm_raised(
+    language: Language, level: str, designation: str | None, organization: str | None
+) -> tuple[str, str]:
+    """The fire's crews and coordinators, on a raise (v1.12.49): "Alarm raised:
+    3rd alarm", "The fire near F. Victor St. is now at 3rd alarm, raised by
+    BFP Pasay." """
+    if language == "tl":
+        body = f"Nasa {level} na ang {fire_at(designation, language)}"
+        by = f", itinaas ng {organization}" if organization else ""
+        return f"Itinaas ang alarma: {level}", f"{body}{by}."
+    body = f"{fire_at(designation, language, start=True)} is now at {level}"
+    by = f", raised by {organization}" if organization else ""
+    return f"Alarm raised: {level}", f"{body}{by}."
+
+
+def under_control_withdrawn(language: Language, designation: str | None) -> tuple[str, str]:
+    """The staff an FC-2 told, when Under control is withdrawn (v1.12.49)."""
+    if language == "tl":
+        return (
+            "Binawi ang Under control",
+            f"Hindi pa under control ang {fire_at(designation, language)}.",
+        )
+    return (
+        "Under control withdrawn",
+        f"{fire_at(designation, language, start=True)} is not under control.",
+    )
 
 
 # What a coordinator's map change is called, for the answer to it (v1.12.43).

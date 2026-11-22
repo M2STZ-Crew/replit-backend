@@ -21,6 +21,7 @@ from app.schemas.area import (
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.common import MessageResponse
 from app.schemas.tracking import TrackingSnapshot
+from app.services import alarm_status
 from app.services.access import DECIDE_OVERLAPS, admin_access
 from app.services.audit import record_audit
 from app.services.clustering import recompute_area
@@ -77,7 +78,7 @@ async def get_tracking(area_id: UUID, user: CurrentUser, db: DatabaseDep) -> Tra
 async def get_area(area_id: UUID, user: CurrentUser, db: DatabaseDep) -> AreaDetail:
     """Return one area with confidence components and its member reports."""
     area = await db.fetchrow(
-        """
+        f"""
         select a.id, a.designation, a.status::text as status, a.centroid_lat,
                a.centroid_lng, a.report_count, a.confidence_score,
                a.confidence_band::text as confidence_band,
@@ -94,7 +95,9 @@ async def get_area(area_id: UUID, user: CurrentUser, db: DatabaseDep) -> AreaDet
                  where fu.id = (to_jsonb(a) ->> 'fire_type_set_by')::uuid)
                    as fire_type_org_name,
                -- The full place (v1.12.45), null before its migration.
-               to_jsonb(a) ->> 'place_line' as place_line
+               to_jsonb(a) ->> 'place_line' as place_line,
+               -- The alarm status for anyone (v1.12.49).
+               {alarm_status.PUBLIC_DETAIL_COLS}
         from public.areas a
         where a.id = $1
         """,

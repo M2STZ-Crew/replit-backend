@@ -6,13 +6,13 @@ import IncidentDetail from '../components/incidents/IncidentDetail.jsx';
 import IncidentTable from '../components/incidents/IncidentTable.jsx';
 import OverlapReview from '../components/incidents/OverlapReview.jsx';
 import AlarmEscalationDialog from '../components/requests/AlarmEscalationDialog.jsx';
-import Icon from '../components/ui/Icon.jsx';
 import { EmptyState, PageHeader, Pager, StatePanel, usePager } from '../components/ui/index.js';
 import { useLiveFeed, useSurfaceVisit } from '../live/LiveFeed.jsx';
 import { actsOn, splitsIncidents, yourOrg } from '../lib/access.js';
 import { degrees, fireAt, knownAddress, fireName } from '../lib/place.js';
 import { AGENCY_LABEL } from '../lib/status.js';
 import { t as tr } from '../i18n/i18n.jsx';
+import SearchBox from '../components/ui/SearchBox.jsx';
 
 /* Incidents (REPLIT (MAIN) 10 · A22 865:2061, A23–A28, A80–A82, A84).
  *
@@ -348,16 +348,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
       </div>
 
       <div className="rpl-filters">
-        <label className="rpl-search">
-          <Icon name="search" />
-          <span className="web-sr-only">{tr('Search incidents')}</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={tr('Search areas and coordinates')}
-          />
-        </label>
+        <SearchBox label={tr('Search incidents')} placeholder={tr('Search areas and coordinates')} value={query} onChange={setQuery} />
         {tab !== 'closed' && (
           <Select label={tr('Status')} value={status} onChange={setStatus} options={STATUSES} />
         )}

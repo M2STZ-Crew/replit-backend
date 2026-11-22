@@ -305,6 +305,12 @@ def told(monkeypatch: pytest.MonkeyPatch) -> _Told:
     monkeypatch.setattr(ar, "notify_alarm_request_answered", answered)
     monkeypatch.setattr(ar.manager, "broadcast", socket)
     monkeypatch.setattr(ar, "publish_area_change", no_map)
+
+    async def alerted(db: Any, area_id: UUID, level: str, by: UUID, askers: list[UUID]) -> None:
+        # Who hears a raise is tests/test_alarm_status.py's (v1.12.49).
+        return None
+
+    monkeypatch.setattr(ar, "_alert_everyone", alerted)
     return t
 
 
@@ -645,7 +651,7 @@ class _PushDb:
 @pytest.mark.parametrize(
     ("status", "title"),
     [("approved", "BFP raised the alarm"),
-     ("rejected", "BFP declined your alarm request")],
+     ("rejected", "BFP declined your alarm escalation")],
 )
 async def test_the_asker_is_told_the_answer(
     monkeypatch: pytest.MonkeyPatch, status: str, title: str

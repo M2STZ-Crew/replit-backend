@@ -23,6 +23,7 @@ from app.core.logging import get_logger
 from app.db.session import Database
 from app.realtime.manager import manager
 from app.schemas.area import AreaSummary
+from app.services.alarm_status import under_control_at_sql
 from app.services.incident import active_area_sql
 
 log = get_logger(__name__)
@@ -31,10 +32,12 @@ MAP_CHANNEL = "map:areas"
 
 # The columns of AreaSummary. GET /areas selects these too, so the map's first
 # read and every message after it describe an area identically.
-AREA_SUMMARY_COLS = """
+AREA_SUMMARY_COLS = f"""
     id, designation, status::text as status, centroid_lat, centroid_lng,
     report_count, confidence_score, confidence_band::text as confidence_band,
-    alarm_level::text as alarm_level, reported_at, updated_at
+    alarm_level::text as alarm_level, alarm_level_set_at,
+    {under_control_at_sql("areas")} as under_control_at,
+    reported_at, updated_at
 """
 
 

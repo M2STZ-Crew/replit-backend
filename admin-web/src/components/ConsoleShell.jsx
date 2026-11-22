@@ -237,7 +237,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
                 aria-label={count ? `${item.label}, ${label}` : item.label}
               >
                 <Icon name={item.icon} />
-                <span>{item.label}</span>
+                <span>{item.shortLabel ?? item.label}</span>
                 {count > 0 && <span className="rpl-count" aria-hidden="true">{count}</span>}
               </button>
             );

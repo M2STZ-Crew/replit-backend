@@ -106,7 +106,10 @@ def test_the_four_variants(
     assert access is not None
     assert access.variant == variant
     assert access.act_agencies == act
-    every = {A.ACKNOWLEDGE, A.DECIDE_OVERLAPS, A.DELETE_WATER, A.CREATE_COORDINATORS}
+    every = {
+        A.ACKNOWLEDGE, A.DECIDE_OVERLAPS, A.DELETE_WATER,
+        A.CREATE_COORDINATORS, A.MANAGE_RESPONDERS,
+    }
     assert access.permissions == frozenset(every | extra)
     assert not access.permissions & absent
     # No other organisation's Admin coordinates or reads everything; of them

@@ -206,6 +206,9 @@ export const api = {
   equipment: () => request('/equipment'),
   // Fire codes (v1.12.46): the catalog, and pressing one on an incident.
   fireCodes: () => request('/fire-codes'),
+  // Take Under control back (v1.12.49).
+  withdrawUnderControl: (incidentId) =>
+    request(`/incidents/${incidentId}/under-control/withdraw`, { method: 'POST' }),
   pressFireCode: (id, areaId) =>
     request(`/fire-codes/${id}/press`, { method: 'POST', body: { area_id: areaId } }),
   mapLayer: (name, { includeInactive = false } = {}) =>
@@ -307,6 +310,34 @@ export const api = {
   },
   deactivateCoordinator: (id) => request(`/admin/coordinators/${id}/deactivate`, { method: 'POST' }),
   reactivateCoordinator: (id) => request(`/admin/coordinators/${id}/reactivate`, { method: 'POST' }),
+
+  // An Admin's responder accounts (v1.12.49): its own organization's, or
+  // everyone's for the central hub and the system Admin. A password link
+  // goes to the responder's own email; none passes through the console.
+  adminResponders: () => request('/admin/responders'),
+  createResponder: ({ firstName, lastName, personalEmail, title, mobile, organizationId }) =>
+    request('/admin/responders', {
+      method: 'POST',
+      body: {
+        first_name: firstName,
+        last_name: lastName,
+        personal_email: personalEmail,
+        title: title || null,
+        mobile: mobile || null,
+        ...(organizationId ? { organization_id: organizationId } : {}),
+      },
+    }),
+  responderEmailPreview: ({ firstName, lastName, organizationId }) => {
+    const q = new URLSearchParams({ first_name: firstName, last_name: lastName });
+    if (organizationId) q.set('organization_id', organizationId);
+    return request(`/admin/responders/email-preview?${q.toString()}`);
+  },
+  updateResponder: (id, changes) => request(`/admin/responders/${id}`, { method: 'PATCH', body: changes }),
+  responderPasswordLink: (id, personalEmail) => request(`/admin/responders/${id}/password-link`, {
+    method: 'POST', body: personalEmail ? { personal_email: personalEmail } : {},
+  }),
+  deactivateResponder: (id) => request(`/admin/responders/${id}/deactivate`, { method: 'POST' }),
+  reactivateResponder: (id) => request(`/admin/responders/${id}/reactivate`, { method: 'POST' }),
 
   // Areas that grew within range of each other, waiting for a dispatcher to
   // merge them or keep them apart (120 s; Keep separate is the default).

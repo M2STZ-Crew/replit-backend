@@ -8,6 +8,7 @@ import {
 } from '../components/ui/index.js';
 import { t } from '../i18n/i18n.jsx';
 import { fireName } from '../lib/place.js';
+import SearchBox from '../components/ui/SearchBox.jsx';
 
 /* Audit log (REPLIT (MAIN) 10 · A64 879:8852; Section 2.5 audit trail): the
  * append-only record of consequential actions.
@@ -54,6 +55,22 @@ const VERB = {
   get 'incident.accept'() { return t('Acknowledged'); },
   get 'incident.verify'() { return t('Acknowledged'); },
   get 'incident.post_incident_report'() { return t('Filed post-incident report'); },
+  get 'incident.under_control'() { return t('Declared under control'); },
+  get 'incident.under_control_withdrawn'() { return t('Withdrew Under control'); },
+  get 'user.responder_created'() { return t('Created a Responder account'); },
+  get 'user.responder_updated'() { return t('Edited a Responder account'); },
+  get 'user.responder_moved'() { return t('Moved a Responder'); },
+  get 'user.responder_email_set'() { return t('Set a Responder’s email'); },
+  get 'user.responder_password_link'() { return t('Sent a Responder a password link'); },
+  get 'user.responder_password_reset'() { return t('Reset a Responder’s password'); },
+  get 'user.responder_deactivated'() { return t('Turned off a Responder account'); },
+  get 'user.responder_reactivated'() { return t('Turned on a Responder account'); },
+};
+// What an edit changed, named on its entry.
+const FIELD = {
+  get full_name() { return t('name'); },
+  get title() { return t('title'); },
+  get mobile() { return t('mobile'); },
 };
 function labelOf(action = '') {
   if (VERB[action]) return VERB[action];
@@ -70,6 +87,11 @@ function detailOf(r) {
       .join(', ');
   }
   if (r.metadata?.notes) return r.metadata.notes;
+  if (r.metadata?.responder) {
+    const changed = (r.metadata.changed ?? []).map((key) => FIELD[key] ?? key).join(', ');
+    const to = r.metadata.moved_to ? t('to {org}', { org: r.metadata.moved_to }) : null;
+    return [r.metadata.responder, to, changed].filter(Boolean).join(' · ');
+  }
   return null;
 }
 
@@ -285,11 +307,7 @@ export default function ActionRecord({ onOpenIncident }) {
       />
 
       <div className="rpl-filters">
-        <label className="rpl-search">
-          <Icon name="search" />
-          <span className="web-sr-only">{t('Search the audit log')}</span>
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search actions, incidents, agencies')} />
-        </label>
+        <SearchBox label={t('Search the audit log')} placeholder={t('Search actions, incidents, agencies')} value={query} onChange={setQuery} />
         <label className="rpl-select">
           <span className="rpl-select-label">{t('Action')}</span>
           <select value={category} onChange={(e) => setCategory(e.target.value)}>

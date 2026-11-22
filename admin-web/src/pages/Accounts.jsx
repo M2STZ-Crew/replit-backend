@@ -3,27 +3,34 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client.js';
 import { agencyLabel, useAuth } from '../auth.jsx';
 import CreateCoordinatorDialog from '../components/accounts/CreateCoordinatorDialog.jsx';
+import { ManageResponderDialog, PasswordLinkDialog } from '../components/accounts/ResponderDialogs.jsx';
 import { useConsole } from '../components/ConsoleShell.jsx';
-import Icon from '../components/ui/Icon.jsx';
 import Pager, { usePager } from '../components/ui/Pager.jsx';
 import {
   ConfirmDialog, EmptyState, PageHeader, StatePanel, StatusChip,
 } from '../components/ui/index.js';
 import { PERM, can, governsAll } from '../lib/access.js';
+import { fireAt, fireName } from '../lib/place.js';
 import { t } from '../i18n/i18n.jsx';
+import SearchBox from '../components/ui/SearchBox.jsx';
 
 /* Accounts (REPLIT (MAIN) 10 · A48 875:7204, A49 875:7435, A49b 875:7722;
  * PRD v13 §4.6.4: Tier 1 creates Tier 2).
  *
  * An organisation's Admin sees its own people: the Coordinators it creates
- * and turns off and on, and — view only — the Responders its Coordinators
- * created on the mobile app. A new Coordinator is emailed a link to set their
- * password (POST /admin/coordinators). The system Admin, which belongs to no
- * organisation, sees every organisation's and names the organisation when it
- * creates one. */
+ * and turns off and on, and since v1.12.49 the Responders too (22 Nov 2026:
+ * "admin can manage responders too"): create, edit, send a password link,
+ * turn off and on, and see who is on a fire. Dispatching stays with their
+ * Coordinators. A new account is emailed a link to set its password. The
+ * system Admin and the central hub see every organisation's, name the
+ * organisation when they create one, and move a Responder within an agency. */
 
 const DAY = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', day: 'numeric', month: 'short', year: 'numeric' });
 const SHORT = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', day: 'numeric', month: 'short' });
+// How often the Responders tab asks again who is on a fire.
+const REFRESH_MS = 30000;
+
+const asRow = (r) => ({ ...r, role: 'response_team', org: r.organization_name, orgId: r.organization_id });
 
 function initials(name) {
   const parts = (name || '?').trim().split(/\s+/).filter(Boolean);
@@ -37,12 +44,13 @@ function created(p, myName) {
   return [by, on, off].filter(Boolean).join(' · ') || '—';
 }
 
-export default function Accounts() {
+export default function Accounts({ onOpenIncident }) {
   const { org, console: access } = useConsole();
   const { user } = useAuth();
   // The system Admin and the central hub make Coordinators for any organisation.
   const everyOrg = governsAll(access);
   const manages = can(access, PERM.CREATE_COORDINATORS) && (everyOrg || Boolean(org?.id));
+  const managesResponders = can(access, PERM.MANAGE_RESPONDERS) && (everyOrg || Boolean(org?.id));
 
   const [people, setPeople] = useState([]);
   const [orgs, setOrgs] = useState([]);
@@ -50,8 +58,11 @@ export default function Accounts() {
   const [error, setError] = useState(null);
   const [tab, setTab] = useState('sub_admin');
   const [query, setQuery] = useState('');
-  const [creating, setCreating] = useState(false);
+  // Which account is being created: a 'sub_admin' or a 'response_team' one.
+  const [creating, setCreating] = useState(null);
   const [turningOff, setTurningOff] = useState(null);
+  const [editing, setEditing] = useState(null);
+  const [linking, setLinking] = useState(null);
   const [notice, setNotice] = useState(null);
   const [warning, setWarning] = useState(null);
 
@@ -65,6 +76,7 @@ export default function Accounts() {
     setLoading(true);
     setError(null);
     try {
+      let roster = [];
       if (everyOrg) {
         const orgList = (await api.organizations()) ?? [];
         setOrgs(orgList);
@@ -73,26 +85,46 @@ export default function Accounts() {
             .then((rows) => (rows ?? []).map((r) => ({ ...r, org: o.name, orgId: o.id })))
             .catch(() => [])),
         );
-        setPeople(rosters.flat());
+        roster = rosters.flat();
       } else if (org?.id) {
         const rows = await api.orgPersonnel(org.id);
-        setPeople((rows ?? []).map((r) => ({ ...r, org: org.name, orgId: org.id })));
-      } else {
-        setPeople([]);
+        roster = (rows ?? []).map((r) => ({ ...r, org: org.name, orgId: org.id }));
       }
+      // Responders with their fire, and those with no organization.
+      if (managesResponders) {
+        const responders = (await api.adminResponders()) ?? [];
+        roster = roster.filter((p) => p.role !== 'response_team').concat(responders.map(asRow));
+      }
+      setPeople(roster);
     } catch (e) {
       setError(e.message || t('The accounts could not be loaded.'));
     } finally {
       setLoading(false);
     }
-  }, [everyOrg, org?.id, org?.name]);
+  }, [everyOrg, managesResponders, org?.id, org?.name]);
   useEffect(() => { load(); }, [load]);
+
+  // Who is on a fire changes while the tab is open.
+  useEffect(() => {
+    if (tab !== 'response_team' || !managesResponders || loading) return undefined;
+    let left = false;
+    const timer = setInterval(async () => {
+      if (document.visibilityState === 'hidden') return;
+      try {
+        const fresh = (await api.adminResponders()) ?? [];
+        if (!left) setPeople((all) => all.filter((p) => p.role !== 'response_team').concat(fresh.map(asRow)));
+      } catch {
+        // The next refresh asks again; the list on screen stays.
+      }
+    }, REFRESH_MS);
+    return () => { left = true; clearInterval(timer); };
+  }, [tab, managesResponders, loading]);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     return people
       .filter((p) => p.role === tab)
-      .filter((p) => !q || [p.full_name, p.email, p.title, p.org].filter(Boolean)
+      .filter((p) => !q || [p.full_name, p.email, p.title, p.org, p.mobile, p.responding_to].filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q)));
   }, [people, tab, query]);
   const counts = useMemo(() => ({
@@ -101,9 +133,21 @@ export default function Accounts() {
   }), [people]);
   const { shown, pager } = usePager(rows, { key: 'accounts', reset: [tab, query] });
 
-  async function create({ firstName, lastName, personalEmail, title, organizationId }) {
+  async function create({ firstName, lastName, personalEmail, title, mobile, organizationId }) {
+    if (creating === 'response_team') {
+      const made = await api.createResponder({ firstName, lastName, personalEmail, title, mobile, organizationId });
+      setCreating(null);
+      setTab('response_team');
+      setNotice(t('Responder account created: {name} signs in as {address}', {
+        name: made.responder?.full_name ?? `${firstName} ${lastName}`,
+        address: made.responder?.email ?? '—',
+      }));
+      setWarning(made.invite_email_sent ? null : (made.detail || t('The email with their password link was not sent.')));
+      await load();
+      return;
+    }
     const result = await api.createCoordinator({ firstName, lastName, personalEmail, title, organizationId });
-    setCreating(false);
+    setCreating(null);
     setTab('sub_admin');
     setNotice(t('Coordinator account created: {name} signs in as {address}', {
       name: result.coordinator?.full_name ?? `${firstName} ${lastName}`,
@@ -114,24 +158,43 @@ export default function Accounts() {
   }
 
   async function turnOff(person) {
-    await api.deactivateCoordinator(person.id);
+    const off = person.role === 'response_team' ? api.deactivateResponder : api.deactivateCoordinator;
+    await off(person.id);
     setTurningOff(null);
-    setNotice(t('{full_name}’s account is turned off', { full_name: person.full_name }));
+    setNotice(t('{full_name}’s account is turned off', { full_name: person.full_name || person.email }));
     await load();
   }
 
   async function turnOn(person) {
     setError(null);
     try {
-      await api.reactivateCoordinator(person.id);
-      setNotice(t('{full_name}’s account is turned on', { full_name: person.full_name }));
+      const on = person.role === 'response_team' ? api.reactivateResponder : api.reactivateCoordinator;
+      await on(person.id);
+      setNotice(t('{full_name}’s account is turned on', { full_name: person.full_name || person.email }));
       await load();
     } catch (e) {
       setError(e.message || t('The account could not be turned on.'));
     }
   }
 
+  async function saveEdit(person, changes) {
+    const saved = await api.updateResponder(person.id, changes);
+    setEditing(null);
+    setNotice(changes.organization_id
+      ? t('{name} moved to {org}', { name: saved.full_name ?? person.email, org: saved.organization_name ?? '—' })
+      : t('{name}’s account is saved', { name: saved.full_name ?? person.email }));
+    await load();
+  }
+
+  async function sendLink(person, personalEmail) {
+    const { sent_to: address } = await api.responderPasswordLink(person.id, personalEmail);
+    setLinking(null);
+    setNotice(t('Password link sent to {address}', { address }));
+    await load();
+  }
+
   const coordinators = tab === 'sub_admin';
+  const actsHere = coordinators ? manages : managesResponders;
   const myName = user?.full_name ?? null;
 
   if (!everyOrg && !org?.id) {
@@ -148,11 +211,15 @@ export default function Accounts() {
       <PageHeader
         eyebrow={org?.name ?? t('Organization')}
         title={t('Accounts')}
-        description={everyOrg
-          ? t('Coordinators of every accredited organization. Responder accounts are created by Coordinators.')
-          : t('You create and turn off Coordinator accounts. Responder accounts are created by Coordinators.')}
-        actions={manages && (
-          <button type="button" className="rpl-button rpl-button--primary" onClick={() => setCreating(true)}>{t('Create Coordinator')}</button>
+        description={managesResponders
+          ? (everyOrg
+            ? t('Coordinators and Responders of every organization. Dispatching stays with Coordinators.')
+            : t('You manage your organization’s Coordinator and Responder accounts. Dispatching stays with Coordinators.'))
+          : t('Responder accounts are created by Coordinators.')}
+        actions={actsHere && (
+          <button type="button" className="rpl-button rpl-button--primary" onClick={() => setCreating(tab)}>
+            {coordinators ? t('Create Coordinator') : t('Create Responder')}
+          </button>
         )}
       />
 
@@ -171,7 +238,7 @@ export default function Accounts() {
         <div className="rpl-tabs" role="tablist" aria-label={t('Accounts')}>
           {[
             { key: 'sub_admin', label: t('Coordinators') },
-            { key: 'response_team', label: t('Responders · view only') },
+            { key: 'response_team', label: managesResponders ? t('Responders') : t('Responders · view only') },
           ].map((t) => (
             <button
               key={t.key}
@@ -186,11 +253,7 @@ export default function Accounts() {
             </button>
           ))}
         </div>
-        <label className="rpl-search">
-          <Icon name="search" />
-          <span className="web-sr-only">{t('Search accounts')}</span>
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search names, emails and titles')} />
-        </label>
+        <SearchBox label={t('Search accounts')} placeholder={t('Search names, emails and titles')} value={query} onChange={setQuery} />
       </div>
 
       {loading ? (
@@ -201,7 +264,9 @@ export default function Accounts() {
         <EmptyState icon="accounts" title={coordinators ? t('No Coordinators yet') : t('No Responders yet')}>
           {coordinators
             ? (manages ? t('Create the first one: they get an email with a link to set their password.') : t('A Coordinator account is created when an affiliate application is accepted.'))
-            : t('Coordinators create Responder accounts for their team on the mobile app.')}
+            : managesResponders
+              ? t('Create the first one here, or their Coordinator can on the mobile app.')
+              : t('Coordinators create Responder accounts for their team on the mobile app.')}
         </EmptyState>
       ) : (
         <>
@@ -212,10 +277,10 @@ export default function Accounts() {
                 <tr>
                   <th scope="col">{coordinators ? t('Coordinator') : t('Responder')}</th>
                   {everyOrg && <th scope="col">{t('Organization')}</th>}
-                  <th scope="col">{t('Title')}</th>
+                  <th scope="col">{coordinators ? t('Title') : t('Title and mobile')}</th>
                   <th scope="col">{t('Status')}</th>
                   <th scope="col">{t('Created')}</th>
-                  {coordinators && manages && <th scope="col"><span className="web-sr-only">{t('Actions')}</span></th>}
+                  {actsHere && <th scope="col"><span className="web-sr-only">{t('Actions')}</span></th>}
                 </tr>
               </thead>
               <tbody>
@@ -230,19 +295,34 @@ export default function Accounts() {
                         </span>
                       </span>
                     </th>
-                    {everyOrg && <td data-label={t('Organization')}>{p.org}</td>}
-                    <td data-label={t('Title')}>{p.title || '—'}</td>
+                    {everyOrg && <td data-label={t('Organization')}>{p.org || t('No organization')}</td>}
+                    <td data-label={coordinators ? t('Title') : t('Title and mobile')}>
+                      <span className="rpl-account-detail">
+                        <span>{p.title || '—'}</span>
+                        {p.mobile && <span className="rpl-cell-meta">{p.mobile}</span>}
+                      </span>
+                    </td>
                     <td>
-                      <StatusChip
-                        label={p.is_active === false ? t('Disabled') : t('Active')}
-                        tone={p.is_active === false ? 'neutral' : 'ok'}
-                      />
+                      <span className="rpl-account-detail">
+                        <StatusChip
+                          label={p.is_active === false ? t('Disabled') : p.responding ? t('On a fire') : t('Active')}
+                          tone={p.is_active === false ? 'neutral' : p.responding ? 'danger' : 'ok'}
+                        />
+                        {p.responding && p.responding_area_id && onOpenIncident && (
+                          <button type="button" className="rpl-text-button rpl-account-fire" onClick={() => onOpenIncident(p.responding_area_id)}>
+                            {fireName(p.responding_to) || t('Open the incident')}
+                          </button>
+                        )}
+                      </span>
                     </td>
                     <td className="rpl-cell-quiet" data-label={t('Created')}>{created(p, myName)}</td>
-                    {coordinators && manages && (
+                    {actsHere && (
                       <td className="web-table-action-cell">
                         <span className="rpl-account-actions">
-                          {p.is_active === false ? (
+                          {!coordinators ? (
+                            <button type="button" className="web-table-row-action" onClick={() => setEditing(p)}>{t('Manage')}<span className="web-sr-only">{t(' {name}’s account', { name: p.full_name || p.email })}</span>
+                            </button>
+                          ) : p.is_active === false ? (
                             <button type="button" className="web-table-row-action" onClick={() => turnOn(p)}>{t('Turn on')}<span className="web-sr-only">{t(' {name}’s account', { name: p.full_name })}</span>
                             </button>
                           ) : (
@@ -272,18 +352,34 @@ export default function Accounts() {
       )}
 
       <CreateCoordinatorDialog
-        open={creating}
+        open={Boolean(creating)}
+        responder={creating === 'response_team'}
         organization={org?.name ?? t('your organization')}
         organizations={everyOrg ? orgs.filter((o) => o.is_active) : null}
         onCreate={create}
-        onClose={() => setCreating(false)}
+        onClose={() => setCreating(null)}
       />
+      <ManageResponderDialog
+        person={editing}
+        organizations={everyOrg ? orgs : null}
+        onSave={saveEdit}
+        onLink={(person) => { setEditing(null); setLinking(person); }}
+        onTurnOff={(person) => { setEditing(null); setTurningOff(person); }}
+        onTurnOn={(person) => { setEditing(null); turnOn(person); }}
+        onClose={() => setEditing(null)}
+      />
+      <PasswordLinkDialog person={linking} onSend={sendLink} onClose={() => setLinking(null)} />
 
       <ConfirmDialog
         open={Boolean(turningOff)}
-        eyebrow={turningOff ? t('Coordinator · {org}', { org: turningOff.org ?? org?.name ?? '' }) : ''}
-        title={turningOff ? t('Turn off {full_name}’s account?', { full_name: turningOff.full_name }) : ''}
-        description={t('They can’t sign in until you turn it back on. Their history stays, and any response they’re on is released.')}
+        eyebrow={!turningOff ? ''
+          : turningOff.role === 'response_team'
+            ? t('Responder · {org}', { org: turningOff.org ?? t('No organization') })
+            : t('Coordinator · {org}', { org: turningOff.org ?? org?.name ?? '' })}
+        title={turningOff ? t('Turn off {full_name}’s account?', { full_name: turningOff.full_name || turningOff.email }) : ''}
+        description={turningOff?.responding
+          ? t('They’re responding to {fire} now and will be taken off it. They can’t sign in until you turn it back on. Their history stays.', { fire: fireAt(turningOff.responding_to) })
+          : t('They can’t sign in until you turn it back on. Their history stays, and any response they’re on is released.')}
         confirmLabel={t('Turn off')}
         destructive
         onClose={() => setTurningOff(null)}

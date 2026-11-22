@@ -26,6 +26,7 @@ from app.schemas.auth import AuthenticatedUser
 from app.schemas.report import ReportResponse, ReportSubmitResponse
 from app.services import report_strikes
 from app.services.acknowledge import acknowledge_own_report
+from app.services.alarm_status import under_control_at_sql
 from app.services.clustering import cluster_report
 from app.services.exif import extract_gps, validate_image
 from app.services.geo import haversine_m
@@ -347,7 +348,9 @@ async def list_my_reports(
                a.id as area_id,
                a.designation as area_designation,
                a.status::text as area_status,
-               a.confidence_band::text as area_confidence_band
+               a.confidence_band::text as area_confidence_band,
+               a.alarm_level::text as area_alarm_level,
+               {under_control_at_sql("a")} as area_under_control_at
         from public.reports r
         left join lateral (
             select ar.area_id
@@ -384,6 +387,8 @@ async def list_my_reports(
                 area_designation=r["area_designation"],
                 area_status=r["area_status"],
                 area_confidence_band=r["area_confidence_band"],
+                area_alarm_level=r.get("area_alarm_level"),
+                area_under_control_at=r.get("area_under_control_at"),
             )
         )
     return items

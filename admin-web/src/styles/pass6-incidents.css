@@ -30,7 +30,7 @@
   transform: rotate(45deg);
   pointer-events: none;
 }
-.rpl-select:focus-within { border: 2px solid var(--focus); padding: 0 35px 0 11px; }
+.rpl-select:focus-within { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus); }
 .rpl-select-label { color: var(--label); font-size: 13px; }
 .rpl-select select {
   flex: 1;
@@ -311,3 +311,74 @@
 .rpl-incident-card-stats dd { margin: 2px 0 0; color: var(--text); font-size: 13px; font-weight: 600; }
 .rpl-incident-card > .rpl-button { width: 100%; }
 @media (max-width: 899px) { .rpl-incident-cards { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── Alarm status (v1.12.49): the banner on an incident, the badge on lists ── */
+.rpl-alarm-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin: 0 0 24px;
+  padding: 16px 20px;
+  border: 2px solid var(--alarm-tone);
+  border-radius: var(--radius-panel);
+  background: color-mix(in srgb, var(--alarm-tone) 14%, var(--surface-1));
+  color: var(--text);
+}
+.rpl-alarm-status-mark {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--alarm-tone) 22%, transparent);
+  color: var(--alarm-tone);
+}
+.rpl-alarm-status-text { flex: 1 1 180px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rpl-alarm-status-eyebrow { color: var(--text-2); font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.rpl-alarm-status-word { font-size: 24px; font-weight: 900; line-height: 28px; letter-spacing: -0.4px; text-transform: uppercase; }
+.rpl-alarm-status-detail { color: var(--text-2); font-size: 13px; line-height: 18px; }
+.rpl-alarm-status-action {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.rpl-alarm-status.is-positive, .rpl-alarm-badge.is-positive { --alarm-tone: #d99412; }
+.rpl-alarm-status.is-held, .rpl-alarm-badge.is-held { --alarm-tone: #5b93f5; }
+.rpl-alarm-status.is-out, .rpl-alarm-badge.is-out { --alarm-tone: #1fae53; }
+.rpl-alarm-status.is-none, .rpl-alarm-badge.is-none { --alarm-tone: #8a8a8a; }
+.rpl-alarm-status.is-raised, .rpl-alarm-badge.is-raised { --alarm-tone: #b53c37; }
+.rpl-alarm-status.is-raised { background: #b53c37; color: #fff; }
+.rpl-alarm-status.is-raised :is(.rpl-alarm-status-eyebrow, .rpl-alarm-status-detail) { color: #fff; }
+.rpl-alarm-status.is-raised .rpl-alarm-status-mark { background: rgba(255, 255, 255, 0.18); color: #fff; }
+
+.rpl-cell-chips { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.rpl-cell-chips.is-row { flex-direction: row; flex-wrap: wrap; align-self: flex-start; gap: 6px; }
+.rpl-alarm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--alarm-tone);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--alarm-tone) 16%, transparent);
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 14px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.rpl-alarm-badge > svg { color: var(--alarm-tone); }
+.rpl-alarm-badge.is-raised { background: #b53c37; color: #fff; }
+.rpl-alarm-badge.is-raised > svg { color: #fff; }
+.rpl-code-button:disabled { opacity: 0.45; cursor: not-allowed; }

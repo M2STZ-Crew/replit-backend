@@ -16,20 +16,19 @@ Response Team accounts of their own agency and team, and looks after them:
   socket, its pushes stop, and any response it is on is released.
 
 A coordinator sees and manages only responders of their own agency — of their
-own team when they have one, else the agency's responders with no team.
+own team when they have one, else the agency's responders with no team. Admins
+manage responders too since v1.12.49 (routes/admin_responders.py); both use
+the steps in app/services/responder_lifecycle.py.
 """
 
 from __future__ import annotations
 
-from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Query, Request, status
 
 from app.api.deps import AuthClientDep, DatabaseDep, EmailClientDep, SubAdminUser
 from app.core.exceptions import (
-    AppError,
-    BadRequestError,
     ConflictError,
     ExternalServiceError,
     ForbiddenError,
@@ -44,25 +43,14 @@ from app.schemas.team import (
     ResponderEmailPreview,
     TeamResponder,
 )
+from app.services import responder_lifecycle as lifecycle
 from app.services.audit import record_audit
-from app.services.disposable_email import ensure_not_disposable
 from app.services.phone_verification import normalize_ph_mobile
-from app.services.responder_accounts import (
-    AGENCY_CODES,
-    InvalidNameError,
-    is_staff_address,
-    like_pattern,
-    responder_email,
-    temporary_password,
-)
-from app.services.staff_links import WELCOME_FOR, password_link, welcome_email
+from app.services.responder_accounts import AGENCY_CODES, temporary_password
 
 log = get_logger(__name__)
 
 router = APIRouter(prefix="/team", tags=["team"])
-
-# Long enough to mean "until reactivated" (Supabase Auth takes a duration).
-_BAN_FOREVER = "876000h"
 
 _RESPONDER_COLS = """
     u.id, u.full_name, u.email, u.mobile, u.agency_type::text as agency_type,
@@ -88,15 +76,6 @@ def _agency(user: AuthenticatedUser) -> str:
     if agency not in AGENCY_CODES:
         raise ForbiddenError("Your account has no agency to make responder accounts for.")
     return str(agency)
-
-
-async def _taken(db: Database, first: str, last: str, agency: str) -> list[str]:
-    """Every address this person's could collide with."""
-    rows = await db.fetch(
-        "select email from public.users where lower(email) like $1",
-        like_pattern(first, last, agency),
-    )
-    return [str(r["email"]) for r in rows if r["email"]]
 
 
 async def _responder(db: Database, user: AuthenticatedUser, responder_id: UUID) -> TeamResponder:
@@ -143,13 +122,7 @@ async def preview_email(
     last_name: str = Query(min_length=1, max_length=60),
 ) -> ResponderEmailPreview:
     """Shown on the form as the name is typed; the create takes the next free one."""
-    agency = _agency(user)
-    try:
-        email = responder_email(
-            first_name, last_name, agency, await _taken(db, first_name, last_name, agency)
-        )
-    except InvalidNameError as exc:
-        raise BadRequestError(str(exc)) from exc
+    email = await lifecycle.next_address(db, first_name, last_name, _agency(user))
     return ResponderEmailPreview(email=email)
 
 
@@ -180,15 +153,9 @@ async def create_responder(
     agency = _agency(user)
     first = payload.first_name.strip()
     last = payload.last_name.strip()
-    personal = (
-        str(payload.personal_email).strip().lower() if payload.personal_email else None
+    personal = lifecycle.own_email(
+        str(payload.personal_email) if payload.personal_email else None
     )
-    if personal and is_staff_address(personal):
-        raise BadRequestError(
-            "Use the responder's own email: @replit.com addresses have no mailbox.",
-            error_code="not_personal",
-        )
-    ensure_not_disposable(personal, field="personal_email")
     mobile = (
         normalize_ph_mobile(payload.mobile)
         if payload.mobile and payload.mobile.strip()
@@ -197,31 +164,9 @@ async def create_responder(
     full_name = f"{first} {last}"
     password = temporary_password()
 
-    created: dict[str, Any] | None = None
-    email = ""
-    for attempt in range(3):
-        try:
-            email = responder_email(first, last, agency, await _taken(db, first, last, agency))
-        except InvalidNameError as exc:
-            raise BadRequestError(str(exc)) from exc
-        try:
-            created = await auth.admin_create_user(
-                email=email,
-                password=password,
-                email_confirm=True,
-                user_metadata={"full_name": full_name},
-            )
-            break
-        except BadRequestError as exc:
-            # Taken between the check and the create: take the next number.
-            if "already" not in exc.message.lower() or attempt == 2:
-                raise
-            log.info("responder_email_race", email=email)
-    assert created is not None
-    raw_id = created.get("id") or (created.get("user") or {}).get("id")
-    if not isinstance(raw_id, str):
-        raise ExternalServiceError("Account created but no id was returned by Supabase Auth.")
-    new_id = UUID(raw_id)
+    new_id, email = await lifecycle.make_sign_in(
+        db, auth, first=first, last=last, agency=agency, password=password
+    )
 
     try:
         async with db.acquire() as conn, conn.transaction():
@@ -269,11 +214,7 @@ async def create_responder(
                 },
             )
     except Exception:
-        # Never leave a sign-in without its profile behind.
-        try:
-            await auth.admin_delete_user(user_id=str(new_id))
-        except Exception:
-            log.error("responder_rollback_failed", user_id=str(new_id), exc_info=True)
+        await lifecycle.discard_sign_in(auth, new_id)
         raise
 
     responder = TeamResponder.model_validate(dict(row))
@@ -288,33 +229,18 @@ async def create_responder(
             responder=responder, email=email, temporary_password=password
         )
 
-    sent = False
-    detail: str | None = None
     org_name = await db.fetchval(
         "select name from public.organizations where id = $1", user.primary_org_id
     )
-    try:
-        message = welcome_email(
-            name=full_name,
-            role="Responder",
-            organization=str(org_name or "your team"),
-            address=email,
-            link=password_link(new_id, personal, WELCOME_FOR),
-            made_by="Your coordinator",
-        )
-        await email_client.send(
-            to=personal,
-            subject="Your RepLiT Responder account is ready",
-            html=message.html,
-            text=message.text,
-        )
-        sent = True
-    except AppError as exc:
-        detail = (
-            f"The account is ready, but the email to {personal} could not be sent. "
-            f"They can use “Forgot password?” on the app with {email} or {personal}."
-        )
-        log.warning("responder_invite_failed", responder_id=str(new_id), error=str(exc))
+    sent, detail = await lifecycle.send_welcome(
+        email_client,
+        user_id=new_id,
+        name=full_name,
+        organization=str(org_name or "your team"),
+        address=email,
+        personal=personal,
+        made_by="Your coordinator",
+    )
     log.info(
         "responder_created",
         coordinator_id=str(user.id),
@@ -386,44 +312,9 @@ async def deactivate_responder(
     responder = await _responder(db, user, responder_id)
     if not responder.is_active:
         return responder
-    # Supabase first: if the ban fails nothing has changed, and the account is
-    # not left marked inactive while it can still make sessions.
-    await auth.admin_update_user(
-        user_id=str(responder_id), attributes={"ban_duration": _BAN_FOREVER}
+    released = await lifecycle.turn_off(
+        db, auth, request, user, responder_id, name=responder.full_name
     )
-    async with db.acquire() as conn, conn.transaction():
-        released = await conn.fetch(
-            """
-            update public.dispatch_logs
-               set status = 'withdrawn', withdrawn_at = now()
-             where responder_id = $1 and status = 'active'
-             returning area_id
-            """,
-            responder_id,
-        )
-        await conn.execute(
-            "update public.device_tokens set is_active = false where user_id = $1",
-            responder_id,
-        )
-        await conn.execute(
-            """
-            update public.users
-               set is_active = false, deactivated_at = now(), deactivated_by = $2,
-                   updated_at = now()
-             where id = $1
-            """,
-            responder_id,
-            user.id,
-        )
-        await record_audit(
-            conn,
-            request,
-            user,
-            action="user.responder_deactivated",
-            entity_type="user",
-            entity_id=responder_id,
-            metadata={"responses_released": [str(r["area_id"]) for r in released]},
-        )
     log.info(
         "responder_deactivated",
         coordinator_id=str(user.id),
@@ -449,24 +340,6 @@ async def reactivate_responder(
     responder = await _responder(db, user, responder_id)
     if responder.is_active:
         return responder
-    await auth.admin_update_user(user_id=str(responder_id), attributes={"ban_duration": "none"})
-    async with db.acquire() as conn, conn.transaction():
-        await conn.execute(
-            """
-            update public.users
-               set is_active = true, deactivated_at = null, deactivated_by = null,
-                   updated_at = now()
-             where id = $1
-            """,
-            responder_id,
-        )
-        await record_audit(
-            conn,
-            request,
-            user,
-            action="user.responder_reactivated",
-            entity_type="user",
-            entity_id=responder_id,
-        )
+    await lifecycle.turn_on(db, auth, request, user, responder_id, name=responder.full_name)
     log.info("responder_reactivated", coordinator_id=str(user.id), responder_id=str(responder_id))
     return await _responder(db, user, responder_id)

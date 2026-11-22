@@ -14,6 +14,7 @@ import LifecycleProgress from './LifecycleProgress.jsx';
 import { t } from '../../i18n/i18n.jsx';
 import { fireAt, fireName } from '../../lib/place.js';
 import FireCodesPanel, { codeEntries } from './FireCodesPanel.jsx';
+import { AlarmStatusBanner } from './AlarmStatus.jsx';
 
 /* One Area, in full (REPLIT (MAIN) 10 · A23 867:2193, A24 867:2419, A24b
  * 867:2662, A25 867:2909, A26 868:2888): the map and its progress with the
@@ -67,7 +68,14 @@ function timelineOf(d, evidence) {
   ));
   push(d.en_route_at, t('A unit set off'), t('The incident went En route'), 'live');
   push(d.arrived_at, t('Arrived on scene'), t('The first unit reached the fire'), 'live');
-  push(d.alarm_level_set_at, t('Alarm set to {alarmLabel}', { alarmLabel: alarmLabel(d.alarm_level) }), t('Set by BFP'), 'live');
+  // Who set it: a Positive fire alarm is the first verifier's, not BFP's.
+  push(
+    d.alarm_level_set_at,
+    t('Alarm set to {alarmLabel}', { alarmLabel: alarmLabel(d.alarm_level) }),
+    [d.alarm_level_set_by_name, d.alarm_level_set_by_org].filter(Boolean).join(' · ') || null,
+    'live',
+  );
+  push(d.under_control_at, t('Under control'), [d.under_control_by_name, d.under_control_by_org].filter(Boolean).join(' · ') || null, 'ok');
   push(d.fire_type_set_at, t('Fire type: {label}', { label: fireTypeOf(d) }), d.fire_type_org_name || t('The fire team on scene'), 'live');
   push(d.resolved_at, t('Fire out'), d.resolved_by_name ? t('Marked by {resolved_by_name}', { resolved_by_name: d.resolved_by_name }) : t('Marked on scene'), 'ok');
   push(d.closed_at, t('Closed'), t('Post-incident report filed'), 'neutral');
@@ -283,6 +291,7 @@ export default function IncidentDetail({
   // Prank reports (v1.12.41): the central hub marks a resident's report once
   // its fire is rejected or closed as a false alarm; the server checks both.
   const [marking, setMarking] = useState(null);
+  const [withdrawing, setWithdrawing] = useState(false);
   const [markReason, setMarkReason] = useState('');
   const [markSerious, setMarkSerious] = useState(false);
   const canMark = can(access, PERM.REVIEW_STRIKES)
@@ -315,7 +324,6 @@ export default function IncidentDetail({
     [t('Confidence'), d.report_count === 1
       ? t('{confidence} ({count} report)', { confidence: confidenceOf(d), count: d.report_count })
       : t('{confidence} ({count} reports)', { confidence: confidenceOf(d), count: d.report_count })],
-    ...(d.alarm_level ? [[t('Alarm level'), `${alarmLabel(d.alarm_level)}${d.alarm_level_set_at ? ' · set by BFP' : ''}`]] : []),
     ...(d.fire_type ? [[t('Fire type'), [fireTypeOf(d), d.fire_type_org_name].filter(Boolean).join(' · ')]] : []),
     ...(onScene && routed ? [[t('Units'), active.length ? active.map((x) => x.vehicle_name || x.responder_name).join(' · ') : t('None assigned')]] : []),
     [t('Location'), <Place lat={d.centroid_lat} lng={d.centroid_lng} stacked />],
@@ -345,9 +353,30 @@ export default function IncidentDetail({
 
       {error && <p className="rpl-inline-error" role="alert">{error}</p>}
 
+      {/* The alarm status first: it is crucial (v1.12.49). */}
+      <AlarmStatusBanner
+        incident={d}
+        action={live && routed && d.under_control_at && can(access, PERM.PRESS_CODES) ? t('Withdraw') : null}
+        onAction={() => setWithdrawing(true)}
+      />
+      <ConfirmDialog
+        open={withdrawing}
+        eyebrow={t('Alarm status')}
+        title={t('Withdraw Under control?')}
+        description={t('Everyone sees the fire’s alarm level again, and its crews and coordinators are told without a sound.')}
+        confirmLabel={t('Withdraw')}
+        destructive
+        onClose={() => setWithdrawing(false)}
+        onConfirm={async () => {
+          await api.withdrawUnderControl(d.id);
+          setWithdrawing(false);
+          onEvidenceChanged?.();
+        }}
+      />
+
       <div className="rpl-incident-grid">
         <div className="rpl-incident-main">
-          <AreaMap lat={d.centroid_lat} lng={d.centroid_lng} label={fireName(d.designation)} />
+          <AreaMap lat={d.centroid_lat} lng={d.centroid_lng} label={fireName(d.designation)} pulse={live} />
           <section className="rpl-panel">
             <LifecycleProgress status={d.status} />
             <Facts rows={facts} />
@@ -381,7 +410,7 @@ export default function IncidentDetail({
           )}
 
           {live && can(access, PERM.PRESS_CODES) && (
-            <FireCodesPanel d={d} onPressed={onEvidenceChanged} />
+            <FireCodesPanel d={d} declares={routed} onPressed={onEvidenceChanged} />
           )}
 
           {(d.status === 'post_incident_report' || reports.length > 0) && (

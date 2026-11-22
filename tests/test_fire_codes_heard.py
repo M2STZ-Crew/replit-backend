@@ -107,6 +107,8 @@ class _PressDb:
         return None
 
     async def fetchval(self, query: str, *args: Any) -> Any:
+        # The incident exists, and a responder pressing is on it (v1.12.48;
+        # tests/test_fire_code_rules.py covers one who is not).
         return 1
 
 
