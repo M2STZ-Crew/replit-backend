@@ -72,3 +72,63 @@ class ResponderEmailPreview(BaseModel):
     """The address a responder with this name would get now."""
 
     email: str
+
+
+# --------------------------------------------------------------------------- #
+# The same accounts, as an Admin manages them (v1.12.49;
+# app/api/routes/admin_responders.py)
+# --------------------------------------------------------------------------- #
+class AdminResponder(TeamResponder):
+    """A responder on an Admin's Accounts screen: whose, and on which fire."""
+
+    title: str | None = None
+    organization_id: UUID | None = None
+    organization_name: str | None = None
+    created_by_name: str | None = None
+    responding_area_id: UUID | None = None
+    responding_to: str | None = None
+    responding_since: datetime | None = None
+
+
+class AdminResponderCreate(BaseModel):
+    """A new responder. The link to set a password goes to ``personal_email``."""
+
+    first_name: str = Field(min_length=1, max_length=60)
+    last_name: str = Field(min_length=1, max_length=60, description="The full surname.")
+    personal_email: EmailStr
+    mobile: str | None = Field(default=None, max_length=32)
+    title: str | None = Field(default=None, max_length=80)
+    organization_id: UUID | None = Field(
+        default=None, description="For the central hub and the system Admin."
+    )
+
+
+class AdminResponderCreated(BaseModel):
+    """The new responder, and whether the email to them went out."""
+
+    responder: AdminResponder
+    invite_email_sent: bool = False
+    detail: str | None = None
+
+
+class AdminResponderUpdate(BaseModel):
+    """Only the fields sent change; an empty title or mobile clears it."""
+
+    full_name: str | None = Field(default=None, max_length=200)
+    mobile: str | None = Field(default=None, max_length=32)
+    title: str | None = Field(default=None, max_length=80)
+    organization_id: UUID | None = Field(
+        default=None, description="Move them: the same agency, by the central hub."
+    )
+
+
+class AdminResponderLink(BaseModel):
+    """Their own email, where none is on file or it was never confirmed."""
+
+    personal_email: EmailStr | None = None
+
+
+class AdminResponderLinkSent(BaseModel):
+    """Where the password link went."""
+
+    sent_to: str

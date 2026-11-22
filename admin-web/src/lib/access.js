@@ -26,6 +26,8 @@ export const PERM = {
   REQUEST_ALARM: 'alarm.request',
   DECIDE_ALARM: 'alarm.decide',
   CREATE_COORDINATORS: 'accounts.coordinators',
+  // Responder accounts (v1.12.49); their dispatch stays with Coordinators.
+  MANAGE_RESPONDERS: 'accounts.responders',
   MANAGE_ANY_ACCOUNT: 'accounts.any',
   ALL_ORGANIZATIONS: 'organizations.all',
   ALL_RECORDS: 'records.all',

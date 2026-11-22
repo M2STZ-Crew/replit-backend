@@ -39,6 +39,12 @@ fieldset.rpl-field > legend { padding: 0; margin-bottom: 8px; }
 /* Accounts (A48): who made each account and when, its row action. */
 .rpl-account-created { display: flex; flex-direction: column; gap: 2px; }
 .rpl-account-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.rpl-account-signin { padding-top: 16px; border-top: 1px solid var(--line); }
+.rpl-account-signin-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.rpl-account-signin-acts .is-danger { color: var(--danger); }
+.rpl-account-signin:disabled .web-button { opacity: 0.5; cursor: not-allowed; }
+.rpl-account-detail { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
+.rpl-account-fire { max-width: 220px; white-space: normal; text-align: left; }
 .web-table-row.is-disabled .rpl-cell-title { color: var(--text-2); }
 
 /* The BFP Admin's reply to an alarm escalation (A46): one primary act, the

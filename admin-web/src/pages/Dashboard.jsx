@@ -132,7 +132,7 @@ function Destination({ active, focusId, focusTab, focusPoint, go }) {
     case 'settings':
       return <Settings />;
     default:
-      return <Accounts />;
+      return <Accounts onOpenIncident={(incidentId) => go('incidents', { incidentId })} />;
   }
 }
 

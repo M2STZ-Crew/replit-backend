@@ -147,8 +147,30 @@ def welcome_email(
     )
 
 
-def reset_email(*, address: str, link: str) -> RenderedEmail:
-    """Forgot password? for a staff account, sent to its personal email."""
+def reset_email(*, address: str, link: str, sent_by: str | None = None) -> RenderedEmail:
+    """Forgot password? for a staff account, sent to its personal email; or
+    the link an Admin sent (``sent_by``, v1.12.49)."""
+    if sent_by:
+        return render_email(
+            preheader=f"Choose a password for {address}. The link works for one hour.",
+            heading="Set your password",
+            paragraphs=[
+                f"{sent_by} sent you a link to set the password of the RepLiT account "
+                f"{address}.",
+                "Choose your password with the button below. Your current password "
+                "works until you do.",
+            ],
+            action=EmailAction("Choose a password", link),
+            facts=[
+                "This link works for one hour. If it has expired, open the RepLiT app, "
+                f"tap Forgot password?, and enter {address}.",
+            ],
+            notice="If you were not expecting this, you can ignore it: your password "
+            "stays as it is. Do not forward this email, because the link lets whoever "
+            "opens it set a new password.",
+            reason="You are receiving this email because it is the email on file for "
+            f"{address} on RepLiT.",
+        )
     return render_email(
         preheader=f"Choose a new password for {address}. The link works for one hour.",
         heading="Reset your password",

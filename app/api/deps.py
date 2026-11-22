@@ -380,6 +380,16 @@ CoordinatorManager = Annotated[
         )
     ),
 ]
+ResponderManager = Annotated[
+    AuthenticatedUser,
+    Depends(
+        require_admin_permission(
+            console_access.MANAGE_RESPONDERS,
+            "Your organization's Admin account is not active, so it cannot manage "
+            "Responder accounts.",
+        )
+    ),
+]
 AnyAccountAdmin = Annotated[
     AuthenticatedUser,
     Depends(
