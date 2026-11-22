@@ -33,6 +33,7 @@ from app.api.routes import (
     reports,
     staff_email,
     team,
+    under_control,
     verification,
     ws,
 )
@@ -67,6 +68,7 @@ api_router.include_router(hydrant_ops.router)
 api_router.include_router(map_layer_requests.router)
 api_router.include_router(fire_codes.router)
 api_router.include_router(alarm_requests.router)
+api_router.include_router(under_control.router)
 api_router.include_router(audit.router)
 api_router.include_router(incident_reports.router)
 api_router.include_router(report_strikes.router)

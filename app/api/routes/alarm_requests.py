@@ -48,10 +48,11 @@ import asyncpg
 from fastapi import APIRouter, Query, Request, Response, status
 
 from app.api.deps import CurrentUser, DatabaseDep, StaffUser
+from app.api.routes.incidents import build_incident_detail
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.core.logging import get_logger
 from app.db.session import Database
-from app.realtime.events import broadcast_alarm_request
+from app.realtime.events import broadcast_alarm_request, broadcast_incident_event
 from app.realtime.manager import manager
 from app.schemas.alarm import (
     INITIAL_ALARM_LEVEL,
@@ -64,7 +65,9 @@ from app.schemas.alarm import (
     alarm_label,
 )
 from app.schemas.auth import AuthenticatedUser
+from app.services import fire_broadcast
 from app.services.access import DECIDE_ALARM, REQUEST_ALARM, admin_access
+from app.services.alarm_notify import notify_alarm_raised
 from app.services.audit import record_audit
 from app.services.incident import OFF_FEED_STATUSES, assert_admin_routed
 from app.services.incident_notify import (
@@ -73,6 +76,7 @@ from app.services.incident_notify import (
 )
 from app.services.map_feed import publish_area_change
 from app.services.staff_copy import fire_at
+from app.services.tracking import publish_tracking
 
 log = get_logger(__name__)
 
@@ -100,6 +104,23 @@ left join public.users u on u.id = a.requested_by
 left join public.organizations o on o.id = u.primary_org_id
 left join public.users rv on rv.id = a.reviewed_by
 """
+
+
+async def _alert_everyone(
+    db: Database, area_id: UUID, level: str, raised_by: UUID, answered: list[UUID]
+) -> None:
+    """A raise reaches every screen on the fire, and alerts (v1.12.49: "Staff
+    loud, residents quiet"; app/services/alarm_notify.py). [answered] asked
+    for it and get BFP's answer instead. Best-effort: the level stands."""
+    try:
+        detail = await build_incident_detail(db, area_id)
+        await broadcast_incident_event(detail, "alarm_raised")
+        await publish_tracking(db, area_id)
+    except Exception:
+        log.error("alarm_raise_broadcast_failed", area_id=str(area_id), exc_info=True)
+    fire_broadcast.spawn(
+        notify_alarm_raised(db, area_id, level, raised_by, already_told=answered)
+    )
 
 
 def _rank(level: str | None) -> int:
@@ -515,10 +536,13 @@ async def raise_alarm(
         },
     )
     await publish_area_change(db, payload.area_id)
+    askers: list[UUID] = []
     for answered_id in met:
         answered = await _detail(db, answered_id)
+        askers.append(answered.requested_by)
         await _announce(answered, "approved")
         await _tell_asker(db, answered)
+    await _alert_everyone(db, payload.area_id, level, user.id, askers)
     detail = await _detail(db, new_id)
     await _announce(detail, "approved")
     log.info(
@@ -642,6 +666,7 @@ async def execute_alarm_request(
     detail = await _detail(db, request_id)
     await _announce(detail, "approved")
     await _tell_asker(db, detail)
+    await _alert_everyone(db, req["area_id"], req["lvl"], user.id, [detail.requested_by])
     log.info(
         "alarm_request_executed",
         request_id=str(request_id),

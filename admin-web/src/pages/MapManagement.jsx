@@ -25,6 +25,7 @@ import { statusOf } from '../lib/status.js';
 import { t } from '../i18n/i18n.jsx';
 import { fireName } from '../lib/place.js';
 import FirePulse from '../map/FirePulse.jsx';
+import { alarmStatusOf } from '../lib/alarmStatus.js';
 
 const PASAY = [14.5378, 121.0014];
 
@@ -488,6 +489,7 @@ export default function MapManagement({ query = '', initialLayer, initialEdit = 
                 >
                   <Tooltip>
                     {(fireName(inc.designation) || t('Incident'))} · {st.label}
+                    {alarmStatusOf(inc).known ? ` · ${alarmStatusOf(inc).label}` : ''}
                   </Tooltip>
                 </CircleMarker>
               );

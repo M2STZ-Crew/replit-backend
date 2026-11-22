@@ -60,6 +60,8 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setattr(fire_codes, "finish_incident_change", _quiet)
     monkeypatch.setattr(fire_codes, "notify_fire_code", _quiet)
     monkeypatch.setattr(fire_codes.manager, "broadcast", _quiet)
+    # Declaring with FC-2 is tests/test_alarm_status.py's (v1.12.49).
+    monkeypatch.setattr(fire_codes, "UNDER_CONTROL_CODE", "not in these tests")
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

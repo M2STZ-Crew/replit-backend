@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { CATEGORY_LABEL, categoriesOf } from './cues.js';
 import { t } from '../i18n/i18n.jsx';
 import { fireName } from '../lib/place.js';
+import { alarmLabel } from '../lib/status.js';
 
 /// The repeating incident alarm (Admin Console).
 ///
@@ -172,6 +173,30 @@ export function notifyDesktop(incidents, { again = false } = {}) {
       shown.set(inc.id, n);
     } catch {
       /* some browsers (Android Chrome) only allow notifications from a service worker */
+    }
+  }
+}
+
+/// A desktop alert that BFP raised an incident's alarm (v1.12.49), only
+/// while the console is out of sight, like a new incident's.
+export function notifyDesktopRaised(incidents) {
+  if (!settings.desktop || desktopPermission() !== 'granted') return;
+  if (typeof document !== 'undefined' && !document.hidden) return;
+  for (const inc of incidents) {
+    try {
+      const n = new Notification(t('Alarm raised: {level}', { level: alarmLabel(inc.alarm_level) }), {
+        body: fireName(inc.designation),
+        tag: `raise-${inc.id}`,
+        renotify: true,
+        icon: '/assets/logo-mark.png',
+      });
+      n.onclick = () => {
+        window.focus();
+        window.dispatchEvent(new CustomEvent(OPEN_INCIDENT_EVENT, { detail: inc.id }));
+        n.close();
+      };
+    } catch {
+      /* some browsers only allow notifications from a service worker */
     }
   }
 }

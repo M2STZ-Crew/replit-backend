@@ -49,6 +49,9 @@ async def broadcast_incident_event(detail: IncidentDetail, event_type: str) -> N
         "designation": detail.designation,
         "status": detail.status,
         "alarm_level": detail.alarm_level,
+        "under_control_at": (
+            detail.under_control_at.isoformat() if detail.under_control_at else None
+        ),
         "active_dispatch_count": detail.active_dispatch_count,
     }
     for agency in _incident_agencies(detail):

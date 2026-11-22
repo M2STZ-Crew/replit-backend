@@ -206,6 +206,9 @@ export const api = {
   equipment: () => request('/equipment'),
   // Fire codes (v1.12.46): the catalog, and pressing one on an incident.
   fireCodes: () => request('/fire-codes'),
+  // Take Under control back (v1.12.49).
+  withdrawUnderControl: (incidentId) =>
+    request(`/incidents/${incidentId}/under-control/withdraw`, { method: 'POST' }),
   pressFireCode: (id, areaId) =>
     request(`/fire-codes/${id}/press`, { method: 'POST', body: { area_id: areaId } }),
   mapLayer: (name, { includeInactive = false } = {}) =>

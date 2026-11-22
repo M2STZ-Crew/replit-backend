@@ -7,6 +7,7 @@ import LifecycleChip from './LifecycleChip.jsx';
 import Skeleton from '../ui/Skeleton.jsx';
 import { t } from '../../i18n/i18n.jsx';
 import { fireName } from '../../lib/place.js';
+import { AlarmBadge } from './AlarmStatus.jsx';
 
 /* The incident list (REPLIT (MAIN) 04 · Incident row; PRD v13 §4.6.2, §4.14):
  * the Area and where it is, its status, the agencies its reporters asked for,
@@ -61,6 +62,7 @@ function IncidentCards({
           <li key={inc.id} className={`rpl-incident-card${unread ? ' is-unread' : ''}${inc.id === selectedId ? ' is-selected' : ''}`}>
             <span className="rpl-incident-card-chips">
               <LifecycleChip status={inc.status} />
+              <AlarmBadge incident={inc} />
               {yourOrg && <StatusChip {...yourOrg(inc)} />}
             </span>
             <div className="rpl-cell-resource">
@@ -147,7 +149,12 @@ export default function IncidentTable({
                     </span>
                   </span>
                 </th>
-                <td><LifecycleChip status={inc.status} /></td>
+                <td>
+                  <span className="rpl-cell-chips">
+                    <LifecycleChip status={inc.status} />
+                    <AlarmBadge incident={inc} />
+                  </span>
+                </td>
                 <td>{agenciesOf(inc)}</td>
                 <td>{confidenceOf(inc)}</td>
                 <td className="rpl-cell-strong">{inc.report_count}</td>

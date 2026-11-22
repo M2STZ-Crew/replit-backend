@@ -20,6 +20,11 @@ class AreaSummary(BaseModel):
     confidence_score: float
     confidence_band: str
     alarm_level: str | None = None
+    # The alarm status (v1.12.49, app/services/alarm_status.py): when BFP set
+    # the level, and when it was declared under control, while that is in
+    # effect.
+    alarm_level_set_at: datetime | None = None
+    under_control_at: datetime | None = None
     reported_at: datetime
     updated_at: datetime
 
@@ -44,6 +49,11 @@ class AreaDetail(AreaSummary):
     v_score: float
     parent_area_id: UUID | None = None
     version: int
+    # The alarm status for anyone (v1.12.49): the organisation, never the
+    # person; and when the fire was out.
+    alarm_level_set_by_org: str | None = None
+    under_control_by_org: str | None = None
+    resolved_at: datetime | None = None
     reports: list[AreaReportItem] = Field(default_factory=list)
     # What is burning, once the first fire team on scene says (v1.12.38), and
     # the organisation of the team that said it.

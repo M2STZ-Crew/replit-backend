@@ -1260,4 +1260,25 @@ export const TAGALOG = {
 
   // The search box's own Clear (v1.12.48).
   'Clear search': 'Burahin ang hinahanap',
+
+  // The alarm status (v1.12.49).
+  'Alarm status': 'Antas ng alarma',
+  'No alarm yet': 'Wala pang alarma',
+  'Under control': 'Under control',
+  'Was {level}': 'Dating {level}',
+  'Raised {time}': 'Itinaas {time}',
+  'Raised {time} by {who}': 'Itinaas {time} ng {who}',
+  'Set {time}': 'Itinakda {time}',
+  'Set {time} by {who}': 'Itinakda {time} ng {who}',
+  'An alarm is set once responders confirm the fire.': 'Itinatakda ang alarma kapag nakumpirma ng mga responder ang sunog.',
+  'Withdraw': 'Bawiin',
+  'Withdraw Under control?': 'Bawiin ang Under control?',
+  'Everyone sees the fire’s alarm level again, and its crews and coordinators are told without a sound.': 'Makikita ulit ng lahat ang antas ng alarma ng sunog, at sasabihan nang walang tunog ang mga crew at coordinator nito.',
+  'Only on an acknowledged fire routed to your organization.': 'Sa sunog lang na acknowledged at naka-route sa organisasyon mo.',
+  'This declares the fire under control: everyone, residents too, will see it. Its crews and coordinators are told quietly.': 'Idedeklara nitong under control ang sunog: makikita ito ng lahat, pati ng mga residente. Tahimik na sasabihan ang mga crew at coordinator nito.',
+  'Alarm raised': 'Itinaas ang alarma',
+  'Alarm raised: {level}': 'Itinaas ang alarma: {level}',
+  '{level}: {fire}': '{level}: {fire}',
+  'Declared under control': 'Idineklarang under control',
+  'Withdrew Under control': 'Binawi ang Under control',
 };

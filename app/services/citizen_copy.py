@@ -163,6 +163,37 @@ def fire_verified(language: Language, designation: str | None) -> tuple[str, str
     )
 
 
+def alarm_raised(
+    language: Language, level: str, designation: str | None, *, highest: bool = False
+) -> tuple[str, str]:
+    """The residents who reported a fire or were alerted to it, on a raise
+    (v1.12.49): the level in plain words, and what to do. Never who raised it."""
+    place = where(designation, language)
+    if language == "tl":
+        fire = f"ang sunog {place}" if place else "ang sunog"
+        means = (
+            "Ito ang pinakamataas na alarma"
+            if highest
+            else "Kailangan nito ng mas maraming bumbero at trak"
+        )
+        return (
+            "Itinaas ang alarma",
+            f"Nasa {level} na {fire}. {means}. Lumayo sa lugar at bigyang-daan "
+            "ang mga trak ng bumbero.",
+        )
+    fire = f"The fire {place}" if place else "The fire"
+    means = (
+        "That is the highest alarm"
+        if highest
+        else "That means it needs more firefighters and trucks"
+    )
+    return (
+        "Fire alarm raised",
+        f"{fire} is now at {level}. {means}. Stay away and keep the roads clear "
+        "for fire trucks.",
+    )
+
+
 def strike_message(
     language: Language,
     event: str,

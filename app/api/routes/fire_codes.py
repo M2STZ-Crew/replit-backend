@@ -3,7 +3,9 @@
 List the fire-code catalog, press a code (logged to fire_code_events and broadcast
 to the incident channel), and read the per-incident press log. A code's target_role
 (and optional target_agency) gates who may press it, and a responder only on a
-fire they are on (app/services/fire_code_rules.py, v1.12.48).
+fire they are on (app/services/fire_code_rules.py, v1.12.48). FC-2 from a fire
+coordinator or Admin declares the fire under control (app/services/under_control.py,
+v1.12.49); from a responder it tells command.
 """
 
 from __future__ import annotations
@@ -11,7 +13,7 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Query, Request, status
 
 from app.api.deps import CurrentUser, DatabaseDep, StaffUser
 from app.api.routes.incidents import finish_incident_change
@@ -23,7 +25,9 @@ from app.schemas.fire_code import (
     FireCodePressRequest,
     FireCodeResponse,
 )
+from app.services import under_control
 from app.services.access import PRESS_CODES, admin_access
+from app.services.alarm_status import UNDER_CONTROL_CODE
 from app.services.fire_code_notify import notify_fire_code
 from app.services.fire_code_rules import assert_responder_may_press
 from app.services.incident import is_coordinator
@@ -45,6 +49,12 @@ _EVENT_SELECT = (
     "left join public.users u on u.id = e.pressed_by "
     "left join public.organizations o on o.id = u.primary_org_id"
 )
+
+_PRESS_SQL = """
+        insert into public.fire_code_events (fire_code_id, area_id, pressed_by, notes)
+        values ($1, $2, $3, $4)
+        returning id, fire_code_id, area_id, pressed_by, pressed_at, notes
+        """
 
 
 @router.get("", response_model=list[FireCodeResponse], summary="List fire codes")
@@ -83,7 +93,11 @@ async def list_fire_code_events(
     summary="Press a fire code",
 )
 async def press_fire_code(
-    code_id: UUID, payload: FireCodePressRequest, user: StaffUser, db: DatabaseDep
+    code_id: UUID,
+    payload: FireCodePressRequest,
+    request: Request,
+    user: StaffUser,
+    db: DatabaseDep,
 ) -> FireCodeEventResponse:
     """Log a fire-code press; gated by the code's target_role/target_agency."""
     code = await db.fetchrow(
@@ -127,20 +141,21 @@ async def press_fire_code(
         )
         if area_exists is None:
             raise NotFoundError("Incident (area) not found.")
+    declares = False
     if responder:
         await assert_responder_may_press(db, user, payload.area_id, code["code_number"])
+    elif payload.area_id is not None and code["code_number"] == UNDER_CONTROL_CODE:
+        # A coordinator's or Admin's FC-2 declares it under control (v1.12.49).
+        await under_control.assert_may_declare(db, payload.area_id, user)
+        declares = True
 
-    row = await db.fetchrow(
-        """
-        insert into public.fire_code_events (fire_code_id, area_id, pressed_by, notes)
-        values ($1, $2, $3, $4)
-        returning id, fire_code_id, area_id, pressed_by, pressed_at, notes
-        """,
-        code_id,
-        payload.area_id,
-        user.id,
-        payload.notes,
-    )
+    event = (code_id, payload.area_id, user.id, payload.notes)
+    if declares and payload.area_id is not None:
+        async with db.acquire() as conn, conn.transaction():
+            row = await conn.fetchrow(_PRESS_SQL, *event)
+            await under_control.declare(conn, request, user, payload.area_id)
+    else:
+        row = await db.fetchrow(_PRESS_SQL, *event)
     assert row is not None
     data = dict(row)
     data["code_number"] = code["code_number"]

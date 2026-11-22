@@ -15,12 +15,16 @@ import { t } from '../../i18n/i18n.jsx';
  * the app at once, and alerts whoever the code is for: FC-6 water, the fire
  * service's coordinators; FC-7 more units, every agency on the fire; FC-8 a
  * casualty, medical and the hub; FC-1 to FC-5, the crews and coordinators,
- * quietly. Pressing never changes the incident's status. */
+ * quietly. Pressing never changes the incident's status.
+ *
+ * v1.12.49: FC-2 from here declares the fire under control, so it is open
+ * only on an incident routed to this Admin (`declares`), as the server has it. */
 
 // The codes that ask for help ring on phones; the rest only vibrate.
 const ASKS = ['FC-6', 'FC-7', 'FC-8'];
+const DECLARES = 'FC-2';
 
-export default function FireCodesPanel({ d, onPressed }) {
+export default function FireCodesPanel({ d, declares = true, onPressed }) {
   const [codes, setCodes] = useState(null);
   const [error, setError] = useState(null);
   const [pressing, setPressing] = useState(null);
@@ -66,7 +70,10 @@ export default function FireCodesPanel({ d, onPressed }) {
               type="button"
               className={`rpl-code-button${ASKS.includes(c.code_number) ? ' is-ask' : ''}`}
               onClick={() => { setDone(null); setPressing(c); }}
-              title={c.description || c.name}
+              disabled={c.code_number === DECLARES && (!declares || d.status === 'reported')}
+              title={c.code_number === DECLARES && (!declares || d.status === 'reported')
+                ? t('Only on an acknowledged fire routed to your organization.')
+                : c.description || c.name}
             >
               <span className="rpl-code-number">{c.code_number}</span>
               <span className="rpl-code-name">{c.name}</span>
@@ -78,9 +85,11 @@ export default function FireCodesPanel({ d, onPressed }) {
         open={Boolean(pressing)}
         eyebrow={pressing ? pressing.code_number : ''}
         title={pressing ? t('Press {name} on {fire}?', { name: pressing.name, fire: fireAt(d.designation) }) : ''}
-        description={pressing && ASKS.includes(pressing.code_number)
-          ? t('It goes on the incident’s timeline everywhere, and the people it asks for are alerted with the fire alarm.')
-          : t('It goes on the incident’s timeline everywhere, and its crews and coordinators are told quietly.')}
+        description={pressing?.code_number === DECLARES
+          ? t('This declares the fire under control: everyone, residents too, will see it. Its crews and coordinators are told quietly.')
+          : pressing && ASKS.includes(pressing.code_number)
+            ? t('It goes on the incident’s timeline everywhere, and the people it asks for are alerted with the fire alarm.')
+            : t('It goes on the incident’s timeline everywhere, and its crews and coordinators are told quietly.')}
         confirmLabel={t('Press code')}
         onClose={() => setPressing(null)}
         onConfirm={press}

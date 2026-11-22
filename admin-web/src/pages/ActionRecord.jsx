@@ -55,6 +55,8 @@ const VERB = {
   get 'incident.accept'() { return t('Acknowledged'); },
   get 'incident.verify'() { return t('Acknowledged'); },
   get 'incident.post_incident_report'() { return t('Filed post-incident report'); },
+  get 'incident.under_control'() { return t('Declared under control'); },
+  get 'incident.under_control_withdrawn'() { return t('Withdrew Under control'); },
 };
 function labelOf(action = '') {
   if (VERB[action]) return VERB[action];

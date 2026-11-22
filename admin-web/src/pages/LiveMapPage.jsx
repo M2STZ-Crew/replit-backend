@@ -27,6 +27,7 @@ import { groupOnScreen } from '../map/unitGroups.js';
 import { t } from '../i18n/i18n.jsx';
 import { fireAt, fireName } from '../lib/place.js';
 import FirePulse from '../map/FirePulse.jsx';
+import { AlarmBadge } from '../components/incidents/AlarmStatus.jsx';
 
 /* Live map (REPLIT (MAIN) 10 · A30 869:3563, A31 869:3858; PRD v13 §4.4):
  * every active Area on the shared map with the water sources, shelters and
@@ -141,7 +142,10 @@ function Selected({ inc, onClose, onOpen }) {
           <span aria-hidden="true">✕</span>
         </button>
       </div>
-      <LifecycleChip status={inc.status} />
+      <span className="rpl-cell-chips is-row">
+        <LifecycleChip status={inc.status} />
+        <AlarmBadge incident={inc} />
+      </span>
       <dl className="rpl-facts">
         {facts.map(([t, v]) => (
           <div className="rpl-fact" key={t}><dt>{t}</dt><dd>{v}</dd></div>
