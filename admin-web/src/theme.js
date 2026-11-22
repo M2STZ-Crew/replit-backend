@@ -25,8 +25,14 @@ export function storedTheme() {
 
 export function applyTheme(theme) {
   const value = THEMES.includes(theme) ? theme : 'dark';
-  document.documentElement.dataset.theme = value;
-  document.documentElement.style.colorScheme = value;
+  const root = document.documentElement;
+  if (root.dataset.theme && root.dataset.theme !== value) {
+    // No fades while the ground changes (pass8-console.css).
+    root.dataset.themeSwitch = '';
+    requestAnimationFrame(() => requestAnimationFrame(() => { delete root.dataset.themeSwitch; }));
+  }
+  root.dataset.theme = value;
+  root.style.colorScheme = value;
   try {
     localStorage.setItem(KEY, value);
   } catch {

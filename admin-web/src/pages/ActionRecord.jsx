@@ -172,8 +172,8 @@ function Timeline({ group, matched }) {
     <li className="rpl-audit-more">
       <button type="button" className="rpl-text-button" onClick={() => setAll(true)}>
         {group.newestFirst
-          ? t('Show {count} older entries', { count: hidden })
-          : t('Show {count} earlier entries', { count: hidden })}
+          ? (hidden === 1 ? t('Show {count} older entry', { count: hidden }) : t('Show {count} older entries', { count: hidden }))
+          : (hidden === 1 ? t('Show {count} earlier entry', { count: hidden }) : t('Show {count} earlier entries', { count: hidden }))}
       </button>
     </li>
   );
@@ -219,7 +219,9 @@ function Group({ group, matched, open, onToggle, onOpenIncident }) {
           <span className="rpl-cell-text">
             <span className="rpl-cell-title">{group.name}</span>
             <span className="rpl-cell-meta">
-              {t('{count} entries · latest {when}', { count: matched.length, when: timeOf(last.created_at) })}
+              {matched.length === 1
+                ? t('{count} entry · latest {when}', { count: matched.length, when: timeOf(last.created_at) })
+                : t('{count} entries · latest {when}', { count: matched.length, when: timeOf(last.created_at) })}
               {' · '}
               {labelOf(last.action)}
             </span>
@@ -331,7 +333,11 @@ export default function ActionRecord({ onOpenIncident }) {
       ) : (
         <>
           <p className="rpl-table-foot">
-            {t('The latest {count} entries, in {groups} groups.', { count: rows.length, groups: groups.length })}
+            {rows.length === 1
+              ? t('The latest entry, in 1 group.')
+              : groups.length === 1
+                ? t('The latest {count} entries, in 1 group.', { count: rows.length })
+                : t('The latest {count} entries, in {groups} groups.', { count: rows.length, groups: groups.length })}
           </p>
           {matching.length === 0 ? (
             <p className="rpl-empty-line">{t('No entries match these filters.')}</p>

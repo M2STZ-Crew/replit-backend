@@ -20,7 +20,7 @@ const BASE_TITLE = typeof document !== 'undefined' ? document.title : 'RepLiT Ad
 
 function ago(iso, now) {
   const mins = Math.floor((now - new Date(iso).getTime()) / 60_000);
-  if (mins < 1) return 'just now';
+  if (mins < 1) return t('just now');
   if (mins < 60) return t('{mins} min ago', { mins });
   const hrs = Math.floor(mins / 60);
   return t('{hrs} h {mins} min ago', { hrs, mins: mins % 60 });

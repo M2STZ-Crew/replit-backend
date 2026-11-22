@@ -74,16 +74,14 @@ const SOURCES = [
   { key: 'risk', path: 'risk-zones', layer: 'risk', lat: 'centroid_lat', lng: 'centroid_lng', name: (r) => r.name || r.barangay || t('Risk zone') },
 ];
 
-const AGO = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-
 /* A hydrant is gray until checked on the ground in the last 6 months
  * (v1.12.46). */
 const kindOf = (key, r) => (key === 'hydrant' && !r.verified ? 'hydrantUnverified' : key);
 
 function seen(iso) {
   const s = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 60) return 'just now';
-  return AGO.format(-Math.round(s / 60), 'minute');
+  if (s < 60) return t('just now');
+  return t('{mins} min ago', { mins: Math.round(s / 60) });
 }
 
 /* The units on the map, merged where they would overlap at this zoom. */
@@ -114,7 +112,7 @@ function UnitsLayer({ units, onSelect }) {
           {members.map((u) => (
             <span className="rpl-unit-tip" key={u.key}>
               <strong>{u.label}</strong>
-              {` · ${fireName(u.designation)} · ${u.stale ? t('last seen {seen}', { seen: seen(u.at) }) : 'live'}`}
+              {` · ${fireName(u.designation)} · ${u.stale ? t('last seen {seen}', { seen: seen(u.at) }) : t('live')}`}
             </span>
           ))}
         </Tooltip>
@@ -164,21 +162,27 @@ export default function LiveMapPage({ onOpenIncident, onManage, onEditPoint }) {
   const [barangays, setBarangays] = useState(null);
   const [legend, setLegend] = useState(true);
   const [points, setPoints] = useState({});
+  // While the places load, and when some couldn't: an empty layer read as
+  // a map with no hydrants.
+  const [places, setPlaces] = useState('loading');
+  const [attempt, setAttempt] = useState(0);
   const [selectedId, setSelectedId] = useState(null);
   // A place clicked on the map (v1.12.47): { kind, id }.
   const [point, setPoint] = useState(null);
 
   useEffect(() => {
     let alive = true;
-    Promise.all(SOURCES.map((s) => api.mapLayer(s.path).catch(() => [])))
+    setPlaces('loading');
+    Promise.all(SOURCES.map((s) => api.mapLayer(s.path).catch(() => null)))
       .then((results) => {
         if (!alive) return;
         const next = {};
         SOURCES.forEach((s, i) => { next[s.key] = Array.isArray(results[i]) ? results[i] : []; });
         setPoints(next);
+        setPlaces(results.every(Array.isArray) ? 'ready' : 'failed');
       });
     return () => { alive = false; };
-  }, []);
+  }, [attempt]);
 
   // The barangay layer, read once either of its switches is on.
   const wantsBarangays = on.has('barangays') || on.has('fireRisk');
@@ -303,6 +307,19 @@ export default function LiveMapPage({ onOpenIncident, onManage, onEditPoint }) {
           );
         })}
       </div>
+
+      {places === 'loading' && (
+        <p className="lm-zoom-hint lm-places" role="status">
+          <span className="lm-places-dot" aria-hidden="true" />
+          {t('Loading places…')}
+        </p>
+      )}
+      {places === 'failed' && (
+        <p className="lm-zoom-hint lm-places is-failed" role="alert">
+          {t('Some places could not be loaded.')}
+          <button type="button" className="rpl-text-button" onClick={() => setAttempt((n) => n + 1)}>{t('Try again')}</button>
+        </p>
+      )}
 
       <div className="rpl-map-tools">
         <button

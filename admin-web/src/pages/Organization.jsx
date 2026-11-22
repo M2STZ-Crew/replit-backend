@@ -63,6 +63,34 @@ export default function Organization({ onNavigate }) {
   }, [profile]);
   useEffect(() => { load(); }, [load]);
 
+  // An organization whose profile hasn't been read is not an account
+  // without one.
+  if (!profile && org?.id && org.directory !== 'ready') {
+    const waiting = org.directory === 'loading';
+    return (
+      <div className="rpl-page">
+        <PageHeader
+          eyebrow={org.agency
+            ? t('Organization · {agencyLabel}', { agencyLabel: agencyLabel(org.agency) })
+            : t('Organization')}
+          title={org.name}
+          // Holds the line "On the network since" will take.
+          description={waiting ? '\u00a0' : null}
+        />
+        {waiting ? (
+          <StatePanel kind="loading" skeleton="detail" rows={2} title={t('Loading the organization…')} busy />
+        ) : (
+          <StatePanel
+            kind="error"
+            title={t('The organization couldn’t load')}
+            description={t('Check your connection, then try again.')}
+            onRetry={org.reloadDirectory}
+          />
+        )}
+      </div>
+    );
+  }
+
   if (!profile) {
     return (
       <div className="rpl-page">

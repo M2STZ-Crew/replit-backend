@@ -403,7 +403,7 @@ function Field({ field, value, onChange }) {
 export default function MapManagement({ initialLayer, initialEdit = null, onOpenIncident }) {
   const theme = useConsoleTheme();
   const { console: access, refreshQueues } = useConsole();
-  const { incidents } = useLiveFeed();
+  const { incidents, loaded: feedLoaded } = useLiveFeed();
   const manages = can(access, PERM.MANAGE_MAP);
   const deletesWater = can(access, PERM.DELETE_WATER);
   const mayDelete = (layer) => manages || (deletesWater && isWater(layer));
@@ -900,7 +900,7 @@ export default function MapManagement({ initialLayer, initialEdit = null, onOpen
                   >
                     <span className="mm-chip-dot" style={{ background: color }} />
                     {c.label}
-                    <span className="mm-chip-count">{count}</span>
+                    <span className="mm-chip-count">{(c.kind === 'edit' ? loading : !feedLoaded) ? '·' : count}</span>
                   </button>
                 );
               })}
@@ -970,7 +970,7 @@ export default function MapManagement({ initialLayer, initialEdit = null, onOpen
                           onClick={() => selectLayer(l.key)}
                         >
                           <span className="mm-gcard-top">
-                            <span className="mm-gicon" style={{ background: `${COLORS[l.key]}26`, color: COLORS[l.key] }}>
+                            <span className="mm-gicon" style={{ '--kind': COLORS[l.key] }}>
                               <Icon name={l.icon} size={16} />
                             </span>
                             <span className="mm-gcount">{loading ? '·' : (data[l.key] || []).length}</span>

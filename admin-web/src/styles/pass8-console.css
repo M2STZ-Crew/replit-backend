@@ -669,6 +669,444 @@
   .mm-page .lm-zoom-hint.mm-zoom-hint.is-beside-panel { left: 50%; }
 }
 
+/* ── Polish, on every page ────────────────────────────────────────────────
+   22 Nov 2026: "Gawing smooth and premium yung buong Admin User Interface
+   and Experience."; answered "Polish current design": one hover, press and
+   focus, 150–250 ms, skeletons while loading, one alignment and one type.
+   The same for the pieces outside the shell: the organization's details
+   (.od), signing in (.lg) and the screens before the console opens. */
+:root {
+  --row-hover: rgba(255, 255, 255, 0.03);
+  /* Ink on its own tint, hovered too: 4.5 : 1 on every ground. */
+  --accent-ink: #ff9a74;
+  --danger-ink: #ff827d;
+  --info-ink: #74a5f8;
+}
+:root[data-theme='light'] {
+  --row-hover: rgba(0, 0, 0, 0.03);
+  --warn: #765200;
+  --info: #225a96;
+  --placeholder: #6e665c;
+  --faint: #6e665c;
+  --accent-ink: #96330a;
+  --danger-ink: #9c120d;
+  --info-ink: #225a96;
+}
+
+/* ── Change ── */
+:is(.rpl-shell, .od, .lg, .rpl-startup, .rpl-crash)
+:is(button, a, summary, input, textarea, select, .rpl-search, .rpl-choice-option, .rpl-check, .rpl-password-show, .web-table-row > *) {
+  transition-property: color, background-color, border-color, box-shadow, filter, opacity;
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.rpl-switch-track {
+  transition: background var(--motion) var(--ease), box-shadow var(--motion-fast) var(--ease),
+    filter var(--motion-fast) var(--ease);
+}
+/* The other ground comes at once, not control by control (theme.js). */
+:root[data-theme-switch] *,
+:root[data-theme-switch] *::before,
+:root[data-theme-switch] *::after { transition: none !important; }
+
+/* ── Hover: 6%, a press: 12%, a primary's fill: lighter, then darker ──
+   Only a pointer hovers, so a tap leaves nothing lit behind it. */
+@media (hover: hover) {
+  :is(.rpl-shell, .od, .lg)
+  :where(.rpl-nav-item.is-active, .rpl-rail-item.is-active, .rpl-bar-item, .rpl-tab, .web-tab,
+    .rpl-text-button:not(.rpl-text-button--inline), .rpl-chip, .rpl-choice-option, .rpl-map-chip,
+    .rpl-map-tool, .rpl-page-button.is-current, .rpl-code-button, .rpl-alarm-status-action,
+    .rpl-idr-row.is-selected, .rpl-ciar-link.is-active, .rpl-viewer-button, .rpl-viewer-level, .mm-chip, .mm-gcard, .mm-reopen,
+    .mm-back, .od-close, .lg-link, .lg-eye):hover:not(:disabled) {
+    box-shadow: inset 0 0 0 100px var(--hover);
+  }
+  .rpl-shell .rpl-bar-item.is-active:hover {
+    box-shadow: inset 0 2px 0 var(--accent-line), inset 0 0 0 100px var(--hover);
+  }
+  :is(.rpl-shell, .od) :is(.rpl-text-button--inline, .mm-retry):hover:not(:disabled),
+  :is(.rpl-shell, .od) :is(.rpl-password-show, .rpl-check, .mm-checkbox-row):hover { color: var(--text); }
+  .rpl-shell .rpl-password-show:hover input,
+  .rpl-shell :is(.rpl-check, .mm-checkbox-row):hover input,
+  .rpl-shell :is(.rpl-range, .mm-radius-slider):hover:not(:disabled) { filter: brightness(1.2); }
+
+  :is(.rpl-shell, .od) :is(.rpl-field, .web-field) :is(input, textarea, select):hover:not(:focus, :disabled, [aria-invalid='true']),
+  .rpl-shell :is(.mm-input, .mm-textarea):hover:not(:focus, :disabled),
+  .rpl-shell .rpl-search:hover:not(:focus-within),
+  :is(.rpl-shell, .od) .rpl-pick:hover:not(:disabled, .is-open, :focus-visible, [aria-invalid='true']),
+  .lg .lg-field :is(input, select):hover:not(:focus, :disabled) {
+    border-color: var(--label);
+  }
+
+  .rpl-switch:hover input:not(:disabled, :checked) + .rpl-switch-track { box-shadow: inset 0 0 0 1px var(--label); }
+  .rpl-switch:hover input:checked:not(:disabled) + .rpl-switch-track { filter: brightness(1.08); }
+
+  :is(.rpl-shell, .od, .lg, .rpl-startup, .rpl-crash)
+  :is(.rpl-button--primary, .web-button--primary, .mm-add, .lg-submit):hover:not(:disabled) {
+    box-shadow: none;
+    filter: brightness(1.06);
+  }
+  .rpl-shell .web-button--secondary:hover:not(:disabled) { border-color: var(--line-3); }
+  .rpl-shell .web-button--danger:hover:not(:disabled) { border-color: var(--danger); }
+  .rpl-shell .mm-page .mm-back:hover:not(:disabled) { border-color: var(--line-3); }
+  .lg .lg-link:hover:not(:disabled) { color: var(--accent); }
+}
+@media (hover: hover) and (min-width: 700px) {
+  :is(.rpl-shell, .od) .web-table tbody tr:not(.is-selected, :has(.web-table-empty)):hover > * {
+    background: var(--row-hover);
+  }
+}
+
+:is(.rpl-shell, .od, .lg, .rpl-startup, .rpl-crash)
+:where(button, a, summary, .rpl-choice-option, .rpl-check, .rpl-password-show):not(:where(.rpl-button--primary, .web-button--primary, .mm-add, .lg-submit)):active:not(:disabled):not([aria-disabled='true']):not(.leaflet-disabled) {
+  box-shadow: inset 0 0 0 100px var(--pressed);
+}
+.rpl-shell .rpl-bar-item.is-active:active:not(:disabled) {
+  box-shadow: inset 0 2px 0 var(--accent-line), inset 0 0 0 100px var(--pressed);
+}
+:is(.rpl-shell, .od, .lg, .rpl-startup, .rpl-crash)
+:is(.rpl-button--primary, .web-button--primary, .mm-add, .lg-submit):active:not(:disabled) {
+  box-shadow: none;
+  filter: brightness(0.9);
+}
+/* The photo covers its button's ground. */
+.rpl-photo-button:active img { filter: brightness(0.85); }
+.rpl-switch:active input:not(:disabled) + .rpl-switch-track { filter: brightness(0.85); }
+
+/* ── Focus: one ring ── */
+:is(.od, .lg) :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.od .rpl-pick:focus-visible,
+.od .rpl-pick.is-open {
+  border-color: var(--focus);
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 1px var(--focus);
+}
+/* In a strip that scrolls, inside the control, where it isn't cut off. */
+.rpl-shell :is(.rpl-tab, .web-tab, .rpl-bar-item, .rpl-map-chip, .mm-chip, .mm-gcard):focus-visible,
+.rpl-shell .leaflet-bar a:focus-visible { outline-offset: -2px; }
+.rpl-shell .mm-page :is(.mm-input, .mm-textarea):focus-visible {
+  border-color: var(--focus);
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 1px var(--focus);
+}
+/* A map's own tiles cover its outline, so the ring lies over them; not for
+   a press, which focuses the map too (map/BaseTiles.jsx). */
+.rpl-shell .leaflet-container:focus-visible { outline: 2px solid transparent; }
+.rpl-shell .leaflet-container:focus-visible:not([data-pointed])::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1002;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 3px var(--focus);
+  pointer-events: none;
+}
+
+/* ── Colour that can be read ── */
+::selection { background: var(--accent-fill); color: #381000; }
+:is(.rpl-shell, .od) :is(input[type='checkbox'], input[type='radio']) { accent-color: var(--accent); }
+.web-chip--accent,
+.rpl-chip.is-selected { color: var(--accent-ink); }
+.web-chip--danger,
+.web-button--danger,
+.rpl-button--danger,
+.rpl-account-signin-acts .is-danger { color: var(--danger-ink); }
+.web-chip--info { color: var(--info-ink); }
+.rpl-empty-icon,
+.rpl-plate--neutral { color: var(--text); }
+.rpl-plate--water { color: var(--info); }
+.rpl-ciar-link.is-active {
+  background: var(--accent-soft);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+.rpl-code-button { border-radius: var(--radius); background: var(--surface-2); color: var(--text); }
+.mm-page :is(.mm-gcount, .mm-chip-count, .mm-layers-label, .mm-panel-eyebrow, .mm-hint) { color: var(--label); }
+.od :is(.od-person-sub, .od-plain-sub, .od-empty, .od-count, .od-quote) { color: var(--label); font-size: 12px; }
+.od-avatar { color: var(--text); font-size: 11px; }
+.od .od-fact a { display: inline-block; padding-block: 4px; }
+/* A layer's own colour, mixed toward the words' so it shows on its tint. */
+.mm-page .mm-gicon {
+  background: color-mix(in srgb, var(--kind) 15%, transparent);
+  color: color-mix(in srgb, var(--kind) 55%, var(--text));
+}
+/* The bar is bare over the map: its name needs a ground, and where the
+   chips carry on they fade. */
+/* Hidden from 700 px down (index.css). */
+@media (min-width: 701px) {
+  .mm-page .mm-layers-label {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--glass-strong);
+    color: var(--text-2);
+  }
+}
+.mm-page .mm-chips {
+  min-width: 0;
+  padding-right: 28px;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+}
+@media (pointer: coarse) {
+  .mm-page .mm-layers-label { min-height: 44px; }
+}
+/* These glyphs are white images. */
+:root[data-theme='light'] :is(.rpl-alarm-plate, .rpl-alarm-loop, .lg-eye, .od-chip) img { filter: brightness(0); }
+/* Over any map, the light one too. */
+.rpl-map-chip { background: var(--glass-strong); }
+.rpl-map-chip--accent.is-on { background: rgba(107, 60, 43, 0.9); }
+.rpl-map-chip--info.is-on { background: rgba(31, 52, 92, 0.9); }
+.rpl-map-chip--ok.is-on { background: rgba(12, 60, 31, 0.9); }
+.rpl-map-chip--danger.is-on { background: rgba(92, 28, 26, 0.9); }
+:root[data-theme='light'] .rpl-map-chip--accent.is-on { background: color-mix(in srgb, var(--accent) 16%, #fff); }
+:root[data-theme='light'] .rpl-map-chip--info.is-on { background: color-mix(in srgb, var(--info) 16%, #fff); }
+:root[data-theme='light'] .rpl-map-chip--ok.is-on { background: color-mix(in srgb, var(--ok) 16%, #fff); }
+:root[data-theme='light'] .rpl-map-chip--danger.is-on { background: color-mix(in srgb, var(--danger) 16%, #fff); }
+
+/* ── Sizes ── */
+/* Leaflet's stylesheet arrives with the first map, after this one: these
+   outweigh it, which left a white button under white ink on hover. */
+.rpl-shell .leaflet-container .leaflet-bar {
+  border: 0;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--lift);
+}
+.rpl-shell .leaflet-container .leaflet-bar a,
+.rpl-shell .leaflet-container .leaflet-bar a:is(:hover, :focus) {
+  width: 36px;
+  height: 36px;
+  border-color: var(--line);
+  background-color: var(--surface-2);
+  color: var(--text);
+  line-height: 36px;
+}
+.rpl-shell .leaflet-container .leaflet-bar a:hover:not(.leaflet-disabled) {
+  box-shadow: inset 0 0 0 100px var(--hover);
+}
+.rpl-shell .leaflet-container .leaflet-bar a:active:not(.leaflet-disabled) {
+  box-shadow: inset 0 0 0 100px var(--pressed);
+}
+.rpl-shell .leaflet-container .leaflet-bar a.leaflet-disabled { color: var(--muted); cursor: default; }
+.rpl-text-button { border-radius: var(--radius-sm); }
+.rpl-tab,
+.web-tab { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+.rpl-password-show { justify-self: start; min-height: 44px; border-radius: var(--radius-sm); }
+.rpl-password-show input { width: 18px; height: 18px; flex: none; margin: 0; }
+.rpl-check { min-height: 44px; border-radius: var(--radius-sm); }
+.mm-page .mm-checkbox-row { min-height: 44px; }
+.mm-page .mm-checkbox-row input { width: 18px; height: 18px; }
+.rpl-range { height: 36px; cursor: pointer; }
+.mm-page :is(.mm-input, .mm-textarea, .mm-add, .mm-back, .mm-reopen) { min-height: 44px; }
+.mm-page :is(.mm-input, .mm-textarea, .mm-add, .mm-back) { border-radius: var(--radius); }
+.od .od-close { width: 44px; height: 44px; border-radius: var(--radius); color: var(--text-2); }
+.lg .lg-link { border-radius: var(--radius-sm); }
+.rpl-reply-actions .rpl-button:not(.rpl-button--run) {
+  height: auto;
+  min-height: 44px;
+  padding-block: 8px;
+  white-space: normal;
+}
+@media (pointer: coarse) {
+  .rpl-shell .leaflet-container .leaflet-bar a,
+  .rpl-shell .leaflet-container .leaflet-bar a:is(:hover, :focus) { width: 44px; height: 44px; line-height: 44px; }
+  .rpl-page-button,
+  .rpl-map-chip,
+  .rpl-range,
+  .mm-page .mm-chip { height: 44px; }
+  .rpl-page-button { min-width: 44px; }
+  .rpl-search-clear { width: 44px; height: 44px; margin-right: -11px; }
+}
+/* iOS zooms the page into any smaller field. */
+@media (pointer: coarse) and (max-width: 899px) {
+  :is(.rpl-shell, .od) :is(input:not([type='checkbox'], [type='radio'], [type='range']), textarea, select) {
+    font-size: 16px;
+  }
+}
+
+/* ── One alignment, one type ── */
+.rpl-scroll:not(.db-scroll-flush) { scrollbar-gutter: stable; }
+.rpl-scroll,
+.web-table-wrap,
+.web-dialog,
+.od-body { scrollbar-color: var(--line-3) transparent; }
+.web-page-title,
+.web-dialog-title { text-wrap: balance; }
+/* Settings' panels were the one other kind of title. */
+.rpl-panel-title {
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 20px;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+}
+.web-table tbody td { font-variant-numeric: tabular-nums; }
+.rpl-search input { text-overflow: ellipsis; }
+/* Map settings' head starts where every other page's does. */
+.mm-bar { padding: 16px 32px 0; }
+.mm-bar .web-page-title { margin-top: 4px; font-size: 26px; line-height: 28px; }
+.mm-requests { padding: 8px 32px 32px; }
+/* 4 px of it is the strip's own padding, round its focus rings. */
+.rpl-content > .rpl-alarms { margin: 12px 28px; }
+@media (max-width: 1279px) {
+  .mm-bar { padding-inline: 24px; }
+  .mm-requests { padding-inline: 24px; }
+  .rpl-content > .rpl-alarms { margin-inline: 20px; }
+}
+@media (max-width: 900px) {
+  .mm-bar { padding: 6px 16px 0; }
+  .mm-bar .web-page-title { margin: 0; font-size: 17px; line-height: 20px; }
+  .mm-requests { padding-inline: 16px; }
+  .rpl-content > .rpl-alarms { margin-inline: 12px; }
+}
+/* Over a map the ringing fires scroll among themselves: four covered it,
+   and the last one's Open was out of reach. */
+.rpl-content > .rpl-alarms {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 45%;
+  padding: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-3) transparent;
+}
+.rpl-content > .rpl-alarms > * { flex-shrink: 0; }
+/* On the shorter map the legend stays under the chips, which it covered. */
+.rpl-map-legend { max-height: calc(100% - 92px); overflow-y: auto; scrollbar-width: thin; }
+@media (max-width: 479px) {
+  .rpl-alarm > .rpl-button { flex: 1 1 100%; }
+}
+@media (max-width: 599px) {
+  .rpl-toolbar > .rpl-search,
+  .rpl-page > .rpl-search { width: 100%; }
+}
+/* Open was past the edge at 1280 and 1366, English and Tagalog. */
+@media (min-width: 700px) and (max-width: 1599px) {
+  /* The header's own padding outweighed one class, out of line with its cells. */
+  .web-table.rpl-incidents :is(th, td) { padding-inline: 8px; }
+  .web-table.rpl-incidents tr > :first-child { padding-left: 16px; }
+  .rpl-incidents th:first-child { min-width: 200px; }
+  .rpl-incidents thead th,
+  .rpl-incidents :is(.rpl-cell-title, .rpl-cell-meta) { white-space: normal; }
+}
+/* With the room, an age and a confidence stay on their line; Tagalog's
+   are too long to. */
+@media (min-width: 1366px) {
+  .rpl-incidents tbody td:is(:nth-child(4), .rpl-cell-quiet):lang(en) { white-space: nowrap; }
+}
+/* Only where there is no more room does a chip take two lines. */
+@media (min-width: 700px) and (max-width: 1365px) {
+  .rpl-incidents :is(.web-chip, .rpl-alarm-badge) { white-space: normal; }
+}
+/* A dialog's note is a line of its own, over its two buttons. */
+.rpl-form-dialog-foot > .rpl-field-help { flex: 1 1 100%; margin-bottom: 4px; }
+@media (max-width: 479px) {
+  .rpl-form-dialog-foot > .web-button { flex: 1 1 auto; }
+}
+/* Map settings says it as every page does, without covering what's under it. */
+.mm-page .mm-toast {
+  padding: 14px 20px;
+  max-width: calc(100% - 32px);
+  width: max-content;
+  border-color: var(--ok);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--ok) 14%, var(--bg));
+  box-shadow: none;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  pointer-events: none;
+}
+.mm-page .mm-toast.err { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, var(--bg)); }
+
+/* ── Loading: the shape of what is coming ── */
+.web-state--loading { padding: 0; }
+.rpl-skel-table {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+.rpl-skel-row {
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+}
+.rpl-skel-row--head { min-height: 40px; border-top: 0; background: var(--surface-1); }
+.web-table-empty .rpl-skel-table { border: 0; }
+/* Where the rows are cards, so are theirs. */
+.mm-list .rpl-skel-table { gap: 6px; border: 0; background: none; }
+.mm-list .rpl-skel-row { border: 1px solid var(--line); border-radius: var(--radius); }
+.mm-list .rpl-skel-row--head { display: none; }
+@media (max-width: 699px) {
+  .rpl-skel-table { gap: 8px; border: 0; background: none; }
+  .rpl-skel-row { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-2); }
+  .rpl-skel-row--head { display: none; }
+}
+.lm-zoom-hint.lm-places {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  white-space: normal;
+}
+.lm-zoom-hint.lm-places.is-failed {
+  /* Under the zoom hint, which the places that did load can bring. */
+  top: 104px;
+  padding: 0 8px 0 14px;
+  border-color: var(--danger);
+  pointer-events: auto;
+}
+.lm-places-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: rpl-breathe 1.4s ease-in-out infinite;
+}
+
+/* ── The sidebar's width changes; what is in it doesn't reflow ── */
+.rpl-sidebar { overflow-x: hidden; }
+.rpl-sidebar:not(.is-rail) > :is(.rpl-brand, .rpl-org, .rpl-nav, .rpl-sidebar-foot) { min-width: 215px; }
+.rpl-sidebar.is-rail { align-items: flex-start; }
+.rpl-sidebar.is-rail > :is(.rpl-brand, .rpl-nav, .rpl-sidebar-foot) { width: 56px; }
+.rpl-brand-words,
+.rpl-org-text,
+.rpl-nav-label,
+.rpl-user-text { animation: rpl-fade-in var(--motion) var(--ease); }
+
+/* ── Arriving ──
+   Opacity alone on a page: a transform would hold its toasts and sheets. */
+.rpl-page,
+.rpl-map,
+.mm-page,
+.rpl-alarm,
+.rpl-map-panel,
+.rpl-map-legend,
+.mm-page .mm-panel,
+.lg .lg-form { animation: rpl-fade-in var(--motion) var(--ease); }
+.web-dialog[open],
+.rpl-viewer[open],
+.od { animation: rpl-dialog-in var(--motion) var(--ease); }
+.web-dialog[open]::backdrop { animation: rpl-fade-in var(--motion, 200ms) ease-out; }
+.od-scrim { background: var(--scrim); animation: rpl-fade-in var(--motion) var(--ease); }
+.rpl-scrim { animation: rpl-fade-in var(--motion) var(--ease); }
+.rpl-sheet { animation: rpl-sheet-in var(--motion) var(--ease); }
+/* There the organization's details are a sheet, and rise as one. */
+@media (max-width: 700px) {
+  .od { animation: rpl-sheet-in var(--motion) var(--ease); }
+}
+.rpl-toast { animation: rpl-toast-in var(--motion) var(--ease); }
+.mm-page .mm-toast { animation: rpl-fade-in var(--motion) var(--ease); }
+
 /* ── Motion ───────────────────────────────────────────────────────────── */
 @keyframes rpl-fade-in {
   from { opacity: 0; }
@@ -677,4 +1115,19 @@
 @keyframes rpl-menu-in {
   from { opacity: 0; transform: translateY(-4px) scale(0.98); }
   to { opacity: 1; transform: none; }
+}
+@keyframes rpl-dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rpl-sheet-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rpl-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rpl-breathe {
+  50% { opacity: 0.3; }
 }

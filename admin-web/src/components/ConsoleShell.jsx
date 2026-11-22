@@ -63,7 +63,14 @@ export default function ConsoleShell({ active, onNavigate, children }) {
   const [queues, setQueues] = useState({ affiliates: 0, ids: 0, requests: 0, strikes: 0, water: 0 });
   const [queueTick, setQueueTick] = useState(0);
   const refreshQueues = useCallback(() => setQueueTick((t) => t + 1), []);
-  const [organizations, setOrganizations] = useState([]);
+  // The directory says when it is still being read, or couldn't be: to
+  // Organization both looked like an account with no organization.
+  const [directory, setDirectory] = useState({ phase: 'loading', rows: [] });
+  const [directoryTick, setDirectoryTick] = useState(0);
+  const reloadDirectory = useCallback(() => {
+    setDirectory((d) => ({ ...d, phase: 'loading' }));
+    setDirectoryTick((n) => n + 1);
+  }, []);
   const [moreOpen, setMoreOpen] = useState(false);
   // Signing out asks first (17 Nov 2026: "if the user press logout it make it
   // having a confirmation"): a signed-out console shows and sounds nothing new.
@@ -121,10 +128,10 @@ export default function ConsoleShell({ active, onNavigate, children }) {
   useEffect(() => {
     let cancelled = false;
     api.organizations()
-      .then((rows) => { if (!cancelled) setOrganizations(Array.isArray(rows) ? rows : []); })
-      .catch(() => {});
+      .then((rows) => { if (!cancelled) setDirectory({ phase: 'ready', rows: Array.isArray(rows) ? rows : [] }); })
+      .catch(() => { if (!cancelled) setDirectory((d) => ({ ...d, phase: 'failed' })); });
     return () => { cancelled = true; };
-  }, []);
+  }, [directoryTick]);
 
   // The More sheet behaves as a dialog: focus moves into it, Tab stays inside,
   // Escape closes it, and focus returns to the More button afterwards.
@@ -193,15 +200,17 @@ export default function ConsoleShell({ active, onNavigate, children }) {
   const org = useMemo(() => {
     const named = consoleInfo.organization;
     const id = named?.id ?? user?.primary_org_id ?? null;
-    const own = organizations.find((o) => o.id === id);
+    const own = directory.rows.find((o) => o.id === id);
     return {
       id,
       profile: own ?? null,
       name: named?.name ?? own?.name ?? t('RepLiT · Pasay City'),
       agency: named?.agency_type ?? own?.agency_type ?? null,
       role: roleLine(consoleInfo),
+      directory: directory.phase,
+      reloadDirectory,
     };
-  }, [organizations, user, consoleInfo, language]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [directory, reloadDirectory, user, consoleInfo, language]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const scope = scopeLine(consoleInfo);
 
