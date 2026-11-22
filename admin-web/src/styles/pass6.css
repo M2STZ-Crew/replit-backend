@@ -151,7 +151,8 @@
 .rpl-plate--barangay { background: var(--plate-barangay); }
 
 /* The part that scrolls. Its scrollbar is hidden, so an item here is exactly
-   as wide as Settings below it; a shade at the foot says there is more. */
+   as wide as Settings below it; a shade at its head or foot says there is
+   more that way (the head's since v1.12.50: Dashboard looked gone). */
 .rpl-nav {
   flex: 1 1 auto;
   min-height: 0;
@@ -163,7 +164,9 @@
   overflow-y: auto;
   scrollbar-width: none;
   background:
+    linear-gradient(var(--surface-1), var(--surface-1)) top / 100% 24px no-repeat local,
     linear-gradient(var(--surface-1), var(--surface-1)) bottom / 100% 24px no-repeat local,
+    linear-gradient(var(--scroll-shade), transparent) top / 100% 16px no-repeat scroll,
     linear-gradient(transparent, var(--scroll-shade)) bottom / 100% 16px no-repeat scroll;
 }
 .rpl-nav::-webkit-scrollbar { display: none; }

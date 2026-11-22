@@ -855,6 +855,7 @@
 @media (pointer: coarse) {
   .mm-page .mm-layers-label { min-height: 44px; }
 }
+:root[data-theme='light'] .rpl-unread-dot:not(.is-on) { background: var(--line-3); }
 /* These glyphs are white images. */
 :root[data-theme='light'] :is(.rpl-alarm-plate, .rpl-alarm-loop, .lg-eye, .od-chip) img { filter: brightness(0); }
 /* Over any map, the light one too. */
@@ -926,7 +927,12 @@
   :is(.rpl-shell, .od) :is(input:not([type='checkbox'], [type='radio'], [type='range']), textarea, select) {
     font-size: 16px;
   }
+  /* The dropdowns among them, at their size. */
+  :is(.rpl-shell, .od) .rpl-pick:not(.rpl-pager-size) { font-size: 16px; }
 }
+/* More's dots were small, and half under its count. */
+.rpl-bar-more { transform: scale(1.25); }
+.rpl-bar-item .rpl-count { top: 4px; left: calc(50% + 9px); }
 
 /* ── One alignment, one type ── */
 .rpl-scroll:not(.db-scroll-flush) { scrollbar-gutter: stable; }
@@ -1002,6 +1008,10 @@
 /* Only where there is no more room does a chip take two lines. */
 @media (min-width: 700px) and (max-width: 1365px) {
   .rpl-incidents :is(.web-chip, .rpl-alarm-badge) { white-space: normal; }
+}
+/* A phone has the height for a whole name, and a fire's is its address. */
+@media (max-width: 699px) {
+  .rpl-shell :is(.rpl-cell-title, .rpl-cell-meta) { white-space: normal; overflow-wrap: anywhere; }
 }
 /* A dialog's note is a line of its own, over its two buttons. */
 .rpl-form-dialog-foot > .rpl-field-help { flex: 1 1 100%; margin-bottom: 4px; }

@@ -285,7 +285,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
             aria-expanded={moreOpen}
             aria-label={moreCount ? t('More, {count} waiting', { count: moreCount }) : t('More')}
           >
-            <Icon name="more" />
+            <Icon name="more" className="rpl-bar-more" />
             <span>{t('More')}</span>
             {moreCount > 0 && <span className="rpl-count" aria-hidden="true">{moreCount}</span>}
           </button>
