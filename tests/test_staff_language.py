@@ -117,7 +117,7 @@ def test_the_english_is_what_staff_already_read() -> None:
         "A responder (Hercules) asked for 2nd alarm for the incident.",
     )
     assert staff_copy.alarm_answered("en", False, "2nd alarm", None, "Under control.") == (
-        "BFP declined your alarm request",
+        "BFP declined your alarm escalation",
         "The incident stays as it is. Under control.",
     )
 

@@ -147,7 +147,7 @@ def alarm_answered(
         fire = fire_at(designation, language, start=True)
         if approved:
             return "BFP raised the alarm", f"{fire} is now at {level}, as you asked."
-        title, body = "BFP declined your alarm request", f"{fire} stays as it is."
+        title, body = "BFP declined your alarm escalation", f"{fire} stays as it is."
     return title, f"{body} {notes}" if notes else body
 
 

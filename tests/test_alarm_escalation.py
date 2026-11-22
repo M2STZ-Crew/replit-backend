@@ -651,7 +651,7 @@ class _PushDb:
 @pytest.mark.parametrize(
     ("status", "title"),
     [("approved", "BFP raised the alarm"),
-     ("rejected", "BFP declined your alarm request")],
+     ("rejected", "BFP declined your alarm escalation")],
 )
 async def test_the_asker_is_told_the_answer(
     monkeypatch: pytest.MonkeyPatch, status: str, title: str

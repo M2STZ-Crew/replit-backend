@@ -231,7 +231,7 @@ export default function WaterResources({ onOpenIncident, initialEdit = null }) {
           { key: 'map', label: t('Map') },
           ...(managesMap ? [
             { key: 'edit', label: t('Edit on map') },
-            { key: 'requests', label: t('Requests'), count: requests.rows.length },
+            { key: 'requests', label: t('Water requests'), count: requests.rows.length },
           ] : []),
         ].map((tab) => (
           <button

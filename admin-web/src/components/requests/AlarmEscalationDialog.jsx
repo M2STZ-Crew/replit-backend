@@ -60,7 +60,7 @@ export default function AlarmEscalationDialog({ open, areas, bfpName = 'BFP', on
   return (
     <FormDialog
       open={open}
-      eyebrow={t('New request · Alarm escalation')}
+      eyebrow={t('New alarm escalation')}
       title={t('Ask {bfpName} to raise the alarm', { bfpName })}
       onClose={onClose}
       onSubmit={submit}

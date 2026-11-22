@@ -180,7 +180,7 @@ async def _withdrawable(
         request_id,
     )
     if row is None:
-        raise NotFoundError("Alarm request not found.")
+        raise NotFoundError("Alarm escalation not found.")
     if not _may_withdraw(user, row["requested_by"], row["requester_org"]):
         raise ForbiddenError(
             "Only whoever asked, an Admin of their organization, or the system Admin "
@@ -203,7 +203,7 @@ def _may_request(user: AuthenticatedUser) -> bool:
 async def _detail(db: Database, request_id: UUID) -> AlarmRequestResponse:
     row = await db.fetchrow(f"{_DETAIL_SQL} where a.id = $1", request_id)
     if row is None:
-        raise NotFoundError("Alarm request not found.")
+        raise NotFoundError("Alarm escalation not found.")
     return AlarmRequestResponse.model_validate(dict(row))
 
 
@@ -240,7 +240,7 @@ async def create_alarm_request(
     if not _may_request(user):
         raise ForbiddenError(
             "Only Fire Volunteer responders, Coordinators and Admins, or BFP "
-            "Coordinators, may raise an alarm request."
+            "Coordinators, may ask for an alarm escalation."
         )
     await assert_admin_routed(db, payload.area_id, user, "ask BFP to raise its alarm")
     level = payload.requested_alarm_level
@@ -395,7 +395,7 @@ async def list_alarm_requests(
     carries stays bounded however long the system runs.
     """
     if not (user.role == "admin" or _is_bfp_subadmin(user)):
-        raise ForbiddenError("Only BFP sub-admins or admin may review alarm requests.")
+        raise ForbiddenError("Only BFP sub-admins or admin may review alarm escalations.")
     conditions: list[str] = []
     params: list[Any] = []
     if status_filter is not None:
@@ -588,9 +588,9 @@ async def execute_alarm_request(
             request_id,
         )
         if req is None:
-            raise NotFoundError("Alarm request not found.")
+            raise NotFoundError("Alarm escalation not found.")
         if req["status"] != "pending":
-            raise ConflictError("This alarm request has already been reviewed.")
+            raise ConflictError("This alarm escalation has already been reviewed.")
         area = await conn.fetchrow(
             "select status::text as status, alarm_level::text as alarm_level, designation "
             "from public.areas where id = $1 for update",
@@ -692,7 +692,7 @@ async def reject_alarm_request(
     """Reject a pending alarm request (BFP Coordinator or Admin)."""
     if not _may_decide(user):
         raise ForbiddenError(
-            "Only BFP (a Coordinator or the BFP Admin) may decline alarm requests."
+            "Only BFP (a Coordinator or the BFP Admin) may decline alarm escalations."
         )
     async with db.acquire() as conn, conn.transaction():
         row = await conn.fetchrow(
@@ -708,7 +708,7 @@ async def reject_alarm_request(
             payload.notes,
         )
         if row is None:
-            raise NotFoundError("No pending alarm request found for that id.")
+            raise NotFoundError("No pending alarm escalation found for that id.")
         await record_audit(
             conn,
             request,

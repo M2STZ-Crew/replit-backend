@@ -116,7 +116,7 @@ export default function SituationBoard({ onNavigate }) {
   const queueList = [
     { key: 'incidents', icon: 'flame', label: t('To acknowledge'), count: toAcknowledge, loading: !loaded, urgent: true, live: true },
     split && { key: 'incidents', id: 'routed', icon: 'incidents', label: t('Active, routed to you'), count: routed.length, loading: !loaded, live: true },
-    answersAlarms && { key: 'requests', icon: 'requests', label: t('Requests to answer'), count: queues?.requests },
+    answersAlarms && { key: 'requests', icon: 'requests', label: t('Alarm Escalations'), count: queues?.requests },
     reviewsAffiliates && { key: 'affiliates', icon: 'organization', label: t('Affiliate requests'), count: queues?.affiliates },
     reviewsIds && { key: 'idreview', icon: 'verification', label: t('ID reviews'), count: queues?.ids },
   ].filter((q) => q && (q.live || queues == null || q.count != null));

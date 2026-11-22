@@ -83,13 +83,13 @@ export default function Requests({ readRequests, onOpenIncident }) {
       .then(() => readRequests({ status: 'all' }))
       .then((list) => {
         if (!alive) return;
-        if (!Array.isArray(list)) throw new Error(t('The requests could not be read. Try again.'));
+        if (!Array.isArray(list)) throw new Error(t('The alarm escalations could not be read. Try again.'));
         setRows(list);
         setPhase('ready');
       })
       .catch((e) => {
         if (!alive) return;
-        setError(e?.message || t('The requests could not be loaded.'));
+        setError(e?.message || t('The alarm escalations could not be loaded.'));
         setPhase('error');
       });
     return () => { alive = false; };
@@ -147,8 +147,8 @@ export default function Requests({ readRequests, onOpenIncident }) {
   return (
     <div className="rpl-page">
       <PageHeader
-        eyebrow={org?.name ?? t('Requests')}
-        title={t('Requests')}
+        eyebrow={org?.name ?? t('Alarm Escalations')}
+        title={t('Alarm Escalations')}
         description={decides
           ? t('Alarm escalations from the organizations on scene. You set the alarm level or decline.')
           : asks
@@ -164,7 +164,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
                 onClick={() => setAsking(true)}
                 disabled={askable.length === 0}
                 title={askable.length === 0 ? t('No acknowledged incident is routed to you right now') : undefined}
-              >{t('New request')}</button>
+              >{t('New escalation')}</button>
             )}
           </>
         )}
@@ -191,7 +191,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
       />
 
       <div className="rpl-toolbar">
-        <div className="rpl-tabs" role="tablist" aria-label={t('Requests')}>
+        <div className="rpl-tabs" role="tablist" aria-label={t('Alarm Escalations')}>
           {[
             { key: 'inbox', label: t('Inbox'), count: pending.length },
             { key: 'history', label: t('History') },
@@ -209,27 +209,27 @@ export default function Requests({ readRequests, onOpenIncident }) {
             </button>
           ))}
         </div>
-        <SearchBox label={t('Search requests')} placeholder={t('Search areas and names')} value={query} onChange={setQuery} />
+        <SearchBox label={t('Search alarm escalations')} placeholder={t('Search areas and names')} value={query} onChange={setQuery} />
       </div>
 
       {phase === 'loading' ? (
-        <StatePanel kind="loading" title={t('Loading requests…')} busy />
+        <StatePanel kind="loading" title={t('Loading alarm escalations…')} busy />
       ) : phase === 'error' ? (
-        <StatePanel kind="error" title={t('The requests couldn’t load')} description={error} onRetry={refresh} />
+        <StatePanel kind="error" title={t('The alarm escalations couldn’t load')} description={error} onRetry={refresh} />
       ) : shown.length === 0 && !query.trim() ? (
-        <EmptyState icon="requests" title={tab === 'inbox' ? t('Nothing waiting') : t('No answered requests yet')}>
+        <EmptyState icon="requests" title={tab === 'inbox' ? t('Nothing waiting') : t('No answered escalations yet')}>
           {tab === 'inbox'
             ? t('An alarm escalation appears here when someone on scene asks BFP to raise the alarm.')
-            : t('Requests move here once BFP approves or rejects them, or they are cancelled.')}
+            : t('Alarm escalations move here once BFP approves or rejects them, or they are cancelled.')}
         </EmptyState>
       ) : (
         <>
           <div className="web-table-wrap">
             <table className="web-table rpl-requests">
-              <caption className="web-sr-only">{tab === 'inbox' ? t('Pending requests') : t('Answered requests')}</caption>
+              <caption className="web-sr-only">{tab === 'inbox' ? t('Pending escalations') : t('Answered escalations')}</caption>
               <thead>
                 <tr>
-                  <th scope="col">{t('Request')}</th>
+                  <th scope="col">{t('Escalation')}</th>
                   <th scope="col">{t('From → To')}</th>
                   <th scope="col">{t('Status')}</th>
                   <th scope="col">{t('Received')}</th>
@@ -256,7 +256,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
                       <td><StatusChip {...requestStatus(r.status)} /></td>
                       <td className="rpl-cell-quiet" data-label={t('Received')}>{received(r.created_at)}</td>
                       <td className="web-table-action-cell">
-                        <button type="button" className="web-table-row-action" onClick={() => setSelectedId(r.id)}>{t('Open')}<span className="web-sr-only">{' '}{t('the request for')}{' '}{areaOf(r)}</span>
+                        <button type="button" className="web-table-row-action" onClick={() => setSelectedId(r.id)}>{t('Open')}<span className="web-sr-only">{' '}{t('the escalation for')}{' '}{areaOf(r)}</span>
                         </button>
                       </td>
                     </tr>
@@ -310,7 +310,7 @@ function RequestDetail({
 
   return (
     <div className="rpl-page rpl-incident">
-      <button type="button" className="rpl-text-button rpl-back" onClick={onBack}>{t('← All requests')}</button>
+      <button type="button" className="rpl-text-button rpl-back" onClick={onBack}>{t('← All alarm escalations')}</button>
       <PageHeader
         eyebrow={t('From {askedBy} · {clock}', { askedBy: askedBy(r), clock: clock(r.created_at) })}
         title={t('Alarm escalation · {level}', { level })}
@@ -322,7 +322,7 @@ function RequestDetail({
       <div className="rpl-incident-grid">
         <section className="rpl-panel rpl-request-card" aria-labelledby="rpl-request-title">
           <div className="rpl-decision-head">
-            <h2 className="rpl-decision-title" id="rpl-request-title">{t('Request')}</h2>
+            <h2 className="rpl-decision-title" id="rpl-request-title">{t('Escalation')}</h2>
             <StatusChip {...status} />
           </div>
           <dl className="rpl-facts rpl-facts--wide">
@@ -390,9 +390,9 @@ function RequestDetail({
           {withdraws && r.status !== 'approved' && (
             <div className="rpl-reply-row">
               {r.status === 'pending' && (
-                <button type="button" className="rpl-button rpl-button--secondary" onClick={() => { setNote(''); setConfirm('cancel'); }}>{t('Cancel request')}</button>
+                <button type="button" className="rpl-button rpl-button--secondary" onClick={() => { setNote(''); setConfirm('cancel'); }}>{t('Cancel escalation')}</button>
               )}
-              <button type="button" className="rpl-button rpl-button--danger" onClick={() => setConfirm('delete')}>{t('Delete request')}</button>
+              <button type="button" className="rpl-button rpl-button--danger" onClick={() => setConfirm('delete')}>{t('Delete escalation')}</button>
             </div>
           )}
           {onOpenIncident && area && (
@@ -437,15 +437,15 @@ function RequestDetail({
       <ConfirmDialog
         open={confirm === 'cancel'}
         eyebrow={t('{areaOf} · requested by {askedBy}', { areaOf: areaOf(r), askedBy: askedBy(r) })}
-        title={t('Cancel the request for {level}?', { level })}
+        title={t('Cancel the escalation to {level}?', { level })}
         description={t('BFP stops seeing it as waiting. It stays in History as Cancelled.')}
-        confirmLabel={t('Cancel request')}
+        confirmLabel={t('Cancel escalation')}
         cancelLabel={t('Keep it')}
         onClose={() => setConfirm(null)}
         onConfirm={async () => {
           await api.alarmRequestCancel(r.id, note.trim() || null);
           setConfirm(null);
-          onDecided?.(t('Cancelled the request for {level} on {area}', { level, area: areaOf(r) }));
+          onDecided?.(t('Cancelled the escalation to {level} on {area}', { level, area: areaOf(r) }));
         }}
       >
         <label className="rpl-field">
@@ -456,16 +456,16 @@ function RequestDetail({
       <ConfirmDialog
         open={confirm === 'delete'}
         eyebrow={t('{areaOf} · requested by {askedBy}', { areaOf: areaOf(r), askedBy: askedBy(r) })}
-        title={t('Delete the request for {level}?', { level })}
+        title={t('Delete the escalation to {level}?', { level })}
         description={t('It is removed for every organization and cannot be brought back.')}
-        confirmLabel={t('Delete request')}
+        confirmLabel={t('Delete escalation')}
         cancelLabel={t('Keep it')}
         destructive
         onClose={() => setConfirm(null)}
         onConfirm={async () => {
           await api.alarmRequestDelete(r.id);
           setConfirm(null);
-          onDeleted?.(t('Deleted the request for {level} on {area}', { level, area: areaOf(r) }));
+          onDeleted?.(t('Deleted the escalation to {level} on {area}', { level, area: areaOf(r) }));
         }}
       />
     </div>
