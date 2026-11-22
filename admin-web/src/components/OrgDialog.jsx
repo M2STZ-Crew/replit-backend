@@ -5,20 +5,25 @@ import { api } from '../api/client.js';
 import { agencyAuthority, agencyLabel } from '../auth.jsx';
 import OrgStanding, { standingLabel } from './OrgStanding.jsx';
 import Skeleton from './ui/Skeleton.jsx';
+import StatusChip from './ui/StatusChip.jsx';
 import { t } from '../i18n/i18n.jsx';
 
 const ROLE = {
   get admin() { return t('Admin'); },
-  sub_admin: 'Sub-Admin',
-  get response_team() { return t('Response Team'); },
+  get sub_admin() { return t('Coordinator'); },
+  get response_team() { return t('Responder'); },
   get general_user() { return t('Member'); },
 };
+
+// The authority's tone, as chips have it: its own colour couldn't be read
+// on the light ground.
+const AUTHORITY_TONE = { responds: 'accent', acknowledges: 'info' };
 
 const EQ_STATUS = {
   available: { get label() { return t('Ready'); }, tone: 'ok' },
   in_use: { get label() { return t('Deployed'); }, tone: 'accent' },
   maintenance: { get label() { return t('Maintenance'); }, tone: 'warn' },
-  out_of_service: { get label() { return t('Out of service'); }, tone: 'off' },
+  out_of_service: { get label() { return t('Out of service'); }, tone: 'neutral' },
 };
 
 const FOCUSABLE = 'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
@@ -161,13 +166,8 @@ export default function OrgDialog({ org, application, glyph, color, onClose, can
             <span className="dc-eyebrow">{agencyLabel(org.agency_type)}</span>
             <h2 className="od-title" id={titleId}>{org.name}</h2>
             <div className="od-tags">
-              <span className="ar-tag" style={{ color: auth.color, background: `${auth.color}1f` }}>
-                {auth.label}
-              </span>
-              <span className={`af-status${org.is_active ? ' is-on' : ''}`}>
-                <span className="af-status-dot" />
-                {standingLabel(org)}
-              </span>
+              <StatusChip tone={AUTHORITY_TONE[auth.key] ?? 'neutral'} label={auth.label} />
+              <StatusChip tone={org.is_active ? 'ok' : 'neutral'} label={standingLabel(org)} />
             </div>
           </div>
           <button type="button" className="od-close" onClick={onClose} aria-label={t('Close')}>
@@ -228,7 +228,7 @@ export default function OrgDialog({ org, application, glyph, color, onClose, can
                 <ul className="od-list">
                   {personnel.map((m) => (
                     <li className="od-person" key={m.id}>
-                      <span className="od-avatar" style={{ color, background: `${color}1f` }}>
+                      <span className="od-avatar" style={{ background: `${color}1f` }}>
                         {initials(m.full_name)}
                       </span>
                       <span className="od-person-text">
@@ -253,7 +253,7 @@ export default function OrgDialog({ org, application, glyph, color, onClose, can
               ) : (
                 <ul className="od-list">
                   {equipment.map((e) => {
-                    const st = EQ_STATUS[e.status] ?? { label: prettify(e.status), tone: 'off' };
+                    const st = EQ_STATUS[e.status] ?? { label: prettify(e.status), tone: 'neutral' };
                     const sub = [
                       e.category ? prettify(e.category) : t('Equipment'),
                       e.quantity > 1 ? `× ${e.quantity}` : null,
@@ -265,7 +265,7 @@ export default function OrgDialog({ org, application, glyph, color, onClose, can
                           <span className="od-person-name">{e.name}</span>
                           <span className="od-person-sub">{sub}</span>
                         </span>
-                        <span className={`od-pill is-${st.tone}`}>{st.label}</span>
+                        <StatusChip tone={st.tone} label={st.label} />
                       </li>
                     );
                   })}

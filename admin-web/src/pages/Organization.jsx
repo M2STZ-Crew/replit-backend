@@ -63,6 +63,34 @@ export default function Organization({ onNavigate }) {
   }, [profile]);
   useEffect(() => { load(); }, [load]);
 
+  // An organization whose profile hasn't been read is not an account
+  // without one.
+  if (!profile && org?.id && org.directory !== 'ready') {
+    const waiting = org.directory === 'loading';
+    return (
+      <div className="rpl-page">
+        <PageHeader
+          eyebrow={org.agency
+            ? t('Organization · {agencyLabel}', { agencyLabel: agencyLabel(org.agency) })
+            : t('Organization')}
+          title={org.name}
+          // Holds the line "On the network since" will take.
+          description={waiting ? '\u00a0' : null}
+        />
+        {waiting ? (
+          <StatePanel kind="loading" skeleton="detail" rows={2} title={t('Loading the organization…')} busy />
+        ) : (
+          <StatePanel
+            kind="error"
+            title={t('The organization couldn’t load')}
+            description={t('Check your connection, then try again.')}
+            onRetry={org.reloadDirectory}
+          />
+        )}
+      </div>
+    );
+  }
+
   if (!profile) {
     return (
       <div className="rpl-page">
@@ -106,11 +134,11 @@ export default function Organization({ onNavigate }) {
               <h2 className="rpl-decision-title" id="rpl-org-people">{t('People')}</h2>
               <Facts rows={[
                 [t('Coordinators'), phase === 'loading' ? '…' : String(coordinators)],
-                [t('Responders'), phase === 'loading' ? '…' : t('{count} · created by your Coordinators', { count: responders })],
+                [t('Responders'), phase === 'loading' ? '…' : String(responders)],
               ]} />
               <div className="rpl-alert rpl-alert--info">
                 <span className="rpl-alert-mark" aria-hidden="true">i</span>
-                <p className="rpl-alert-body">{t('Coordinators create Responder accounts for their team on the mobile app.')}</p>
+                <p className="rpl-alert-body">{t('You create Responder accounts under Accounts, and your Coordinators can on the mobile app.')}</p>
               </div>
               {onNavigate && (
                 <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onNavigate('accounts')}>{t('View accounts')}</button>

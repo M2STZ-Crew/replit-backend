@@ -41,6 +41,23 @@ export default function BaseTiles() {
     observer.observe(map.getContainer());
     return () => observer.disconnect();
   }, [map]);
+  // Leaflet focuses its box on a press, and the browser counts that as the
+  // keyboard's: marked, so only Tab draws the map's focus ring.
+  useEffect(() => {
+    const box = map.getContainer();
+    const pressed = () => { box.dataset.pointed = ''; };
+    const left = () => { delete box.dataset.pointed; };
+    // A press on the zoom leaves the box's mark without its focus.
+    const tabbed = (e) => { if (e.key === 'Tab') left(); };
+    box.addEventListener('pointerdown', pressed, true);
+    box.addEventListener('blur', left);
+    document.addEventListener('keydown', tabbed, true);
+    return () => {
+      document.removeEventListener('keydown', tabbed, true);
+      box.removeEventListener('pointerdown', pressed, true);
+      box.removeEventListener('blur', left);
+    };
+  }, [map]);
   const theme = useConsoleTheme();
   return <TileLayer key={theme} url={tileUrl(theme)} maxZoom={TILE_MAX_ZOOM} />;
 }

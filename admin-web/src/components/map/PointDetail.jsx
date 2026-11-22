@@ -9,7 +9,8 @@ import { t } from '../../i18n/i18n.jsx';
  * admin map, make evacuation, hydrants, and things are interactable";
  * answered "Open a details panel"): what it is and its state, its capacity
  * and contact, how far the nearest live fire is, Google Maps, and Edit for the
- * Admin who manages the map. */
+ * Admin who manages the map. Map settings opens a place with the same facts
+ * since v1.12.50 (PointFacts). */
 
 // The live map's kinds, and the map editor's layer for each.
 export const POINT_KINDS = {
@@ -20,7 +21,7 @@ export const POINT_KINDS = {
   risk: { get singular() { return t('Risk zone'); }, layer: 'risk' },
 };
 
-const RISK = {
+export const RISK = {
   low: { get label() { return t('Low'); }, tone: 'neutral' },
   medium: { get label() { return t('Medium'); }, tone: 'warn' },
   high: { get label() { return t('High'); }, tone: 'danger' },
@@ -107,10 +108,32 @@ function factsOf(kind, row) {
   return facts;
 }
 
+export function PointFacts({ kind, row, incidents, onOpenIncident }) {
+  const near = nearestFire(pointOf(kind, row), incidents);
+  return (
+    <dl className="rpl-facts">
+      {factsOf(kind, row).map(([term, value]) => (
+        <div className="rpl-fact" key={term}><dt>{term}</dt><dd>{value}</dd></div>
+      ))}
+      <div className="rpl-fact">
+        <dt>{t('Nearest live fire')}</dt>
+        <dd>
+          {near ? (
+            <>
+              {`${distanceText(near.m)} · `}
+              <button type="button" className="rpl-text-button rpl-text-button--inline" onClick={() => onOpenIncident(near.inc.id)}>
+                {fireName(near.inc.place_line || near.inc.designation)}
+              </button>
+            </>
+          ) : t('No live fire now')}
+        </dd>
+      </div>
+    </dl>
+  );
+}
+
 export default function PointDetail({ kind, row, incidents, onClose, onOpenIncident, onEdit }) {
   const p = pointOf(kind, row);
-  const near = nearestFire(p, incidents);
-  const facts = factsOf(kind, row);
   return (
     <aside className="rpl-map-panel rpl-point-panel" aria-labelledby="rpl-point-title">
       <div className="rpl-detail-head">
@@ -122,24 +145,7 @@ export default function PointDetail({ kind, row, incidents, onClose, onOpenIncid
           <span aria-hidden="true">✕</span>
         </button>
       </div>
-      <dl className="rpl-facts">
-        {facts.map(([term, value]) => (
-          <div className="rpl-fact" key={term}><dt>{term}</dt><dd>{value}</dd></div>
-        ))}
-        <div className="rpl-fact">
-          <dt>{t('Nearest live fire')}</dt>
-          <dd>
-            {near ? (
-              <>
-                {`${distanceText(near.m)} · `}
-                <button type="button" className="rpl-text-button rpl-text-button--inline" onClick={() => onOpenIncident(near.inc.id)}>
-                  {fireName(near.inc.place_line || near.inc.designation)}
-                </button>
-              </>
-            ) : t('No live fire now')}
-          </dd>
-        </div>
-      </dl>
+      <PointFacts kind={kind} row={row} incidents={incidents} onOpenIncident={onOpenIncident} />
       <div className="rpl-point-actions">
         {p.lat != null && p.lng != null && (
           <a className="rpl-button rpl-button--secondary" href={mapsLink(p.lat, p.lng)} target="_blank" rel="noopener noreferrer">

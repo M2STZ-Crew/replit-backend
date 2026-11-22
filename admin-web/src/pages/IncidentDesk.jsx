@@ -6,19 +6,20 @@ import IncidentDetail from '../components/incidents/IncidentDetail.jsx';
 import IncidentTable from '../components/incidents/IncidentTable.jsx';
 import OverlapReview from '../components/incidents/OverlapReview.jsx';
 import AlarmEscalationDialog from '../components/requests/AlarmEscalationDialog.jsx';
-import { EmptyState, PageHeader, Pager, StatePanel, usePager } from '../components/ui/index.js';
+import { EmptyState, PageHeader, Pager, Select, StatePanel, usePager } from '../components/ui/index.js';
 import { useLiveFeed, useSurfaceVisit } from '../live/LiveFeed.jsx';
-import { actsOn, splitsIncidents, yourOrg } from '../lib/access.js';
+import { acknowledgedByUs, actsOn, splitsIncidents, yourOrg } from '../lib/access.js';
 import { degrees, fireAt, knownAddress, fireName } from '../lib/place.js';
-import { AGENCY_LABEL } from '../lib/status.js';
 import { t as tr } from '../i18n/i18n.jsx';
 import SearchBox from '../components/ui/SearchBox.jsx';
 
 /* Incidents (REPLIT (MAIN) 10 · A22 865:2061, A23–A28, A80–A82, A84).
  *
- * The list: every active Area, searchable and filtered by status, agency and
+ * The list: every active Area, searchable and filtered by status and
  * confidence, a page at a time. Opening one shows it in full (IncidentDetail)
- * where this Admin may acknowledge it.
+ * where this Admin may acknowledge it. v1.12.50 (22 Nov 2026): no Agency
+ * filter, and To acknowledge lists what this organisation hasn't (answered
+ * "Same rule as the card").
  *
  * An Admin that acts on some Areas only gets "Routed to you" — the Areas that
  * asked for its agency — and the "Your org" column (lib/access.js). Every
@@ -28,7 +29,7 @@ import SearchBox from '../components/ui/SearchBox.jsx';
 
 const STATUSES = [
   { key: 'all', get label() { return tr('All active'); } },
-  { key: 'reported', get label() { return tr('Reported'); } },
+  { key: 'to_acknowledge', get label() { return tr('To acknowledge'); } },
   { key: 'verified', get label() { return tr('Acknowledged'); } },
   { key: 'en_route', get label() { return tr('En route'); } },
   { key: 'arrived', get label() { return tr('Arrived'); } },
@@ -40,17 +41,11 @@ const CONFIDENCE = [
   { key: 'medium', get label() { return tr('Medium'); } },
   { key: 'low', get label() { return tr('Low'); } },
 ];
-const AGENCIES = ['any', 'fire_volunteer', 'bfp', 'police', 'medical', 'barangay'];
-
-function Select({ label, value, onChange, options }) {
-  return (
-    <label className="rpl-select">
-      <span className="rpl-select-label">{label}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)}>
-        {options.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-      </select>
-    </label>
-  );
+// Report due is another list's, read when it is picked: nothing to test here.
+function hasStatus(access, inc, key) {
+  if (key === 'all' || key === 'post_incident_report') return true;
+  if (key === 'to_acknowledge') return actsOn(access, inc) && !acknowledgedByUs(access, inc);
+  return inc.status === key;
 }
 
 export default function IncidentDesk({ focusId = null, initialTab = null }) {
@@ -68,7 +63,6 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
 
   const [tab, setTab] = useState(split && initialTab === 'routed' ? 'routed' : 'active');
   const [status, setStatus] = useState('all');
-  const [agency, setAgency] = useState('any');
   const [band, setBand] = useState('any');
   const [query, setQuery] = useState('');
   const [fetched, setFetched] = useState({ post_incident_report: null, closed: null });
@@ -125,18 +119,36 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
 
   const source = needs ? fetched[needs] : live;
   const routedCount = useMemo(() => live.filter((inc) => actsOn(access, inc)).length, [live, access]);
-  const rows = useMemo(() => {
+  // Everything but the status: what each status's count is taken from.
+  const matches = useCallback((inc, confidence) => {
+    if (tab === 'routed' && !actsOn(access, inc)) return false;
+    if (confidence !== 'any' && inc.confidence_band !== confidence) return false;
     const term = query.trim().toLowerCase();
-    return (source ?? []).filter((inc) => {
-      if (tab === 'routed' && !actsOn(access, inc)) return false;
-      if (tab !== 'closed' && status !== 'all' && status !== 'post_incident_report' && inc.status !== status) return false;
-      if (agency !== 'any' && !(inc.requested_agencies ?? []).includes(agency)) return false;
-      if (band !== 'any' && inc.confidence_band !== band) return false;
-      if (term && !`${inc.designation} ${fireName(inc.designation)} ${knownAddress(inc.centroid_lat, inc.centroid_lng) ?? ''} ${degrees(inc.centroid_lat, inc.centroid_lng)}`.toLowerCase().includes(term)) return false;
-      return true;
-    });
-  }, [source, tab, status, agency, band, query, access]);
-  const { shown, pager } = usePager(rows, { key: 'incidents', reset: [tab, status, agency, band, query] });
+    return !term || `${inc.designation} ${fireName(inc.designation)} ${knownAddress(inc.centroid_lat, inc.centroid_lng) ?? ''} ${degrees(inc.centroid_lat, inc.centroid_lng)}`.toLowerCase().includes(term);
+  }, [tab, query, access]);
+  const statusKey = tab === 'closed' ? 'all' : status;
+  const rows = useMemo(
+    () => (source ?? []).filter((inc) => matches(inc, band) && hasStatus(access, inc, statusKey)),
+    [source, matches, band, statusKey, access],
+  );
+  const filtered = Boolean(query || band !== 'any' || statusKey !== 'all');
+  const { shown, pager } = usePager(rows, { key: 'incidents', reset: [tab, status, band, query] });
+
+  // How many each choice would list. Report due's once its list has been read.
+  const statusOptions = STATUSES.map((s) => {
+    const from = s.key === 'post_incident_report' ? fetched[s.key] : loaded ? live : null;
+    const count = s.key === 'all' || !from
+      ? null
+      : from.filter((inc) => matches(inc, band) && hasStatus(access, inc, s.key)).length;
+    return { key: s.key, label: s.label, count };
+  });
+  const confidenceOptions = CONFIDENCE.map((c) => ({
+    key: c.key,
+    label: c.label,
+    count: c.key === 'any' || !(needs ? source : loaded)
+      ? null
+      : source.filter((inc) => matches(inc, c.key) && hasStatus(access, inc, statusKey)).length,
+  }));
 
   const loadDetail = useCallback(async (id) => {
     if (!id) { setDetail(null); setDetailState('idle'); return; }
@@ -291,7 +303,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
   }
 
   const listLoading = needs ? fetched[needs] == null && !fetchError : !loaded;
-  const emptyMessage = query || agency !== 'any' || band !== 'any' || status !== 'all'
+  const emptyMessage = filtered
     ? tr('Nothing matches these filters.')
     : tab === 'closed'
       ? tr('Nothing closed yet.')
@@ -350,15 +362,9 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
       <div className="rpl-filters">
         <SearchBox label={tr('Search incidents')} placeholder={tr('Search areas and coordinates')} value={query} onChange={setQuery} />
         {tab !== 'closed' && (
-          <Select label={tr('Status')} value={status} onChange={setStatus} options={STATUSES} />
+          <Select label={tr('Status')} value={status} onChange={setStatus} options={statusOptions} />
         )}
-        <Select
-          label={tr('Agency')}
-          value={agency}
-          onChange={setAgency}
-          options={AGENCIES.map((a) => ({ key: a, label: a === 'any' ? tr('Any') : AGENCY_LABEL[a] ?? a }))}
-        />
-        <Select label={tr('Confidence')} value={band} onChange={setBand} options={CONFIDENCE} />
+        <Select label={tr('Confidence')} value={band} onChange={setBand} options={confidenceOptions} />
       </div>
 
       {(fetchError || (!needs && failed)) && (
@@ -382,7 +388,7 @@ export default function IncidentDesk({ focusId = null, initialTab = null }) {
 
       {listLoading && !failed ? (
         <StatePanel kind="loading" title={tr('Loading incidents…')} />
-      ) : rows.length === 0 && !(query || agency !== 'any' || band !== 'any' || status !== 'all') && !(fetchError || failed) ? (
+      ) : rows.length === 0 && !filtered && !(fetchError || failed) ? (
         <EmptyState
           icon="requests"
           title={tab === 'closed' ? tr('Nothing closed yet') : tab === 'routed' ? tr('Nothing routed to you') : tr('No active incidents in Pasay')}

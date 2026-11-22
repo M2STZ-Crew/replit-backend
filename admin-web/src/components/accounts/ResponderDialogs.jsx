@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import FormDialog from '../ui/FormDialog.jsx';
+import Select from '../ui/Select.jsx';
 import { t } from '../../i18n/i18n.jsx';
 
 /* An Admin's forms for a responder's account (v1.12.49; 22 Nov 2026: "admin
@@ -100,18 +101,20 @@ export function ManageResponderDialog({
         <input type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} disabled={busy} autoComplete="off" placeholder="0917 123 4567" maxLength={32} />
       </label>
       {movable && (
-        <label className="rpl-field">
-          <span className="rpl-field-label">{t('Organization')}</span>
-          <select value={orgId} onChange={(e) => setOrgId(e.target.value)} disabled={busy || person?.responding}>
-            {!person?.orgId && <option value="">{t('No organization')}</option>}
-            {choices.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-          </select>
-          <span className="rpl-field-help">
-            {person?.responding
-              ? t('They’re on a fire. You can move them once their response ends.')
-              : t('They can move to another organization of the same agency.')}
-          </span>
-        </label>
+        <Select
+          variant="field"
+          label={t('Organization')}
+          value={orgId}
+          onChange={setOrgId}
+          options={[
+            ...(person?.orgId ? [] : [{ key: '', label: t('No organization') }]),
+            ...choices.map((o) => ({ key: o.id, label: o.name })),
+          ]}
+          disabled={busy || Boolean(person?.responding)}
+          help={person?.responding
+            ? t('They’re on a fire. You can move them once their response ends.')
+            : t('They can move to another organization of the same agency.')}
+        />
       )}
       <fieldset className="rpl-field rpl-account-signin" disabled={busy || changed}>
         <legend className="rpl-field-label">{t('Sign-in')}</legend>

@@ -57,11 +57,9 @@
   flex: none;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   padding: 16px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line-3) transparent;
+  overflow: hidden;
   background: var(--surface-1);
   border-right: 1px solid var(--line);
 }
@@ -69,11 +67,7 @@
   width: 72px;
   padding: 16px 8px;
   align-items: center;
-  gap: 12px;
-  overflow-x: hidden;
-  scrollbar-width: none;
 }
-.rpl-sidebar.is-rail::-webkit-scrollbar { display: none; }
 /* The rail carries the destinations only (10 · A85); the top bar names the
    organisation. */
 .rpl-sidebar.is-rail .rpl-org { display: none; }
@@ -82,9 +76,21 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 8px;
+  flex: none;
+  padding: 0 0 0 8px;
 }
-.rpl-sidebar.is-rail .rpl-brand { padding: 0; }
+.rpl-sidebar.is-rail .rpl-brand { flex-direction: column; gap: 4px; padding: 0; }
+/* The toggle by the logo (v1.12.50): the panel, and the way it will go. */
+.rpl-sidebar-toggle { margin-left: auto; color: var(--text-2); grid-auto-flow: column; gap: 2px; }
+.rpl-sidebar.is-rail .rpl-sidebar-toggle { width: 56px; margin: 0; }
+.rpl-sidebar-toggle-arrow {
+  width: 6px;
+  height: 6px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+.rpl-sidebar.is-rail .rpl-sidebar-toggle-arrow { transform: rotate(-135deg); }
 .rpl-brand-icon {
   width: 32px;
   height: 32px;
@@ -144,8 +150,28 @@
 .rpl-plate--medical { background: var(--plate-medical); }
 .rpl-plate--barangay { background: var(--plate-barangay); }
 
-.rpl-nav { display: flex; flex-direction: column; gap: 12px; width: 100%; }
-.rpl-nav-group { display: flex; flex-direction: column; }
+/* The part that scrolls. Its scrollbar is hidden, so an item here is exactly
+   as wide as Settings below it; a shade at its head or foot says there is
+   more that way (the head's since v1.12.50: Dashboard looked gone). */
+.rpl-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+  background:
+    linear-gradient(var(--surface-1), var(--surface-1)) top / 100% 24px no-repeat local,
+    linear-gradient(var(--surface-1), var(--surface-1)) bottom / 100% 24px no-repeat local,
+    linear-gradient(var(--scroll-shade), transparent) top / 100% 16px no-repeat scroll,
+    linear-gradient(transparent, var(--scroll-shade)) bottom / 100% 16px no-repeat scroll;
+}
+.rpl-nav::-webkit-scrollbar { display: none; }
+.rpl-nav :focus-visible { outline-offset: -2px; }
+.rpl-nav-group { flex: none; display: flex; flex-direction: column; }
 .rpl-sidebar.is-rail .rpl-nav-group { align-items: center; gap: 4px; }
 .rpl-nav-group-label {
   padding: 0 12px 4px;
@@ -233,10 +259,17 @@
   font-variant-numeric: tabular-nums;
 }
 
-.rpl-spacer { flex: 1 0 auto; min-height: 8px; }
-/* The sidebar scrolls; nothing in it squashes to fit. Settings, its own child
-   outside the nav, shrank to half of every other item's 44 px (v1.12.48). */
-.rpl-sidebar > :not(.rpl-spacer) { flex-shrink: 0; }
+/* Settings and the account, always in view (v1.12.50); nothing here squashes
+   to fit (Settings shrank to half an item before v1.12.48). */
+.rpl-sidebar > .rpl-org { flex: none; }
+.rpl-sidebar-foot { flex: none; width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.rpl-sidebar.is-rail .rpl-sidebar-foot { align-items: center; }
+.rpl-sidebar-foot > :is(.rpl-nav-item, .rpl-rail-item) { flex: none; }
+/* Too short a window for both: the whole sidebar scrolls. */
+@media (max-height: 520px) {
+  .rpl-sidebar { overflow-y: auto; scrollbar-width: none; }
+  .rpl-nav { flex: none; overflow: visible; background: none; }
+}
 
 .rpl-user {
   display: flex;

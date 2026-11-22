@@ -13,7 +13,9 @@ import { t } from '../i18n/i18n.jsx';
 /// day the server sends them. A person's identity "Verified" badge is a
 /// different thing and keeps its word.
 export const STATUS = {
-  reported: { get label() { return t('Reported'); }, color: '#FFB020' },
+  // 22 Nov 2026 (v1.12.50): "palitan yung 'Reported' to 'To Acknowledge'".
+  // The console's word; residents still read Reported.
+  reported: { get label() { return t('To acknowledge'); }, color: '#FFB020' },
   verified: { get label() { return t('Acknowledged'); }, color: '#5B93F5' },
   acknowledged: { get label() { return t('Acknowledged'); }, color: '#5B93F5' },
   declined: { get label() { return t('Declined'); }, color: '#9E9E9E' },
@@ -39,6 +41,17 @@ export const AGENCY_LABEL = {
   get police() { return t('Police'); },
   get medical() { return t('Medical'); },
   get barangay() { return t('Barangay'); },
+};
+
+/* What is burning, as the first fire team on scene said (v1.12.37): the
+ * server's values (app/services/fire_type.py). */
+export const FIRE_TYPE = {
+  get structural() { return t('Structural'); },
+  get electrical() { return t('Electrical'); },
+  get vehicular() { return t('Vehicular'); },
+  get rubbish() { return t('Rubbish'); },
+  get grass() { return t('Grass'); },
+  get chemical() { return t('Chemical'); },
 };
 
 /// v11 removed Admin's manual routing (§2.6.2), and routableAgencies with it:

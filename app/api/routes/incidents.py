@@ -28,15 +28,16 @@ The matching *_at timestamp is stamped by a database trigger on each status chan
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
 import asyncpg
 from fastapi import APIRouter, Query, Request
 
-from app.api.deps import DatabaseDep, StaffUser, StorageClientDep
+from app.api.deps import AdminUser, DatabaseDep, StaffUser, StorageClientDep
 from app.core.config import get_settings
 from app.core.exceptions import (
+    BadRequestError,
     ConflictError,
     ExternalServiceError,
     ForbiddenError,
@@ -60,6 +61,7 @@ from app.schemas.incident import (
     ResponderLocationItem,
     SelfDispatchRequest,
 )
+from app.schemas.statistics import IncidentStatistics, StatisticsScope
 from app.services import alarm_status, fire_broadcast, report_strikes
 from app.services.access import ACKNOWLEDGE, acting_agency, admin_access
 from app.services.acknowledge import insert_acceptance
@@ -85,6 +87,7 @@ from app.services.incident import (
 from app.services.incident_notify import (
     notify_incident_reporters,
 )
+from app.services.incident_statistics import PERIODS, incident_statistics
 from app.services.map_feed import publish_area_change
 from app.services.pir_queue import pir_progress
 from app.services.tracking import gps_arrival_distance, publish_tracking
@@ -534,6 +537,27 @@ async def incident_stats(user: StaffUser, db: DatabaseDep) -> IncidentStats:
         units_standby=max(int(roster or 0) - deployed_n, 0),
         pending_reports=int(pending_reports or 0),
     )
+
+
+@router.get(
+    "/statistics",
+    response_model=IncidentStatistics,
+    summary="The Admin Dashboard's statistics",
+)
+async def get_incident_statistics(
+    admin: AdminUser,
+    db: DatabaseDep,
+    days: Annotated[int, Query()] = 30,
+    scope: Annotated[StatisticsScope | None, Query()] = None,
+) -> IncidentStatistics:
+    """7, 30 or 90 days of fires against the period before (v1.12.50).
+
+    An organization's Admin reads its own unless it asks for ``all``; the
+    central hub and the system Admin always all.
+    """
+    if days not in PERIODS:
+        raise BadRequestError("Choose 7, 30 or 90 days.", details={"field": "days"})
+    return await incident_statistics(db, admin, days, scope)
 
 
 @router.get(

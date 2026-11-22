@@ -8,3 +8,5 @@ export { default as EmptyState } from './EmptyState.jsx';
 export { default as Icon } from './Icon.jsx';
 export { default as Pager, usePager } from './Pager.jsx';
 export { default as SearchBox } from './SearchBox.jsx';
+export { default as Select } from './Select.jsx';
+export { default as Switch } from './Switch.jsx';

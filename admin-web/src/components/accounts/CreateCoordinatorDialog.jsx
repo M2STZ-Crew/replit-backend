@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { api } from '../../api/client.js';
 import FormDialog from '../ui/FormDialog.jsx';
+import Select from '../ui/Select.jsx';
 import { t } from '../../i18n/i18n.jsx';
 
 /* Create a Coordinator account (REPLIT (MAIN) 10 · A49 875:7435; PRD v13
@@ -112,14 +113,16 @@ export default function CreateCoordinatorDialog({ open, organization, organizati
       busyLabel={t('Creating…')}
     >
       {picking && (
-        <label className="rpl-field">
-          <span className="rpl-field-label">{t('Organization')}</span>
-          <select value={organizationId} onChange={(e) => setOrganizationId(e.target.value)} aria-invalid={!!orgError} disabled={busy}>
-            <option value="">{t('Choose…')}</option>
-            {organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-          </select>
-          {orgError && <span className="rpl-field-error">{orgError}</span>}
-        </label>
+        <Select
+          variant="field"
+          label={t('Organization')}
+          value={organizationId}
+          onChange={setOrganizationId}
+          placeholder={t('Choose…')}
+          options={organizations.map((o) => ({ key: o.id, label: o.name }))}
+          error={orgError}
+          disabled={busy}
+        />
       )}
       <label className="rpl-field">
         <span className="rpl-field-label">{t('First name')}</span>

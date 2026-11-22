@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { api } from '../api/client.js';
 import { t } from '../i18n/i18n.jsx';
+import Select from './ui/Select.jsx';
 
 /* An affiliate's standing, and what the central hub may do about it
  * (v1.12.28; 12 November 2026: "affiliate management (freeze account, or soft
@@ -170,13 +171,14 @@ export default function OrgStanding({ org, canManage, onChanged }) {
             <p className="rpl-alert-title">{ACTIONS[action].title()}</p>
             <p className="rpl-alert-body">{ACTIONS[action].body()}</p>
             {action !== 'restore' && (
-              <label className="rpl-field">
-                <span className="rpl-field-label">{t('Reason')}</span>
-                <select value={reason} onChange={(e) => setReason(e.target.value)} required>
-                  <option value="" disabled>{t('Pick a reason')}</option>
-                  {REASONS.map(([key, label]) => <option key={key} value={key}>{label()}</option>)}
-                </select>
-              </label>
+              <Select
+                variant="field"
+                label={t('Reason')}
+                value={reason}
+                onChange={setReason}
+                placeholder={t('Pick a reason')}
+                options={REASONS.map(([key, label]) => ({ key, label: label() }))}
+              />
             )}
             <label className="rpl-field">
               <span className="rpl-field-label">

@@ -7,9 +7,12 @@
  * Dark is the default — it is what the console was designed on. The choice is
  * kept in localStorage and applied to <html> before React mounts, so a reload
  * never flashes the wrong ground. */
+import { useSyncExternalStore } from 'react';
+
 const KEY = 'replit.theme';
 
 export const THEMES = ['dark', 'light'];
+const followers = new Set();
 
 export function storedTheme() {
   try {
@@ -22,14 +25,36 @@ export function storedTheme() {
 
 export function applyTheme(theme) {
   const value = THEMES.includes(theme) ? theme : 'dark';
-  document.documentElement.dataset.theme = value;
-  document.documentElement.style.colorScheme = value;
+  const root = document.documentElement;
+  if (root.dataset.theme && root.dataset.theme !== value) {
+    // No fades while the ground changes (pass8-console.css).
+    root.dataset.themeSwitch = '';
+    requestAnimationFrame(() => requestAnimationFrame(() => { delete root.dataset.themeSwitch; }));
+  }
+  root.dataset.theme = value;
+  root.style.colorScheme = value;
   try {
     localStorage.setItem(KEY, value);
   } catch {
     /* Private window, or storage blocked: the choice still holds for now. */
   }
+  followers.forEach((follow) => follow());
   return value;
+}
+
+/* The ground in force, for what offers the choice (Settings and the header's
+ * quick settings, v1.12.50): either one's change shows in the other. */
+export function useTheme() {
+  return useSyncExternalStore(subscribe, inForce);
+}
+
+function subscribe(follow) {
+  followers.add(follow);
+  return () => followers.delete(follow);
+}
+
+function inForce() {
+  return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
 }
 
 /* Called once from main.jsx, before the first paint. */

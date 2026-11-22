@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { useMedia } from '../../lib/useMedia.js';
+import Select from './Select.jsx';
 import { t } from '../../i18n/i18n.jsx';
 
 /* One pager for every list in the console (v1.12.47; 20 Nov 2026: "fix the
@@ -118,12 +119,13 @@ export default function Pager({ total, page, pageSize, onPage, onPageSize, label
         </nav>
       )}
       {onPageSize && total > PAGE_SIZES[0] && (
-        <label className="rpl-select rpl-pager-size">
-          <span className="rpl-select-label">{t('Rows per page')}</span>
-          <select value={pageSize} onChange={(e) => onPageSize(Number(e.target.value))}>
-            {PAGE_SIZES.map((n) => <option key={n} value={n}>{n}</option>)}
-          </select>
-        </label>
+        <Select
+          className="rpl-pager-size"
+          label={t('Rows per page')}
+          value={pageSize}
+          onChange={onPageSize}
+          options={PAGE_SIZES.map((n) => ({ key: n, label: String(n) }))}
+        />
       )}
     </div>
   );

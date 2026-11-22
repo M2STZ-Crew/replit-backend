@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { ALARM_LEVEL, ASKABLE_ALARM_LEVELS, alarmLabel } from '../../lib/status.js';
 import FormDialog from '../ui/FormDialog.jsx';
+import Select from '../ui/Select.jsx';
 import { t } from '../../i18n/i18n.jsx';
 import { fireName } from '../../lib/place.js';
 
@@ -37,7 +38,9 @@ export default function AlarmEscalationDialog({ open, areas, bfpName = 'BFP', on
     setJustification('');
     setTried(false);
     setError(null);
-  }, [open, areas]);
+    // On opening alone: `areas` is a new list at every 12 s poll, and what
+    // was picked and typed went with each one (fixed in v1.12.50).
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const area = (areas ?? []).find((a) => a.id === areaId) ?? null;
   const choices = above(area?.alarm_level);
@@ -71,12 +74,14 @@ export default function AlarmEscalationDialog({ open, areas, bfpName = 'BFP', on
       busyLabel={t('Sending…')}
     >
       {(areas ?? []).length > 1 ? (
-        <label className="rpl-field">
-          <span className="rpl-field-label">{t('Incident')}</span>
-          <select value={areaId} onChange={(e) => { setAreaId(e.target.value); setLevel(''); }} disabled={busy}>
-            {areas.map((a) => <option key={a.id} value={a.id}>{fireName(a.designation)}</option>)}
-          </select>
-        </label>
+        <Select
+          variant="field"
+          label={t('Incident')}
+          value={areaId}
+          onChange={(next) => { setAreaId(next); setLevel(''); }}
+          options={areas.map((a) => ({ key: a.id, label: fireName(a.designation) }))}
+          disabled={busy}
+        />
       ) : (
         <p className="rpl-field-static">
           <span className="rpl-field-label">{t('Incident')}</span>

@@ -12,7 +12,9 @@ const TITLES = {
 
 /* A loading panel draws a skeleton in the shape of what is coming
  * (`skeleton`: 'table', 'cards', 'detail' or 'lines'; `rows`), with the title
- * kept as the status line a screen reader announces. */
+ * kept as the status line a screen reader announces, and not shown: a line
+ * above the skeleton pushed it off the place of what replaces it (v1.12.50).
+ * A wait with a description, as a summary being written, shows both. */
 export default function StatePanel({
   kind = 'empty',
   skeleton = 'table',
@@ -33,7 +35,7 @@ export default function StatePanel({
              aria-labelledby={titleId}
              aria-busy={busy || undefined}
              role={kind === 'error' ? 'alert' : (loading ? 'status' : undefined)}>
-      <h2 className="web-state-title" id={titleId}>{title || TITLES[kind] || TITLES.empty}</h2>
+      <h2 className={`web-state-title${loading && !description ? ' web-sr-only' : ''}`} id={titleId}>{title || TITLES[kind] || TITLES.empty}</h2>
       {description && <p className="web-state-description">{description}</p>}
       {loading && <Skeleton shape={skeleton} rows={rows ?? (skeleton === 'lines' ? 5 : 6)} />}
       {children && <div className="web-state-content">{children}</div>}

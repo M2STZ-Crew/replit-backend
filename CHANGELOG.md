@@ -6,6 +6,54 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.50 — 23 November 2026 — The Admin console: frame, Statistics, one Map settings, polish
+
+Backend and console; the app is unchanged. The last of three releases for the
+22 Nov list (ADMIN-ISSUES.md). No migration.
+
+### Changes
+- **Header** ("Palitan nalang to ng Settings Button"; answered "Quick menu +
+  mute warning"). One gear with quick settings. It shows a red dot and Sound
+  off while the alarm cannot be heard.
+- **Sidebar** ("Lagyan ng Sidebar Toggle"; answered "In the sidebar"). It
+  collapses to icons with tooltips and counts, at any desktop width, and is
+  remembered by the browser. Settings is the size of every other item, and it
+  and the account stay in view.
+- **Dashboard** (answered "All incident tables", "Active + to acknowledge"
+  and "Statistics dashboard"). The Incidents card is the active fires routed
+  to the Admin and how many still need acknowledging. No incident tables.
+  Statistics replaces Response measures (`GET /incidents/statistics`,
+  `app/services/incident_statistics.py`): four measures against the period
+  before, fires per day, top barangays, alarm levels and fire types, over 7,
+  30 or 90 days, for the Admin's organization or all. Days before the records
+  began read No records, never zero.
+- **Incidents** (answered "Same rule as the card" and "Custom, every page").
+  No Agency filter. To acknowledge lists what the Admin's organization hasn't
+  acknowledged. Every filter and console form uses one dropdown, for keyboard,
+  screen readers and touch, with counts on its options.
+- **Water resources is in Map settings** (answered "All open, same rights"
+  and "Into the side list"). Map and Water requests tabs. The side list has
+  search, a status filter, status in color and the last check with who. What
+  each Admin may change is as before.
+- **Polish on every page** ("Gawing smooth and premium"; answered "Polish
+  current design"). One hover, press and focus, 150-250 ms, stopped under
+  reduced motion; skeletons in the shape of what is coming; one alignment and
+  type; text readable on both grounds; 44 px targets on touch screens.
+
+### Fixed
+- The alarm escalation form cleared itself at every poll.
+- Organization said "No organization on this account" while it loaded, or
+  when it could not load.
+- The incidents table hid Open at 1280 and 1366 px.
+- Several ringing fires covered the map, and the last one's Open could not
+  be reached. Over a map they now scroll among themselves.
+- The live map showed no places, and no word, while they loaded or failed to.
+- On the light ground the CIAR's selected part could not be read.
+- The audit log said "1 entries". The organization's details called a
+  Coordinator Sub-Admin.
+
+---
+
 ## v1.12.49 — 22 November 2026 — The alarm status everywhere; Admins manage responders; Alarm Escalations
 
 Backend and console; app v1.12.60 goes with it. The second of three releases

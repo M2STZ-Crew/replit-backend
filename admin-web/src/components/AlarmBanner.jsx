@@ -8,9 +8,9 @@ import {
   askDesktopPermission,
   kindOf,
   reportsOf,
-  soundUnlocked,
   statusLabel,
   useAlarmSettings,
+  useSoundUnlocked,
 } from '../sound/alarm.js';
 import { t } from '../i18n/i18n.jsx';
 import { fireName } from '../lib/place.js';
@@ -20,7 +20,7 @@ const BASE_TITLE = typeof document !== 'undefined' ? document.title : 'RepLiT Ad
 
 function ago(iso, now) {
   const mins = Math.floor((now - new Date(iso).getTime()) / 60_000);
-  if (mins < 1) return 'just now';
+  if (mins < 1) return t('just now');
   if (mins < 60) return t('{mins} min ago', { mins });
   const hrs = Math.floor(mins / 60);
   return t('{hrs} h {mins} min ago', { hrs, mins: mins % 60 });
@@ -64,7 +64,7 @@ export default function AlarmBanner({ onOpen }) {
   const sounding = soundCategories(access ?? consoleOf(null));
   const alarm = useAlarmSettings();
   const [now, setNow] = useState(Date.now);
-  const [canSound, setCanSound] = useState(soundUnlocked);
+  const canSound = useSoundUnlocked();
 
   useTitleFlash(alarms.length);
 
@@ -74,17 +74,6 @@ export default function AlarmBanner({ onOpen }) {
     const timer = setInterval(() => setNow(Date.now()), 20_000);
     return () => clearInterval(timer);
   }, [alarms.length]);
-
-  useEffect(() => {
-    if (canSound) return undefined;
-    const unlocked = () => setCanSound(true);
-    window.addEventListener('pointerdown', unlocked, { once: true });
-    window.addEventListener('keydown', unlocked, { once: true });
-    return () => {
-      window.removeEventListener('pointerdown', unlocked);
-      window.removeEventListener('keydown', unlocked);
-    };
-  }, [canSound]);
 
   if (!alarms.length && !raises.length) return null;
 

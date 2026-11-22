@@ -93,11 +93,13 @@ export function acknowledgedByUs(access, incident) {
 }
 
 /// The "Your org" chip of an incident row (A21, A22): routed and still to
-/// acknowledge, routed and acknowledged, or someone else's (view only).
+/// acknowledge, routed and acknowledged, or someone else's (view only). The
+/// first says "To acknowledge" since v1.12.50: the filter's and the
+/// Dashboard card's rule, even where another organisation acknowledged.
 export function yourOrg(access, incident) {
   if (!actsOn(access, incident)) return { key: 'view', label: t('View only'), tone: 'neutral' };
   if (acknowledgedByUs(access, incident)) return { key: 'acknowledged', label: t('Acknowledged'), tone: 'ok' };
-  return { key: 'routed', label: t('Routed to you'), tone: 'accent' };
+  return { key: 'routed', label: t('To acknowledge'), tone: 'accent' };
 }
 
 /// Whether the console splits incidents into "Routed to you" and "Other
