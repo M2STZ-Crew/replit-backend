@@ -110,7 +110,7 @@ export function recordAcknowledged(ids) {
 
 // ── how an incident reads in an alert ───────────────────────────────────────
 const STATUS_LABEL = {
-  get reported() { return t('Awaiting acceptance'); },
+  get reported() { return t('To acknowledge'); },
   get verified() { return t('Accepted'); },
   get en_route() { return t('Responders en route'); },
   get arrived() { return t('Responders on scene'); },
@@ -206,4 +206,29 @@ export function notifyDesktopRaised(incidents) {
 export function soundUnlocked() {
   const ua = typeof navigator !== 'undefined' ? navigator.userActivation : null;
   return ua ? ua.hasBeenActive : true;
+}
+
+/// The same, following the first press that unlocks it.
+export function useSoundUnlocked() {
+  const [unlocked, setUnlocked] = useState(soundUnlocked);
+  useEffect(() => {
+    if (unlocked) return undefined;
+    // Told once the press is over: told as it began, "Sound off" and the
+    // banner's hint went from under the pointer and the press was lost. Some
+    // keys (Escape) never unlock it, so it is asked each time.
+    let timer = null;
+    const check = () => { if (soundUnlocked()) setUnlocked(true); };
+    const later = () => {
+      clearTimeout(timer);
+      timer = setTimeout(check);
+    };
+    const events = ['pointerup', 'click', 'keydown'];
+    events.forEach((name) => window.addEventListener(name, later));
+    check();
+    return () => {
+      clearTimeout(timer);
+      events.forEach((name) => window.removeEventListener(name, later));
+    };
+  }, [unlocked]);
+  return unlocked;
 }

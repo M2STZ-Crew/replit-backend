@@ -1,0 +1,284 @@
+/* v1.12.50 — the Admin console of the 22 Nov 2026 list: one Settings button
+ * in the header, the sidebar's toggle, one dropdown for every filter and form.
+ * Loaded last. Tokens from index.css; motion is 150–250 ms, and index.css
+ * stops it all under prefers-reduced-motion. */
+
+:root {
+  --motion-fast: 150ms;
+  --motion: 200ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --scroll-shade: rgba(0, 0, 0, 0.22);
+  --lift: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+:root[data-theme='light'] {
+  --scroll-shade: rgba(0, 0, 0, 0.07);
+  --lift: 0 12px 32px rgba(23, 20, 15, 0.18);
+}
+
+/* The page is one layer under the frame: Leaflet's own z-indexes (up to 1000)
+   stay below the header's menu, the phone's bar and its More sheet. */
+.rpl-content { isolation: isolate; }
+
+/* ── Header: the gear and its quick settings ──────────────────────────── */
+.rpl-quick { position: relative; z-index: 60; flex: none; }
+.rpl-gear {
+  min-width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.rpl-gear:hover,
+.rpl-gear.is-open { background: var(--hover); }
+.rpl-gear.is-open { border-color: var(--accent-line); }
+.rpl-gear.is-silent { padding: 0 14px 0 12px; border-color: var(--danger); background: var(--live-tint); }
+.rpl-gear-icon { position: relative; display: inline-flex; }
+.rpl-gear-dot {
+  position: absolute;
+  top: -3px;
+  right: -4px;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--bg);
+  border-radius: 50%;
+  background: var(--danger);
+}
+.rpl-quick-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 336px;
+  max-height: calc(100dvh - 80px);
+  padding: 4px 8px 8px;
+  overflow-y: auto;
+  border: 1px solid var(--line-3);
+  border-radius: var(--radius-panel);
+  background: var(--surface-2);
+  box-shadow: var(--lift);
+  color: var(--text);
+  transform-origin: top right;
+  animation: rpl-menu-in var(--motion-fast) var(--ease);
+}
+.rpl-shell .rpl-quick-panel:focus { outline: 2px solid transparent; }
+.rpl-quick-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 60px;
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.rpl-quick-row.is-stacked { flex-direction: column; align-items: stretch; gap: 6px; padding-top: 12px; }
+.rpl-quick-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rpl-quick-title { font-size: 13px; font-weight: 800; line-height: 16px; letter-spacing: -0.2px; }
+.rpl-quick-detail { color: var(--label); font-size: 12px; line-height: 16px; }
+.rpl-quick-detail.is-warn { color: var(--danger); }
+.rpl-quick-choice { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rpl-quick-choice .rpl-chip { justify-content: center; height: 44px; margin: 0; }
+.rpl-quick-item {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+.rpl-quick-row + .rpl-quick-item { margin-top: 4px; }
+.rpl-quick-item:hover { background: var(--hover); }
+@media (max-width: 479px) {
+  .rpl-quick-panel { position: fixed; top: 62px; left: 8px; right: 8px; width: auto; }
+}
+/* A long organisation name ends in an ellipsis, beside the gear. */
+.rpl-topbar-org { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.rpl-topbar-context:has(.rpl-topbar-scope) .rpl-topbar-org { flex: none; max-width: 100%; }
+@media (max-width: 899px) {
+  .rpl-topbar-context:has(.rpl-topbar-scope) .rpl-topbar-org { flex: 0 1 auto; }
+}
+
+/* ── Sidebar ──────────────────────────────────────────────────────────── */
+.rpl-sidebar { transition: width var(--motion) var(--ease); }
+.rpl-brand-words,
+.rpl-nav-group-label { white-space: nowrap; }
+.rpl-rail-tip {
+  position: fixed;
+  z-index: 70;
+  transform: translateY(-50%);
+  padding: 8px 12px;
+  border: 1px solid var(--line-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-4);
+  box-shadow: var(--lift);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: rpl-fade-in var(--motion-fast) var(--ease);
+}
+/* Kept open in a window under 1280 px, the sidebar leaves room for one
+   column where a page has two. */
+.rpl-shell.is-tight :is(.rpl-incident-grid, .rpl-idr-grid, .rpl-ciar, .rpl-report-grid, .rpl-aff-grid) {
+  grid-template-columns: minmax(0, 1fr);
+}
+.rpl-shell.is-tight .rpl-idr-decide { grid-column: auto; grid-row: auto; }
+
+/* ── Dropdown (components/ui/Select.jsx) ──────────────────────────────── */
+.rpl-pick {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  min-width: 200px;
+  max-width: 100%;
+  padding: 0 14px 0 12px;
+  border: 1px solid var(--line-3);
+  border-radius: var(--radius);
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.rpl-pick:hover:not(:disabled) { box-shadow: inset 0 0 0 100px var(--hover); }
+/* One ring, as the search box has. */
+.rpl-shell .rpl-pick:focus-visible,
+.rpl-shell .rpl-pick.is-open,
+.rpl-shell .rpl-pick.is-open:hover {
+  border-color: var(--focus);
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 1px var(--focus);
+}
+.rpl-pick[aria-invalid="true"] { border-color: var(--danger); }
+.rpl-pick:disabled { opacity: 0.5; cursor: not-allowed; }
+.rpl-pick-label { flex: none; color: var(--label); white-space: nowrap; }
+.rpl-pick-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rpl-pick-value.is-empty { color: var(--placeholder); font-weight: 400; }
+.rpl-pick-chevron {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  margin: -4px 0 0 6px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform var(--motion-fast) var(--ease), margin var(--motion-fast) var(--ease);
+}
+.rpl-pick.is-open .rpl-pick-chevron { margin-top: 4px; transform: rotate(225deg); }
+.rpl-pick--field { width: 100%; min-width: 0; font-size: 14px; }
+.rpl-pick--field .rpl-pick-value { font-weight: 400; }
+.rpl-pick.rpl-pager-size { min-width: 0; height: 40px; }
+
+/* In the top layer: the browser's popover box is undone. */
+.rpl-pick-list {
+  position: fixed;
+  z-index: 1300;
+  inset: auto;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  height: auto;
+  margin: 0;
+  padding: 4px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--line-3);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  box-shadow: var(--lift);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-3) transparent;
+  animation: rpl-fade-in var(--motion-fast) var(--ease);
+}
+.rpl-pick-list::backdrop { background: transparent; }
+.rpl-pick-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  line-height: 18px;
+  cursor: pointer;
+}
+.rpl-pick-option.is-active { background: var(--pressed); }
+/* Not by colour alone, in forced colours. */
+@media (forced-colors: active) {
+  .rpl-pick-option.is-active { outline: 2px solid Highlight; outline-offset: -2px; }
+}
+.rpl-pick-option[aria-selected="true"] { font-weight: 800; }
+.rpl-pick-option[aria-disabled="true"] { opacity: 0.4; cursor: not-allowed; }
+.rpl-pick-check { width: 12px; flex: none; }
+.rpl-pick-option[aria-selected="true"] .rpl-pick-check {
+  width: 6px;
+  height: 11px;
+  margin: -2px 3px 0;
+  border-right: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  transform: rotate(45deg);
+}
+.rpl-pick-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.rpl-pick-count {
+  min-width: 24px;
+  margin-left: 16px;
+  color: var(--label);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+@media (pointer: coarse) {
+  .rpl-pick-option { min-height: 44px; }
+  .rpl-pick.rpl-pager-size { height: 44px; }
+}
+@media (max-width: 599px) {
+  .rpl-filters > .rpl-pick { flex: 1 1 100%; min-width: 0; }
+}
+
+/* ── Motion ───────────────────────────────────────────────────────────── */
+@keyframes rpl-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes rpl-menu-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}

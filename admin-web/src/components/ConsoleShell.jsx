@@ -8,16 +8,31 @@ import { useLiveFeed } from '../live/LiveFeed.jsx';
 import Sidebar from './shell/Sidebar.jsx';
 import TopBar from './shell/TopBar.jsx';
 import { SETTINGS, consoleAccess, navFor } from './shell/nav.js';
-import { useSoundSettings } from './SoundSettings.jsx';
 import ConfirmDialog from './ui/ConfirmDialog.jsx';
 import Icon from './ui/Icon.jsx';
 import { t, useLanguage } from '../i18n/i18n.jsx';
 
 /* The console frame (REPLIT (MAIN) 10 · A83–A85): the sidebar and the top
- * bar around the destination. 1280 px and wider keep the full 248 px sidebar;
- * 1024–1279 px collapse it to the 72 px rail. Narrower windows are not in the
+ * bar around the destination. 1280 px and wider open with the full 248 px
+ * sidebar and 1024–1279 px with the 72 px rail, until the Admin picks one:
+ * since v1.12.50 the toggle by the logo (22 Nov 2026: "Lagyan ng Sidebar
+ * Toggle"; answered "In the sidebar") is remembered by the browser and works
+ * at any desktop width. Narrower windows are not in the
  * design, so they keep the console's phone layout — the first four
  * destinations in a bottom bar, everything else in a More sheet. */
+
+// The sidebar as this browser's Admin left it: 'collapsed', 'expanded', or
+// null while nobody has chosen.
+const SIDEBAR_STORE = 'replit.sidebar.v1';
+
+function savedSidebar() {
+  try {
+    const saved = localStorage.getItem(SIDEBAR_STORE);
+    return saved === 'collapsed' || saved === 'expanded' ? saved : null;
+  } catch {
+    return null;
+  }
+}
 
 const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
 
@@ -41,9 +56,10 @@ function initials(name, email) {
 export default function ConsoleShell({ active, onNavigate, children }) {
   const { user, logout } = useAuth();
   const { seenAt, newSince } = useLiveFeed();
-  const sound = useSoundSettings();
-  const rail = useMedia(RAIL_BELOW);
+  const narrow = useMedia(RAIL_BELOW);
   const phone = useMedia(PHONE_BELOW);
+  const [sidebar, setSidebar] = useState(savedSidebar);
+  const rail = !phone && (sidebar ? sidebar === 'collapsed' : narrow);
   const [queues, setQueues] = useState({ affiliates: 0, ids: 0, requests: 0, strikes: 0, water: 0 });
   const [queueTick, setQueueTick] = useState(0);
   const refreshQueues = useCallback(() => setQueueTick((t) => t + 1), []);
@@ -144,6 +160,16 @@ export default function ConsoleShell({ active, onNavigate, children }) {
 
   useEffect(() => { if (!phone) setMoreOpen(false); }, [phone]);
 
+  function toggleSidebar() {
+    const next = rail ? 'expanded' : 'collapsed';
+    setSidebar(next);
+    try {
+      localStorage.setItem(SIDEBAR_STORE, next);
+    } catch {
+      /* storage blocked: the choice holds for this visit */
+    }
+  }
+
   function go(key) {
     setMoreOpen(false);
     onNavigate(key);
@@ -185,14 +211,13 @@ export default function ConsoleShell({ active, onNavigate, children }) {
     initials: initials(user?.full_name, user?.email),
   };
 
-  const unread = active === 'incidents' ? 0 : newSince(seenAt.incidents).length;
   const barItems = items.slice(0, 4);
   const moreItems = items.slice(4);
   const moreCount = moreItems.reduce((sum, item) => sum + counts(item).count, 0);
   const moreActive = active === SETTINGS.key || moreItems.some((item) => item.key === active);
 
   return (
-    <div className={`rpl-shell${rail ? ' is-rail' : ''}`}>
+    <div className={`rpl-shell${rail ? ' is-rail' : ''}${!rail && !phone && narrow ? ' is-tight' : ''}`}>
       {!phone && (
         <Sidebar
           items={items}
@@ -203,6 +228,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
           user={person}
           onSignOut={() => setAskingSignOut(true)}
           rail={rail}
+          onToggle={toggleSidebar}
         />
       )}
 
@@ -210,10 +236,9 @@ export default function ConsoleShell({ active, onNavigate, children }) {
         <TopBar
           organization={org.name}
           scope={scope}
-          soundOn={sound.enabled}
-          onSound={() => go(SETTINGS.key)}
-          unread={unread}
-          onUnread={() => go('incidents')}
+          access={consoleInfo}
+          onAllSettings={() => go(SETTINGS.key)}
+          onSignOut={() => setAskingSignOut(true)}
         />
         <main className="rpl-content">
           <ConsoleContext.Provider value={{ org, access, console: consoleInfo, refreshQueues }}>
@@ -251,7 +276,7 @@ export default function ConsoleShell({ active, onNavigate, children }) {
             aria-expanded={moreOpen}
             aria-label={moreCount ? t('More, {count} waiting', { count: moreCount }) : t('More')}
           >
-            <Icon name="settings" />
+            <Icon name="more" />
             <span>{t('More')}</span>
             {moreCount > 0 && <span className="rpl-count" aria-hidden="true">{moreCount}</span>}
           </button>

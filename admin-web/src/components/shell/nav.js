@@ -16,7 +16,7 @@ export const NAV = [
   { key: 'map', get label() { return t('Live map'); }, icon: 'map', group: 'operations' },
   { key: 'requests', get label() { return t('Alarm Escalations'); }, get shortLabel() { return t('Escalations'); }, icon: 'requests', group: 'operations', badge: 'requests' },
   { key: 'water', get label() { return t('Water resources'); }, icon: 'water', group: 'resources', badge: 'water' },
-  { key: 'mapsettings', get label() { return t('Map settings'); }, icon: 'settings', group: 'resources', requires: PERM.MANAGE_MAP },
+  { key: 'mapsettings', get label() { return t('Map settings'); }, icon: 'layers', group: 'resources', requires: PERM.MANAGE_MAP },
   { key: 'reports', get label() { return t('Reports & CIAR'); }, icon: 'reports', group: 'records' },
   { key: 'audit', get label() { return t('Audit log'); }, icon: 'audit', group: 'records' },
   { key: 'organization', get label() { return t('Organization'); }, icon: 'organization', group: 'organization' },

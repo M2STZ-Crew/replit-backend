@@ -14,8 +14,10 @@ import './styles/pass6-existing.css';
 import './styles/pass6-incidents.css';
 import './styles/pass6-map.css';
 import './styles/pass6-access.css';
-// Phones from 360 px up (v1.12.47); last, so it refines the rest.
+// Phones from 360 px up (v1.12.47), so it refines the rest.
 import './styles/pass7-responsive.css';
+// The 22 Nov 2026 console (v1.12.50): last.
+import './styles/pass8-console.css';
 import { installNoEmoji } from './lib/noEmoji.js';
 import { initTheme } from './theme.js';
 

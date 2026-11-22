@@ -7,9 +7,12 @@
  * Dark is the default — it is what the console was designed on. The choice is
  * kept in localStorage and applied to <html> before React mounts, so a reload
  * never flashes the wrong ground. */
+import { useSyncExternalStore } from 'react';
+
 const KEY = 'replit.theme';
 
 export const THEMES = ['dark', 'light'];
+const followers = new Set();
 
 export function storedTheme() {
   try {
@@ -29,7 +32,23 @@ export function applyTheme(theme) {
   } catch {
     /* Private window, or storage blocked: the choice still holds for now. */
   }
+  followers.forEach((follow) => follow());
   return value;
+}
+
+/* The ground in force, for what offers the choice (Settings and the header's
+ * quick settings, v1.12.50): either one's change shows in the other. */
+export function useTheme() {
+  return useSyncExternalStore(subscribe, inForce);
+}
+
+function subscribe(follow) {
+  followers.add(follow);
+  return () => followers.delete(follow);
+}
+
+function inForce() {
+  return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
 }
 
 /* Called once from main.jsx, before the first paint. */

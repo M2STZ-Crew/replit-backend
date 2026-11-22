@@ -8,9 +8,9 @@ import {
   askDesktopPermission,
   kindOf,
   reportsOf,
-  soundUnlocked,
   statusLabel,
   useAlarmSettings,
+  useSoundUnlocked,
 } from '../sound/alarm.js';
 import { t } from '../i18n/i18n.jsx';
 import { fireName } from '../lib/place.js';
@@ -64,7 +64,7 @@ export default function AlarmBanner({ onOpen }) {
   const sounding = soundCategories(access ?? consoleOf(null));
   const alarm = useAlarmSettings();
   const [now, setNow] = useState(Date.now);
-  const [canSound, setCanSound] = useState(soundUnlocked);
+  const canSound = useSoundUnlocked();
 
   useTitleFlash(alarms.length);
 
@@ -74,17 +74,6 @@ export default function AlarmBanner({ onOpen }) {
     const timer = setInterval(() => setNow(Date.now()), 20_000);
     return () => clearInterval(timer);
   }, [alarms.length]);
-
-  useEffect(() => {
-    if (canSound) return undefined;
-    const unlocked = () => setCanSound(true);
-    window.addEventListener('pointerdown', unlocked, { once: true });
-    window.addEventListener('keydown', unlocked, { once: true });
-    return () => {
-      window.removeEventListener('pointerdown', unlocked);
-      window.removeEventListener('keydown', unlocked);
-    };
-  }, [canSound]);
 
   if (!alarms.length && !raises.length) return null;
 

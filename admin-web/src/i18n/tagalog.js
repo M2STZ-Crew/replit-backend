@@ -1360,4 +1360,18 @@ export const TAGALOG = {
   'Cancelled the escalation to {level} on {area}': 'Kinansela ang escalation sa {level} para sa {area}',
   'Delete the escalation to {level}?': 'Burahin ang escalation sa {level}?',
   'Deleted the escalation to {level} on {area}': 'Binura ang escalation sa {level} para sa {area}',
+
+  // The header's Settings button and the sidebar's toggle (v1.12.50).
+  'Dark': 'Madilim',
+  'Light': 'Maliwanag',
+  'Quick settings': 'Mabilisang settings',
+  'Sound off. Quick settings': 'Walang tunog. Mabilisang settings',
+  'Alarm sound': 'Tunog ng alarma',
+  'New incidents won’t ring in this browser.': 'Hindi tutunog ang mga bagong insidente sa browser na ito.',
+  'The browser holds it back until you click the page.': 'Pinipigilan ito ng browser hangga’t hindi mo pinipindot ang page.',
+  'All settings': 'Lahat ng settings',
+  'Expand sidebar': 'Palakihin ang sidebar',
+  'Collapse sidebar': 'Paliitin ang sidebar',
+  'Your org: {status}': 'Org mo: {status}',
+  'You create Responder accounts under Accounts, and your Coordinators can on the mobile app.': 'Gumagawa ka ng mga Responder account sa Accounts, at puwede rin ang mga Coordinator mo sa mobile app.',
 };

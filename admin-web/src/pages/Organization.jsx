@@ -106,11 +106,11 @@ export default function Organization({ onNavigate }) {
               <h2 className="rpl-decision-title" id="rpl-org-people">{t('People')}</h2>
               <Facts rows={[
                 [t('Coordinators'), phase === 'loading' ? '…' : String(coordinators)],
-                [t('Responders'), phase === 'loading' ? '…' : t('{count} · created by your Coordinators', { count: responders })],
+                [t('Responders'), phase === 'loading' ? '…' : String(responders)],
               ]} />
               <div className="rpl-alert rpl-alert--info">
                 <span className="rpl-alert-mark" aria-hidden="true">i</span>
-                <p className="rpl-alert-body">{t('Coordinators create Responder accounts for their team on the mobile app.')}</p>
+                <p className="rpl-alert-body">{t('You create Responder accounts under Accounts, and your Coordinators can on the mobile app.')}</p>
               </div>
               {onNavigate && (
                 <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onNavigate('accounts')}>{t('View accounts')}</button>

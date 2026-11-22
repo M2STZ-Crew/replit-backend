@@ -1,10 +1,11 @@
-import Icon from '../ui/Icon.jsx';
+import QuickSettings from './QuickSettings.jsx';
 import { t } from '../../i18n/i18n.jsx';
 
 /* The pass 6 top bar (REPLIT (MAIN) 04 · Top bar): 64 px on the opaque ground
  * with one hairline — which organisation this is and what this Admin may act
- * on, the sound state, availability and the unread count. Restrained: it
- * carries state, never the page's title. */
+ * on, availability, and since v1.12.50 one Settings button in place of the
+ * sound and notification ones (22 Nov 2026; QuickSettings.jsx). Restrained:
+ * it carries state, never the page's title. */
 
 export function AvailabilityChip({ afk, since }) {
   return (
@@ -19,7 +20,7 @@ export function AvailabilityChip({ afk, since }) {
  * §4.6.5); until then it is null and the chip is not drawn — a state the
  * console cannot honour is not shown. */
 export default function TopBar({
-  organization, scope, soundOn, onSound, availability = null, unread = 0, onUnread,
+  organization, scope, access, availability = null, onAllSettings, onSignOut,
 }) {
   return (
     <header className="rpl-topbar">
@@ -33,33 +34,9 @@ export default function TopBar({
         )}
       </p>
 
-      <button
-        type="button"
-        className="rpl-pill"
-        onClick={onSound}
-        aria-label={soundOn ? t('Sound on. Open sound settings') : t('Sound off. Open sound settings')}
-      >
-        <Icon name="volume" size={16} />
-        {soundOn ? t('Sound on') : t('Sound off')}
-      </button>
-
       {availability && <AvailabilityChip afk={availability.afk} since={availability.since} />}
 
-      <button
-        type="button"
-        className="rpl-pill"
-        onClick={onUnread}
-        aria-label={
-          unread > 0
-            ? (unread === 1
-              ? t('{unread} new incident since you last looked. Open Incidents', { unread })
-              : t('{unread} new incidents since you last looked. Open Incidents', { unread }))
-            : t('No new incidents. Open Incidents')
-        }
-      >
-        <Icon name="notifications" size={16} />
-        {unread > 0 && <span className="rpl-count" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}
-      </button>
+      <QuickSettings access={access} onAllSettings={onAllSettings} onSignOut={onSignOut} />
     </header>
   );
 }

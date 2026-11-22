@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import { useSoundSettings } from '../components/SoundSettings.jsx';
 import { Icon, PageHeader } from '../components/ui/index.js';
+import Switch from '../components/ui/Switch.jsx';
 import {
   askDesktopPermission,
   setAlarmSettings,
@@ -17,7 +18,7 @@ import {
 } from '../sound/cues.js';
 import { api } from '../api/client.js';
 import { LanguageSwitch, t } from '../i18n/i18n.jsx';
-import { applyTheme, storedTheme } from '../theme.js';
+import { applyTheme, useTheme } from '../theme.js';
 
 /* Settings (REPLIT (MAIN) 10 · A70): notification sounds per category and
  * desktop alerts, kept in this browser. A new incident's sound loops until an
@@ -27,22 +28,6 @@ import { applyTheme, storedTheme } from '../theme.js';
  * Availability (AFK, A71) is not here: no endpoint stores or reports it yet
  * (PRD v13 §4.6.5, §17.3), so the switch is prepared as AvailabilityPanel
  * and shown only in the development preview. */
-
-function Switch({ checked, onChange, label, disabled = false }) {
-  return (
-    <label className={`rpl-switch${disabled ? ' is-disabled' : ''}`}>
-      <input
-        type="checkbox"
-        role="switch"
-        checked={checked}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      <span className="rpl-switch-track" aria-hidden="true" />
-      <span className="web-sr-only">{label}</span>
-    </label>
-  );
-}
 
 function Row({ title, detail, children, dim = false }) {
   return (
@@ -187,7 +172,7 @@ export default function Settings() {
   const { org } = useConsole();
   const sound = useSoundSettings();
   const alarm = useAlarmSettings();
-  const [theme, setTheme] = useState(storedTheme);
+  const theme = useTheme();
   const update = (patch) => setSoundSettings({ ...sound, ...patch });
 
   return (
@@ -289,7 +274,7 @@ export default function Settings() {
         <Row title={t('Light ground')} detail={t('The console is designed on the dark ground.')}>
           <Switch
             checked={theme === 'light'}
-            onChange={(light) => setTheme(applyTheme(light ? 'light' : 'dark'))}
+            onChange={(light) => applyTheme(light ? 'light' : 'dark')}
             label={t('Light ground')}
           />
         </Row>

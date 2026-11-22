@@ -1,4 +1,4 @@
-import { AGENCY_LABEL, ago } from '../../lib/status.js';
+import { AGENCY_LABEL, ago, statusOf } from '../../lib/status.js';
 import Place from '../Place.jsx';
 import { RAIL_BELOW, useMedia } from '../../lib/useMedia.js';
 import Icon from '../ui/Icon.jsx';
@@ -14,7 +14,7 @@ import { AlarmBadge } from './AlarmStatus.jsx';
  * confidence, how many reports, and when it last changed. Unread — reported
  * since this surface was last viewed — is a coral dot and a coral edge.
  *
- * "Your org" (Routed to you / Acknowledged / View only) is drawn when the
+ * "Your org" (To acknowledge / Acknowledged / View only) is drawn when the
  * caller passes `yourOrg(inc)` — for an Admin that acts on some Areas only
  * (lib/access.js); for one that acts on every Area it would say the same on
  * every row. The address line is the street, looked up by the console until
@@ -53,6 +53,10 @@ function IncidentCards({
     <ul className={`rpl-incident-cards${staleAt ? ' is-stale' : ''}`} aria-busy={loading || undefined}>
       {incidents.map((inc) => {
         const unread = isNew(inc);
+        // With no column heading, the organization's chip says whose it is,
+        // and stays out where it would only repeat the status.
+        const ours = yourOrg?.(inc);
+        const oursSays = ours && ours.label !== statusOf(inc.status).label;
         const stats = [
           [t('Reports'), inc.report_count],
           [t('Confidence'), confidenceOf(inc)],
@@ -63,7 +67,7 @@ function IncidentCards({
             <span className="rpl-incident-card-chips">
               <LifecycleChip status={inc.status} />
               <AlarmBadge incident={inc} />
-              {yourOrg && <StatusChip {...yourOrg(inc)} />}
+              {oursSays && <StatusChip tone={ours.tone} label={t('Your org: {status}', { status: ours.label })} />}
             </span>
             <div className="rpl-cell-resource">
               <span className="rpl-plate rpl-plate--fire" aria-hidden="true"><Icon name="flame" /></span>
