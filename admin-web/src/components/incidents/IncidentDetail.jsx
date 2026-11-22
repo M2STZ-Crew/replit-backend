@@ -347,7 +347,7 @@ export default function IncidentDetail({
 
       <div className="rpl-incident-grid">
         <div className="rpl-incident-main">
-          <AreaMap lat={d.centroid_lat} lng={d.centroid_lng} label={fireName(d.designation)} />
+          <AreaMap lat={d.centroid_lat} lng={d.centroid_lng} label={fireName(d.designation)} pulse={live} />
           <section className="rpl-panel">
             <LifecycleProgress status={d.status} />
             <Facts rows={facts} />

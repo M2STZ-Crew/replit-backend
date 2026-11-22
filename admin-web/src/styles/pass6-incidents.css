@@ -30,7 +30,7 @@
   transform: rotate(45deg);
   pointer-events: none;
 }
-.rpl-select:focus-within { border: 2px solid var(--focus); padding: 0 35px 0 11px; }
+.rpl-select:focus-within { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus); }
 .rpl-select-label { color: var(--label); font-size: 13px; }
 .rpl-select select {
   flex: 1;

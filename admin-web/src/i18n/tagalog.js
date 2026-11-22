@@ -1257,4 +1257,7 @@ export const TAGALOG = {
   'Append-only, grouped by incident. Each entry keeps the actor’s role and agency as they were at the time.': 'Hindi nabubura, nakapangkat ayon sa insidente. Bawat tala ay nagtatago ng papel at ahensya ng gumawa noong panahong iyon.',
   'Sort': 'Ayusin',
   'The latest {count} entries, in {groups} groups.': 'Ang pinakabagong {count} tala, sa {groups} pangkat.',
+
+  // The search box's own Clear (v1.12.48).
+  'Clear search': 'Burahin ang hinahanap',
 };

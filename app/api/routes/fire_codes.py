@@ -2,7 +2,8 @@
 
 List the fire-code catalog, press a code (logged to fire_code_events and broadcast
 to the incident channel), and read the per-incident press log. A code's target_role
-(and optional target_agency) gates who may press it; admin may press any.
+(and optional target_agency) gates who may press it, and a responder only on a
+fire they are on (app/services/fire_code_rules.py, v1.12.48).
 """
 
 from __future__ import annotations
@@ -24,6 +25,7 @@ from app.schemas.fire_code import (
 )
 from app.services.access import PRESS_CODES, admin_access
 from app.services.fire_code_notify import notify_fire_code
+from app.services.fire_code_rules import assert_responder_may_press
 from app.services.incident import is_coordinator
 
 log = get_logger(__name__)
@@ -100,19 +102,22 @@ async def press_fire_code(
 
     # Coordinators — admin, or a fire-agency sub-admin — may broadcast any code
     # ("Broadcast a fire code to all responding units"). A response_team user may
-    # press only their own target code. An observer sub-admin (police, medical,
-    # barangay) may press none: fire codes direct the fire response, and these
-    # agencies take part for awareness only.
+    # press only their own target code, on a fire they are on, and outside the
+    # fire service only to call for help (v1.12.48). An observer sub-admin
+    # (police, medical, barangay) may press none: fire codes direct the fire
+    # response, and these agencies take part for awareness only.
     # An Admin presses from the console's incident page (v1.12.46): Fire
     # Volunteer, BFP, the central hub and the system Admin.
     access = admin_access(user)
+    responder = access is None and user.role == "response_team"
     if access is not None:
         allowed = access.can(PRESS_CODES)
-    else:
-        allowed = is_coordinator(user) or (
-            user.role == code["target_role"]
-            and (code["target_agency"] is None or user.agency_type == code["target_agency"])
+    elif responder:
+        allowed = code["target_role"] == user.role and (
+            code["target_agency"] is None or user.agency_type == code["target_agency"]
         )
+    else:
+        allowed = is_coordinator(user)
     if not allowed:
         raise ForbiddenError("You are not permitted to press this fire code.")
 
@@ -122,6 +127,8 @@ async def press_fire_code(
         )
         if area_exists is None:
             raise NotFoundError("Incident (area) not found.")
+    if responder:
+        await assert_responder_may_press(db, user, payload.area_id, code["code_number"])
 
     row = await db.fetchrow(
         """

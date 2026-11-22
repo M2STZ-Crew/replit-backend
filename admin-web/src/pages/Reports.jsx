@@ -4,10 +4,11 @@ import FiledReport from '../components/reports/FiledReport.jsx';
 import IncidentSummary from '../components/reports/IncidentSummary.jsx';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import {
-  EmptyState, Icon, PageHeader, Pager, StatePanel, StatusChip, usePager,
+  EmptyState, PageHeader, Pager, StatePanel, StatusChip, usePager,
 } from '../components/ui/index.js';
 import { t } from '../i18n/i18n.jsx';
 import { fireAt, fireName } from '../lib/place.js';
+import SearchBox from '../components/ui/SearchBox.jsx';
 
 /* Reports & CIAR (REPLIT (MAIN) 10 · A60 878:8055, A61 878:8354).
  *
@@ -173,11 +174,7 @@ export default function Reports({ readReports, readIncidentReports, readSummary,
       />
 
       <div className="rpl-toolbar rpl-toolbar--plain">
-        <label className="rpl-search">
-          <Icon name="search" />
-          <span className="web-sr-only">{t('Search reports')}</span>
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search areas, organizations, names')} />
-        </label>
+        <SearchBox label={t('Search reports')} placeholder={t('Search areas, organizations, names')} value={query} onChange={setQuery} />
       </div>
 
       {state.phase === 'loading' ? (

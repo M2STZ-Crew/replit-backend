@@ -34,13 +34,38 @@
 .rpl-marker-disc--unit { background: #626262; }
 /* A hydrant nobody has checked on the ground in 6 months (v1.12.46). */
 .rpl-marker-disc--muted { background: #6b7280; }
-/* The fire's 100 m ripple (v1.12.46): a ring grows from the fire and fades. */
-.rpl-ripple { transform-box: fill-box; transform-origin: center; animation: rpl-ripple 2s ease-out infinite; }
+/* A live fire's pulse (map/FirePulse.jsx, v1.12.48): the 100 m ring grows
+   from the fire and fades, and a halo leaves the marker. Standing still under
+   reduced motion, where both still show. */
+.rpl-ripple,
+.rpl-halo {
+  transform-box: fill-box;
+  transform-origin: center;
+  pointer-events: none;
+}
+.rpl-ripple { animation: rpl-ripple 2s ease-out infinite; }
+.rpl-ripple,
+.rpl-halo { vector-effect: non-scaling-stroke; }
+.rpl-halo { animation: rpl-halo 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite; }
 @keyframes rpl-ripple {
   0% { transform: scale(0.08); opacity: 0.9; }
+  70% { opacity: 0.7; }
   100% { transform: scale(1); opacity: 0; }
 }
-@media (prefers-reduced-motion: reduce) { .rpl-ripple { animation: none; opacity: 0; } }
+@keyframes rpl-halo {
+  /* Held, then faded: faded from the start it was gone before it had
+     cleared the marker. */
+  0% { transform: scale(0.5); opacity: 0; }
+  10% { opacity: 1; }
+  60% { opacity: 0.85; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rpl-ripple,
+  .rpl-halo { animation: none; }
+  .rpl-ripple { opacity: 0.7; }
+  .rpl-halo { transform: scale(0.85); opacity: 0.8; }
+}
 /* Fire codes on the incident page (v1.12.46). */
 .rpl-code-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 12px; }
 .rpl-code-button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text-1); cursor: pointer; text-align: left; }

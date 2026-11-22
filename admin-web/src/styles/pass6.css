@@ -233,7 +233,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-.rpl-spacer { flex: 1; min-height: 8px; }
+.rpl-spacer { flex: 1 0 auto; min-height: 8px; }
+/* The sidebar scrolls; nothing in it squashes to fit. Settings, its own child
+   outside the nav, shrank to half of every other item's 44 px (v1.12.48). */
+.rpl-sidebar > :not(.rpl-spacer) { flex-shrink: 0; }
 
 .rpl-user {
   display: flex;

@@ -24,6 +24,7 @@ import {
 import { statusOf } from '../lib/status.js';
 import { t } from '../i18n/i18n.jsx';
 import { fireName } from '../lib/place.js';
+import FirePulse from '../map/FirePulse.jsx';
 
 const PASAY = [14.5378, 121.0014];
 
@@ -457,6 +458,12 @@ export default function MapManagement({ query = '', initialLayer, initialEdit = 
           <ZoomControl position="bottomleft" />
           <ClickCapture active={!!form} onPick={handlePick} />
           {focus && <CenterOn lat={focus.lat} lng={focus.lng} />}
+
+          {/* The fires' pulse, under their markers (v1.12.48). */}
+          {enabled.has('incidents') &&
+            incidents
+              .filter((inc) => inc.centroid_lat != null && inc.centroid_lng != null)
+              .map((inc) => <FirePulse key={`pulse-${inc.id}`} lat={inc.centroid_lat} lng={inc.centroid_lng} />)}
 
           {/* incidents — status-coloured, and a click opens the incident
               (unless a marker is being placed, when the click places it) */}

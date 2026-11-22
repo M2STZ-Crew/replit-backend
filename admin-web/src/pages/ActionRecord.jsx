@@ -8,6 +8,7 @@ import {
 } from '../components/ui/index.js';
 import { t } from '../i18n/i18n.jsx';
 import { fireName } from '../lib/place.js';
+import SearchBox from '../components/ui/SearchBox.jsx';
 
 /* Audit log (REPLIT (MAIN) 10 · A64 879:8852; Section 2.5 audit trail): the
  * append-only record of consequential actions.
@@ -285,11 +286,7 @@ export default function ActionRecord({ onOpenIncident }) {
       />
 
       <div className="rpl-filters">
-        <label className="rpl-search">
-          <Icon name="search" />
-          <span className="web-sr-only">{t('Search the audit log')}</span>
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search actions, incidents, agencies')} />
-        </label>
+        <SearchBox label={t('Search the audit log')} placeholder={t('Search actions, incidents, agencies')} value={query} onChange={setQuery} />
         <label className="rpl-select">
           <span className="rpl-select-label">{t('Action')}</span>
           <select value={category} onChange={(e) => setCategory(e.target.value)}>

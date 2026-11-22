@@ -328,7 +328,29 @@
   background: var(--input-bg);
   color: var(--muted);
 }
-.rpl-search:focus-within { border: 2px solid var(--focus); padding: 0 11px; }
+.rpl-search:focus-within { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus); }
+/* One ring, around the whole box: not a second one around the field inside
+   it, which the shell's :focus-visible drew (v1.12.48). */
+.rpl-shell :is(.rpl-search, .rpl-select) :is(input, select):focus-visible { outline: none; }
+.rpl-search input::-webkit-search-cancel-button,
+.rpl-search input::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
+.rpl-search { cursor: text; }
+.rpl-search-clear {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  margin-right: -7px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.rpl-search-clear:hover { background: var(--hover); color: var(--text); }
 .rpl-search input {
   flex: 1;
   min-width: 0;

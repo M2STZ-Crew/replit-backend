@@ -13,6 +13,7 @@ import { ago, alarmLabel, statusOf } from '../lib/status.js';
 import { t } from '../i18n/i18n.jsx';
 import { fireAt, fireName } from '../lib/place.js';
 import Pager, { usePager } from '../components/ui/Pager.jsx';
+import SearchBox from '../components/ui/SearchBox.jsx';
 
 /* Requests (REPLIT (MAIN) 10 · A40 873:5264, A41 873:5578, A45 874:6513,
  * A46 874:6933, A46b 874:7126).
@@ -208,11 +209,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
             </button>
           ))}
         </div>
-        <label className="rpl-search">
-          <Icon name="search" />
-          <span className="web-sr-only">{t('Search requests')}</span>
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search areas and names')} />
-        </label>
+        <SearchBox label={t('Search requests')} placeholder={t('Search areas and names')} value={query} onChange={setQuery} />
       </div>
 
       {phase === 'loading' ? (

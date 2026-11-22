@@ -4,13 +4,13 @@ import { api } from '../api/client.js';
 import { agencyLabel, useAuth } from '../auth.jsx';
 import CreateCoordinatorDialog from '../components/accounts/CreateCoordinatorDialog.jsx';
 import { useConsole } from '../components/ConsoleShell.jsx';
-import Icon from '../components/ui/Icon.jsx';
 import Pager, { usePager } from '../components/ui/Pager.jsx';
 import {
   ConfirmDialog, EmptyState, PageHeader, StatePanel, StatusChip,
 } from '../components/ui/index.js';
 import { PERM, can, governsAll } from '../lib/access.js';
 import { t } from '../i18n/i18n.jsx';
+import SearchBox from '../components/ui/SearchBox.jsx';
 
 /* Accounts (REPLIT (MAIN) 10 · A48 875:7204, A49 875:7435, A49b 875:7722;
  * PRD v13 §4.6.4: Tier 1 creates Tier 2).
@@ -186,11 +186,7 @@ export default function Accounts() {
             </button>
           ))}
         </div>
-        <label className="rpl-search">
-          <Icon name="search" />
-          <span className="web-sr-only">{t('Search accounts')}</span>
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search names, emails and titles')} />
-        </label>
+        <SearchBox label={t('Search accounts')} placeholder={t('Search names, emails and titles')} value={query} onChange={setQuery} />
       </div>
 
       {loading ? (

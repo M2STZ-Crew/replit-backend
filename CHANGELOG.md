@@ -6,6 +6,36 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.48 — 22 November 2026 — Who presses a fire code; a pulse that moves; the sidebar and search fixed
+
+Backend and console; app v1.12.59 goes with it. No migration. The first of
+three releases for the 22 Nov list ("Three, safety first").
+
+### Changes
+- **Who may press a fire code** (answered "Coordinators declare";
+  `app/services/fire_code_rules.py`). Any responder of any agency, on a fire or
+  not, could press any code. A responder now presses only on a fire they are
+  on; crews outside the fire service press only FC-7 (more units) and FC-8 (a
+  casualty). Fire out completes every response, so a fire crew keeps FC-4
+  (overhauling) and FC-5 (returning) on it. Coordinators and Admins are as
+  before.
+- **The fire's pulse moves in production** ("make the animation of the pulsing
+  incident in the web too"; answered "Ring + marker halo"; `map/FirePulse.jsx`).
+  The v1.12.46 ripple passed its class through react-leaflet's pathOptions,
+  which reaches the path only on the dev server: no ring moved in production.
+  The class is a prop now, with a test against it coming back. The 100 m ring
+  and a halo that shows zoomed out are on the live map, a live incident's map
+  and Map settings; both stand still under reduced motion.
+- **Settings in the sidebar is the size of the others** ("hindi niya ka same
+  ng size yung mga ibang Nav Item"): it was squashed to 21.6 px, the others
+  44 px, whenever the sidebar was taller than the window.
+- **The search box** ("ang weird ng Design niya parang naka Default"): one
+  focus ring, not a box inside the box, and our own Clear in place of the
+  browser's (`components/ui/SearchBox.jsx`, on every page with a search). The
+  filters' fields lose their inner box too.
+
+---
+
 ## v1.12.47 — 20 November 2026 — The map's places open; one pager; the audit log by incident; the console on a phone
 
 Console and backend; no app release, no migration. The second of the two
