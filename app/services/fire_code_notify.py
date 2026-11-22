@@ -28,6 +28,7 @@ from app.services import staff_copy
 from app.services.access import FIRE_AGENCIES
 from app.services.citizen_copy import by_language, languages_of
 from app.services.notification_inbox import record_inbox
+from app.services.org_standing import not_frozen_sql
 
 log = get_logger(__name__)
 
@@ -47,16 +48,17 @@ select coalesce(array_agg(distinct a::text), '{}')
  where ar.area_id = $1
 """
 
-_COORDINATORS_SQL = """
+_COORDINATORS_SQL = f"""
 select u.id from public.users u
- where u.role = 'sub_admin' and u.is_active
+ where u.role = 'sub_admin' and u.is_active and {not_frozen_sql()}
    and u.agency_type::text = any($1::text[])
 """
 
 # Responders on their way to it or at it.
-_CREWS_SQL = """
+_CREWS_SQL = f"""
 select distinct d.responder_id from public.dispatch_logs d
- where d.area_id = $1 and d.status = 'active'
+  join public.users u on u.id = d.responder_id
+ where d.area_id = $1 and d.status = 'active' and {not_frozen_sql()}
 """
 
 _HUB_SQL = """

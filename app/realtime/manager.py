@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import WebSocket
 
@@ -83,6 +83,21 @@ class ConnectionManager:
             except Exception:
                 self.disconnect(conn_id)
         return sent
+
+    async def close_organization(self, org_id: UUID) -> int:
+        """Drop every open socket of one organization's people (it was frozen)."""
+        theirs = [c for c, u in list(self._users.items()) if u.primary_org_id == org_id]
+        for conn_id in theirs:
+            websocket = self._connections.get(conn_id)
+            # Off its channels first, so nothing more reaches it whatever the close does.
+            self.disconnect(conn_id)
+            if websocket is None:
+                continue
+            try:
+                await websocket.close(code=1008, reason="organization_frozen")
+            except Exception:
+                log.info("ws_close_failed", conn_id=conn_id)
+        return len(theirs)
 
     def channel_size(self, channel: str) -> int:
         """Number of connections currently subscribed to a channel."""

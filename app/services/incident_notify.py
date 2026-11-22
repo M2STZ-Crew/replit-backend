@@ -42,6 +42,7 @@ from app.services.citizen_copy import (
 )
 from app.services.incident import COORDINATING_AGENCIES, OBSERVER_AGENCIES
 from app.services.notification_inbox import record_inbox
+from app.services.org_standing import not_frozen_sql
 from app.services.verifier import fetch_verifier
 from app.workers.coordinator_pings import start_pings
 
@@ -89,11 +90,12 @@ async def notify_staff_new_incident(db: Database, area_id: UUID) -> int:
     if not agencies:
         return 0
     staff_rows = await db.fetch(
-        """
+        f"""
         select u.id, u.role::text as role, u.agency_type::text as agency_type
         from public.users u
         where u.role in ('sub_admin', 'response_team')
           and u.is_active
+          and {not_frozen_sql()}
           and u.agency_type = any($1::public.agency_type[])
         """,
         agencies,
@@ -345,10 +347,12 @@ async def notify_route_recipients(
     org_ids = [org for _, org in routes if org is not None]
     whole_agencies = sorted({agency for agency, org in routes if org is None})
     rows = await db.fetch(
-        """
+        f"""
         select distinct u.id, u.agency_type::text as agency_type
         from public.users u
         where u.role = 'sub_admin'
+          and u.is_active
+          and {not_frozen_sql()}
           and u.agency_type = any($1::public.agency_type[])
           and (u.agency_type = any($2::public.agency_type[])
                or u.primary_org_id = any($3::uuid[]))
@@ -444,8 +448,9 @@ async def notify_bfp_alarm_request(
     level_label = alarm_label(requested_alarm_level)
     # A BFP Coordinator who asked is not alerted by their own request.
     bfp_rows = await db.fetch(
-        "select id from public.users "
-        "where role = 'sub_admin' and agency_type = 'bfp' and id <> $1",
+        "select u.id from public.users u "
+        "where u.role = 'sub_admin' and u.agency_type = 'bfp' and u.id <> $1 "
+        f"and u.is_active and {not_frozen_sql()}",
         requested_by,
     )
     bfp_ids = [r["id"] for r in bfp_rows]

@@ -34,6 +34,15 @@ def clean_name(raw: str | None) -> str | None:
     return name or None
 
 
+def one_line(raw: str | None) -> str:
+    """Typed text as one printable line, single-spaced; empty when there is none.
+
+    An organization's name becomes an email's subject, which takes no line break.
+    """
+    printable = "".join(c if c.isprintable() else " " for c in raw or "")
+    return " ".join(printable.split())
+
+
 def is_valid_name(name: str) -> bool:
     return len(name) <= MAX_LENGTH and _NAME.fullmatch(name) is not None
 

@@ -265,8 +265,16 @@ export const api = {
   // Affiliate organization review (admin).
   affiliates: (statusFilter) =>
     request(`/affiliates${statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : ''}`),
-  affiliateAccept: (id, notes) =>
-    request(`/affiliates/${id}/accept`, { method: 'POST', body: { notes: notes || null } }),
+  // With the first Coordinator's name: their sign-in is made from it (v1.12.51).
+  affiliateAccept: (id, { notes, firstName, lastName } = {}) =>
+    request(`/affiliates/${id}/accept`, {
+      method: 'POST',
+      body: {
+        notes: notes || null,
+        coordinator_first_name: firstName || null,
+        coordinator_last_name: lastName || null,
+      },
+    }),
   affiliateReject: (id, notes) =>
     request(`/affiliates/${id}/reject`, { method: 'POST', body: { notes: notes || null } }),
 
@@ -291,11 +299,12 @@ export const api = {
     request(`/alarm-requests/${id}/cancel`, { method: 'POST', body: { notes: notes || null } }),
   alarmRequestDelete: (id) => request(`/alarm-requests/${id}`, { method: 'DELETE' }),
 
-  // An Admin's Coordinator accounts (A48, A49): created for its own
-  // organisation and turned off and on. The sign-in address is made from the
-  // name (obryan.fircor@replit.com); the link to set a password goes to their
+  // An Admin's Coordinator accounts (A48, A49), managed like its Responders'
+  // since v1.12.51. The sign-in address is made from the name
+  // (obryan.fircor@replit.com); the link to set a password goes to their
   // personal email.
-  createCoordinator: ({ firstName, lastName, personalEmail, title, organizationId }) =>
+  adminCoordinators: () => request('/admin/coordinators'),
+  createCoordinator: ({ firstName, lastName, personalEmail, title, mobile, organizationId }) =>
     request('/admin/coordinators', {
       method: 'POST',
       body: {
@@ -303,6 +312,7 @@ export const api = {
         last_name: lastName,
         personal_email: personalEmail,
         title: title || null,
+        mobile: mobile || null,
         ...(organizationId ? { organization_id: organizationId } : {}),
       },
     }),
@@ -311,6 +321,10 @@ export const api = {
     if (organizationId) q.set('organization_id', organizationId);
     return request(`/admin/coordinators/email-preview?${q.toString()}`);
   },
+  updateCoordinator: (id, changes) => request(`/admin/coordinators/${id}`, { method: 'PATCH', body: changes }),
+  coordinatorPasswordLink: (id, personalEmail) => request(`/admin/coordinators/${id}/password-link`, {
+    method: 'POST', body: personalEmail ? { personal_email: personalEmail } : {},
+  }),
   deactivateCoordinator: (id) => request(`/admin/coordinators/${id}/deactivate`, { method: 'POST' }),
   reactivateCoordinator: (id) => request(`/admin/coordinators/${id}/reactivate`, { method: 'POST' }),
 

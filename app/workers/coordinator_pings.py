@@ -30,6 +30,7 @@ from app.integrations.fcm import PushService, sound_for_agency, token_versions
 from app.services import staff_copy
 from app.services.citizen_copy import language_of
 from app.services.incident import active_area_sql
+from app.services.org_standing import not_frozen_sql
 
 log = get_logger(__name__)
 
@@ -115,7 +116,8 @@ async def run_pings(db: Database, push: PushService) -> int:
         select p.area_id, p.user_id, p.step, a.designation,
                u.agency_type::text as agency_type, u.language,
                extract(epoch from now() - p.started_at) as age,
-               ({active_area_sql("a")}) and u.is_active as live,
+               ({active_area_sql("a")}) and u.is_active
+                   and {not_frozen_sql()} as live,
                exists (
                    select 1 from public.area_acceptances aa
                    where aa.area_id = p.area_id and aa.agency = u.agency_type

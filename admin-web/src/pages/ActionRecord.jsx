@@ -47,6 +47,7 @@ const CATEGORY = {
   get user() { return t('Account'); },
   get report() { return t('Report'); },
   get dispatch() { return t('Dispatch'); },
+  get affiliate() { return t('Affiliation'); },
 };
 const categoryOf = (action = '') => CATEGORY[action.split('.')[0]] ?? t('Other');
 
@@ -57,6 +58,19 @@ const VERB = {
   get 'incident.post_incident_report'() { return t('Filed post-incident report'); },
   get 'incident.under_control'() { return t('Declared under control'); },
   get 'incident.under_control_withdrawn'() { return t('Withdrew Under control'); },
+  get 'affiliate.accept'() { return t('Accepted an affiliate'); },
+  get 'affiliate.decline'() { return t('Declined an affiliate'); },
+  get 'affiliate.suspend'() { return t('Suspended an affiliate'); },
+  get 'affiliate.revoke'() { return t('Revoked an affiliate'); },
+  get 'affiliate.restore'() { return t('Restored an affiliate'); },
+  get 'affiliate.delete'() { return t('Deleted an affiliate'); },
+  get 'user.coordinator_created'() { return t('Created a Coordinator account'); },
+  get 'user.coordinator_updated'() { return t('Edited a Coordinator account'); },
+  get 'user.coordinator_moved'() { return t('Moved a Coordinator'); },
+  get 'user.coordinator_email_set'() { return t('Set a Coordinator’s email'); },
+  get 'user.coordinator_password_link'() { return t('Sent a Coordinator a password link'); },
+  get 'user.coordinator_deactivated'() { return t('Turned off a Coordinator account'); },
+  get 'user.coordinator_reactivated'() { return t('Turned on a Coordinator account'); },
   get 'user.responder_created'() { return t('Created a Responder account'); },
   get 'user.responder_updated'() { return t('Edited a Responder account'); },
   get 'user.responder_moved'() { return t('Moved a Responder'); },
@@ -86,11 +100,15 @@ function detailOf(r) {
       .map((x) => `${agencyLabel(x.agency)}${x.organization_name ? ` (${x.organization_name})` : ''}`)
       .join(', ');
   }
+  if (r.action?.startsWith('affiliate.') && r.metadata?.organization) {
+    return [r.metadata.organization, r.metadata.notes ?? r.metadata.note].filter(Boolean).join(' · ');
+  }
   if (r.metadata?.notes) return r.metadata.notes;
-  if (r.metadata?.responder) {
+  const account = r.metadata?.responder ?? r.metadata?.coordinator;
+  if (account) {
     const changed = (r.metadata.changed ?? []).map((key) => FIELD[key] ?? key).join(', ');
     const to = r.metadata.moved_to ? t('to {org}', { org: r.metadata.moved_to }) : null;
-    return [r.metadata.responder, to, changed].filter(Boolean).join(' · ');
+    return [account, to, changed].filter(Boolean).join(' · ');
   }
   return null;
 }

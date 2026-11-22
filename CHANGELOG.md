@@ -6,6 +6,53 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.51 — 23 November 2026 — Coordinators managed like Responders; affiliation, checked end to end
+
+Backend and console. No migration. The app is unchanged (its 1.12.61 only
+corrects the affiliate link).
+
+### Security
+- **Accepting an affiliate always makes a new Coordinator account**, with a
+  made @replit.com sign-in, and emails the contact a link that confirms the
+  address and sets the password, as for every Coordinator since 6 November.
+  An account that exists is left as it is.
+- **A suspended or revoked organization is frozen on the socket and in
+  alerts too.** Its open connections close, new ones are refused, and new
+  fire, routing, alarm, fire code and reminder pushes skip its people.
+- An organization is not deleted while an account is still in it.
+
+### Changes
+- **Coordinators are managed like Responders** ("please make the account
+  management in coordinator and responder the same. they can do all those
+  managing things in coordinator and responder too that send that link and
+  things"; answered "Admin console only"). In Accounts an Admin edits name,
+  title and mobile, sends a password link, turns off and on, and sees who is
+  on a fire; the central hub also moves one within an agency. One service,
+  `app/services/staff_admin.py`, holds both kinds' rules.
+- New: `GET /admin/coordinators`, `PATCH /admin/coordinators/{id}`,
+  `POST /admin/coordinators/{id}/password-link`.
+
+### Affiliation ("check the whole affiliation thing")
+- Accepting is one transaction: of two Accepts at once, one organization.
+- The address reaches the organization. The form asks the contact person's
+  name, which becomes the Coordinator's; it was the organization's name. The
+  hub can correct it as it accepts.
+- Accept and decline are in the audit log, which names every affiliate and
+  Coordinator act.
+- The hub sees who and what was listed, and is warned of a name already on
+  the network.
+- The form says what it does: no email promised on a decline, and only the
+  certificate file's name is sent, which it never said.
+- The public form refuses @replit.com and undeliverable contact addresses,
+  takes bounded lists and one-line text (a line break in a name broke the
+  approval email's subject), and its acknowledgements stop at 30 an hour.
+- **Forgot password?** A staff member's personal email no longer swallows
+  the reset of the account that signs in with that same address.
+- Emails' logo comes from the console's current address, and a welcome says
+  where to get the app.
+
+---
+
 ## v1.12.50 — 23 November 2026 — The Admin console: frame, Statistics, one Map settings, polish
 
 Backend and console; the app is unchanged. The last of three releases for the

@@ -38,6 +38,7 @@ from app.core.exceptions import (
 from app.core.logging import get_logger
 from app.db.session import Database
 from app.integrations.supabase_auth import AuthError
+from app.realtime.manager import manager
 from app.schemas.auth import AuthenticatedUser
 from app.schemas.organization import (
     OrganizationDelete,
@@ -183,6 +184,8 @@ async def _set_standing(
             after_state={"standing": to},
             metadata={"reason": reason, "note": note, "organization": org["name"]},
         )
+    if to != "active":
+        await manager.close_organization(org_id)
     log.info(
         "affiliate_standing_changed",
         organization_id=str(org_id),
@@ -338,6 +341,16 @@ async def delete_organization(
                 error_code="account_delete_failed",
             ) from exc
         deleted += 1
+    await manager.close_organization(org_id)
+    # The organization never goes while anyone is still in it: nobody is left
+    # without the organization their access is decided by.
+    if await db.fetchval(
+        "select exists (select 1 from public.users where primary_org_id = $1)", org_id
+    ):
+        raise ConflictError(
+            "An account was still in this organization, so it was not deleted. Try again.",
+            error_code="accounts_remain",
+        )
     await db.execute("delete from public.organizations where id = $1", org_id)
     await record_audit(
         db,

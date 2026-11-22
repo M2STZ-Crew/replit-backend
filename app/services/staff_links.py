@@ -39,6 +39,8 @@ VERIFY_FOR = timedelta(days=3)
 
 PASSWORD_PATH = "/auth/staff/password-link"
 VERIFY_PATH = "/auth/personal-email/verify"
+# Where the app is, for someone told to sign in to it who has none yet.
+GET_APP_URL = "https://reportwhatslit-apk.vercel.app"
 
 
 class LinkError(ValueError):
@@ -139,6 +141,7 @@ def welcome_email(
         facts=[
             "This link works for three days. If it has expired, open the RepLiT app, "
             f"tap Forgot password?, and enter {address} or this email address.",
+            f"Do not have the app yet? Get it at {GET_APP_URL}",
         ],
         notice="If you were not expecting this email, you can ignore it. Do not forward "
         "it, because the link lets whoever opens it set the account's password.",

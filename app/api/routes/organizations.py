@@ -140,7 +140,8 @@ async def list_org_personnel(
 
 # One person on an organisation's roster, as an Admin's Accounts screen shows
 # them: the account, its title on the roster, whether it can sign in, and who
-# made it. Shared with the Coordinator accounts routes (routes/org_accounts.py).
+# made it. An Admin's own lists, which also say who is on a fire, are
+# app/services/staff_admin.py's (v1.12.51).
 PERSONNEL_SELECT = """
     select u.id,
            coalesce(nullif(btrim(u.full_name), ''), split_part(u.email, '@', 1), 'Member')

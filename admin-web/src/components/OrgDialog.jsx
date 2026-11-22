@@ -140,7 +140,7 @@ export default function OrgDialog({ org, application, glyph, color, onClose, can
   const declaredUnits = Array.isArray(details.equipment) ? details.equipment : [];
 
   // The organisation row is what an approval copied across; the application
-  // keeps what was typed, including the address the row does not carry.
+  // keeps what was typed. Accepted before v1.12.51, the row has no address.
   const contactEmail = org.contact_email || app?.contact_email;
   const contactPhone = org.contact_phone || app?.contact_phone;
   const address = org.address || app?.address;
@@ -284,7 +284,9 @@ export default function OrgDialog({ org, application, glyph, color, onClose, can
                 <dl className="od-facts">
                   <Fact k={t('Submitted')}>{stamp(app.created_at)}</Fact>
                   <Fact k={t('Approved')}>{stamp(app.reviewed_at)}</Fact>
-                  <Fact k={t('SEC certificate')}>{details.sec_certificate_name}</Fact>
+                  <Fact k={t('SEC certificate')}>
+                    {details.sec_certificate_name && t('{name} (file name only: ask them for the file)', { name: details.sec_certificate_name })}
+                  </Fact>
                   {app.review_notes && <Fact k={t('Review notes')}>{app.review_notes}</Fact>}
                 </dl>
                 {app.message && <p className="od-quote">“{app.message}”</p>}

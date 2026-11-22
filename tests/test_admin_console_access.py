@@ -569,11 +569,11 @@ class _AccountsDb:
         if "from public.organizations where id = $1" in q:
             return {"id": args[0], "name": "PNP Pasay", "agency_type": self.org_agency,
                     "is_active": True}
-        if "where u.id = $1" in q:
+        if "u.role = 'sub_admin'" in q and "and u.id = $2" in q:
             return {
-                "id": args[0], "full_name": self.profile.get("full_name"), "role": "sub_admin",
-                "agency_type": self.profile.get("agency"), "verified_percent": 0,
-                "badge": "yellow", "email": "d.villareal@pnp.example", "title": "Lieutenant",
+                "id": args[1], "full_name": self.profile.get("full_name"), "role": "sub_admin",
+                "agency_type": self.profile.get("agency"),
+                "email": "d.villareal@pnp.example", "title": "Lieutenant",
                 "is_active": True, "created_at": datetime.now(UTC),
                 "created_by_name": "PNP Pasay Admin", "deactivated_at": None,
             }
@@ -593,8 +593,8 @@ class _AccountsDb:
         q = " ".join(query.split())
         if q.startswith("update public.users set role = 'sub_admin'"):
             self.profile = {"id": args[0], "agency": args[1], "org": args[2],
-                            "full_name": args[3], "created_by": args[4],
-                            "personal_email": args[5]}
+                            "full_name": args[3], "created_by": args[5],
+                            "personal_email": args[6]}
             return "UPDATE 1"
         if q.startswith("insert into public.org_roster"):
             self.roster.append(args)
@@ -700,8 +700,10 @@ async def test_a_failed_email_still_leaves_a_working_account() -> None:
 
 async def test_another_organisations_coordinator_is_not_found() -> None:
     class _Db:
-        async def fetchrow(self, query: str, *args: Any) -> dict[str, Any]:
-            return {"role": "sub_admin", "primary_org_id": OTHER_ORG}
+        async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
+            # The caller's own organization is the scope, so theirs is not found.
+            assert args[0] == OWN_ORG and "u.primary_org_id = $1" in query
+            return None
 
     with pytest.raises(NotFoundError):
         await org_accounts.deactivate_coordinator(

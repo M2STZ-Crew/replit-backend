@@ -12,6 +12,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
 
+from app.schemas.team import AdminCoordinator
+
 
 class OrganizationSummary(BaseModel):
     """An affiliate organization with personnel/equipment counts."""
@@ -75,13 +77,14 @@ class CoordinatorCreateRequest(BaseModel):
     last_name: str = Field(min_length=1, max_length=60, description="The full surname.")
     personal_email: EmailStr
     title: str | None = Field(default=None, max_length=80)
+    mobile: str | None = Field(default=None, max_length=32)
     organization_id: UUID | None = None
 
 
 class CoordinatorCreateResult(BaseModel):
     """The new Coordinator, and whether the email to their personal address went out."""
 
-    coordinator: OrganizationMember
+    coordinator: AdminCoordinator
     personal_email: str | None = None
     invite_email_sent: bool = False
     detail: str | None = None

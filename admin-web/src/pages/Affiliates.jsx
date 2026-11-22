@@ -14,9 +14,11 @@ import { t } from '../i18n/i18n.jsx';
  * 860:796, A06c 860:1028; Section 2.6): organisations asking to join, and
  * the central hub's decision on each.
  *
- * Accepting creates the organisation and a Coordinator account for the
- * contact's email, and emails them a link to set their password — what the
- * server does today. The design's one-time Admin registration link (A07–A12)
+ * Accepting creates the organisation and a new Coordinator account with a
+ * made sign-in, and emails the contact a link to set its password (v1.12.51:
+ * it never promotes an account that already has that email). The hub checks
+ * the Coordinator's name first, which the sign-in is made from. The design's
+ * one-time Admin registration link (A07–A12)
  * waits on server support; its 48-hour expiry is not claimed here. Declining
  * records the reason; the server sends no email about it, so the dialog says
  * so.
@@ -52,7 +54,8 @@ const TABS = [
   { key: 'network', get label() { return t('On the network'); } },
 ];
 
-const contactOf = (r) => r.contact_name || r.contact_email || 'the contact';
+const contactOf = (r) => r.contact_name || r.contact_email || t('the contact');
+const sameName = (a, b) => (a ?? '').trim().toLowerCase().replace(/\s+/g, ' ') === (b ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
 
 function subline(r, result) {
   if (result) {
@@ -76,7 +79,9 @@ function AcceptOutcome({ result, request }) {
         <span className="rpl-alert-mark" aria-hidden="true">✓</span>
         <div className="rpl-alert-text">
           <p className="rpl-alert-title">{t('Accepted — password link sent')}</p>
-          <p className="rpl-alert-body">{t('Sent to {email} at {time}. They sign in as the organization’s Coordinator.', { email, time: CLOCK.format(new Date(request.reviewed_at ?? Date.now())) })}</p>
+          <p className="rpl-alert-body">{result.sign_in_address
+            ? t('Sent to {email} at {time}. The Coordinator signs in with {address}.', { email, address: result.sign_in_address, time: CLOCK.format(new Date(request.reviewed_at ?? Date.now())) })
+            : t('Sent to {email} at {time}. They sign in as the organization’s Coordinator.', { email, time: CLOCK.format(new Date(request.reviewed_at ?? Date.now())) })}</p>
         </div>
       </div>
     );
@@ -100,23 +105,35 @@ function AcceptOutcome({ result, request }) {
 
 function RequestDetail({ request: r, result, orgs, onAccept, onDecline, onOpenOrg }) {
   const details = r.details ?? {};
-  const roster = Array.isArray(details.roster) ? details.roster.length : null;
-  const equipment = Array.isArray(details.equipment) ? details.equipment.length : null;
+  const members = Array.isArray(details.roster) ? details.roster : null;
+  const units = Array.isArray(details.equipment) ? details.equipment : null;
+  const roster = members?.length ?? null;
+  const equipment = units?.length ?? null;
+  // The same name on the network already: maybe the same organization again.
+  const twin = r.status === 'pending'
+    ? orgs.find((o) => o.standing !== 'revoked' && sameName(o.name, r.organization_name))
+    : null;
   const facts = [
     [t('Organization type'), agencyLabel(r.agency_type)],
     [t('Address'), r.address || t('Not given')],
     ...(roster != null ? [[t('Roster size'), roster === 1 ? t('{count} member', { count: roster }) : t('{count} members', { count: roster })]] : []),
+    ...(roster ? [[t('Members listed'), members.map((m) => (m.role ? `${m.full_name} (${m.role})` : m.full_name)).join(', ')]] : []),
     ...(equipment != null ? [[t('Equipment'), equipment === 1 ? t('{count} unit', { count: equipment }) : t('{count} units', { count: equipment })]] : []),
-    ...(details.sec_certificate_name ? [[t('SEC certificate'), details.sec_certificate_name]] : []),
+    ...(equipment ? [[t('Units listed'), units.map((u) => (u.type ? `${u.name} (${u.type})` : u.name)).join(', ')]] : []),
+    // Only the name ever arrives: the form does not upload the file.
+    ...(details.sec_certificate_name ? [[t('SEC certificate'), t('{name} (file name only: ask them for the file)', { name: details.sec_certificate_name })]] : []),
     [t('Submitted by'), r.contact_name || t('Not given')],
     [t('Email'), r.contact_email || t('Not given')],
     [t('Mobile'), r.contact_phone || t('Not given')],
-    ...(r.message ? [[t('Message'), r.message]] : []),
+    // The public form's message only repeats the facts above.
+    ...(r.message && !members ? [[t('Message'), r.message]] : []),
     ...(r.status === 'rejected' && r.review_notes ? [[t('Reason declined'), r.review_notes]] : []),
   ];
   const eyebrow = r.status === 'pending'
     ? t('{agencyLabel} · waiting since {day}', { agencyLabel: agencyLabel(r.agency_type), day: day(r.created_at) })
-    : `${agencyLabel(r.agency_type)} · ${r.status === 'approved' ? 'accepted' : 'declined'} ${day(r.reviewed_at)}`;
+    : r.status === 'approved'
+      ? t('{agency} · accepted {day}', { agency: agencyLabel(r.agency_type), day: day(r.reviewed_at) })
+      : t('{agency} · declined {day}', { agency: agencyLabel(r.agency_type), day: day(r.reviewed_at) });
   const org = r.organization_id ? orgs.find((o) => o.id === r.organization_id) : null;
 
   return (
@@ -135,11 +152,17 @@ function RequestDetail({ request: r, result, orgs, onAccept, onDecline, onOpenOr
 
       {r.status === 'pending' && !result && (
         <>
+          {twin && (
+            <div className="rpl-alert rpl-alert--warn">
+              <span className="rpl-alert-mark" aria-hidden="true">!</span>
+              <p className="rpl-alert-body">{t('{org} is already on the network. Check that this is not the same organization applying again.', { org: twin.name })}</p>
+            </div>
+          )}
           <div className="rpl-alert rpl-alert--info">
             <span className="rpl-alert-mark" aria-hidden="true">i</span>
             <p className="rpl-alert-body">
               {r.contact_email
-                ? t('Accepting creates the organization and a Coordinator account for {contact_email}, and emails them a link to set their password.', { contact_email: r.contact_email })
+                ? t('Accepting creates the organization and a new Coordinator account, and emails {contact_email} its sign-in and a link to set the password.', { contact_email: r.contact_email })
                 : t('No email was given, so accepting creates the organization without a Coordinator account.')}
             </p>
           </div>
@@ -227,6 +250,8 @@ export default function Affiliates() {
   const [results, setResults] = useState({});
   const [confirm, setConfirm] = useState(null);
   const [reason, setReason] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [openOrgId, setOpenOrgId] = useState(null);
   const [notice, setNotice] = useState(null);
 
@@ -270,7 +295,10 @@ export default function Affiliates() {
 
   async function accept() {
     const r = confirm.request;
-    const result = await api.affiliateAccept(r.id, '');
+    if (r.contact_email && (!firstName.trim() || !lastName.trim())) {
+      throw new Error(t('Enter the Coordinator’s first name and surname.'));
+    }
+    const result = await api.affiliateAccept(r.id, { firstName: firstName.trim(), lastName: lastName.trim() });
     setConfirm(null);
     setResults((prev) => ({ ...prev, [r.id]: result }));
     setNotice(t('{org} accepted', { org: r.organization_name }));
@@ -363,7 +391,11 @@ export default function Affiliates() {
               request={selected}
               result={results[selected.id] ?? null}
               orgs={orgs}
-              onAccept={() => setConfirm({ kind: 'accept', request: selected })}
+              onAccept={() => {
+                setFirstName(selected.details?.contact_first_name ?? '');
+                setLastName(selected.details?.contact_last_name ?? '');
+                setConfirm({ kind: 'accept', request: selected });
+              }}
               onDecline={() => { setReason(''); setConfirm({ kind: 'decline', request: selected }); }}
               onOpenOrg={setOpenOrgId}
             />
@@ -376,12 +408,26 @@ export default function Affiliates() {
         eyebrow={t('Affiliate request · {agency}', { agency: confirm ? agencyLabel(confirm.request.agency_type) : '' })}
         title={t('Accept {org}?', { org: confirm?.request.organization_name ?? '' })}
         description={confirm?.request.contact_email
-          ? t('We create the organization and a Coordinator account for {contactOf}, and email {contact_email} a link to set their password.', { contactOf: contactOf(confirm.request), contact_email: confirm.request.contact_email })
+          ? t('We create the organization and a new Coordinator account, and email {contact_email} its sign-in and a link to set the password. Any account already using that email is left as it is.', { contact_email: confirm.request.contact_email })
           : t('We create the organization. No email was given, so no Coordinator account is created.')}
         confirmLabel={confirm?.request.contact_email ? t('Accept and send link') : t('Accept')}
         onClose={() => setConfirm(null)}
         onConfirm={accept}
-      />
+      >
+        {confirm?.kind === 'accept' && confirm.request.contact_email && (
+          <div className="rpl-stack">
+            <label className="rpl-field">
+              <span className="rpl-field-label">{t('Coordinator’s first name')}</span>
+              <input value={firstName} onChange={(e) => setFirstName(e.target.value)} maxLength={60} autoComplete="off" />
+            </label>
+            <label className="rpl-field">
+              <span className="rpl-field-label">{t('Coordinator’s surname')}</span>
+              <input value={lastName} onChange={(e) => setLastName(e.target.value)} maxLength={60} autoComplete="off" />
+              <span className="rpl-field-help">{t('Their sign-in address is made from this name.')}</span>
+            </label>
+          </div>
+        )}
+      </ConfirmDialog>
       <ConfirmDialog
         open={confirm?.kind === 'decline'}
         destructive
