@@ -1423,4 +1423,22 @@ export const TAGALOG = {
   'Records start {date}, so there is no full period before this one to compare with yet.': 'Nagsisimula ang mga tala noong {date}, kaya wala pang buong naunang panahon na maihahambing.',
   'The statistics couldn’t update. These are the last ones loaded.': 'Hindi ma-update ang estadistika. Ito ang huling na-load.',
   'The statistics couldn’t load': 'Hindi ma-load ang estadistika',
+
+  // Water resources in Map settings (v1.12.50).
+  'View only, except that you can delete water resources. Fire Volunteer, BFP and central hub Admins make the other changes.': 'Pagtingin lang, maliban sa puwede kang magbura ng mga pinagkukunan ng tubig. Mga Fire Volunteer, BFP at central hub Admin ang gumagawa ng iba pang pagbabago.',
+  'View only. Fire Volunteer, BFP and central hub Admins make the changes.': 'Pagtingin lang. Mga Fire Volunteer, BFP at central hub Admin ang gumagawa ng mga pagbabago.',
+  'All statuses': 'Lahat ng status',
+  'Never checked on the ground': 'Hindi pa natitingnan sa lugar',
+  'Checked {at}': 'Tiningnan {at}',
+  'Record updated {at}': 'In-update ang tala {at}',
+  '{count} entry': '{count} entry',
+  '{count} entries': '{count} entry',
+  'Layer': 'Layer',
+  'Back': 'Bumalik',
+  '‹ List': '‹ Listahan',
+  'Search {things}': 'Maghanap sa {things}',
+  'Search names and places': 'Maghanap ng pangalan at lugar',
+  'Delete {title}': 'Burahin ang {title}',
+  '{title} deleted. It is gone from every map; the deletion is in the audit log.': 'Nabura ang {title}. Wala na ito sa lahat ng mapa; nasa audit log ang pagbura.',
+  'It disappears from every Admin’s map and every phone’s map. This can’t be undone; the deletion is recorded with your name.': 'Mawawala ito sa mapa ng bawat Admin at ng bawat phone. Hindi na ito mababawi; itatala ang pagbura kasama ng pangalan mo.',
 };

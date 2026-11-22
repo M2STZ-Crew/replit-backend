@@ -315,17 +315,15 @@ export default function LiveMapPage({ onOpenIncident, onManage, onEditPoint }) {
         >
           <Icon name="map" />
         </button>
-        {managesMap && (
-          <button
-            type="button"
-            className="rpl-map-tool"
-            onClick={onManage}
-            aria-label={t('Map settings')}
-            title={t('Map settings')}
-          >
-            <Icon name="settings" />
-          </button>
-        )}
+        <button
+          type="button"
+          className="rpl-map-tool"
+          onClick={onManage}
+          aria-label={t('Map settings')}
+          title={t('Map settings')}
+        >
+          <Icon name="layers" />
+        </button>
       </div>
 
       {legend && (

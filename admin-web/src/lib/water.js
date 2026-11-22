@@ -1,7 +1,7 @@
 import { t } from '../i18n/i18n.jsx';
 
-/* A water source's status, and when it was last looked at: for the Water
- * resources page and the live map's details panel (v1.12.47). A row carries
+/* A water source's status, and when it was last looked at: for Map settings'
+ * list and both maps' details (v1.12.47, v1.12.50). A row carries
  * its `kind`: 'hydrant', 'water' (a body of water) or 'cistern'. */
 
 // In the words of 19 Nov 2026: working, low pressure, broken, no access.

@@ -3,7 +3,7 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react
 import { useAuth } from '../auth.jsx';
 import AlarmBanner from '../components/AlarmBanner.jsx';
 import ConsoleShell from '../components/ConsoleShell.jsx';
-import { destinationKeys } from '../components/shell/nav.js';
+import { MOVED, destinationKeys } from '../components/shell/nav.js';
 import { StatePanel } from '../components/ui/index.js';
 import * as records from '../integrations/records.js';
 import { consoleOf } from '../lib/access.js';
@@ -12,11 +12,6 @@ import { OPEN_INCIDENT_EVENT } from '../sound/alarm.js';
 import SituationBoard from './SituationBoard.jsx';
 import { t } from '../i18n/i18n.jsx';
 
-/* Map settings edits shelters and risk areas; water is edited on its own page
- * since v1.12.43 (19 Nov 2026: "One Water resources page"). */
-const MAP_SETTINGS_LAYERS = ['risk', 'evac'];
-// Water is edited from Water resources (v1.12.43).
-const WATER_LAYERS = ['hydrants', 'water', 'cisterns'];
 // A place opened with Edit on the live map (v1.12.47); a new one remounts.
 const pointKey = (p) => (p ? `${p.layer}:${p.id}` : 'all');
 
@@ -28,7 +23,6 @@ const PAGES = {
   incidents: () => import('./IncidentDesk.jsx'),
   map: () => import('./LiveMapPage.jsx'),
   requests: () => import('./Requests.jsx'),
-  water: () => import('./WaterResources.jsx'),
   mapsettings: () => import('./MapManagement.jsx'),
   reports: () => import('./Reports.jsx'),
   audit: () => import('./ActionRecord.jsx'),
@@ -42,7 +36,6 @@ const PAGES = {
 const IncidentDesk = lazy(PAGES.incidents);
 const LiveMapPage = lazy(PAGES.map);
 const Requests = lazy(PAGES.requests);
-const WaterResources = lazy(PAGES.water);
 const MapManagement = lazy(PAGES.mapsettings);
 const Reports = lazy(PAGES.reports);
 const ActionRecord = lazy(PAGES.audit);
@@ -58,8 +51,16 @@ const Settings = lazy(PAGES.settings);
  * destination this Admin's organisation does not have (#/affiliates for a
  * police Admin) opens the Dashboard instead. */
 function destinationFromHash(keys) {
-  const key = window.location.hash.replace(/^#\/?/, '');
+  const typed = window.location.hash.replace(/^#\/?/, '');
+  const key = MOVED[typed] ?? typed;
   return keys.has(key) ? key : 'dashboard';
+}
+
+// An old page's address becomes the page's it moved to (#/water).
+function followMove() {
+  const key = MOVED[window.location.hash.replace(/^#\/?/, '')];
+  if (!key) return;
+  window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#/${key}`);
 }
 
 export default function Dashboard() {
@@ -87,24 +88,15 @@ function Destination({ active, focusId, focusTab, focusPoint, go }) {
         <LiveMapPage
           onOpenIncident={(incidentId) => go('incidents', { incidentId })}
           onManage={() => go('mapsettings')}
-          onEditPoint={(layer, id) => go(WATER_LAYERS.includes(layer) ? 'water' : 'mapsettings', { tab: layer, point: { layer, id } })}
+          onEditPoint={(layer, id) => go('mapsettings', { tab: layer, point: { layer, id } })}
         />
       );
     case 'requests':
       return <Requests readRequests={records.readRequests} onOpenIncident={(incidentId) => go('incidents', { incidentId })} />;
-    case 'water':
-      return (
-        <WaterResources
-          key={pointKey(focusPoint)}
-          initialEdit={focusPoint}
-          onOpenIncident={(incidentId) => go('incidents', { incidentId })}
-        />
-      );
     case 'mapsettings':
       return (
         <MapManagement
           key={pointKey(focusPoint)}
-          layers={MAP_SETTINGS_LAYERS}
           initialLayer={focusTab}
           initialEdit={focusPoint}
           onOpenIncident={(incidentId) => go('incidents', { incidentId })}
@@ -149,7 +141,8 @@ function Console() {
   const [focusPoint, setFocusPoint] = useState(null);
 
   const go = useCallback((wanted, opts = {}) => {
-    const key = keys.has(wanted) ? wanted : 'dashboard';
+    const moved = MOVED[wanted] ?? wanted;
+    const key = keys.has(moved) ? moved : 'dashboard';
     setActive(key);
     setFocusId(opts.incidentId ?? null);
     setFocusTab(opts.tab ?? null);
@@ -168,10 +161,13 @@ function Console() {
     return () => window.removeEventListener(OPEN_INCIDENT_EVENT, open);
   }, [go]);
 
-  // An address typed or edited by hand (#/water) opens that page.
+  // An address typed or edited by hand (#/reports) opens that page; a
+  // moved one (#/water) the page it moved to.
   useEffect(() => {
+    followMove();
     const follow = () => {
       setActive(destinationFromHash(keys));
+      followMove();
       setFocusId(null);
       setFocusTab(null);
       setFocusPoint(null);

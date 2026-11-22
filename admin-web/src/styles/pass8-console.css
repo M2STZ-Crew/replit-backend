@@ -527,6 +527,148 @@
   .rpl-stat-tiles { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* ── Map settings, with the water in it ───────────────────────────────── */
+.mm-page { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.mm-bar {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 4px 28px;
+  padding: 12px 24px 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+.mm-bar-copy { flex: none; padding-bottom: 10px; }
+.mm-bar .web-page-title { margin-top: 2px; font-size: 22px; line-height: 24px; }
+.mm-bar-note {
+  flex: 1 1 320px;
+  min-width: 0;
+  margin: 0;
+  padding-bottom: 10px;
+  color: var(--label);
+  font-size: 12px;
+  line-height: 16px;
+}
+.mm-page > .mm-root { flex: 1; min-height: 0; height: auto; }
+.mm-page > .mm-root[hidden] { display: none; }
+.mm-requests { flex: 1; min-height: 0; padding: 8px 24px 24px; overflow-y: auto; }
+.mm-requests > * { max-width: 880px; }
+
+.mm-page .mm-panel { width: 360px; }
+.mm-page .mm-layers.is-panel-open { right: 392px; }
+.mm-page .lm-zoom-hint.mm-zoom-hint.is-beside-panel { left: calc((100% - 376px) / 2); }
+.mm-page .mm-panel-head { justify-content: flex-start; gap: 4px; padding: 10px 8px 10px 16px; }
+.mm-page .mm-panel-words { flex: 1; min-width: 0; }
+.mm-page .mm-panel-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+.mm-page .mm-panel-title:focus { outline: 2px solid transparent; }
+.mm-page .mm-panel-eyebrow { margin: 0 0 4px; }
+.mm-page .mm-section-sub { margin: 2px 0 0; line-height: 16px; }
+.mm-page .mm-return { margin-left: -10px; }
+.mm-page .mm-return .rpl-icon { transform: rotate(180deg); }
+.mm-page .mm-collapse { width: 44px; height: 44px; color: var(--text-2); }
+/* The whole body scrolls: the cards, the filters and the rows together. */
+.mm-page .mm-panel-body {
+  flex: 1;
+  min-height: 0;
+  gap: 10px;
+  padding: 12px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-3) transparent;
+}
+.mm-page .mm-panel-body > * { flex-shrink: 0; }
+.mm-page .mm-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.mm-page .mm-gcard { min-height: 60px; gap: 6px; padding: 8px; border-radius: var(--radius); }
+.mm-page .mm-gcard.active { border-color: var(--accent-line); background: var(--accent-soft); }
+.mm-page .mm-gicon { width: 24px; height: 24px; border-radius: 7px; }
+.mm-page .mm-glabel { color: var(--text); font-size: 11px; line-height: 13px; }
+.mm-page .mm-tools { display: flex; flex-direction: column; gap: 8px; }
+.mm-page .mm-tools > .rpl-search,
+.mm-page .mm-tools > .rpl-pick { width: 100%; min-width: 0; margin: 0; }
+.mm-page .mm-list { flex: none; min-height: 60px; gap: 6px; overflow: visible; }
+.mm-page .mm-entry { align-items: stretch; gap: 0; padding: 0; border-radius: var(--radius); overflow: hidden; }
+.mm-entry-open {
+  flex: 1;
+  min-width: 0;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 9px 10px 9px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.mm-entry-open:hover { background: var(--hover); }
+.mm-page .mm-entry-open:focus-visible { outline-offset: -2px; }
+.mm-entry-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; max-width: 100%; }
+.mm-entry-top .web-chip { flex: none; padding: 2px 8px; }
+.mm-page .mm-entry-title { min-width: 0; font-weight: 800; }
+.mm-page .mm-entry-sub { max-width: 100%; color: var(--text-2); }
+.mm-entry-check { color: var(--label); font-size: 11px; line-height: 14px; }
+.mm-entry.is-inactive .mm-entry-title { color: var(--text-2); }
+.mm-page .mm-iconbtn {
+  width: 44px;
+  height: auto;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+}
+.mm-page .mm-iconbtn.del:hover { border-color: var(--line); background: var(--live-tint); }
+.mm-page .mm-iconbtn:focus-visible { outline-offset: -2px; }
+.mm-page .mm-panel-body > .rpl-button { align-self: stretch; }
+.mm-page .mm-panel-body > .web-chip { align-self: flex-start; }
+.mm-panel-foot { flex: none; display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); }
+.mm-panel-foot > .mm-add,
+.mm-panel-foot > .rpl-button { flex: 1; min-width: 0; }
+.mm-page .mm-panel-foot .mm-add { box-shadow: none; }
+.mm-page .mm-form { flex: none; min-height: 0; overflow: visible; }
+.mm-page .mm-hint { margin: 0; }
+.mm-page .mm-toast { z-index: 1001; background: var(--surface-4); }
+
+.mm-page .mm-flabel { color: var(--text-2); font-weight: 700; letter-spacing: 0.2px; }
+.mm-page .mm-form-row { gap: 8px; }
+
+@media (max-width: 900px) {
+  .mm-bar { align-items: center; padding: 6px 12px 0; }
+  .mm-bar .web-eyebrow { display: none; }
+  .mm-bar-copy { padding: 0; }
+  .mm-bar .web-page-title { margin: 0; font-size: 17px; line-height: 20px; }
+  .mm-bar .mm-tabs { gap: 20px; }
+  .mm-bar-note { padding: 4px 0 8px; }
+}
+/* The width the panel becomes a sheet at (index.css). */
+@media (max-width: 700px) {
+  .mm-page .mm-layers,
+  .mm-page .mm-layers.is-panel-open { right: 12px; padding: 0; }
+  /* Over Leaflet's zoom buttons (1000), which sat on Delete and Add. */
+  .mm-page .mm-panel {
+    z-index: 1001;
+    width: auto;
+    height: min(68%, 560px);
+    border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  }
+  .mm-page .mm-grid { display: flex; overflow-x: auto; scrollbar-width: none; }
+  .mm-page .mm-gcard { flex: 0 0 96px; }
+  .mm-page .lm-zoom-hint.mm-zoom-hint.is-beside-panel { left: 50%; }
+}
+
 /* ── Motion ───────────────────────────────────────────────────────────── */
 @keyframes rpl-fade-in {
   from { opacity: 0; }
