@@ -6,6 +6,48 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.49 — 22 November 2026 — The alarm status everywhere; Admins manage responders; Alarm Escalations
+
+Backend and console; app v1.12.60 goes with it. The second of three releases
+for the 22 Nov list.
+
+Migration `20261122090000_under_control.sql` (two empty columns on `areas`).
+The backend works without it, and until it is applied nobody is shown Under
+control: an FC-2 is recorded as a code only and withdrawing answers
+`migration_pending`.
+
+### Changes
+- **The alarm status everywhere** ("fire alarm status can be seen in any
+  details info"; answered "Level + situation" and "Everyone, everywhere";
+  `app/services/alarm_status.py`). The incident, area, tracking, map and report
+  payloads carry the level, who set it, and Under control while in effect. The
+  console highlights it at the top of the incident and as a badge on lists and
+  map cards. Residents get the organization, never a person's name.
+- **Under control** (answered "Coordinators declare";
+  `app/services/under_control.py`). FC-2 from a Fire Volunteer or BFP
+  coordinator, or from an Admin who presses fire codes, declares it on an
+  acknowledged fire; a responder's still only tells command. A raise clears
+  it. `POST /incidents/{id}/under-control/withdraw` takes it back, and tells
+  that fire's staff without a sound.
+- **A raise is heard** (answered "Staff loud, residents quiet";
+  `app/services/alarm_notify.py`). Only whoever asked was told. The fire's
+  crews and coordinators now get the fire sound; residents who reported it or
+  were alerted to it get a silent notification. Admins hear it in the open
+  console.
+- **Admins manage responders** ("admin can manage responders too"; answered
+  "Full account control" and "Own org; hub manages all";
+  `app/api/routes/admin_responders.py`, permission `accounts.responders`).
+  Create, edit name, title and mobile, send a password link, turn off and on,
+  and see who is on a fire. The central hub and the system Admin manage
+  everyone's and move one to another organization of the same agency, not
+  while on a fire. An Admin fills in a personal email only until the
+  responder confirms it. Every change is audited; dispatching stays with
+  coordinators.
+- **Requests are Alarm Escalations** in the console, the notification and the
+  errors. The water tab is Water requests. Routes and tables keep their names.
+
+---
+
 ## v1.12.48 — 22 November 2026 — Who presses a fire code; a pulse that moves; the sidebar and search fixed
 
 Backend and console; app v1.12.59 goes with it. No migration. The first of
