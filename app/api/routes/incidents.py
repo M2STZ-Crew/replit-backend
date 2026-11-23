@@ -68,6 +68,7 @@ from app.services.acknowledge import insert_acceptance
 from app.services.audit import record_audit
 from app.services.fire_type import (
     ON_SCENE_STATUSES,
+    assert_first_on_scene,
     assert_may_answer,
     validate_fire_type,
 )
@@ -1249,6 +1250,31 @@ async def set_fire_type(
                 answered_by_org=answered["org_id"],
                 answered_by_name=answered["org_name"],
             )
+        else:
+            # Who arrived first: whoever moved the Area to On scene (v1.12.52).
+            first = await conn.fetchrow(
+                """
+                select u.primary_org_id as org_id, u.agency_type::text as agency,
+                       o.name as org_name, a.arrived_at, now() as now
+                  from public.audit_logs l
+                  join public.users u on u.id = l.actor_user_id
+                  left join public.organizations o on o.id = u.primary_org_id
+                  join public.areas a on a.id = l.area_id
+                 where l.area_id = $1 and l.action = 'incident.arrived'
+                 order by l.created_at
+                 limit 1
+                """,
+                incident_id,
+            )
+            if first is not None:
+                assert_first_on_scene(
+                    org_id=user.primary_org_id,
+                    first_org=first["org_id"],
+                    first_org_name=first["org_name"],
+                    first_agency=first["agency"],
+                    arrived_at=first["arrived_at"],
+                    now=first["now"],
+                )
         await conn.execute(
             """
             update public.areas

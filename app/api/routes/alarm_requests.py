@@ -128,6 +128,18 @@ def _rank(level: str | None) -> int:
     return _LADDER.index(level) if level in _LADDER else -1
 
 
+def _assert_fire_type_known(area: Any) -> None:
+    """No alarm before somebody on scene says what is burning (v1.12.52; 23 Nov
+    2026: "they can't raise an alarm level if someone isn't fill-up the fire
+    type first"). A 409 ``fire_type_first``: asking, raising and approving."""
+    if area.get("fire_type") is None:
+        raise ConflictError(
+            f"{_area_name(area['designation'])} has no fire type yet. The alarm can "
+            "be raised once the first fire team on scene says what is burning.",
+            error_code="fire_type_first",
+        )
+
+
 def _area_name(designation: Any) -> str:
     """The fire, starting a sentence: "The fire near F. Victor Street", never
     its Area number (v1.12.42)."""
@@ -260,12 +272,14 @@ async def create_alarm_request(
             f"alarm-request:{payload.area_id}:{user.id}",
         )
         area = await conn.fetchrow(
-            "select status::text as status, alarm_level::text as alarm_level, designation "
+            "select status::text as status, alarm_level::text as alarm_level, "
+            "designation, fire_type "
             "from public.areas where id = $1",
             payload.area_id,
         )
         if area is None:
             raise NotFoundError("Incident (area) not found.")
+        _assert_fire_type_known(area)
         if area["status"] in OFF_FEED_STATUSES:
             raise ConflictError("Cannot raise an alarm on a closed incident.")
         if _rank(level) <= _rank(area["alarm_level"]):
@@ -447,12 +461,14 @@ async def raise_alarm(
         )
     async with db.acquire() as conn, conn.transaction():
         area = await conn.fetchrow(
-            "select status::text as status, alarm_level::text as alarm_level, designation "
+            "select status::text as status, alarm_level::text as alarm_level, "
+            "designation, fire_type "
             "from public.areas where id = $1 for update",
             payload.area_id,
         )
         if area is None:
             raise NotFoundError("Incident (area) not found.")
+        _assert_fire_type_known(area)
         if area["status"] in OFF_FEED_STATUSES:
             raise ConflictError(
                 f"{_area_name(area['designation'])} has ended, so its alarm level stays "
@@ -592,12 +608,14 @@ async def execute_alarm_request(
         if req["status"] != "pending":
             raise ConflictError("This alarm escalation has already been reviewed.")
         area = await conn.fetchrow(
-            "select status::text as status, alarm_level::text as alarm_level, designation "
+            "select status::text as status, alarm_level::text as alarm_level, "
+            "designation, fire_type "
             "from public.areas where id = $1 for update",
             req["area_id"],
         )
         if area is None:
             raise NotFoundError("Incident (area) not found.")
+        _assert_fire_type_known(area)
         if area["status"] in OFF_FEED_STATUSES:
             raise ConflictError(
                 f"{_area_name(area['designation'])} has ended, so its alarm level stays "

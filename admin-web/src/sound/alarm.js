@@ -112,7 +112,7 @@ export function recordAcknowledged(ids) {
 const STATUS_LABEL = {
   get reported() { return t('To acknowledge'); },
   get verified() { return t('Accepted'); },
-  get en_route() { return t('Responders en route'); },
+  get en_route() { return t('Responders on route'); },
   get arrived() { return t('Responders on scene'); },
   get fire_out() { return t('Fire out'); },
   get post_incident_report() { return t('Report owed'); },

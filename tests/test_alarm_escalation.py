@@ -95,6 +95,7 @@ class _Db:
         self.area = uuid4()
         self.areas: dict[UUID, dict[str, Any]] = {
             self.area: {"status": "en_route", "alarm_level": None, "designation": "1.2",
+                        "fire_type": "structural",
                         "lat": 14.5378, "lng": 121.0014},
         }
         self.users: dict[UUID, dict[str, Any]] = {}
@@ -196,7 +197,8 @@ class _Db:
             a = self.areas.get(args[0])
             return None if a is None else {"status": a["status"],
                                            "alarm_level": a["alarm_level"],
-                                           "designation": a["designation"]}
+                                           "designation": a["designation"],
+                                           "fire_type": a.get("fire_type")}
         if "requested_alarm_level::text as lvl" in q:
             r = self.requests.get(args[0])
             return None if r is None else {"area_id": r["area_id"], "lvl": r["level"],

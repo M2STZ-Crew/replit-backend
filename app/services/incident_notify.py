@@ -1,6 +1,6 @@
 """Citizen-facing FCM pushes for incident lifecycle changes.
 
-When staff act on an incident (verify / dispatch / en route / arrived / resolve /
+When staff act on an incident (verify / dispatch / on route / arrived / resolve /
 reject), the citizens who reported it get a push — delivered even when the app is
 closed (FCM notification payload). Complements the 100 m neighborhood worker,
 which notifies *neighbors* (and excludes the reporter).

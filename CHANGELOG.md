@@ -6,6 +6,27 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.52 — 23 November 2026 — The fire type before the alarm; On route
+
+Backend and console. Goes with app v1.12.62. One migration, written and not
+yet applied: `20261123120000_positive_alarm_after_fire_type.sql`.
+
+- **No alarm before the fire type** ("they can't raise an alarm level if
+  someone isn't fill-up the fire type first"; "before to proceed with
+  positive fire alarm, someone should fill the fire type first"). Asking for,
+  raising and approving an alarm level are refused (409 `fire_type_first`)
+  until somebody on scene says what is burning. With the migration applied,
+  Positive Fire Alarm is set when the fire type is first given, instead of at
+  the first verify, and the database refuses any level before it.
+- **The first team on scene says what is burning** ("the first one who can
+  fill-up the fire type is the one who comes the incident first"). Another
+  team gets a 409 `first_on_scene_answers` for 5 minutes after the first
+  arrival; then any fire team on scene can, so an alarm never waits on one
+  phone.
+- **On route** replaces "En route" in every text the console shows.
+
+---
+
 ## v1.12.51 — 23 November 2026 — Coordinators managed like Responders; affiliation, checked end to end
 
 Backend and console. No migration. The app is unchanged (its 1.12.61 only

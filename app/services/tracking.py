@@ -11,7 +11,7 @@ things on top of that same stream, without a second one:
   verified it, and per unit a label and a position — rebuilt from the database
   after each fix or status change, and only while someone is actually watching.
 
-- **Automatic On scene.** When the incident is en route and a responder's last
+- **Automatic On scene.** When the incident is on route and a responder's last
   few fixes all put them within ``arrival_radius_meters`` of the incident, the
   status moves to arrived exactly as if they had pressed Arrived. Imprecise and
   old fixes do not count, so a bad GPS reading cannot declare arrival alone.
@@ -39,7 +39,7 @@ from app.services.verifier import fetch_verifier
 
 log = get_logger(__name__)
 
-# Statuses in which a citizen sees responders on the map. Before en route there
+# Statuses in which a citizen sees responders on the map. Before on route there
 # is no one moving yet; after fire out the crews are done, and where they drive
 # next is no business of the incident's.
 TRACKED_STATUSES = ("en_route", "arrived")
@@ -112,7 +112,7 @@ async def gps_arrival_distance(
 ) -> float | None:
     """Whether this responder's GPS says they reached an en-route incident.
 
-    Two small reads, and the second only while the incident is en route: this
+    Two small reads, and the second only while the incident is on route: this
     runs after every fix, so it must stay cheap for the other 99% of fixes.
     """
     settings = get_settings()

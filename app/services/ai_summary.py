@@ -149,7 +149,7 @@ def _render_facts(s: dict[str, Any]) -> str:
     if ts.get("dispatched_at"):
         lines.append(f"  dispatched:   {ph_time(ts['dispatched_at'])}")
     lines += [
-        f"  en route:     {ph_time(ts['en_route_at'])}",
+        f"  on route:     {ph_time(ts['en_route_at'])}",
         f"  on scene:     {ph_time(ts['arrived_at'])}",
         f"  fire out:     {ph_time(ts['fire_out_at'])}",
         f"  report filed: {ph_time(ts['closed_at'])}",
