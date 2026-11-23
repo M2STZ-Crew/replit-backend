@@ -11,6 +11,7 @@ temporary password back, shown once, to hand over in person.
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
@@ -88,6 +89,12 @@ class AdminResponder(TeamResponder):
     responding_area_id: UUID | None = None
     responding_to: str | None = None
     responding_since: datetime | None = None
+
+
+class AdminCoordinator(AdminResponder):
+    """A Coordinator on the same screen, managed the same way (v1.12.51)."""
+
+    role: Literal["sub_admin"] = "sub_admin"
 
 
 class AdminResponderCreate(BaseModel):

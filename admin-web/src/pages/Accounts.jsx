@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client.js';
 import { agencyLabel, useAuth } from '../auth.jsx';
 import CreateCoordinatorDialog from '../components/accounts/CreateCoordinatorDialog.jsx';
-import { ManageResponderDialog, PasswordLinkDialog } from '../components/accounts/ResponderDialogs.jsx';
+import { ManageAccountDialog, PasswordLinkDialog, accountEyebrow } from '../components/accounts/ResponderDialogs.jsx';
 import { useConsole } from '../components/ConsoleShell.jsx';
 import Pager, { usePager } from '../components/ui/Pager.jsx';
 import {
@@ -17,20 +17,40 @@ import SearchBox from '../components/ui/SearchBox.jsx';
 /* Accounts (REPLIT (MAIN) 10 · A48 875:7204, A49 875:7435, A49b 875:7722;
  * PRD v13 §4.6.4: Tier 1 creates Tier 2).
  *
- * An organisation's Admin sees its own people: the Coordinators it creates
- * and turns off and on, and since v1.12.49 the Responders too (22 Nov 2026:
- * "admin can manage responders too"): create, edit, send a password link,
- * turn off and on, and see who is on a fire. Dispatching stays with their
- * Coordinators. A new account is emailed a link to set its password. The
- * system Admin and the central hub see every organisation's, name the
- * organisation when they create one, and move a Responder within an agency. */
+ * An organisation's Admin manages its own Coordinators and Responders the
+ * same way (22 Nov 2026: "admin can manage responders too"; 23 Nov 2026:
+ * "make the account management in coordinator and responder the same"):
+ * create, edit, send a password link, turn off and on, and see who is on a
+ * fire. Dispatching stays with the Coordinators. A new account is emailed a
+ * link to set its password. The system Admin and the central hub see every
+ * organisation's, name the organisation when they create one, and move an
+ * account within an agency. */
 
 const DAY = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', day: 'numeric', month: 'short', year: 'numeric' });
 const SHORT = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', day: 'numeric', month: 'short' });
-// How often the Responders tab asks again who is on a fire.
+// How often a tab asks again who is on a fire.
 const REFRESH_MS = 30000;
 
-const asRow = (r) => ({ ...r, role: 'response_team', org: r.organization_name, orgId: r.organization_id });
+// Each kind's calls: the same set, whichever tab.
+const CALLS = {
+  sub_admin: {
+    list: api.adminCoordinators,
+    save: api.updateCoordinator,
+    link: api.coordinatorPasswordLink,
+    off: api.deactivateCoordinator,
+    on: api.reactivateCoordinator,
+  },
+  response_team: {
+    list: api.adminResponders,
+    save: api.updateResponder,
+    link: api.responderPasswordLink,
+    off: api.deactivateResponder,
+    on: api.reactivateResponder,
+  },
+};
+const asRows = (role, list) => (list ?? []).map((p) => ({
+  ...p, role, org: p.organization_name, orgId: p.organization_id,
+}));
 
 function initials(name) {
   const parts = (name || '?').trim().split(/\s+/).filter(Boolean);
@@ -47,7 +67,7 @@ function created(p, myName) {
 export default function Accounts({ onOpenIncident }) {
   const { org, console: access } = useConsole();
   const { user } = useAuth();
-  // The system Admin and the central hub make Coordinators for any organisation.
+  // The system Admin and the central hub manage every organisation's.
   const everyOrg = governsAll(access);
   const manages = can(access, PERM.CREATE_COORDINATORS) && (everyOrg || Boolean(org?.id));
   const managesResponders = can(access, PERM.MANAGE_RESPONDERS) && (everyOrg || Boolean(org?.id));
@@ -65,6 +85,7 @@ export default function Accounts({ onOpenIncident }) {
   const [linking, setLinking] = useState(null);
   const [notice, setNotice] = useState(null);
   const [warning, setWarning] = useState(null);
+  const [failed, setFailed] = useState(null);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -76,49 +97,43 @@ export default function Accounts({ onOpenIncident }) {
     setLoading(true);
     setError(null);
     try {
-      let roster = [];
-      if (everyOrg) {
-        const orgList = (await api.organizations()) ?? [];
-        setOrgs(orgList);
-        const rosters = await Promise.all(
-          orgList.map((o) => api.orgPersonnel(o.id)
-            .then((rows) => (rows ?? []).map((r) => ({ ...r, org: o.name, orgId: o.id })))
-            .catch(() => [])),
-        );
-        roster = rosters.flat();
-      } else if (org?.id) {
-        const rows = await api.orgPersonnel(org.id);
-        roster = (rows ?? []).map((r) => ({ ...r, org: org.name, orgId: org.id }));
-      }
-      // Responders with their fire, and those with no organization.
-      if (managesResponders) {
-        const responders = (await api.adminResponders()) ?? [];
-        roster = roster.filter((p) => p.role !== 'response_team').concat(responders.map(asRow));
-      }
-      setPeople(roster);
+      // Each kind this Admin manages, with its fire; one it only looks at
+      // comes from its organization's roster.
+      const lists = { sub_admin: manages, response_team: managesResponders };
+      const [orgList, roster, ...managed] = await Promise.all([
+        everyOrg ? api.organizations() : null,
+        (!manages || !managesResponders) && org?.id ? api.orgPersonnel(org.id) : null,
+        ...Object.entries(lists).map(async ([role, mine]) => (mine ? asRows(role, await CALLS[role].list()) : [])),
+      ]);
+      setOrgs(orgList ?? []);
+      const looked = (roster ?? [])
+        .filter((p) => p.role in lists && !lists[p.role])
+        .map((p) => ({ ...p, org: org.name, orgId: org.id }));
+      setPeople([...managed.flat(), ...looked]);
     } catch (e) {
       setError(e.message || t('The accounts could not be loaded.'));
     } finally {
       setLoading(false);
     }
-  }, [everyOrg, managesResponders, org?.id, org?.name]);
+  }, [everyOrg, manages, managesResponders, org?.id, org?.name]);
   useEffect(() => { load(); }, [load]);
 
   // Who is on a fire changes while the tab is open.
   useEffect(() => {
-    if (tab !== 'response_team' || !managesResponders || loading) return undefined;
+    const mine = tab === 'sub_admin' ? manages : managesResponders;
+    if (!mine || loading) return undefined;
     let left = false;
     const timer = setInterval(async () => {
       if (document.visibilityState === 'hidden') return;
       try {
-        const fresh = (await api.adminResponders()) ?? [];
-        if (!left) setPeople((all) => all.filter((p) => p.role !== 'response_team').concat(fresh.map(asRow)));
+        const fresh = asRows(tab, await CALLS[tab].list());
+        if (!left) setPeople((all) => all.filter((p) => p.role !== tab).concat(fresh));
       } catch {
         // The next refresh asks again; the list on screen stays.
       }
     }, REFRESH_MS);
     return () => { left = true; clearInterval(timer); };
-  }, [tab, managesResponders, loading]);
+  }, [tab, manages, managesResponders, loading]);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -146,7 +161,7 @@ export default function Accounts({ onOpenIncident }) {
       await load();
       return;
     }
-    const result = await api.createCoordinator({ firstName, lastName, personalEmail, title, organizationId });
+    const result = await api.createCoordinator({ firstName, lastName, personalEmail, title, mobile, organizationId });
     setCreating(null);
     setTab('sub_admin');
     setNotice(t('Coordinator account created: {name} signs in as {address}', {
@@ -158,27 +173,25 @@ export default function Accounts({ onOpenIncident }) {
   }
 
   async function turnOff(person) {
-    const off = person.role === 'response_team' ? api.deactivateResponder : api.deactivateCoordinator;
-    await off(person.id);
+    await CALLS[person.role].off(person.id);
     setTurningOff(null);
     setNotice(t('{full_name}’s account is turned off', { full_name: person.full_name || person.email }));
     await load();
   }
 
   async function turnOn(person) {
-    setError(null);
+    setFailed(null);
     try {
-      const on = person.role === 'response_team' ? api.reactivateResponder : api.reactivateCoordinator;
-      await on(person.id);
+      await CALLS[person.role].on(person.id);
       setNotice(t('{full_name}’s account is turned on', { full_name: person.full_name || person.email }));
       await load();
     } catch (e) {
-      setError(e.message || t('The account could not be turned on.'));
+      setFailed(e.message || t('The account could not be turned on.'));
     }
   }
 
   async function saveEdit(person, changes) {
-    const saved = await api.updateResponder(person.id, changes);
+    const saved = await CALLS[person.role].save(person.id, changes);
     setEditing(null);
     setNotice(changes.organization_id
       ? t('{name} moved to {org}', { name: saved.full_name ?? person.email, org: saved.organization_name ?? '—' })
@@ -187,7 +200,7 @@ export default function Accounts({ onOpenIncident }) {
   }
 
   async function sendLink(person, personalEmail) {
-    const { sent_to: address } = await api.responderPasswordLink(person.id, personalEmail);
+    const { sent_to: address } = await CALLS[person.role].link(person.id, personalEmail);
     setLinking(null);
     setNotice(t('Password link sent to {address}', { address }));
     await load();
@@ -230,6 +243,17 @@ export default function Accounts({ onOpenIncident }) {
             <p className="rpl-alert-title">{t('The account is ready, but its email didn’t go out')}</p>
             <p className="rpl-alert-body">{warning}</p>
             <button type="button" className="rpl-text-button" onClick={() => setWarning(null)}>{t('Dismiss')}</button>
+          </div>
+        </div>
+      )}
+
+      {failed && (
+        <div className="rpl-alert rpl-alert--danger" role="alert">
+          <span className="rpl-alert-mark" aria-hidden="true">!</span>
+          <div className="rpl-alert-text">
+            <p className="rpl-alert-title">{t('The account is still off')}</p>
+            <p className="rpl-alert-body">{failed}</p>
+            <button type="button" className="rpl-text-button" onClick={() => setFailed(null)}>{t('Dismiss')}</button>
           </div>
         </div>
       )}
@@ -277,7 +301,7 @@ export default function Accounts({ onOpenIncident }) {
                 <tr>
                   <th scope="col">{coordinators ? t('Coordinator') : t('Responder')}</th>
                   {everyOrg && <th scope="col">{t('Organization')}</th>}
-                  <th scope="col">{coordinators ? t('Title') : t('Title and mobile')}</th>
+                  <th scope="col">{t('Title and mobile')}</th>
                   <th scope="col">{t('Status')}</th>
                   <th scope="col">{t('Created')}</th>
                   {actsHere && <th scope="col"><span className="web-sr-only">{t('Actions')}</span></th>}
@@ -296,7 +320,7 @@ export default function Accounts({ onOpenIncident }) {
                       </span>
                     </th>
                     {everyOrg && <td data-label={t('Organization')}>{p.org || t('No organization')}</td>}
-                    <td data-label={coordinators ? t('Title') : t('Title and mobile')}>
+                    <td data-label={t('Title and mobile')}>
                       <span className="rpl-account-detail">
                         <span>{p.title || '—'}</span>
                         {p.mobile && <span className="rpl-cell-meta">{p.mobile}</span>}
@@ -319,16 +343,8 @@ export default function Accounts({ onOpenIncident }) {
                     {actsHere && (
                       <td className="web-table-action-cell">
                         <span className="rpl-account-actions">
-                          {!coordinators ? (
-                            <button type="button" className="web-table-row-action" onClick={() => setEditing(p)}>{t('Manage')}<span className="web-sr-only">{t(' {name}’s account', { name: p.full_name || p.email })}</span>
-                            </button>
-                          ) : p.is_active === false ? (
-                            <button type="button" className="web-table-row-action" onClick={() => turnOn(p)}>{t('Turn on')}<span className="web-sr-only">{t(' {name}’s account', { name: p.full_name })}</span>
-                            </button>
-                          ) : (
-                            <button type="button" className="web-table-row-action" onClick={() => setTurningOff(p)}>{t('Turn off')}<span className="web-sr-only">{t(' {name}’s account', { name: p.full_name })}</span>
-                            </button>
-                          )}
+                          <button type="button" className="web-table-row-action" onClick={() => setEditing(p)}>{t('Manage')}<span className="web-sr-only">{t(' {name}’s account', { name: p.full_name || p.email })}</span>
+                          </button>
                         </span>
                       </td>
                     )}
@@ -359,7 +375,7 @@ export default function Accounts({ onOpenIncident }) {
         onCreate={create}
         onClose={() => setCreating(null)}
       />
-      <ManageResponderDialog
+      <ManageAccountDialog
         person={editing}
         organizations={everyOrg ? orgs : null}
         onSave={saveEdit}
@@ -372,10 +388,7 @@ export default function Accounts({ onOpenIncident }) {
 
       <ConfirmDialog
         open={Boolean(turningOff)}
-        eyebrow={!turningOff ? ''
-          : turningOff.role === 'response_team'
-            ? t('Responder · {org}', { org: turningOff.org ?? t('No organization') })
-            : t('Coordinator · {org}', { org: turningOff.org ?? org?.name ?? '' })}
+        eyebrow={accountEyebrow(turningOff)}
         title={turningOff ? t('Turn off {full_name}’s account?', { full_name: turningOff.full_name || turningOff.email }) : ''}
         description={turningOff?.responding
           ? t('They’re responding to {fire} now and will be taken off it. They can’t sign in until you turn it back on. Their history stays.', { fire: fireAt(turningOff.responding_to) })

@@ -17,7 +17,7 @@ import { t } from '../../i18n/i18n.jsx';
  * password passes through the console. `organizations`, when given, is for
  * the system Admin, which belongs to no organisation and names one.
  * With `responder`, the same form makes a Responder (v1.12.49; POST
- * /admin/responders) and asks for a mobile too.
+ * /admin/responders). Both ask for a mobile (v1.12.51).
  * `onCreate({ firstName, lastName, personalEmail, title, mobile, organizationId })`
  * must resolve once the account exists; a rejected promise shows its message
  * in the dialog. */
@@ -150,12 +150,10 @@ export default function CreateCoordinatorDialog({ open, organization, organizati
         <span className="rpl-field-label">{t('Title (optional)')}</span>
         <input value={title} onChange={(e) => setTitle(e.target.value)} disabled={busy} placeholder={responder ? t('e.g. Nozzleman') : t('e.g. Lieutenant')} maxLength={80} />
       </label>
-      {responder && (
-        <label className="rpl-field">
-          <span className="rpl-field-label">{t('Mobile (optional)')}</span>
-          <input type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} disabled={busy} autoComplete="off" placeholder="0917 123 4567" maxLength={32} />
-        </label>
-      )}
+      <label className="rpl-field">
+        <span className="rpl-field-label">{t('Mobile (optional)')}</span>
+        <input type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} disabled={busy} autoComplete="off" placeholder="0917 123 4567" maxLength={32} />
+      </label>
     </FormDialog>
   );
 }

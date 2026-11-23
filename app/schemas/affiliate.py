@@ -3,56 +3,78 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, BeforeValidator, EmailStr, Field
+
+from app.services.names import one_line
 
 AgencyType = Literal["fire_volunteer", "bfp", "barangay", "medical", "police"]
+
+# What the public form types, as one line (v1.12.51).
+Line = Annotated[str, BeforeValidator(lambda v: one_line(v) if isinstance(v, str) else v)]
+OptionalLine = Annotated[
+    str | None, BeforeValidator(lambda v: (one_line(v) or None) if isinstance(v, str) else v)
+]
+# The most a public application may list.
+MAX_ROSTER = 200
+MAX_EQUIPMENT = 100
 
 
 class AffiliateRequestCreate(BaseModel):
     """Submit an organization onboarding request."""
 
-    organization_name: str = Field(min_length=1, max_length=200)
+    organization_name: Line = Field(min_length=1, max_length=200)
     agency_type: AgencyType
-    contact_name: str | None = Field(default=None, max_length=200)
+    contact_name: OptionalLine = Field(default=None, max_length=200)
     contact_email: EmailStr | None = None
-    contact_phone: str | None = Field(default=None, max_length=40)
+    contact_phone: OptionalLine = Field(default=None, max_length=40)
     message: str | None = Field(default=None, max_length=2000)
 
 
 class RosterMember(BaseModel):
     """A roster entry on the public affiliation form."""
 
-    full_name: str = Field(min_length=1, max_length=200)
-    role: str | None = Field(default=None, max_length=120)
+    full_name: Line = Field(min_length=1, max_length=200)
+    role: OptionalLine = Field(default=None, max_length=120)
 
 
 class EquipmentUnit(BaseModel):
     """An equipment entry on the public affiliation form."""
 
-    name: str = Field(min_length=1, max_length=200)
-    type: str | None = Field(default=None, max_length=120)
+    name: Line = Field(min_length=1, max_length=200)
+    type: OptionalLine = Field(default=None, max_length=120)
 
 
 class AffiliatePublicRegister(BaseModel):
     """Public affiliation form (submitted by an org with no account yet)."""
 
-    organization_name: str = Field(min_length=1, max_length=200)
+    organization_name: Line = Field(min_length=1, max_length=200)
     agency_type: AgencyType
     contact_email: EmailStr
-    contact_phone: str | None = Field(default=None, max_length=40)
-    address: str | None = Field(default=None, max_length=500)
-    roster: list[RosterMember] = Field(default_factory=list)
-    equipment: list[EquipmentUnit] = Field(default_factory=list)
-    sec_certificate_name: str | None = Field(default=None, max_length=300)
+    # The person who becomes the first Coordinator (v1.12.51); an older page
+    # sends none, and the hub then types the name as it accepts.
+    contact_first_name: OptionalLine = Field(default=None, max_length=60)
+    contact_last_name: OptionalLine = Field(default=None, max_length=60)
+    contact_phone: OptionalLine = Field(default=None, max_length=40)
+    address: OptionalLine = Field(default=None, max_length=500)
+    roster: list[RosterMember] = Field(default_factory=list, max_length=MAX_ROSTER)
+    equipment: list[EquipmentUnit] = Field(default_factory=list, max_length=MAX_EQUIPMENT)
+    sec_certificate_name: OptionalLine = Field(default=None, max_length=300)
 
 
 class AffiliateReviewRequest(BaseModel):
     """Optional reviewer notes when approving/rejecting."""
 
     notes: str | None = Field(default=None, max_length=1000)
+
+
+class AffiliateAcceptRequest(AffiliateReviewRequest):
+    """Accepting: notes, and the first Coordinator's name if the form's is not it."""
+
+    coordinator_first_name: OptionalLine = Field(default=None, max_length=60)
+    coordinator_last_name: OptionalLine = Field(default=None, max_length=60)
 
 
 class AffiliateRequestResponse(BaseModel):
@@ -78,11 +100,12 @@ class AffiliateRequestResponse(BaseModel):
 
 
 class AffiliateAcceptResult(BaseModel):
-    """Outcome of approving an affiliate: the request plus sub-admin provisioning."""
+    """Outcome of approving an affiliate: the request and its new Coordinator."""
 
     request: AffiliateRequestResponse
-    account_email: str | None = None
+    account_email: str | None = None  # where the password link goes
+    sign_in_address: str | None = None  # the new Coordinator's @replit.com sign-in
     account_provisioned: bool = False
-    account_created: bool = False  # a new auth user was made (vs an existing one promoted)
+    account_created: bool = False  # always a new account, never one promoted (v1.12.51)
     invite_email_sent: bool = False
     detail: str | None = None  # human-readable note when provisioning was partial

@@ -30,12 +30,13 @@ from app.services import citizen_copy, staff_copy
 from app.services.access import FIRE_AGENCIES
 from app.services.citizen_copy import Language, by_language, languages_of
 from app.services.notification_inbox import record_inbox
+from app.services.org_standing import not_frozen_sql
 
 log = get_logger(__name__)
 
 _BATCH = 500  # FCM's most in one multicast
 
-_STAFF_SQL = """
+_STAFF_SQL = f"""
 with asked as (
   select distinct unnest(r.selected_agencies)::text as agency
     from public.area_reports ar
@@ -52,6 +53,7 @@ agencies as (
 select u.id
   from public.users u
  where u.is_active
+   and {not_frozen_sql()}
    and (
      (u.role::text = 'sub_admin' and u.agency_type::text in (select agency from agencies))
      or u.id in (

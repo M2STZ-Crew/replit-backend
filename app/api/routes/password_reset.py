@@ -1,7 +1,7 @@
 """Setting a password from an emailed link.
 
-Two emails carry a Supabase recovery link: an approved affiliate's "set your
-password" and the app's "Forgot password?". Supabase sends the person on to a
+Two emails carry a Supabase recovery link: the app's "Forgot password?" and an
+Admin's link for a real-mailbox sign-in. Supabase sends the person on to a
 redirect URL with the session in the URL fragment. With no redirect given it
 used the project's Site URL - the default http://localhost:3000 - so the link
 opened a page that does not exist, and nothing anywhere let the person type a
@@ -30,6 +30,7 @@ from app.integrations.supabase_auth import AuthError, SupabaseAuthClient
 from app.schemas.common import MessageResponse
 from app.services import password_attempts
 from app.services.email_layout import EmailAction, RenderedEmail, render_email
+from app.services.responder_accounts import is_staff_address
 
 log = get_logger(__name__)
 
@@ -127,15 +128,21 @@ async def send_reset_email(
     and the caller must not learn which addresses have accounts.
 
     A staff account that signs in at @replit.com has no mailbox there: its link
-    goes to its personal email instead (routes/staff_email.py). If that lookup
-    fails, the usual reset still goes.
+    goes to its personal email instead (routes/staff_email.py). An account that
+    signs in with that same address gets its own link too: someone's personal
+    email must not swallow it (v1.12.51). If that lookup fails, the usual reset
+    still goes.
     """
     if db is not None:
         from app.api.routes.staff_email import send_staff_resets
 
         try:
             if await send_staff_resets(db, email_client, email):
-                return
+                if is_staff_address(email) or not await db.fetchval(
+                    "select exists (select 1 from public.users where lower(email) = lower($1))",
+                    email,
+                ):
+                    return
         except Exception:
             log.warning("staff_reset_lookup_failed", exc_info=True)
     try:

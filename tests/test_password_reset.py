@@ -2,9 +2,9 @@
 
 Recovery links used to open the Supabase project's default Site URL,
 http://localhost:3000, and nothing anywhere let someone type a password. They
-now land on /auth/reset-password, which sets it with the link's session; both
-emails that carry one - "Forgot password?" and an approved affiliate's - point
-there, and the reset email goes through Brevo like every other RepLiT email.
+now land on /auth/reset-password, which sets it with the link's session, and
+the reset email goes through Brevo like every other RepLiT email. (An approved
+affiliate's link is a staff welcome since v1.12.51: test_affiliation.py.)
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.api.deps import get_auth_client, get_database, get_email_client
-from app.api.routes import affiliates, password_reset
+from app.api.routes import password_reset
 from app.core.exceptions import BadRequestError, ExternalServiceError
 from app.integrations.supabase_auth import AuthError
 from app.main import app
@@ -66,8 +66,15 @@ class _Users:
     """public.users as far as Forgot password? asks: staff accounts at
     @replit.com with a personal email."""
 
-    def __init__(self, rows: list[dict[str, Any]] | None = None) -> None:
+    def __init__(
+        self, rows: list[dict[str, Any]] | None = None, sign_ins: set[str] | None = None
+    ) -> None:
         self.rows = rows or []
+        self.sign_ins = sign_ins or set()
+
+    async def fetchval(self, query: str, *args: Any) -> bool:
+        assert "lower(email) = lower($1)" in query
+        return args[0] in self.sign_ins
 
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
         asked = args[0]
@@ -211,26 +218,24 @@ def test_a_broken_staff_lookup_still_sends_the_usual_reset(client: TestClient) -
     assert [m["to"] for m in mail.sent] == ["captain@brigade.example.com"]
 
 
-# ------------------------------------------------------ affiliate approval --
-class _Db:
-    async def execute(self, query: str, *args: Any) -> str:
-        return "UPDATE 1"
-
-    async def fetchval(self, query: str, *args: Any) -> None:
-        return None
-
-
-async def test_the_approval_email_links_to_the_page() -> None:
+def test_someone_s_personal_email_does_not_swallow_that_account_s_reset(
+    client: TestClient,
+) -> None:
+    # One mailbox: a coordinator's personal email, and another account's sign-in.
     auth, mail = _Auth(), _Mail()
-    info = await affiliates._provision_subadmin(
-        auth,  # type: ignore[arg-type]
-        mail,  # type: ignore[arg-type]
-        _Db(),  # type: ignore[arg-type]
-        email="captain@brigade.example.com",
-        full_name="Ramon Dizon",
-        agency_type="fire_volunteer",
-        org_id=uuid4(),
-        org_name="Hercules Fire Brigade",
+    users = _Users(
+        [{
+            "id": uuid4(),
+            "email": "obryan.fircor@replit.com",
+            "personal_email": "odyssey.bryan@gmail.com",
+        }],
+        sign_ins={"odyssey.bryan@gmail.com"},
     )
-    assert info["invite_email_sent"] is True
-    assert auth.links[0]["redirect_to"] == password_reset.reset_page_url()
+    _wire(auth, mail, users)
+
+    client.post("/auth/recover", json={"email": "Odyssey.Bryan@gmail.com"})
+
+    staff, own = mail.sent
+    assert "/auth/staff/password-link?token=" in staff["text"]
+    assert "auth.example.com/verify" in own["text"]
+    assert [m["to"] for m in mail.sent] == ["odyssey.bryan@gmail.com"] * 2

@@ -39,6 +39,7 @@ from app.services.incident import (
     visible_agencies,
 )
 from app.services.map_feed import MAP_CHANNEL
+from app.services.org_standing import FROZEN
 from app.services.tracking import can_track
 
 log = get_logger(__name__)
@@ -70,10 +71,12 @@ async def authenticate_websocket(websocket: WebSocket) -> AuthenticatedUser | No
         return None
     row = await database.fetchrow(
         """
-        select id, email, phone, role, agency_type, verified_percent, badge,
-               full_name, primary_org_id, phone_verified, is_active
-        from public.users
-        where id = $1
+        select u.id, u.email, u.phone, u.role, u.agency_type, u.verified_percent,
+               u.badge, u.full_name, u.primary_org_id, u.phone_verified, u.is_active,
+               coalesce(to_jsonb(o) ->> 'standing', 'active') as org_standing
+        from public.users u
+        left join public.organizations o on o.id = u.primary_org_id
+        where u.id = $1
         """,
         user_id,
     )
@@ -82,6 +85,9 @@ async def authenticate_websocket(websocket: WebSocket) -> AuthenticatedUser | No
     profile = dict(row)
     # A deactivated account gets no socket, as it gets no HTTP request.
     if profile.pop("is_active", True) is False:
+        return None
+    # Nor does anyone of a suspended or revoked organization (v1.12.51).
+    if profile.pop("org_standing", "active") in FROZEN:
         return None
     return AuthenticatedUser.model_validate(profile)
 

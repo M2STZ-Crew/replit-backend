@@ -34,7 +34,7 @@ from html import escape
 
 # Served by the Admin console (admin-web/public/assets/logo-mark.png). With
 # images blocked, its empty alt text leaves the wordmark beside it to read.
-LOGO_URL = "https://replit-backend-5u9u.vercel.app/assets/logo-mark.png"
+LOGO_URL = "https://reportwhatslit.vercel.app/assets/logo-mark.png"
 
 TAGLINE = "Pasay City's fire reporting and response network"
 

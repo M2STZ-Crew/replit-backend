@@ -40,7 +40,6 @@ def _emails() -> dict[str, RenderedEmail]:
         "verify": verification._verification_email("Ana Cruz", _LINK),
         "reset": password_reset._reset_email(_LINK),
         "received": affiliates._received_email(),
-        "approved": affiliates._approval_email("Hercules Fire Brigade", _LINK),
         "invite": staff_links.welcome_email(
             name="Ana Cruz",
             role="Coordinator",
@@ -60,7 +59,7 @@ def _emails() -> dict[str, RenderedEmail]:
 
 @pytest.mark.parametrize(
     "name",
-    ["verify", "reset", "received", "approved", "invite", "staff_reset", "staff_verify"],
+    ["verify", "reset", "received", "invite", "staff_reset", "staff_verify"],
 )
 def test_every_email_has_the_layout_and_a_text_twin(name: str) -> None:
     message = _emails()[name]
@@ -80,7 +79,7 @@ def test_every_email_has_the_layout_and_a_text_twin(name: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "name", ["verify", "reset", "approved", "invite", "staff_reset", "staff_verify"]
+    "name", ["verify", "reset", "invite", "staff_reset", "staff_verify"]
 )
 def test_the_link_is_the_button_and_written_out(name: str) -> None:
     message = _emails()[name]
@@ -92,7 +91,7 @@ def test_the_link_is_the_button_and_written_out(name: str) -> None:
 def test_the_link_lifetimes_are_stated_unchanged() -> None:
     emails = _emails()
     assert "24 hours" in emails["verify"].html and "24 hours" in emails["verify"].text
-    for name in ("reset", "approved", "staff_reset"):
+    for name in ("reset", "staff_reset"):
         assert "one hour" in emails[name].html and "one hour" in emails[name].text
     # A staff welcome waits three days: the person may not open it that hour.
     for name in ("invite", "staff_verify"):
@@ -108,7 +107,6 @@ def test_a_name_cannot_add_markup() -> None:
     sly = '<a href="https://evil.example">Ana</a> & "Co"'
     for message in (
         verification._verification_email(sly, _LINK),
-        affiliates._approval_email(sly, _LINK),
         staff_links.welcome_email(
             name=sly, role="Coordinator", organization=sly, address="x@replit.com",
             link=_LINK, made_by="An Admin",

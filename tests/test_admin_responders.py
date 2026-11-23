@@ -1,14 +1,17 @@
-"""An Admin's responder accounts (hermetic, v1.12.49).
+"""An Admin's responder and Coordinator accounts (hermetic, v1.12.49).
 
 22 Nov 2026: "admin can manage responders too (because they are the most
 powerful)", answered "Full account control" and "Own org; hub manages all".
 What these pin:
 - each Admin reaches its own organization's responders only, the central hub
   and the system Admin everyone's, and nobody else the routes at all;
-- only responders: never a coordinator's, an Admin's or a resident's account;
+- only that kind: never the other's, an Admin's or a resident's account;
 - a link sets the password, never shown; a confirmed email is the responder's;
 - only the hub moves one, within the agency and not while on a fire;
 - every change writes the audit log, and none of it dispatches.
+
+v1.12.51 (23 Nov 2026: "make the account management in coordinator and
+responder the same"): every test here runs for both kinds of account.
 """
 
 from __future__ import annotations
@@ -25,6 +28,8 @@ from fastapi.testclient import TestClient
 from app.api.deps import get_auth_client, get_current_user, get_database, get_email_client
 from app.main import app
 from app.schemas.auth import AuthenticatedUser
+from app.services.responder_accounts import ROLE_CODES
+from app.services.responder_lifecycle import COORDINATOR, RESPONDER, StaffKind
 
 PASAY, MAKATI, POLICE, HUB, CLOSED = uuid4(), uuid4(), uuid4(), uuid4(), uuid4()
 ORGS: dict[UUID, dict[str, Any]] = {
@@ -55,7 +60,8 @@ def _admin(org: UUID | None = PASAY, *, hub: bool = False, active: bool = True) 
 class _Db:
     """The accounts, rosters and audit log, as far as these routes need them."""
 
-    def __init__(self) -> None:
+    def __init__(self, kind: StaffKind) -> None:
+        self.kind = kind
         self.users: dict[UUID, dict[str, Any]] = {}
         self.titles: dict[tuple[UUID, UUID], str | None] = {}
         self.roster_off: list[tuple[UUID, UUID]] = []
@@ -67,9 +73,9 @@ class _Db:
         uid = uuid4()
         self.users[uid] = {
             "id": uid,
-            "role": "response_team",
+            "role": self.kind.role,
             "full_name": "Juan Dela Cruz",
-            "email": "jdelacruz.firres@replit.com",
+            "email": f"jdelacruz.fir{ROLE_CODES[self.kind.key]}@replit.com",
             "mobile": None,
             "agency_type": "fire_volunteer",
             "primary_org_id": org,
@@ -84,7 +90,7 @@ class _Db:
         return uid
 
     def _in_scope(self, user: dict[str, Any], scope: UUID | None) -> bool:
-        return user["role"] == "response_team" and scope in (None, user["primary_org_id"])
+        return user["role"] == self.kind.role and scope in (None, user["primary_org_id"])
 
     def _row(self, user: dict[str, Any]) -> dict[str, Any]:
         org = user["primary_org_id"]
@@ -117,14 +123,14 @@ class _Db:
             was = self.users[args[0]]["responding"]
             self.users[args[0]]["responding"] = False
             return [{"area_id": uuid4()}] if was else []
-        assert "u.role = 'response_team'" in query
+        assert f"u.role = '{self.kind.role}'" in query
         return [self._row(u) for u in self.users.values() if self._in_scope(u, args[0])]
 
     async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
         if "from public.organizations where id = $1" in query:
             org = ORGS.get(args[0])
             return {"id": args[0], **org} if org else None
-        assert "u.role = 'response_team'" in query
+        assert f"u.role = '{self.kind.role}'" in query
         uid, scope = (args[0], args[1]) if "for update of u" in query else (args[1], args[0])
         user = self.users.get(uid)
         return self._row(user) if user and self._in_scope(user, scope) else None
@@ -142,11 +148,11 @@ class _Db:
             self.audit.append(args[3])
             return "INSERT 0 1"
         self.written.append(q)
-        if q.startswith("update public.users set role = 'response_team'"):
+        if q.startswith(f"update public.users set role = '{self.kind.role}'"):
             if self.fail_profile:
                 return "UPDATE 0"
             self.users[args[0]].update(
-                role="response_team",
+                role=self.kind.role,
                 agency_type=args[1],
                 primary_org_id=args[2],
                 full_name=args[3],
@@ -164,6 +170,7 @@ class _Db:
         elif q.startswith("update public.users set is_active = true"):
             self.users[args[0]]["is_active"] = True
         elif q.startswith("insert into public.org_roster"):
+            assert f"'{self.kind.role}', $3" in q
             self.titles[(args[0], args[1])] = args[2]
         elif q.startswith("update public.org_roster set is_active = false"):
             self.roster_off.append((args[0], args[1]))
@@ -215,9 +222,11 @@ class _Mail:
 
 
 class _Api:
-    def __init__(self, client: TestClient) -> None:
+    def __init__(self, client: TestClient, kind: StaffKind) -> None:
         self.client = client
-        self.db = _Db()
+        self.kind = kind
+        self.other = COORDINATOR if kind is RESPONDER else RESPONDER
+        self.db = _Db(kind)
         self.auth = _Auth(self.db)
         self.mail = _Mail()
         app.dependency_overrides[get_database] = lambda: self.db
@@ -229,13 +238,13 @@ class _Api:
         app.dependency_overrides[get_current_user] = lambda: user
 
     def call(self, method: str, tail: str = "", body: Any = None) -> Any:
-        return self.client.request(method, f"/admin/responders{tail}", json=body)
+        return self.client.request(method, f"/admin/{self.kind.key}s{tail}", json=body)
 
 
-@pytest.fixture
-def api() -> Iterator[_Api]:
+@pytest.fixture(params=[RESPONDER, COORDINATOR], ids=["responder", "coordinator"])
+def api(request: pytest.FixtureRequest) -> Iterator[_Api]:
     with TestClient(app) as client:
-        yield _Api(client)
+        yield _Api(client, request.param)
     app.dependency_overrides.clear()
 
 
@@ -276,7 +285,7 @@ def test_an_admin_lists_its_own_the_hub_and_system_everyone(api: _Api) -> None:
     own = api.db.add(responding=True)
     other = api.db.add(MAKATI)
     nobody = api.db.add(None)
-    api.db.add(role="sub_admin")  # never listed
+    api.db.add(role=api.other.role)  # never listed
 
     rows = api.call("GET").json()
     assert [r["id"] for r in rows] == [str(own)]
@@ -304,9 +313,9 @@ def test_another_organization_s_responder_is_not_found(
     assert not api.db.written and not api.mail.sent and not api.auth.updates
 
 
-@pytest.mark.parametrize("role", ["admin", "sub_admin", "general_user"])
-def test_only_a_responder_s_account_even_for_the_system_admin(api: _Api, role: str) -> None:
-    uid = api.db.add(role=role)
+@pytest.mark.parametrize("role", ["admin", "the other kind", "general_user"])
+def test_only_that_kind_s_account_even_for_the_system_admin(api: _Api, role: str) -> None:
+    uid = api.db.add(role=api.other.role if role == "the other kind" else role)
     api.act_as(_admin(None))
     sent = api.call("POST", f"/{uid}/password-link", {"personal_email": "me@gmail.com"})
     assert sent.status_code == 404
@@ -314,15 +323,16 @@ def test_only_a_responder_s_account_even_for_the_system_admin(api: _Api, role: s
     assert not api.db.written and not api.mail.sent and not api.auth.updates
 
 
-def test_none_of_the_routes_dispatches() -> None:
-    paths = {p for p in app.openapi()["paths"] if p.startswith("/admin/responders")}
+@pytest.mark.parametrize("base", ["/admin/responders", "/admin/coordinators"])
+def test_the_same_routes_and_none_dispatches(base: str) -> None:
+    paths = {p: set(v) for p, v in app.openapi()["paths"].items() if p.startswith(base)}
     assert paths == {
-        "/admin/responders",
-        "/admin/responders/email-preview",
-        "/admin/responders/{user_id}",
-        "/admin/responders/{user_id}/password-link",
-        "/admin/responders/{user_id}/deactivate",
-        "/admin/responders/{user_id}/reactivate",
+        base: {"get", "post"},
+        f"{base}/email-preview": {"get"},
+        f"{base}/{{user_id}}": {"patch"},
+        f"{base}/{{user_id}}/password-link": {"post"},
+        f"{base}/{{user_id}}/deactivate": {"post"},
+        f"{base}/{{user_id}}/reactivate": {"post"},
     }
 
 
@@ -333,8 +343,8 @@ def test_an_admin_creates_its_responder_and_never_sees_a_password(api: _Api) -> 
     body = {**NEW, "title": " Nozzleman ", "mobile": "0917 123 4567"}
     res = api.call("POST", body=body)
     assert res.status_code == 201
-    made = res.json()["responder"]
-    assert made["email"] == "msantos.firres@replit.com"
+    made = res.json()[api.kind.key]
+    assert made["email"] == f"msantos.fir{ROLE_CODES[api.kind.key]}@replit.com"
     assert made["organization_id"] == str(PASAY) and made["agency_type"] == "fire_volunteer"
     assert made["title"] == "Nozzleman" and made["mobile"] == "+639171234567"
     assert api.auth.passwords[0] not in res.text
@@ -342,13 +352,13 @@ def test_an_admin_creates_its_responder_and_never_sees_a_password(api: _Api) -> 
     assert "Your organization's Admin" in api.mail.sent[0][1]
     assert "/auth/staff/password-link?token=" in api.mail.sent[0][1]
     assert res.json()["invite_email_sent"]
-    assert api.db.audit == ["user.responder_created"]
+    assert api.db.audit == [f"user.{api.kind.key}_created"]
 
 
 def test_the_preview_numbers_a_taken_address(api: _Api) -> None:
     api.db.add()
     res = api.call("GET", "/email-preview?first_name=Jose&last_name=Dela%20Cruz")
-    assert res.json()["email"] == "jdelacruz1.firres@replit.com"
+    assert res.json()["email"] == f"jdelacruz1.fir{ROLE_CODES[api.kind.key]}@replit.com"
 
 
 def test_an_admin_cannot_create_into_another_organization(api: _Api) -> None:
@@ -359,8 +369,10 @@ def test_an_admin_cannot_create_into_another_organization(api: _Api) -> None:
 
 def test_the_hub_creates_for_any_active_organization(api: _Api) -> None:
     api.act_as(_admin(HUB, hub=True))
-    made = api.call("POST", body={**NEW, "organization_id": str(POLICE)}).json()["responder"]
-    assert made["email"] == "msantos.polres@replit.com" and made["agency_type"] == "police"
+    res = api.call("POST", body={**NEW, "organization_id": str(POLICE)})
+    made = res.json()[api.kind.key]
+    assert made["email"] == f"msantos.pol{ROLE_CODES[api.kind.key]}@replit.com"
+    assert made["agency_type"] == "police"
     assert "A RepLiT Admin" in api.mail.sent[0][1]
     assert api.call("POST", body={**NEW, "organization_id": str(CLOSED)}).status_code == 409
 
@@ -408,7 +420,7 @@ def test_edit_name_title_and_mobile(api: _Api) -> None:
     row = api.call("PATCH", f"/{uid}", body).json()
     assert row["full_name"] == "Juan P. Dela Cruz"
     assert (row["title"], row["mobile"]) == ("Driver", "+639171234567")
-    assert api.db.audit == ["user.responder_updated"]
+    assert api.db.audit == [f"user.{api.kind.key}_updated"]
 
     cleared = api.call("PATCH", f"/{uid}", {"title": "", "mobile": ""}).json()
     assert (cleared["title"], cleared["mobile"]) == (None, None)
@@ -441,7 +453,7 @@ def test_the_hub_moves_within_the_agency_with_the_title(api: _Api) -> None:
     row = api.call("PATCH", f"/{uid}", {"organization_id": str(MAKATI)}).json()
     assert (row["organization_id"], row["title"]) == (str(MAKATI), "Driver")
     assert api.db.roster_off == [(PASAY, uid)]
-    assert api.db.audit == ["user.responder_moved"]
+    assert api.db.audit == [f"user.{api.kind.key}_moved"]
 
 
 @pytest.mark.parametrize(
@@ -480,7 +492,7 @@ def test_the_link_goes_to_their_own_email(api: _Api) -> None:
     assert "Your organization's Admin sent you a link" in text
     assert "We received a request" not in text
     assert not api.auth.updates  # the password they have still works
-    assert api.db.audit == ["user.responder_password_link"]
+    assert api.db.audit == [f"user.{api.kind.key}_password_link"]
 
 
 def test_an_admin_fills_in_an_email_that_was_never_confirmed(api: _Api) -> None:
@@ -490,7 +502,7 @@ def test_an_admin_fills_in_an_email_that_was_never_confirmed(api: _Api) -> None:
     assert api.call("POST", f"/{uid}/password-link", body).status_code == 200
     assert api.db.users[uid]["personal_email"] == "juan.new@gmail.com"
     assert api.mail.sent[0][0] == "juan.new@gmail.com"
-    assert api.db.audit == ["user.responder_email_set", "user.responder_password_link"]
+    assert api.db.audit == [f"user.{api.kind.key}_email_set", f"user.{api.kind.key}_password_link"]
 
 
 def test_a_confirmed_email_is_the_responder_s_to_change(api: _Api) -> None:
@@ -532,4 +544,4 @@ def test_off_releases_the_fire_and_on_lifts_the_ban(api: _Api) -> None:
     on = api.call("POST", f"/{uid}/reactivate").json()
     assert on["is_active"]
     assert [u["ban_duration"] for u in api.auth.updates] == ["876000h", "none"]
-    assert api.db.audit == ["user.responder_deactivated", "user.responder_reactivated"]
+    assert api.db.audit == [f"user.{api.kind.key}_deactivated", f"user.{api.kind.key}_reactivated"]
