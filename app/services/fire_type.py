@@ -9,6 +9,7 @@ out of Structural: Pasay has no agricultural land.
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from typing import Literal
 from uuid import UUID
 
@@ -31,6 +32,37 @@ ON_SCENE_STATUSES = frozenset({"arrived", "fire_out", "post_incident_report"})
 
 # The agencies that say what is burning (v1.12.29): the fire teams.
 FIRE_AGENCIES = frozenset({"fire_volunteer", "bfp"})
+
+# The first fire team on scene says it; this long after it arrived without
+# saying, any fire team on scene may, so the alarm never waits on one phone.
+FIRST_ON_SCENE_WAIT = timedelta(minutes=5)
+
+
+def assert_first_on_scene(
+    *,
+    org_id: UUID | None,
+    first_org: UUID | None,
+    first_org_name: str | None,
+    first_agency: str | None,
+    arrived_at: datetime | None,
+    now: datetime,
+) -> None:
+    """Nobody has said what is burning yet: the team that arrived first says it
+    (23 Nov 2026: "the first one who can fill-up the fire type is the one who
+    comes the incident first"). A 409 ``first_on_scene_answers`` for another
+    team, until [FIRST_ON_SCENE_WAIT] has passed since the arrival. When the
+    first on scene was not a fire team, any fire team on scene may."""
+    if first_org is None or first_agency not in FIRE_AGENCIES or first_org == org_id:
+        return
+    if arrived_at is not None and now - arrived_at >= FIRST_ON_SCENE_WAIT:
+        return
+    team = first_org_name or "The first fire team on scene"
+    raise ConflictError(
+        f"{team} arrived first, so they say what is burning. If they have not "
+        "within 5 minutes of arriving, any fire team on scene can.",
+        error_code="first_on_scene_answers",
+        details={"organization_id": str(first_org), "organization_name": team},
+    )
 
 
 def assert_may_answer(

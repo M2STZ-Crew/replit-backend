@@ -6,7 +6,7 @@ import { t } from '../i18n/i18n.jsx';
 /* The units on the way to, or at, the fires on the live map (REPLIT (MAIN)
  * 10 · A30: "Your organisation's unit").
  *
- * For every Area with someone going (en route or on scene), its dispatches and
+ * For every Area with someone going (on route or on scene), its dispatches and
  * the latest fix of each responder on it, every few seconds. The server sends
  * an organisation's Admin only its own people's fixes — "Other organisations'
  * vehicles are never shown" — and the system Admin everyone's; a dispatch

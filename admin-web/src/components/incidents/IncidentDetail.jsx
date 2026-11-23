@@ -66,7 +66,7 @@ function timelineOf(d, evidence) {
     a.user_name || null,
     'neutral',
   ));
-  push(d.en_route_at, t('A unit set off'), t('The incident went En route'), 'live');
+  push(d.en_route_at, t('A unit set off'), t('The incident went On route'), 'live');
   push(d.arrived_at, t('Arrived on scene'), t('The first unit reached the fire'), 'live');
   // Who set it: a Positive fire alarm is the first verifier's, not BFP's.
   push(
@@ -221,7 +221,7 @@ function Decision({ d, access, orgName, onAcknowledge, busy, acknowledgedNow }) 
                 ? (who ? t('Acknowledged for {org} by {name}', { org: orgName, name: who }) : t('Acknowledged for {org}', { org: orgName }))
                 : (who ? t('Acknowledged by {name}', { name: who }) : t('Acknowledged'))} · {clock(at)}
             </p>
-            <p className="rpl-success-body">{t('Coordinators and Responders can see it. It moves to En route when a unit sets off.')}</p>
+            <p className="rpl-success-body">{t('Coordinators and Responders can see it. It moves to On route when a unit sets off.')}</p>
           </div>
         </div>
       </section>

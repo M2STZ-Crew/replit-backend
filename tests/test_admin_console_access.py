@@ -400,7 +400,8 @@ async def test_the_bfp_admin_is_told_plainly_before_the_migration() -> None:
 
         async def fetchrow(self, query: str, *args: Any) -> dict[str, Any]:
             if "from public.areas" in query:
-                return {"status": "en_route", "alarm_level": None, "designation": "1.2"}
+                return {"status": "en_route", "alarm_level": None, "designation": "1.2",
+                        "fire_type": "structural"}
             return {"area_id": AREA, "lvl": "second_alarm", "status": "pending"}
 
         async def execute(self, query: str, *args: Any) -> str:

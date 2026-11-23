@@ -31,7 +31,7 @@ const STATUSES = [
   { key: 'all', get label() { return tr('All active'); } },
   { key: 'to_acknowledge', get label() { return tr('To acknowledge'); } },
   { key: 'verified', get label() { return tr('Acknowledged'); } },
-  { key: 'en_route', get label() { return tr('En route'); } },
+  { key: 'en_route', get label() { return tr('On route'); } },
   { key: 'arrived', get label() { return tr('Arrived'); } },
   { key: 'post_incident_report', get label() { return tr('Report due'); } },
 ];

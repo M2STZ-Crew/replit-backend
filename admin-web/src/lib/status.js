@@ -3,7 +3,7 @@ import { t } from '../i18n/i18n.jsx';
 ///
 /// v11 renames the operator-facing set (Section 2.5) and drops 'dispatched':
 /// v12: Accept verifies (Reported -> Verified); the first responder moves it to
-/// En route. Either way there
+/// On route. Either way there
 /// is no step between the two to label. 'post_incident_report' is the wait
 /// between fire out and the team captain filing; 'closed' is terminal.
 /// Pass 6 (REPLIT (MAIN) 04 · Lifecycle chip; PRD v13 §4.5.1, §19.2): the
@@ -19,7 +19,7 @@ export const STATUS = {
   verified: { get label() { return t('Acknowledged'); }, color: '#5B93F5' },
   acknowledged: { get label() { return t('Acknowledged'); }, color: '#5B93F5' },
   declined: { get label() { return t('Declined'); }, color: '#9E9E9E' },
-  en_route: { get label() { return t('En route'); }, color: '#FF9066' },
+  en_route: { get label() { return t('On route'); }, color: '#FF9066' },
   arrived: { get label() { return t('Arrived'); }, color: '#FF544E' },
   fire_out: { get label() { return t('Fire out'); }, color: '#22C55E' },
   post_incident_report: { get label() { return t('Report due'); }, color: '#2DD4BF' },

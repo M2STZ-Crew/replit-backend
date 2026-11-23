@@ -6,7 +6,7 @@ everywhere". The status is BFP's level, and Under control while that is in
 effect:
 
 - declared by a fire coordinator or Admin (app/services/under_control.py);
-- on a live fire (acknowledged, en route or arrived): fire out says more;
+- on a live fire (acknowledged, on route or arrived): fire out says more;
 - newer than the alarm level, so a raise clears it with nothing to write.
 
 The columns are read through to_jsonb, so every read works on a database

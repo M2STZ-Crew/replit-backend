@@ -9,7 +9,7 @@ import { t } from '../../i18n/i18n.jsx';
 const STEPS = [
   { key: 'reported', get label() { return t('Reported'); } },
   { key: 'acknowledged', get label() { return t('Acknowledged'); }, also: ['verified'] },
-  { key: 'en_route', get label() { return t('En route'); } },
+  { key: 'en_route', get label() { return t('On route'); } },
   { key: 'arrived', get label() { return t('Arrived'); } },
   { key: 'fire_out', get label() { return t('Fire out'); }, also: ['post_incident_report'] },
   { key: 'closed', get label() { return t('Closed'); } },
