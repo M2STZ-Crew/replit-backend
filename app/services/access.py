@@ -28,8 +28,9 @@ The rules are REPLIT (MAIN) pass 6, A00 "Four permission variants":
   every Admin function, for every agency's incidents, all in one console (9
   November 2026: "barangay 76 as a central hub with all admin functions in web,
   not separated admin, fire, medic and barangay; it is all in one"). It has
-  everything the system account has, and asks for and decides alarm levels
-  too; its acknowledgements are recorded under Barangay, its own agency. It
+  everything the system account has, and asks BFP to raise the alarm (only
+  BFP sets levels, 26 Nov 2026); its acknowledgements are recorded under
+  Barangay, its own agency. It
   signs in as barangay76.admin@replit.com. Until then it was a Barangay Admin
   that also reviewed affiliates and IDs and looked after the map layers.
 
@@ -187,7 +188,7 @@ def admin_access(user: AuthenticatedUser) -> AdminAccess | None:
             organization_name=user.org_name,
             agency=agency,
             act_agencies=None,
-            permissions=_SYSTEM | {REQUEST_ALARM, DECIDE_ALARM},
+            permissions=_SYSTEM | {REQUEST_ALARM},
         )
     permissions = set(_EVERY_ADMIN)
     if agency in FIRE_AGENCIES:

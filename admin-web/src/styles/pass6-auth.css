@@ -101,3 +101,5 @@
 
 /* English | Tagalog on the sign-in page, before anyone has signed in. */
 .lg-language { margin-bottom: 18px; }
+
+.rg-links { display: flex; flex-wrap: wrap; gap: 8px 20px; }

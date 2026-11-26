@@ -79,6 +79,7 @@ from app.services.incident import (
     assert_can_respond,
     assert_can_verify,
     assert_coordinator,
+    assert_org_going,
     assert_transition,
     can_respond,
     is_coordinator,
@@ -786,6 +787,7 @@ async def resolve_incident(
     assert_coordinator(user, "mark incidents fire out")
     current = await _load_status(db, incident_id)
     await _assert_visible(db, incident_id, user)
+    await assert_org_going(db, incident_id, user, "mark it fire out")
     assert_transition(current, "fire_out")
     assert_transition("fire_out", "post_incident_report")
     async with db.acquire() as conn, conn.transaction():

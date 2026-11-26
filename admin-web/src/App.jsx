@@ -10,6 +10,7 @@ import Login from './pages/Login.jsx';
 // first thing most visits show, does not wait for either.
 const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
 const Register = lazy(() => import('./pages/Register.jsx'));
+const AdminRegistrationPage = lazy(() => import('./pages/AdminRegistrationPage.jsx'));
 
 function Protected({ children }) {
   const { user, loading, startupError, retry, logout } = useAuth();
@@ -27,6 +28,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/admin-registration" element={<AdminRegistrationPage />} />
         <Route
           path="/"
           element={

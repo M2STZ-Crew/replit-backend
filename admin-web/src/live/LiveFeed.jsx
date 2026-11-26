@@ -14,6 +14,7 @@ import {
 } from '../sound/alarm.js';
 import { announce, stopCues } from '../sound/cues.js';
 import { alarmRank, isRaise } from '../lib/alarmStatus.js';
+import { openLiveSocket, useLiveEvents } from './socket.js';
 
 /// The live incident feed behind the console's red badges and sounds
 /// (Master Context v10, Sections 2.8 and 2.9).
@@ -135,6 +136,10 @@ export function LiveFeedProvider({ children }) {
     const timer = setInterval(refresh, POLL_MS);
     return () => clearInterval(timer);
   }, [refresh]);
+
+  // What happens on the phones shows here within a second (v1.12.53).
+  useEffect(() => (user ? openLiveSocket() : undefined), [user]);
+  useLiveEvents(refresh);
 
   const markSeen = useCallback((surface) => {
     setSeenAt((prev) => {

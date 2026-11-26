@@ -79,6 +79,7 @@ function AcceptOutcome({ result, request }) {
         <span className="rpl-alert-mark" aria-hidden="true">✓</span>
         <div className="rpl-alert-text">
           <p className="rpl-alert-title">{t('Accepted — password link sent')}</p>
+          {result.admin_link_sent && <p className="rpl-alert-body">{t('A second email lets them set up the organization’s Admin for the web console.')}</p>}
           <p className="rpl-alert-body">{result.sign_in_address
             ? t('Sent to {email} at {time}. The Coordinator signs in with {address}.', { email, address: result.sign_in_address, time: CLOCK.format(new Date(request.reviewed_at ?? Date.now())) })
             : t('Sent to {email} at {time}. They sign in as the organization’s Coordinator.', { email, time: CLOCK.format(new Date(request.reviewed_at ?? Date.now())) })}</p>
@@ -103,6 +104,18 @@ function AcceptOutcome({ result, request }) {
   );
 }
 
+/* A ten-minute link from the server; the file itself never passes through here. */
+async function openCertificate(id) {
+  const opened = window.open('', '_blank', 'noopener');
+  try {
+    const { url } = await api.affiliateCertificate(id);
+    if (opened) opened.location = url; else window.open(url, '_blank', 'noopener');
+  } catch (e) {
+    opened?.close();
+    window.alert(e?.message || t('The certificate could not be opened.'));
+  }
+}
+
 function RequestDetail({ request: r, result, orgs, onAccept, onDecline, onOpenOrg }) {
   const details = r.details ?? {};
   const members = Array.isArray(details.roster) ? details.roster : null;
@@ -110,6 +123,10 @@ function RequestDetail({ request: r, result, orgs, onAccept, onDecline, onOpenOr
   const roster = members?.length ?? null;
   const equipment = units?.length ?? null;
   // The same name on the network already: maybe the same organization again.
+  // BFP Pasay and PNP Pasay are meant to be the only ones (answered "Warn the hub").
+  const single = r.status === 'pending' && (r.agency_type === 'bfp' || r.agency_type === 'police')
+    ? orgs.find((o) => o.agency_type === r.agency_type && o.standing !== 'revoked')
+    : null;
   const twin = r.status === 'pending'
     ? orgs.find((o) => o.standing !== 'revoked' && sameName(o.name, r.organization_name))
     : null;
@@ -121,7 +138,9 @@ function RequestDetail({ request: r, result, orgs, onAccept, onDecline, onOpenOr
     ...(equipment != null ? [[t('Equipment'), equipment === 1 ? t('{count} unit', { count: equipment }) : t('{count} units', { count: equipment })]] : []),
     ...(equipment ? [[t('Units listed'), units.map((u) => (u.type ? `${u.name} (${u.type})` : u.name)).join(', ')]] : []),
     // Only the name ever arrives: the form does not upload the file.
-    ...(details.sec_certificate_name ? [[t('SEC certificate'), t('{name} (file name only: ask them for the file)', { name: details.sec_certificate_name })]] : []),
+    ...(details.sec_certificate_path
+      ? [[t('SEC certificate'), <button type="button" className="rpl-text-button" onClick={() => openCertificate(r.id)}>{t('Open the certificate')}</button>]]
+      : details.sec_certificate_name ? [[t('SEC certificate'), t('{name} (file name only: ask them for the file)', { name: details.sec_certificate_name })]] : []),
     [t('Submitted by'), r.contact_name || t('Not given')],
     [t('Email'), r.contact_email || t('Not given')],
     [t('Mobile'), r.contact_phone || t('Not given')],
@@ -152,6 +171,12 @@ function RequestDetail({ request: r, result, orgs, onAccept, onDecline, onOpenOr
 
       {r.status === 'pending' && !result && (
         <>
+          {single && !sameName(single.name, r.organization_name) && (
+            <div className="rpl-alert rpl-alert--warn">
+              <span className="rpl-alert-mark" aria-hidden="true">!</span>
+              <p className="rpl-alert-body">{t('{org} is already on the network as {agency}, and there is meant to be only one. Accept a second only if you mean to.', { org: single.name, agency: agencyLabel(r.agency_type) })}</p>
+            </div>
+          )}
           {twin && (
             <div className="rpl-alert rpl-alert--warn">
               <span className="rpl-alert-mark" aria-hidden="true">!</span>
@@ -174,7 +199,7 @@ function RequestDetail({ request: r, result, orgs, onAccept, onDecline, onOpenOr
       )}
 
       {org && (
-        <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onOpenOrg(org.id)}>{t('Open')}{' '}{org.name}
+        <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onOpenOrg(org.id)}>{t('Open organization')}
         </button>
       )}
     </section>
@@ -433,7 +458,7 @@ export default function Affiliates() {
         destructive
         eyebrow={t('Affiliate request · {agency}', { agency: confirm ? agencyLabel(confirm.request.agency_type) : '' })}
         title={t('Decline {org}?', { org: confirm?.request.organization_name ?? '' })}
-        description={t('No organization or account is created. RepLiT doesn’t email {contactOf} about it, so let them know yourself.', { contactOf: contactOf(confirm?.request ?? {}) })}
+        description={t('No organization or account is created. We email {contactOf} that the application wasn’t approved, without your reason.', { contactOf: contactOf(confirm?.request ?? {}) })}
         confirmLabel={t('Decline request')}
         onClose={() => setConfirm(null)}
         onConfirm={decline}

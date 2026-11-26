@@ -6,6 +6,38 @@ the mobile app (`replit-android`) carry the same number.
 
 ---
 
+## v1.12.53 — 26 November 2026 — Only those going act; only BFP sets alarms; live console; affiliation finished
+
+Backend, console and the residents' site. Goes with app v1.12.63. Four
+migrations, applied after the merge with the owner's OK (26 Nov):
+`20261123120000` (v1.12.52's), `20261126090000`, `20261126090100`,
+`20261126090200`.
+
+- **Only an organization going acts on a fire** ("the org can't mark fire out
+  an incident if they're not going on that incident"; answered "Same rule").
+  Fire out, fire codes and alarm requests need the organization to be going
+  or on scene (409 `not_going`), in the app and the console alike. BFP raises
+  the alarm from anywhere.
+- **Only BFP sets alarm levels** ("central hub shouldn't raise an alarm";
+  answered "Ask BFP, like FV"). The central hub asks BFP, like a Fire
+  Volunteer, and no longer raises or approves; the database agrees once
+  `20261126090000` is applied.
+- **The console hears changes within a second** ("the web isn't fast";
+  answered "Live, within a second"). It listens on the server's live channel
+  and reads again what it shows; its 12-second check stays as a fallback.
+- **Open incident** on an alarm escalation, instead of the whole address.
+- **The SEC certificate is really uploaded** (answered "Real private
+  upload"), to a private bucket only the central hub opens.
+- **A declined applicant is told**, without the reason.
+- **An accepted organization sets up its own Admin** (answered "One-time
+  Admin link"): a link valid 48 hours, once, to `/admin-registration`.
+- **Accounts and organizations change only through the server** (answered
+  "Tighten"): the database's direct-write policies go.
+- **Terms** on the residents' site, and the privacy page's contact email.
+- The hub is warned before accepting a second BFP or police organization.
+
+---
+
 ## v1.12.52 — 23 November 2026 — The fire type before the alarm; On route
 
 Backend and console. Goes with app v1.12.62. One migration, written and not

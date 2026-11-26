@@ -1,3 +1,4 @@
+import { useLiveEvents } from '../live/socket.js';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { api } from '../api/client.js';
@@ -96,6 +97,7 @@ export default function Requests({ readRequests, onOpenIncident }) {
   }, [readRequests, refreshKey]);
 
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+  useLiveEvents(refresh);
   const areaById = useMemo(() => new Map(incidents.map((i) => [i.id, i])), [incidents]);
   // Where a Fire Volunteer Admin may ask for a higher alarm: live Areas
   // routed to it that someone has acknowledged.
@@ -396,7 +398,7 @@ function RequestDetail({
             </div>
           )}
           {onOpenIncident && area && (
-            <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onOpenIncident(r.area_id)}>{t('Open')}{' '}{areaOf(r)}
+            <button type="button" className="rpl-button rpl-button--secondary" onClick={() => onOpenIncident(r.area_id)}>{t('Open incident')}
             </button>
           )}
         </section>

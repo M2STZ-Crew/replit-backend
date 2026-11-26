@@ -54,7 +54,7 @@ class Settings(BaseSettings):
         description='Deployment environment: "development" | "staging" | "production".',
     )
     app_name: str = Field(default="RepLiT Backend", description="Human-readable app name.")
-    app_version: str = Field(default="1.12.52", description="Semantic version of the build.")
+    app_version: str = Field(default="1.12.53", description="Semantic version of the build.")
     host: str = Field(default="0.0.0.0", description="Uvicorn bind host.")
     port: int = Field(default=8000, ge=1, le=65535, description="Uvicorn bind port.")
 
@@ -213,6 +213,14 @@ class Settings(BaseSettings):
     public_base_url: str = Field(
         default="http://localhost:8000",
         description="Public base URL of this backend (used to build email verification links).",
+    )
+    console_base_url: str = Field(
+        default="https://reportwhatslit.vercel.app",
+        description="The Admin console's address, for links emailed to new Admins (v1.12.53).",
+    )
+    console_base_url: str = Field(
+        default="https://reportwhatslit.vercel.app",
+        description="The Admin console's address, for links emailed to new Admins (v1.12.53).",
     )
 
     # ----- Firebase Cloud Messaging (Phase 5) -----

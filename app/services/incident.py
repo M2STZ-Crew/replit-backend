@@ -432,3 +432,38 @@ async def record_responder_location(
         payload.captured_at,
     )
     return True
+
+
+async def org_is_going(db: Database, area_id: UUID, user: AuthenticatedUser) -> bool:
+    """Somebody of the caller's organization is on the way or on scene (an active
+    dispatch), or the caller is (v1.12.53)."""
+    found = await db.fetchval(
+        """
+        select exists (
+            select 1 from public.dispatch_logs d
+             where d.area_id = $1 and d.status = 'active'
+               and (d.responder_id = $2
+                    or ($3::uuid is not null and d.organization_id = $3))
+        )
+        """,
+        area_id,
+        user.id,
+        user.primary_org_id,
+    )
+    return bool(found)
+
+
+async def assert_org_going(
+    db: Database, area_id: UUID, user: AuthenticatedUser, act: str
+) -> None:
+    """Only an organization going to the fire acts on it (26 Nov 2026: "the org
+    can't mark fire out an incident if they're not going on that incident").
+    A 409 ``not_going``. The system account belongs to no organization."""
+    access = admin_access(user)
+    if access is not None and access.is_system:
+        return
+    if not await org_is_going(db, area_id, user):
+        raise ConflictError(
+            f"Tap I am going first: only an organization going to this fire can {act}.",
+            error_code="not_going",
+        )

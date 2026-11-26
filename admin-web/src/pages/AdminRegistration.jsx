@@ -5,9 +5,8 @@ import { t } from '../i18n/i18n.jsx';
 
 /* Set up an organisation's Admin account from its one-time link (REPLIT
  * (MAIN) 10 · A07 862:1013 available, A08 taken, A09 not allowed, A10 link
- * expired, A11 already used). UI READY — the server's accept flow creates a
- * Coordinator and emails a password link instead, so this screen is not
- * routed; it is shown only in docs/console-ready.html.
+ * expired, A11 already used). Routed at /admin-registration since v1.12.53
+ * (pages/AdminRegistrationPage.jsx, which reads the link from the server).
  *
  *   link        { state: 'valid' | 'expired' | 'used', organization, expiresAt? }
  *   domain      the fixed ending of the email, e.g. '.admin@example.org'

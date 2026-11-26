@@ -248,8 +248,10 @@ async def test_the_link_goes_to_the_contact_and_confirms_it() -> None:
 
     result = await _accept(db, mail=mail)
 
-    (sent,) = mail.sent
+    sent, admin = mail.sent
     assert sent["to"] == CONTACT
+    # And the one-time link that sets up the organization's Admin (v1.12.53).
+    assert admin["to"] == CONTACT and "/admin-registration?token=" in admin["text"]
     assert "/auth/staff/password-link?token=" in sent["text"]
     assert MADE in sent["text"] and "central hub" in sent["text"]
     assert "reportwhatslit-apk.vercel.app" in sent["text"]
