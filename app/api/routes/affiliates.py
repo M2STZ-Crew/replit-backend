@@ -17,7 +17,7 @@ import secrets
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, File, Form, Query, Request, UploadFile, status
 
 from app.api.deps import (
     AffiliateReviewer,
@@ -25,8 +25,16 @@ from app.api.deps import (
     CurrentUser,
     DatabaseDep,
     EmailClientDep,
+    StorageClientDep,
 )
-from app.core.exceptions import AppError, BadRequestError, ConflictError, NotFoundError
+from app.core.config import get_settings
+from app.core.exceptions import (
+    AppError,
+    BadRequestError,
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+)
 from app.core.logging import get_logger
 from app.integrations.brevo_email import BrevoEmailClient
 from app.schemas.affiliate import (
@@ -36,13 +44,22 @@ from app.schemas.affiliate import (
     AffiliateRequestCreate,
     AffiliateRequestResponse,
     AffiliateReviewRequest,
+    CertificateLink,
 )
+from app.schemas.common import MessageResponse
 from app.services import responder_lifecycle as lifecycle
 from app.services import staff_admin
+from app.services.affiliate_links import (
+    ADMIN_FOR,
+    CERTIFICATE_FOR,
+    AffiliateLinkError,
+    make_token,
+    read_token,
+)
 from app.services.audit import record_audit
 from app.services.disposable_email import ensure_not_disposable
 from app.services.email_deliverability import ensure_deliverable
-from app.services.email_layout import RenderedEmail, render_email
+from app.services.email_layout import EmailAction, RenderedEmail, render_email
 from app.services.names import ensure_valid_name, one_line
 from app.services.responder_accounts import is_staff_address
 from app.services.responder_lifecycle import COORDINATOR
@@ -241,7 +258,110 @@ async def register_affiliate(
     # After the response, so a slow mail server never holds up the form.
     if not skip_email:
         background.add_task(_send_received_email, email_client, email)
-    return _to_response(row)
+    response = _to_response(row)
+    response.certificate_upload_token = make_token(row["id"], "certificate", CERTIFICATE_FOR)
+    return response
+
+
+# --------------------------------------------------------------------------- #
+# The SEC certificate (v1.12.53; answered "Real private upload")
+# --------------------------------------------------------------------------- #
+CERTIFICATE_BUCKET = "affiliate-documents"
+CERTIFICATE_MAX_BYTES = 10 * 1024 * 1024
+# What a certificate may be, by its first bytes rather than what it claims.
+_CERTIFICATE_TYPES = (
+    (b"%PDF", "application/pdf", "pdf"),
+    (b"\xff\xd8\xff", "image/jpeg", "jpg"),
+    (b"\x89PNG", "image/png", "png"),
+)
+
+
+def certificate_kind(data: bytes) -> tuple[str, str] | None:
+    """The certificate's content type and extension, or None for anything else."""
+    for magic, content_type, extension in _CERTIFICATE_TYPES:
+        if data.startswith(magic):
+            return content_type, extension
+    return None
+
+
+@router.post(
+    "/register/{request_id}/certificate",
+    response_model=MessageResponse,
+    summary="Upload an application's SEC certificate (the public form, right after it)",
+)
+async def upload_certificate(
+    request_id: UUID,
+    db: DatabaseDep,
+    storage: StorageClientDep,
+    token: Annotated[str, Form(max_length=1000)],
+    file: Annotated[UploadFile, File()],
+) -> MessageResponse:
+    """Stored privately: only the central hub opens it, through a short link."""
+    try:
+        link = read_token(token, "certificate")
+    except AffiliateLinkError as exc:
+        raise ForbiddenError("This upload link is not valid.") from exc
+    if link.subject != request_id or link.expired:
+        raise ForbiddenError("This upload link is not valid.")
+    data = await file.read(CERTIFICATE_MAX_BYTES + 1)
+    if len(data) > CERTIFICATE_MAX_BYTES:
+        raise BadRequestError(
+            "The certificate must be 10 MB or smaller.", error_code="too_large"
+        )
+    kind = certificate_kind(data)
+    if kind is None:
+        raise BadRequestError(
+            "Upload the certificate as a PDF, JPEG or PNG.", error_code="unsupported_file"
+        )
+    content_type, extension = kind
+    state = await db.fetchval(
+        "select status::text from public.affiliate_requests where id = $1", request_id
+    )
+    if state is None:
+        raise NotFoundError("Affiliate request not found.")
+    if state != "pending":
+        raise ConflictError("This application has already been reviewed.")
+    path = f"{request_id}/certificate.{extension}"
+    await storage.upload(
+        bucket=CERTIFICATE_BUCKET, path=path, content=data, content_type=content_type
+    )
+    await db.execute(
+        """
+        update public.affiliate_requests
+           set details = coalesce(details, '{}'::jsonb)
+                         || jsonb_build_object('sec_certificate_path', $2::text,
+                                               'sec_certificate_type', $3::text)
+         where id = $1
+        """,
+        request_id,
+        path,
+        content_type,
+    )
+    log.info("affiliate_certificate_uploaded", request_id=str(request_id))
+    return MessageResponse(message="Certificate received.")
+
+
+@router.get(
+    "/{request_id}/certificate",
+    response_model=CertificateLink,
+    summary="A ten-minute link to an application's SEC certificate (the hub)",
+)
+async def certificate_link(
+    request_id: UUID,
+    admin: AffiliateReviewer,
+    db: DatabaseDep,
+    storage: StorageClientDep,
+) -> CertificateLink:
+    details = _decoded(
+        await db.fetchval(
+            "select details from public.affiliate_requests where id = $1", request_id
+        )
+    )
+    path = (details or {}).get("sec_certificate_path")
+    if not path:
+        raise NotFoundError("No certificate was uploaded with this application.")
+    url = await storage.create_signed_url(bucket=CERTIFICATE_BUCKET, path=str(path), expires_in=600)
+    return CertificateLink(url=url)
 
 
 # --------------------------------------------------------------------------- #
@@ -288,6 +408,77 @@ async def list_affiliate_requests(
             f"select {_COLS} from public.affiliate_requests order by created_at desc"
         )
     return [_to_response(r) for r in rows]
+
+
+# --------------------------------------------------------------------------- #
+# The emails a decision sends (v1.12.53)
+# --------------------------------------------------------------------------- #
+def _declined_email() -> RenderedEmail:
+    """No reason, and nothing the applicant typed: the hub's notes stay internal."""
+    return render_email(
+        preheader="Your application to join RepLiT was not approved.",
+        heading="Your application was not approved",
+        paragraphs=[
+            "Thank you for applying to join RepLiT as an affiliate organization. "
+            "After review, the application was not approved.",
+            "If your organization's details change, you are welcome to apply again "
+            f"at {get_settings().console_base_url}/register.",
+        ],
+        reason="You are receiving this email because this address was given as the "
+        "contact on an application to join RepLiT.",
+    )
+
+
+async def _send_declined_email(email_client: BrevoEmailClient, to: str) -> None:
+    try:
+        message = _declined_email()
+        await email_client.send(
+            to=to,
+            subject="Your RepLiT affiliate application",
+            html=message.html,
+            text=message.text,
+        )
+    except AppError as exc:
+        log.warning("affiliate_declined_email_failed", error=str(exc))
+
+
+def _admin_link_email(organization: str, link: str) -> RenderedEmail:
+    return render_email(
+        preheader=f"Set up the Admin account of {organization} on RepLiT.",
+        heading=f"Set up {organization}'s Admin",
+        paragraphs=[
+            "Your organization's Admin signs in to the RepLiT Admin console on the web, "
+            "where they manage your Coordinators and Responders.",
+            "Choose the Admin's sign-in with the button below. A second email then "
+            "brings the link that sets its password.",
+        ],
+        action=EmailAction("Set up the Admin account", link),
+        facts=["This link works once, for 48 hours."],
+        notice="If you were not expecting this email, you can ignore it. Do not forward "
+        "it, because the link lets whoever opens it set up the Admin account.",
+        reason="You are receiving this email because this address is the contact for "
+        "an affiliate organization accepted on RepLiT.",
+    )
+
+
+async def _send_admin_link(
+    email_client: BrevoEmailClient, org_id: UUID, organization: str, to: str
+) -> bool:
+    """The one-time Admin registration link (answered "One-time Admin link")."""
+    token = make_token(org_id, "admin", ADMIN_FOR, email=to)
+    link = f"{get_settings().console_base_url}/admin-registration?token={token}"
+    try:
+        message = _admin_link_email(organization, link)
+        await email_client.send(
+            to=to,
+            subject=f"Set up {organization}'s Admin on RepLiT",
+            html=message.html,
+            text=message.text,
+        )
+    except AppError as exc:
+        log.warning("affiliate_admin_link_failed", organization_id=str(org_id), error=str(exc))
+        return False
+    return True
 
 
 # --------------------------------------------------------------------------- #
@@ -467,6 +658,9 @@ async def accept_affiliate_request(
             kind=COORDINATOR,
         )
 
+    admin_link_sent = (
+        await _send_admin_link(email_client, org_id, org_name, personal) if personal else False
+    )
     log.info(
         "affiliate_request_approved",
         request_id=str(request_id),
@@ -483,6 +677,7 @@ async def accept_affiliate_request(
         account_created=new_id is not None,
         invite_email_sent=sent,
         detail=detail,
+        admin_link_sent=admin_link_sent,
     )
 
 
@@ -497,8 +692,11 @@ async def reject_affiliate_request(
     request: Request,
     admin: AffiliateReviewer,
     db: DatabaseDep,
+    email_client: EmailClientDep,
+    background: BackgroundTasks,
 ) -> AffiliateRequestResponse:
-    """Reject a pending affiliation request (admin)."""
+    """Reject a pending affiliation request (admin). The applicant is told, without
+    the reason (v1.12.53; answered "Polite email, no reason")."""
     async with db.acquire() as conn, conn.transaction():
         row = await conn.fetchrow(
             f"""
@@ -523,5 +721,7 @@ async def reject_affiliate_request(
             entity_id=request_id,
             metadata={"organization": row["organization_name"], "notes": payload.notes},
         )
+    if row["contact_email"]:
+        background.add_task(_send_declined_email, email_client, str(row["contact_email"]))
     log.info("affiliate_request_rejected", request_id=str(request_id), by=str(admin.id))
     return _to_response(row)

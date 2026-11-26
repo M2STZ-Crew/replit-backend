@@ -30,7 +30,7 @@ from app.services.access import PRESS_CODES, admin_access
 from app.services.alarm_status import UNDER_CONTROL_CODE
 from app.services.fire_code_notify import notify_fire_code
 from app.services.fire_code_rules import assert_responder_may_press
-from app.services.incident import is_coordinator
+from app.services.incident import assert_org_going, is_coordinator
 
 log = get_logger(__name__)
 
@@ -141,6 +141,9 @@ async def press_fire_code(
         )
         if area_exists is None:
             raise NotFoundError("Incident (area) not found.")
+    if payload.area_id is not None and not responder:
+        # Only an organization going to the fire acts on it (v1.12.53).
+        await assert_org_going(db, payload.area_id, user, "press fire codes on it")
     declares = False
     if responder:
         await assert_responder_may_press(db, user, payload.area_id, code["code_number"])

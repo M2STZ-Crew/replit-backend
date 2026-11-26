@@ -47,6 +47,8 @@ class _Db:
         return None
 
     async def fetchval(self, query: str, *args: Any) -> Any:
+        if "d.organization_id = $3" in query:
+            return getattr(self, "going", True)  # the presser's organization is going
         if "dispatch_logs" in query:
             return any(status in args[2] for status in self.responses)
         return 1  # the incident exists

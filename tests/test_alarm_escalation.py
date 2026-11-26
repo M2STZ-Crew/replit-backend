@@ -246,6 +246,8 @@ class _Db:
 
     async def fetchval(self, query: str, *args: Any) -> Any:
         q = " ".join(query.split())
+        if "d.organization_id = $3" in q:
+            return getattr(self, "going", True)  # the asker's organization is going
         if q.startswith("insert into public.alarm_requests"):
             rid = uuid4()
             now = datetime.now(UTC)

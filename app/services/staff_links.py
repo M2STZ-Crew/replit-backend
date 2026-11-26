@@ -123,7 +123,14 @@ def verify_link(user_id: UUID, email: str) -> str:
 # The emails (render_email escapes every value)
 # --------------------------------------------------------------------------- #
 def welcome_email(
-    *, name: str, role: str, organization: str, address: str, link: str, made_by: str
+    *,
+    name: str,
+    role: str,
+    organization: str,
+    address: str,
+    link: str,
+    made_by: str,
+    where: str = "the RepLiT mobile app",
 ) -> RenderedEmail:
     """A new coordinator's or responder's: their sign-in, and the first password."""
     return render_email(
@@ -133,7 +140,7 @@ def welcome_email(
         greeting=f"Hello {name},",
         paragraphs=[
             f"{made_by} has made you a {role} on RepLiT, {TAGLINE}.",
-            f"You sign in to the RepLiT mobile app with {address}.",
+            f"You sign in to {where} with {address}.",
             "Confirm that this email is yours and choose your password with the button "
             "below. If you ever forget your password, we will send the reset link here.",
         ],

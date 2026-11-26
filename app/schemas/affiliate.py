@@ -97,6 +97,8 @@ class AffiliateRequestResponse(BaseModel):
     details: dict[str, Any] | None = None
     created_at: datetime
     updated_at: datetime
+    # Only on the public form's answer: uploads its SEC certificate (v1.12.53).
+    certificate_upload_token: str | None = None
 
 
 class AffiliateAcceptResult(BaseModel):
@@ -109,3 +111,35 @@ class AffiliateAcceptResult(BaseModel):
     account_created: bool = False  # always a new account, never one promoted (v1.12.51)
     invite_email_sent: bool = False
     detail: str | None = None  # human-readable note when provisioning was partial
+    admin_link_sent: bool = False  # the one-time Admin registration link (v1.12.53)
+
+
+class CertificateLink(BaseModel):
+    """A short-lived link to an application's SEC certificate."""
+
+    url: str
+
+
+class AdminRegistrationLink(BaseModel):
+    """What the console's /admin-registration page shows (v1.12.53)."""
+
+    state: Literal["valid", "expired", "used"]
+    organization: str
+    expires_at: datetime
+    suffix: str
+    prefix_help: str
+
+
+class AdminPrefixStatus(BaseModel):
+    status: Literal["available", "taken", "not_allowed"]
+
+
+class AdminRegistrationCreate(BaseModel):
+    token: str = Field(min_length=10, max_length=1000)
+    prefix: str = Field(min_length=1, max_length=60)
+
+
+class AdminRegistrationDone(BaseModel):
+    email: str
+    sent_to: str
+    invite_email_sent: bool = False

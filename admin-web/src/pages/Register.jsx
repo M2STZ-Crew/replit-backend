@@ -95,6 +95,7 @@ export default function Register() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [done, setDone] = useState(false);
+  const [certFailed, setCertFailed] = useState(false);
 
   function setMember(i, key, val) {
     setRoster((r) => r.map((m, idx) => (idx === i ? { ...m, [key]: val } : m)));
@@ -129,7 +130,7 @@ export default function Register() {
     setBusy(true);
     setError(null);
     try {
-      await api.registerAffiliate({
+      const made = await api.registerAffiliate({
         organization_name: orgName.trim(),
         agency_type: agencyType,
         contact_email: email.trim(),
@@ -145,6 +146,14 @@ export default function Register() {
           .map((u) => ({ name: u.name.trim(), type: u.type || null })),
         sec_certificate_name: secFile.name.slice(0, 300),
       });
+      // The certificate itself, privately (v1.12.53). The application is
+      // in either way; the hub asks for the file if it did not arrive.
+      try {
+        if (made?.certificate_upload_token) await api.uploadAffiliateCertificate(made.id, made.certificate_upload_token, secFile);
+        else setCertFailed(true);
+      } catch {
+        setCertFailed(true);
+      }
       setDone(true);
     } catch (err) {
       setError(err.message || t('The application could not be sent. Try again.'));
@@ -170,6 +179,8 @@ export default function Register() {
               <MailIcon />
               <span>{t('A confirmation is on its way to')}{' '}<strong>{email.trim()}</strong>{t('. Once an admin approves the application, a second email there will have your Coordinator sign-in and a link to set its password. Check your spam folder if either is not in your inbox.')}</span>
             </div>
+
+            {certFailed && <div className="lg-error" role="status">{t('Your certificate didn’t upload. The central hub will ask you for it.')}</div>}
 
             <button type="button" className="lg-submit" onClick={() => navigate('/login')}>{t('Back to sign in')}</button>
           </div>
@@ -299,7 +310,7 @@ export default function Register() {
                 </span>
               </button>
               <input ref={fileRef} type="file" accept=".pdf,image/*" hidden onChange={onFile} />
-              <span className="rg-hint">{t('Only the file’s name is sent for now. The hub will ask you for the certificate.')}</span>
+              <span className="rg-hint">{t('Only the central hub can open it.')}</span>
             </div>
           </section>
 
@@ -407,7 +418,10 @@ export default function Register() {
             <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
             <span>{t('I agree to the Terms and Agreements and acknowledge the privacy policy on sensitive emergency data.')}</span>
           </label>
-          <a className="lg-link" href="https://reportwhatslit-app.vercel.app/privacy" target="_blank" rel="noopener">{t('Read the privacy policy')}</a>
+          <span className="rg-links">
+            <a className="lg-link" href="https://reportwhatslit-app.vercel.app/terms" target="_blank" rel="noopener">{t('Read the Terms')}</a>
+            <a className="lg-link" href="https://reportwhatslit-app.vercel.app/privacy" target="_blank" rel="noopener">{t('Read the privacy policy')}</a>
+          </span>
 
           {error && <div className="lg-error" role="alert">{error}</div>}
 

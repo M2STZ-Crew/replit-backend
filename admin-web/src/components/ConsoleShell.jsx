@@ -1,3 +1,4 @@
+import { useLiveEvents } from '../live/socket.js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { api } from '../api/client.js';
@@ -63,6 +64,8 @@ export default function ConsoleShell({ active, onNavigate, children }) {
   const [queues, setQueues] = useState({ affiliates: 0, ids: 0, requests: 0, strikes: 0, water: 0 });
   const [queueTick, setQueueTick] = useState(0);
   const refreshQueues = useCallback(() => setQueueTick((t) => t + 1), []);
+  // A new escalation or application counts at once (v1.12.53).
+  useLiveEvents(refreshQueues);
   // The directory says when it is still being read, or couldn't be: to
   // Organization both looked like an account with no organization.
   const [directory, setDirectory] = useState({ phase: 'loading', rows: [] });

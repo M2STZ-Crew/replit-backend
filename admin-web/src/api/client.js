@@ -11,6 +11,11 @@ import { t as tr } from '../i18n/i18n.jsx';
 const BASE = (import.meta.env.VITE_API_BASE || 'http://localhost:8000').replace(/\/+$/, '');
 const TOKEN_KEY = 'replit_admin_token';
 
+/// The server's live channel (v1.12.53; live/socket.js).
+export function liveSocketUrl(token) {
+  return `${BASE.replace(/^http/, 'ws')}/ws?token=${encodeURIComponent(token)}`;
+}
+
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -158,6 +163,28 @@ export const api = {
   // "Forgot password?": the server emails a reset link and answers the same
   // way whether or not the address has an account.
   recover: (email) => request('/auth/recover', { method: 'POST', auth: false, body: { email } }),
+  // The SEC certificate, right after the form (v1.12.53): no account, the
+  // application's own one-hour token.
+  uploadAffiliateCertificate: async (id, token, file) => {
+    const body = new FormData();
+    body.append('token', token);
+    body.append('file', file);
+    const resp = await fetch(`${BASE}/affiliates/register/${id}/certificate`, { method: 'POST', body });
+    let data = {};
+    try { data = await resp.json(); } catch { /* not JSON */ }
+    if (!resp.ok) throw new ApiError(data.message || tr('The certificate could not be uploaded.'), resp.status, data.error ?? null);
+    return data;
+  },
+  affiliateCertificate: (id) => request(`/affiliates/${id}/certificate`),
+  // An accepted organization sets up its Admin (v1.12.53).
+  adminRegistration: (token) =>
+    request(`/affiliates/admin-registration?token=${encodeURIComponent(token)}`, { auth: false }),
+  adminRegistrationCheck: (token, prefix) => request(
+    `/affiliates/admin-registration/check?token=${encodeURIComponent(token)}&prefix=${encodeURIComponent(prefix)}`,
+    { auth: false },
+  ),
+  adminRegistrationCreate: (token, prefix) =>
+    request('/affiliates/admin-registration', { method: 'POST', auth: false, body: { token, prefix } }),
   // Public affiliate registration (no account required).
   registerAffiliate: (payload) =>
     request('/affiliates/register', { method: 'POST', auth: false, body: payload }),

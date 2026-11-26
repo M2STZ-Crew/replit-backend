@@ -69,7 +69,7 @@ from app.services import fire_broadcast
 from app.services.access import DECIDE_ALARM, REQUEST_ALARM, admin_access
 from app.services.alarm_notify import notify_alarm_raised
 from app.services.audit import record_audit
-from app.services.incident import OFF_FEED_STATUSES, assert_admin_routed
+from app.services.incident import OFF_FEED_STATUSES, assert_admin_routed, assert_org_going
 from app.services.incident_notify import (
     notify_alarm_request_answered,
     notify_bfp_alarm_request,
@@ -255,6 +255,7 @@ async def create_alarm_request(
             "Coordinators, may ask for an alarm escalation."
         )
     await assert_admin_routed(db, payload.area_id, user, "ask BFP to raise its alarm")
+    await assert_org_going(db, payload.area_id, user, "ask BFP to raise its alarm")
     level = payload.requested_alarm_level
     # A refusal in words rather than a 422: an older app still offers this level.
     if level == INITIAL_ALARM_LEVEL:

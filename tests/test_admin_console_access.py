@@ -125,7 +125,9 @@ def test_the_central_hub_does_everything_all_in_one() -> None:
     # web (not separated admin, fire, medic and barangay; it is all in one)".
     hub = A.admin_access(_admin("barangay", hub=True, name="Barangay 76 Zone 10 Pasay"))
     assert hub is not None and hub.variant == "central" and hub.scope == "central"
-    assert hub.permissions == A._SYSTEM | {A.REQUEST_ALARM, A.DECIDE_ALARM}
+    # 26 Nov 2026: only BFP sets alarm levels; the hub asks, like Fire Volunteers.
+    assert hub.permissions == A._SYSTEM | {A.REQUEST_ALARM}
+    assert A.DECIDE_ALARM not in hub.permissions
     assert hub.act_agencies is None
     for asked in (["fire_volunteer"], ["bfp"], ["police"], ["medical"], ["barangay"], []):
         assert hub.acts_on(asked)
